@@ -1,0 +1,11 @@
+{
+  "name": "example: esp32-tft",
+  "project": "../../projects/esp32-tft-demo.json",
+  "firmware": {
+    "esp": "../../firmware/esp32/tft-demo.bin"
+  },
+  "expect": [
+    "serial contains \"drawn\" by 1s",
+    "serial matches /^1\\r?$/m by 1500ms"
+  ]
+}

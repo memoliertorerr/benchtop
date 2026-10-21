@@ -1,0 +1,30 @@
+{
+  "name": "example: esp32-pwm-fader",
+  "project": "../../projects/esp32-pwm-fader.json",
+  "firmware": {
+    "esp": "../../firmware/esp32/pwm-fader.bin"
+  },
+  "steps": [
+    {
+      "at": "1s",
+      "part": "pot",
+      "input": {
+        "kind": "value",
+        "value": 0.1
+      }
+    },
+    {
+      "at": "1500ms",
+      "part": "pot",
+      "input": {
+        "kind": "value",
+        "value": 0.9
+      }
+    }
+  ],
+  "expect": [
+    "pin esp:D18 duty is 50% ±5 between 700ms and 1s",
+    "pin esp:D18 duty is 10% ±5 between 1200ms and 1500ms",
+    "pin esp:D18 duty is 90% ±5 between 1700ms and 2s"
+  ]
+}

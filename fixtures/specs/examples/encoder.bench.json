@@ -1,0 +1,30 @@
+{
+  "name": "example: encoder",
+  "project": "../../projects/encoder.json",
+  "firmware": {
+    "uno": "../../firmware/uno/encoder-count.hex"
+  },
+  "steps": [
+    {
+      "at": "300ms",
+      "part": "enc",
+      "input": {
+        "kind": "key",
+        "key": "cw",
+        "down": true
+      }
+    },
+    {
+      "at": "600ms",
+      "part": "enc",
+      "input": {
+        "kind": "key",
+        "key": "cw",
+        "down": true
+      }
+    }
+  ],
+  "expect": [
+    "serial contains \"count=2\" by 2s"
+  ]
+}

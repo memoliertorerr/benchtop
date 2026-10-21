@@ -1,0 +1,10 @@
+{
+  "name": "example: lcd-i2c",
+  "project": "../../projects/lcd-i2c.json",
+  "firmware": {
+    "uno": "../../firmware/uno/lcd-i2c.hex"
+  },
+  "expect": [
+    "lcd lcd1 row 0 is \"Hello, Benchtop!\" at 1200ms"
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "format": 1,
+  "name": "esp32-mic-level",
+  "parts": [
+    {
+      "id": "esp",
+      "type": "esp32-devkit-v1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "mic1",
+      "type": "microphone",
+      "x": -30.48,
+      "y": 30.48,
+      "rotation": 0,
+      "props": {
+        "gain": 1
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "mic1",
+        "pin": "OUT"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "D34"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "mic1",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "3V3"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "mic1",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "esp": {
+      "kind": "file",
+      "name": "mic-level.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "blink: D13 toggles every 500 ms",
+  "project": "../projects/blink-led.json",
+  "firmware": { "uno": "../firmware/uno/blink.hex" },
+  "expect": [
+    "serial contains \"hello\" by 100ms",
+    "pin uno:13 is 1 at 250ms",
+    "pin uno:13 is 0 at 750ms",
+    "led led1 is lit at 1250ms",
+    "pin uno:13 frequency is 1 Hz ±0.5% between 0ms and 2s",
+    "pin uno:13 duty is 50% ±0.5 between 0ms and 2s"
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "format": 1,
+  "name": "esp32-dac-sine",
+  "parts": [
+    {
+      "id": "esp",
+      "type": "esp32-devkit-v1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "spk1",
+      "type": "speaker",
+      "x": -33.02,
+      "y": 20.32,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "esp",
+        "pin": "D25"
+      },
+      "to": {
+        "part": "spk1",
+        "pin": "1"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "spk1",
+        "pin": "2"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "esp": {
+      "kind": "file",
+      "name": "dac-sine.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

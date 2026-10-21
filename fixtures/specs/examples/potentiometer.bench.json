@@ -1,0 +1,10 @@
+{
+  "name": "example: potentiometer",
+  "project": "../../projects/analog-pot.json",
+  "firmware": {
+    "uno": "../../firmware/uno/analog-read.hex"
+  },
+  "expect": [
+    "serial matches /^5(0[89]|1\\d)\\r?$/m by 1s"
+  ]
+}

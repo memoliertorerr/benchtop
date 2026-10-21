@@ -1,0 +1,33 @@
+
+sync.elf:     file format elf32-xtensa-le
+
+
+Disassembly of section .text:
+
+40080000 <_start>:
+40080000:	000306        	j	40080010 <_start+0x10>
+40080003:	00          	.byte 00
+40080004:	00 00 fc 3f 	
+40080008:	00 00 fb 3f 	
+4008000c:	5a 5a 5a 5a 	
+40080010:	fffd11        	l32r	a1, 40080004 <_start+0x4>
+40080013:	120c      	movi.n	a2, 1
+40080015:	230c      	movi.n	a3, 2
+40080017:	340c      	movi.n	a4, 3
+40080019:	450c      	movi.n	a5, 4
+4008001b:	560c      	movi.n	a6, 5
+4008001d:	670c      	movi.n	a7, 6
+4008001f:	fffa81        	l32r	a8, 40080008 <_start+0x8>
+40080022:	fffa91        	l32r	a9, 4008000c <_start+0xc>
+40080025:	0899      	s32i.n	a9, a8, 0
+40080027:	002000        	isync
+4008002a:	002010        	rsync
+4008002d:	002020        	esync
+40080030:	002030        	dsync
+40080033:	0020c0        	memw
+40080036:	0020d0        	extw
+40080039:	002080        	excw
+4008003c:	f03d      	nop.n
+4008003e:	f03d      	nop.n
+40080040:	0041f0        	break	1, 15
+	...

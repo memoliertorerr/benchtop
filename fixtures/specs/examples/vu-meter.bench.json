@@ -1,0 +1,11 @@
+{
+  "name": "example: vu-meter",
+  "project": "../../projects/vu-meter.json",
+  "firmware": {
+    "uno": "../../firmware/uno/vu-meter.hex"
+  },
+  "expect": [
+    "pin uno:2 is 0 at 1s",
+    "pin uno:6 is 0 at 1s"
+  ]
+}

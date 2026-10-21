@@ -1,0 +1,13 @@
+{
+  "name": "example: buzzer",
+  "project": "../../projects/buzzer.json",
+  "firmware": {
+    "uno": "../../firmware/uno/buzzer.hex"
+  },
+  "expect": [
+    "serial contains \"440\" by 100ms",
+    "pin uno:8 frequency is 440 Hz ±1% between 50ms and 450ms",
+    "pin uno:8 frequency is 880 Hz ±1% between 550ms and 950ms",
+    "pin uno:7 is 1 at 1200ms"
+  ]
+}

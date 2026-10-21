@@ -1,0 +1,216 @@
+{
+  "format": 1,
+  "name": "keypad-lock",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "pad",
+      "type": "membrane-keypad",
+      "x": 4,
+      "y": -112,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "servo",
+      "type": "servo",
+      "x": 80,
+      "y": -40,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "bz",
+      "type": "buzzer",
+      "x": 82,
+      "y": 20,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "pad",
+        "pin": "R1"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "9"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "pad",
+        "pin": "R2"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "8"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "pad",
+        "pin": "R3"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "7"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "pad",
+        "pin": "R4"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "6"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "pad",
+        "pin": "C1"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "pad",
+        "pin": "C2"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "4"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "pad",
+        "pin": "C3"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "3"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w8",
+      "from": {
+        "part": "pad",
+        "pin": "C4"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w9",
+      "from": {
+        "part": "servo",
+        "pin": "PWM"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "10"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w10",
+      "from": {
+        "part": "servo",
+        "pin": "V+"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w11",
+      "from": {
+        "part": "servo",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w12",
+      "from": {
+        "part": "uno",
+        "pin": "11"
+      },
+      "to": {
+        "part": "bz",
+        "pin": "1"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w13",
+      "from": {
+        "part": "bz",
+        "pin": "2"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "keypad-lock.hex",
+      "format": "hex"
+    }
+  }
+}

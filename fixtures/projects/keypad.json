@@ -1,0 +1,207 @@
+{
+  "format": 1,
+  "name": "keypad",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "pad",
+      "type": "membrane-keypad",
+      "x": 4,
+      "y": -112,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "pad",
+        "pin": "R1"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "9"
+      },
+      "waypoints": [
+        {
+          "x": 30.458,
+          "y": -15.8
+        },
+        {
+          "x": 43.127,
+          "y": -15.8
+        }
+      ],
+      "color": "orange"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "pad",
+        "pin": "R2"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "8"
+      },
+      "waypoints": [
+        {
+          "x": 33.104,
+          "y": -14.4
+        },
+        {
+          "x": 45.773,
+          "y": -14.4
+        }
+      ],
+      "color": "orange"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "pad",
+        "pin": "R3"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "7"
+      },
+      "waypoints": [
+        {
+          "x": 35.618,
+          "y": -13
+        },
+        {
+          "x": 50.006,
+          "y": -13
+        }
+      ],
+      "color": "orange"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "pad",
+        "pin": "R4"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "6"
+      },
+      "waypoints": [
+        {
+          "x": 38.131,
+          "y": -11.6
+        },
+        {
+          "x": 52.52,
+          "y": -11.6
+        }
+      ],
+      "color": "orange"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "pad",
+        "pin": "C1"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5"
+      },
+      "waypoints": [
+        {
+          "x": 40.645,
+          "y": -10.2
+        },
+        {
+          "x": 55.033,
+          "y": -10.2
+        }
+      ],
+      "color": "blue"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "pad",
+        "pin": "C2"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "4"
+      },
+      "waypoints": [
+        {
+          "x": 43.158,
+          "y": -8.8
+        },
+        {
+          "x": 57.547,
+          "y": -8.8
+        }
+      ],
+      "color": "blue"
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "pad",
+        "pin": "C3"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "3"
+      },
+      "waypoints": [
+        {
+          "x": 45.738,
+          "y": -7.4
+        },
+        {
+          "x": 60.06,
+          "y": -7.4
+        }
+      ],
+      "color": "blue"
+    },
+    {
+      "id": "w8",
+      "from": {
+        "part": "pad",
+        "pin": "C4"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "2"
+      },
+      "waypoints": [
+        {
+          "x": 48.318,
+          "y": -6
+        },
+        {
+          "x": 62.574,
+          "y": -6
+        }
+      ],
+      "color": "blue"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "keypad-scan.hex",
+      "format": "hex"
+    }
+  }
+}

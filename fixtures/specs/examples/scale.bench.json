@@ -1,0 +1,21 @@
+{
+  "name": "example: scale",
+  "project": "../../projects/scale.json",
+  "firmware": {
+    "uno": "../../firmware/uno/scale.hex"
+  },
+  "steps": [
+    {
+      "at": "700ms",
+      "part": "cell",
+      "input": {
+        "kind": "value",
+        "value": 750
+      }
+    }
+  ],
+  "expect": [
+    "serial contains \"tared\" by 300ms",
+    "serial contains \"g=750.0\" by 2s"
+  ]
+}

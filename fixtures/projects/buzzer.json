@@ -1,0 +1,132 @@
+{
+  "format": 1,
+  "name": "buzzer",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "bz1",
+      "type": "buzzer",
+      "x": 40,
+      "y": -40,
+      "rotation": 0,
+      "props": {
+        "type": "passive"
+      }
+    },
+    {
+      "id": "bz2",
+      "type": "buzzer",
+      "x": 62,
+      "y": -40,
+      "rotation": 0,
+      "props": {
+        "type": "active",
+        "frequency": 2300
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "bz1",
+        "pin": "1"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "8"
+      },
+      "waypoints": [
+        {
+          "x": 47.144,
+          "y": -4
+        },
+        {
+          "x": 45.773,
+          "y": -4
+        }
+      ],
+      "color": "orange"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "bz1",
+        "pin": "2"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [
+        {
+          "x": 49.79,
+          "y": -5.5
+        },
+        {
+          "x": 30.559,
+          "y": -5.5
+        }
+      ],
+      "color": "black"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "bz2",
+        "pin": "1"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "7"
+      },
+      "waypoints": [
+        {
+          "x": 69.144,
+          "y": -7
+        },
+        {
+          "x": 50.006,
+          "y": -7
+        }
+      ],
+      "color": "yellow"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "bz2",
+        "pin": "2"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [
+        {
+          "x": 71.79,
+          "y": -8.5
+        },
+        {
+          "x": 30.559,
+          "y": -8.5
+        }
+      ],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "buzzer.hex",
+      "format": "hex"
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "name": "example: ir-remote",
+  "project": "../../projects/ir-remote.json",
+  "firmware": {
+    "uno": "../../firmware/uno/ir-decode.hex"
+  },
+  "steps": [
+    {
+      "at": "100ms",
+      "part": "ir1",
+      "input": {
+        "kind": "key",
+        "key": "ir:0x30",
+        "down": true
+      }
+    },
+    {
+      "at": "130ms",
+      "part": "ir1",
+      "input": {
+        "kind": "key",
+        "key": "ir:0x30",
+        "down": false
+      }
+    },
+    {
+      "at": "400ms",
+      "part": "ir1",
+      "input": {
+        "kind": "key",
+        "key": "ir:0xa8",
+        "down": true
+      }
+    },
+    {
+      "at": "700ms",
+      "part": "ir1",
+      "input": {
+        "kind": "key",
+        "key": "ir:0xa8",
+        "down": false
+      }
+    }
+  ],
+  "expect": [
+    "serial contains \"key 1 0x30\" by 300ms",
+    "serial contains \"key play 0xA8\" by 500ms",
+    "serial matches /repeat\\r?\\nrepeat/ by 700ms",
+    "pin ir1:DAT is 1 at 800ms"
+  ]
+}

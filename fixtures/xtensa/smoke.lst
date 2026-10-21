@@ -1,0 +1,21 @@
+
+smoke.elf:     file format elf32-xtensa-le
+
+
+Disassembly of section .text:
+
+40080000 <_start>:
+40080000:	000206        	j	4008000c <_start+0xc>
+40080003:	00          	.byte 00
+40080004:	00 00 fc 3f 	
+40080008:	00 00 fb 3f 	
+4008000c:	fffe11        	l32r	a1, 40080004 <_start+0x4>
+4008000f:	020c      	movi.n	a2, 0
+40080011:	130c      	movi.n	a3, 1
+40080013:	a40c      	movi.n	a4, 10
+40080015:	223a      	add.n	a2, a2, a3
+40080017:	331b      	addi.n	a3, a3, 1
+40080019:	f8a437        	bge	a4, a3, 40080015 <_start+0x15>
+4008001c:	fffb51        	l32r	a5, 40080008 <_start+0x8>
+4008001f:	0529      	s32i.n	a2, a5, 0
+40080021:	0041f0        	break	1, 15

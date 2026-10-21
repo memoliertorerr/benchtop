@@ -1,0 +1,74 @@
+
+density.elf:     file format elf32-xtensa-le
+
+
+Disassembly of section .text:
+
+40080000 <_start>:
+40080000:	000406        	j	40080014 <_start+0x14>
+40080003:	00          	.byte 00
+40080004:	00 00 fc 3f 	
+40080008:	00 04 fb 3f 	
+4008000c:	00 00 fb 3f 	
+40080010:	ad 0b 00 00 	
+40080014:	fffc11        	l32r	a1, 40080004 <_start+0x4>
+40080017:	fffcf1        	l32r	a15, 40080008 <_start+0x8>
+4008001a:	026c      	movi.n	a2, -32
+4008001c:	0f29      	s32i.n	a2, a15, 0
+4008001e:	ff4b      	addi.n	a15, a15, 4
+40080020:	f25c      	movi.n	a2, 95
+40080022:	0f29      	s32i.n	a2, a15, 0
+40080024:	ff4b      	addi.n	a15, a15, 4
+40080026:	730c      	movi.n	a3, 7
+40080028:	034d      	mov.n	a4, a3
+4008002a:	0f49      	s32i.n	a4, a15, 0
+4008002c:	ff4b      	addi.n	a15, a15, 4
+4008002e:	534a      	add.n	a5, a3, a4
+40080030:	0f59      	s32i.n	a5, a15, 0
+40080032:	ff4b      	addi.n	a15, a15, 4
+40080034:	550b      	addi.n	a5, a5, -1
+40080036:	0f59      	s32i.n	a5, a15, 0
+40080038:	ff4b      	addi.n	a15, a15, 4
+4008003a:	55fb      	addi.n	a5, a5, 15
+4008003c:	0f59      	s32i.n	a5, a15, 0
+4008003e:	ff4b      	addi.n	a15, a15, 4
+40080040:	fff361        	l32r	a6, 4008000c <_start+0xc>
+40080043:	f659      	s32i.n	a5, a6, 60
+40080045:	f678      	l32i.n	a7, a6, 60
+40080047:	0f79      	s32i.n	a7, a15, 0
+40080049:	ff4b      	addi.n	a15, a15, 4
+4008004b:	080c      	movi.n	a8, 0
+4008004d:	0a0c      	movi.n	a10, 0
+4008004f:	188c      	beqz.n	a8, 40080054 <_start+0x54>
+40080051:	000d06        	j	40080089 <_start+0x89>
+40080054:	aa1b      	addi.n	a10, a10, 1
+40080056:	0fa9      	s32i.n	a10, a15, 0
+40080058:	ff4b      	addi.n	a15, a15, 4
+4008005a:	b3ac      	beqz.n	a3, 40080089 <_start+0x89>
+4008005c:	aa1b      	addi.n	a10, a10, 1
+4008005e:	0fa9      	s32i.n	a10, a15, 0
+40080060:	ff4b      	addi.n	a15, a15, 4
+40080062:	23cc      	bnez.n	a3, 40080068 <_start+0x68>
+40080064:	000846        	j	40080089 <_start+0x89>
+40080067:	00          	.byte 00
+40080068:	01caa2        	addi	a10, a10, 1
+4008006b:	006fa2        	s32i	a10, a15, 0
+4008006e:	04cff2        	addi	a15, a15, 4
+40080071:	48dc      	bnez.n	a8, 40080089 <_start+0x89>
+40080073:	aa1b      	addi.n	a10, a10, 1
+40080075:	0fa9      	s32i.n	a10, a15, 0
+40080077:	ff4b      	addi.n	a15, a15, 4
+40080079:	f03d      	nop.n
+4008007b:	0fa9      	s32i.n	a10, a15, 0
+4008007d:	ff4b      	addi.n	a15, a15, 4
+4008007f:	000105        	call0	40080090 <sub>
+40080082:	0f99      	s32i.n	a9, a15, 0
+40080084:	ff4b      	addi.n	a15, a15, 4
+40080086:	0041f0        	break	1, 15
+40080089:	ffe121        	l32r	a2, 40080010 <_start+0x10>
+4008008c:	0041f0        	break	1, 15
+	...
+
+40080090 <sub>:
+40080090:	d94c      	movi.n	a9, 77
+40080092:	f00d      	ret.n

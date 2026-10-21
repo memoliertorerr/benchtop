@@ -1,0 +1,89 @@
+{
+  "format": 1,
+  "name": "mega-serial-ports",
+  "parts": [
+    {
+      "id": "mega",
+      "type": "arduino-mega",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "mega",
+        "pin": "14"
+      },
+      "to": {
+        "part": "mega",
+        "pin": "15"
+      },
+      "waypoints": [
+        {
+          "x": 71.57,
+          "y": -3.5
+        },
+        {
+          "x": 74.083,
+          "y": -3.5
+        }
+      ],
+      "color": "orange"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "mega",
+        "pin": "16"
+      },
+      "to": {
+        "part": "mega",
+        "pin": "17"
+      },
+      "waypoints": [
+        {
+          "x": 76.597,
+          "y": -3.5
+        },
+        {
+          "x": 79.11,
+          "y": -3.5
+        }
+      ],
+      "color": "yellow"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "mega",
+        "pin": "18"
+      },
+      "to": {
+        "part": "mega",
+        "pin": "19"
+      },
+      "waypoints": [
+        {
+          "x": 81.624,
+          "y": -3.5
+        },
+        {
+          "x": 84.27,
+          "y": -3.5
+        }
+      ],
+      "color": "blue"
+    }
+  ],
+  "firmware": {
+    "mega": {
+      "kind": "file",
+      "name": "serial-ports.hex",
+      "format": "hex"
+    }
+  }
+}

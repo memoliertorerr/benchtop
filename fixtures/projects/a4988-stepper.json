@@ -1,0 +1,234 @@
+{
+  "format": 1,
+  "name": "a4988-stepper",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "drv",
+      "type": "a4988",
+      "x": 90,
+      "y": 5,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "motor",
+      "type": "stepper-bipolar",
+      "x": 120,
+      "y": -5,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "drv",
+        "pin": "STEP"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "3"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "drv",
+        "pin": "DIR"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "4"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "drv",
+        "pin": "MS1"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5"
+      },
+      "waypoints": [],
+      "color": "gray"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "drv",
+        "pin": "MS2"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "6"
+      },
+      "waypoints": [],
+      "color": "gray"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "drv",
+        "pin": "MS3"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "7"
+      },
+      "waypoints": [],
+      "color": "gray"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "drv",
+        "pin": "RESET"
+      },
+      "to": {
+        "part": "drv",
+        "pin": "SLEEP"
+      },
+      "waypoints": [],
+      "color": "purple"
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "drv",
+        "pin": "VDD"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w8",
+      "from": {
+        "part": "drv",
+        "pin": "GND.2"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w9",
+      "from": {
+        "part": "drv",
+        "pin": "VMOT"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w10",
+      "from": {
+        "part": "drv",
+        "pin": "GND.1"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.3"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w11",
+      "from": {
+        "part": "drv",
+        "pin": "1A"
+      },
+      "to": {
+        "part": "motor",
+        "pin": "A+"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w12",
+      "from": {
+        "part": "drv",
+        "pin": "1B"
+      },
+      "to": {
+        "part": "motor",
+        "pin": "A-"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w13",
+      "from": {
+        "part": "drv",
+        "pin": "2A"
+      },
+      "to": {
+        "part": "motor",
+        "pin": "B+"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w14",
+      "from": {
+        "part": "drv",
+        "pin": "2B"
+      },
+      "to": {
+        "part": "motor",
+        "pin": "B-"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w15",
+      "from": {
+        "part": "drv",
+        "pin": "ENABLE"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "a4988-stepper.hex",
+      "format": "hex"
+    }
+  }
+}

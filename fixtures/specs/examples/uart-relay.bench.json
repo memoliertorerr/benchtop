@@ -1,0 +1,11 @@
+{
+  "name": "example: uart-relay",
+  "project": "../../projects/uno-esp32-uart-divider.json",
+  "firmware": {
+    "uno": "../../firmware/uno/uart-ping.hex",
+    "esp": "../../firmware/esp32/uart-relay.bin"
+  },
+  "expect": [
+    "serial[esp] contains \"ping\" by 2s"
+  ]
+}

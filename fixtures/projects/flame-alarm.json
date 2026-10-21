@@ -1,0 +1,120 @@
+{
+  "format": 1,
+  "name": "flame-alarm",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "flame",
+      "type": "flame-sensor",
+      "x": 85,
+      "y": 0,
+      "rotation": 0,
+      "props": {
+        "intensity": 0,
+        "threshold": 0.5
+      }
+    },
+    {
+      "id": "bz1",
+      "type": "buzzer",
+      "x": 90,
+      "y": 30,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "flame",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "flame",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "flame",
+        "pin": "DOUT"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "flame",
+        "pin": "AOUT"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "A0"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "bz1",
+        "pin": "1"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "8"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "bz1",
+        "pin": "2"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "flame-alarm.hex",
+      "format": "hex"
+    }
+  }
+}

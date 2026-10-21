@@ -1,0 +1,22 @@
+{
+  "name": "example: gas-meter",
+  "project": "../../projects/gas-meter.json",
+  "firmware": {
+    "uno": "../../firmware/uno/gas-meter.hex"
+  },
+  "steps": [
+    {
+      "at": "300ms",
+      "part": "gas",
+      "input": {
+        "kind": "value",
+        "value": 2000
+      }
+    }
+  ],
+  "expect": [
+    "serial matches /^a0=9\\d alarm=0\\r?$/m by 100ms",
+    "serial matches /alarm=1/ by 800ms",
+    "pin uno:13 is 1 at 800ms"
+  ]
+}

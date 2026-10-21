@@ -1,0 +1,14 @@
+{
+  "name": "@benchtop/esp32",
+  "version": "0.0.0",
+  "private": true,
+  "description": "ESP32 MCU adapter. DOM-free.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@benchtop/core": "0.0.0"
+  }
+}

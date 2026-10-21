@@ -1,0 +1,14 @@
+{
+  "name": "example: mega-chaser",
+  "project": "../../projects/mega-chaser.json",
+  "firmware": {
+    "mega": "../../firmware/mega/chaser.hex"
+  },
+  "expect": [
+    "pin mega:23 is 1 at 50ms",
+    "pin mega:25 is 1 at 150ms",
+    "pin mega:41 is 1 at 950ms",
+    "pin mega:39 is 1 at 1050ms",
+    "pin mega:23 is 0 at 1050ms"
+  ]
+}

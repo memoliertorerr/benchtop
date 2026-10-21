@@ -1,0 +1,17 @@
+{
+  "name": "example: traffic-light",
+  "project": "../../projects/traffic-light.json",
+  "firmware": {
+    "uno": "../../firmware/uno/traffic-light.hex"
+  },
+  "expect": [
+    "led led1 is lit at 350ms",
+    "led led2 is dark at 350ms",
+    "led led3 is dark at 350ms",
+    "led led2 is lit at 850ms",
+    "led led3 is lit at 1350ms",
+    "led led1 is dark at 1350ms",
+    "led led2 is lit at 1850ms",
+    "led led3 is dark at 1850ms"
+  ]
+}

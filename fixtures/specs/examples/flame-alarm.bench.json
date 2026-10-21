@@ -1,0 +1,23 @@
+{
+  "name": "example: flame-alarm",
+  "project": "../../projects/flame-alarm.json",
+  "firmware": {
+    "uno": "../../firmware/uno/flame-alarm.hex"
+  },
+  "steps": [
+    {
+      "at": "300ms",
+      "part": "flame",
+      "input": {
+        "kind": "value",
+        "value": 0.8
+      }
+    }
+  ],
+  "expect": [
+    "serial matches /^clear a0=10\\d\\d\\r?$/m by 100ms",
+    "serial matches /^FLAME a0=\\d+\\r?$/m by 400ms",
+    "pin uno:8 frequency is 2000 Hz \u00b11% between 400ms and 600ms",
+    "pin uno:13 is 1 at 600ms"
+  ]
+}

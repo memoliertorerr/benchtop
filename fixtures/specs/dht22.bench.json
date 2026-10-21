@@ -1,0 +1,6 @@
+{
+  "name": "DHT22: Adafruit's library reads 23.4 °C, 45.6 %",
+  "project": "../projects/dht22.json",
+  "firmware": { "uno": "../firmware/uno/dht22-adafruit.hex" },
+  "expect": ["serial contains \"T=23.40 H=45.60\" by 2300ms"]
+}

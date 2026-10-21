@@ -1,0 +1,70 @@
+{
+  "format": 1,
+  "name": "esp32-neopixel",
+  "parts": [
+    {
+      "id": "esp",
+      "type": "esp32-devkit-v1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "strip",
+      "type": "neopixel-strip",
+      "x": 40,
+      "y": -20,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "esp",
+        "pin": "D4"
+      },
+      "to": {
+        "part": "strip",
+        "pin": "DIN"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "esp",
+        "pin": "3V3"
+      },
+      "to": {
+        "part": "strip",
+        "pin": "VCC"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "esp",
+        "pin": "GND.2"
+      },
+      "to": {
+        "part": "strip",
+        "pin": "GND"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "esp": {
+      "kind": "file",
+      "name": "neopixel.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

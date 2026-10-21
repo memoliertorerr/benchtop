@@ -1,0 +1,13 @@
+{
+  "name": "example: speaker-melody",
+  "project": "../../projects/speaker-melody.json",
+  "firmware": {
+    "uno": "../../firmware/uno/speaker-melody.hex"
+  },
+  "expect": [
+    "serial contains \"melody\" by 100ms",
+    "pin uno:8 frequency is 440 Hz ±0.5% between 50ms and 200ms",
+    "pin uno:8 frequency is 523 Hz ±0.5% between 300ms and 450ms",
+    "pin uno:8 frequency is 661.4 Hz ±0.5% between 550ms and 700ms"
+  ]
+}

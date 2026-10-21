@@ -1,0 +1,131 @@
+{
+  "format": 1,
+  "name": "esp32-pwm-fader",
+  "parts": [
+    {
+      "id": "esp",
+      "type": "esp32-devkit-v1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "pot",
+      "type": "potentiometer",
+      "x": -30,
+      "y": 10,
+      "rotation": 0,
+      "props": {
+        "value": 0.5
+      }
+    },
+    {
+      "id": "r1",
+      "type": "resistor",
+      "x": 40,
+      "y": -14,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led1",
+      "type": "led",
+      "x": 36,
+      "y": -40,
+      "rotation": 0,
+      "props": {
+        "color": "blue"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "pot",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "3V3"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "pot",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "pot",
+        "pin": "SIG"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "D34"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "esp",
+        "pin": "D18"
+      },
+      "to": {
+        "part": "r1",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "r1",
+        "pin": "1"
+      },
+      "to": {
+        "part": "led1",
+        "pin": "A"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "led1",
+        "pin": "C"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "esp": {
+      "kind": "file",
+      "name": "pwm-fader.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

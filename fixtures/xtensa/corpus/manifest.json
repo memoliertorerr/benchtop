@@ -1,0 +1,54 @@
+{
+  "objdump": "GNU objdump (crosstool-NG esp-2021r2-patch5) 2.35.1.20201223",
+  "corpora": [
+    {
+      "name": "isa-all",
+      "rows": 1599,
+      "raw": [
+        {
+          "file": "isa-all.bin.gz",
+          "address": 1074266112,
+          "bytes": 4664
+        }
+      ],
+      "layout": "the linked program at 0x40080000: the literal pool (each 0xf03df03d), then the instructions"
+    },
+    {
+      "name": "narrow16",
+      "rows": 65536,
+      "raw": [],
+      "layout": "not committed: 3-byte slot i at address 3*i holds [i & 0xff, i >> 8, 0x00]"
+    },
+    {
+      "name": "wide24",
+      "rows": 65536,
+      "raw": [
+        {
+          "file": "wide24.bin.gz",
+          "address": 0,
+          "bytes": 196608
+        }
+      ],
+      "layout": "3-byte slot per word at address 3*i, order op2, op1, r, op0 (outer to inner)"
+    },
+    {
+      "name": "serial-hello",
+      "rows": 22105,
+      "raw": [
+        {
+          "file": "serial-hello.iram0.vectors.bin.gz",
+          "address": 1074266112,
+          "bytes": 1027
+        },
+        {
+          "file": "serial-hello.iram0.text.bin.gz",
+          "address": 1074267140,
+          "bytes": 56823
+        }
+      ],
+      "layout": "each section at its load address"
+    }
+  ],
+  "isaAllDropped": [],
+  "isaAllMnemonics": 513
+}

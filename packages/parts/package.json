@@ -1,0 +1,18 @@
+{
+  "name": "@benchtop/parts",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Part catalog: pin layouts, metadata and behavior models for boards, breadboards and components. DOM-free.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@benchtop/core": "0.0.0"
+  },
+  "devDependencies": {
+    "@benchtop/avr": "0.0.0",
+    "@benchtop/esp32": "0.0.0"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "example: stepper",
+  "project": "../../projects/stepper-28byj48.json",
+  "firmware": {
+    "uno": "../../firmware/uno/stepper-28byj48.hex"
+  },
+  "expect": [
+    "serial contains \"forward\" by 1500ms",
+    "serial contains \"back\" by 3s"
+  ]
+}

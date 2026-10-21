@@ -1,0 +1,143 @@
+{
+  "format": 1,
+  "name": "esp32-i2c",
+  "parts": [
+    {
+      "id": "esp",
+      "type": "esp32-devkit-v1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "rtc",
+      "type": "ds1307",
+      "x": 40,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "oled",
+      "type": "ssd1306",
+      "x": 40,
+      "y": 40,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "esp",
+        "pin": "D21"
+      },
+      "to": {
+        "part": "rtc",
+        "pin": "SDA"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "esp",
+        "pin": "D22"
+      },
+      "to": {
+        "part": "rtc",
+        "pin": "SCL"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "rtc",
+        "pin": "5V"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "3V3"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "rtc",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "oled",
+        "pin": "DATA"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "D21"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "oled",
+        "pin": "CLK"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "D22"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "oled",
+        "pin": "3V3"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "3V3"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w8",
+      "from": {
+        "part": "oled",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "esp": {
+      "kind": "file",
+      "name": "i2c-scan.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

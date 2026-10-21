@@ -1,0 +1,161 @@
+{
+  "format": 1,
+  "name": "encoder",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "enc",
+      "type": "ky-040",
+      "x": 90,
+      "y": -30,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "enc",
+        "pin": "CLK"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "2"
+      },
+      "waypoints": [
+        {
+          "x": 124,
+          "y": -27.91
+        },
+        {
+          "x": 124,
+          "y": -16
+        },
+        {
+          "x": 62.574,
+          "y": -16
+        }
+      ],
+      "color": "green"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "enc",
+        "pin": "DT"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "3"
+      },
+      "waypoints": [
+        {
+          "x": 126,
+          "y": -25.396
+        },
+        {
+          "x": 126,
+          "y": -14
+        },
+        {
+          "x": 60.06,
+          "y": -14
+        }
+      ],
+      "color": "blue"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "enc",
+        "pin": "SW"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "4"
+      },
+      "waypoints": [
+        {
+          "x": 128,
+          "y": -22.856
+        },
+        {
+          "x": 128,
+          "y": -12
+        },
+        {
+          "x": 57.547,
+          "y": -12
+        }
+      ],
+      "color": "purple"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "enc",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [
+        {
+          "x": 132,
+          "y": -20.396
+        },
+        {
+          "x": 132,
+          "y": 58
+        },
+        {
+          "x": 42.333,
+          "y": 58
+        }
+      ],
+      "color": "red"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "enc",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.2"
+      },
+      "waypoints": [
+        {
+          "x": 130,
+          "y": -17.961
+        },
+        {
+          "x": 130,
+          "y": 56
+        },
+        {
+          "x": 44.847,
+          "y": 56
+        }
+      ],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "encoder-count.hex",
+      "format": "hex"
+    }
+  }
+}

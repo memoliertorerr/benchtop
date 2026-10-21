@@ -1,0 +1,28 @@
+{
+  "name": "example: button",
+  "project": "../../projects/button-pullup.json",
+  "firmware": {
+    "uno": "../../firmware/uno/button-pullup.hex"
+  },
+  "steps": [
+    {
+      "at": "500ms",
+      "part": "btn1",
+      "input": {
+        "kind": "press"
+      }
+    },
+    {
+      "at": "800ms",
+      "part": "btn1",
+      "input": {
+        "kind": "release"
+      }
+    }
+  ],
+  "expect": [
+    "led led1 is dark at 450ms",
+    "led led1 is lit at 700ms",
+    "led led1 is dark at 1s"
+  ]
+}

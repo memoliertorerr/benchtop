@@ -1,0 +1,45 @@
+{
+  "format": 1,
+  "name": "problems-drive-fight",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "uno",
+        "pin": "13"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [
+        {
+          "x": 33.073,
+          "y": -4
+        },
+        {
+          "x": 30.559,
+          "y": -4
+        }
+      ],
+      "color": "orange"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "checker-demo.hex",
+      "format": "hex"
+    }
+  }
+}

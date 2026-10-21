@@ -1,0 +1,155 @@
+{
+  "format": 1,
+  "name": "nano-analog",
+  "parts": [
+    {
+      "id": "bb",
+      "type": "breadboard-half",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "nano",
+      "type": "arduino-nano",
+      "x": 2.408,
+      "y": 13.97,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "pot1",
+      "type": "potentiometer",
+      "x": 43.021,
+      "y": 9.816,
+      "rotation": 0,
+      "props": {
+        "value": 0.25
+      }
+    },
+    {
+      "id": "pot2",
+      "type": "potentiometer",
+      "x": 55.721,
+      "y": 9.816,
+      "rotation": 0,
+      "props": {
+        "value": 0.75
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "bb",
+        "pin": "14b.j"
+      },
+      "to": {
+        "part": "bb",
+        "pin": "bp.12"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "bb",
+        "pin": "16b.j"
+      },
+      "to": {
+        "part": "bb",
+        "pin": "bn.14"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "bb",
+        "pin": "12b.j"
+      },
+      "to": {
+        "part": "bb",
+        "pin": "21b.j"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "bb",
+        "pin": "13b.j"
+      },
+      "to": {
+        "part": "bb",
+        "pin": "26b.j"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "bb",
+        "pin": "20b.i"
+      },
+      "to": {
+        "part": "bb",
+        "pin": "bn.17"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "bb",
+        "pin": "22b.i"
+      },
+      "to": {
+        "part": "bb",
+        "pin": "bp.19"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "bb",
+        "pin": "25b.i"
+      },
+      "to": {
+        "part": "bb",
+        "pin": "bn.21"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w8",
+      "from": {
+        "part": "bb",
+        "pin": "27b.i"
+      },
+      "to": {
+        "part": "bb",
+        "pin": "bp.23"
+      },
+      "waypoints": [],
+      "color": "red"
+    }
+  ],
+  "firmware": {
+    "nano": {
+      "kind": "file",
+      "name": "analog-a6.hex",
+      "format": "hex"
+    }
+  }
+}

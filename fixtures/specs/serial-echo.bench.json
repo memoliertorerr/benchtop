@@ -1,0 +1,8 @@
+{
+  "name": "serial echo: typed text comes back",
+  "project": "../projects/debug-demo.json",
+  "firmware": { "uno": "../firmware/uno/serial-echo.hex" },
+  "steps": [{ "at": "100ms", "serial": "ping 42" }],
+  "expect": ["serial contains \"ping 42\" by 200ms"],
+  "duration": "300ms"
+}

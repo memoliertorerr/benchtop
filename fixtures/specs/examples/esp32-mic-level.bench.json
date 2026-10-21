@@ -1,0 +1,10 @@
+{
+  "name": "example: esp32-mic-level",
+  "project": "../../projects/esp32-mic-level.json",
+  "firmware": {
+    "esp": "../../firmware/esp32/mic-level.bin"
+  },
+  "expect": [
+    "serial matches /^\\d+\\r?$/m by 2s"
+  ]
+}

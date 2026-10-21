@@ -1,0 +1,45 @@
+
+l32r.elf:     file format elf32-xtensa-le
+
+
+Disassembly of section .text:
+
+40080000 <_start>:
+40080000:	000606        	j	4008001c <_start+0x1c>
+40080003:	00          	.byte 00
+40080004:	00 00 fc 3f 	
+40080008:	00 04 fb 3f 	
+4008000c:	67 45 23 01 	
+40080010:	ef cd ab 89 	
+40080014:	ff ff ff ff 	
+40080018:	00 00 00 00 	
+4008001c:	fffa11        	l32r	a1, 40080004 <_start+0x4>
+4008001f:	fffaf1        	l32r	a15, 40080008 <_start+0x8>
+40080022:	fffa41        	l32r	a4, 4008000c <_start+0xc>
+40080025:	0f49      	s32i.n	a4, a15, 0
+40080027:	ff4b      	addi.n	a15, a15, 4
+40080029:	fff941        	l32r	a4, 40080010 <_start+0x10>
+4008002c:	0f49      	s32i.n	a4, a15, 0
+4008002e:	ff4b      	addi.n	a15, a15, 4
+40080030:	fff941        	l32r	a4, 40080014 <_start+0x14>
+40080033:	0f49      	s32i.n	a4, a15, 0
+40080035:	ff4b      	addi.n	a15, a15, 4
+40080037:	fff841        	l32r	a4, 40080018 <_start+0x18>
+4008003a:	0f49      	s32i.n	a4, a15, 0
+4008003c:	ff4b      	addi.n	a15, a15, 4
+4008003e:	000286        	j	4008004c <_start+0x4c>
+40080041:	00          	.byte 00
+40080042:	00          	.byte 00
+40080043:	00          	.byte 00
+40080044:	ef be ad de 	
+40080048:	0d f0 ad 0b 	
+4008004c:	fffe41        	l32r	a4, 40080044 <_start+0x44>
+4008004f:	0f49      	s32i.n	a4, a15, 0
+40080051:	ff4b      	addi.n	a15, a15, 4
+40080053:	fffd41        	l32r	a4, 40080048 <_start+0x48>
+40080056:	0f49      	s32i.n	a4, a15, 0
+40080058:	ff4b      	addi.n	a15, a15, 4
+4008005a:	ffec41        	l32r	a4, 4008000c <_start+0xc>
+4008005d:	0f49      	s32i.n	a4, a15, 0
+4008005f:	ff4b      	addi.n	a15, a15, 4
+40080061:	0041f0        	break	1, 15

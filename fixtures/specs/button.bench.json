@@ -1,0 +1,10 @@
+{
+  "name": "button: D13 lights while D2 is held",
+  "project": "../projects/button-pullup.json",
+  "firmware": { "uno": "../firmware/uno/button-pullup.hex" },
+  "steps": [
+    { "at": "100ms", "part": "btn1", "input": { "kind": "press" } },
+    { "at": "300ms", "part": "btn1", "input": { "kind": "release" } }
+  ],
+  "expect": ["pin uno:13 is 0 at 90ms", "pin uno:13 is 1 at 150ms", "pin uno:13 is 0 at 350ms"]
+}

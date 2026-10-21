@@ -1,0 +1,11 @@
+{
+  "name": "example: lcd1602",
+  "project": "../../projects/lcd-4bit.json",
+  "firmware": {
+    "uno": "../../firmware/uno/lcd-4bit.hex"
+  },
+  "expect": [
+    "lcd lcd1 row 0 is \"Hello, Benchtop!\" at 1200ms",
+    "lcd lcd1 row 1 is \"t=1\" at 1200ms"
+  ]
+}

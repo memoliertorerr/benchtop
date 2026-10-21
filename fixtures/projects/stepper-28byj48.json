@@ -1,0 +1,171 @@
+{
+  "format": 1,
+  "name": "stepper-28byj48",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "motor",
+      "type": "stepper-28byj48",
+      "x": 38,
+      "y": -72,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "motor",
+        "pin": "IN1"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "8"
+      },
+      "waypoints": [
+        {
+          "x": 49.57,
+          "y": -4
+        },
+        {
+          "x": 45.773,
+          "y": -4
+        }
+      ],
+      "color": "blue"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "motor",
+        "pin": "IN2"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "9"
+      },
+      "waypoints": [
+        {
+          "x": 52.11,
+          "y": -5.5
+        },
+        {
+          "x": 43.127,
+          "y": -5.5
+        }
+      ],
+      "color": "purple"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "motor",
+        "pin": "IN3"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "10"
+      },
+      "waypoints": [
+        {
+          "x": 54.65,
+          "y": -7
+        },
+        {
+          "x": 40.614,
+          "y": -7
+        }
+      ],
+      "color": "yellow"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "motor",
+        "pin": "IN4"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "11"
+      },
+      "waypoints": [
+        {
+          "x": 57.19,
+          "y": -8.5
+        },
+        {
+          "x": 38.1,
+          "y": -8.5
+        }
+      ],
+      "color": "orange"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "motor",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [
+        {
+          "x": 62.27,
+          "y": -10
+        },
+        {
+          "x": 30.559,
+          "y": -10
+        }
+      ],
+      "color": "black"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "motor",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [
+        {
+          "x": 59.73,
+          "y": -13.5
+        },
+        {
+          "x": 90,
+          "y": -13.5
+        },
+        {
+          "x": 90,
+          "y": 65.5
+        },
+        {
+          "x": 42.333,
+          "y": 65.5
+        }
+      ],
+      "color": "red"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "stepper-28byj48.hex",
+      "format": "hex"
+    }
+  }
+}

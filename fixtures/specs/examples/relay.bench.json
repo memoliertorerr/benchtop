@@ -1,0 +1,11 @@
+{
+  "name": "example: relay",
+  "project": "../../projects/relay.json",
+  "firmware": {
+    "uno": "../../firmware/uno/relay.hex"
+  },
+  "expect": [
+    "serial contains \"coil 1\" by 1s",
+    "pin uno:7 frequency is 1 Hz ±1% between 0ms and 2100ms"
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "format": 1,
+  "name": "pcm-playback",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "spk1",
+      "type": "speaker",
+      "x": 55.88,
+      "y": -35.56,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "uno",
+        "pin": "3"
+      },
+      "to": {
+        "part": "spk1",
+        "pin": "1"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "spk1",
+        "pin": "2"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "pcm-playback.hex",
+      "format": "hex"
+    }
+  }
+}

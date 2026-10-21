@@ -1,0 +1,207 @@
+{
+  "format": 1,
+  "name": "neopixel",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "strip",
+      "type": "neopixel-strip",
+      "x": 20,
+      "y": -20,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "ring",
+      "type": "neopixel-ring",
+      "x": 28,
+      "y": -72,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "strip",
+        "pin": "DIN"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "6"
+      },
+      "waypoints": [
+        {
+          "x": 47.913,
+          "y": -6
+        },
+        {
+          "x": 52.52,
+          "y": -6
+        }
+      ],
+      "color": "green"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "strip",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [
+        {
+          "x": 42.833,
+          "y": -8
+        },
+        {
+          "x": 30.559,
+          "y": -8
+        }
+      ],
+      "color": "black"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "strip",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [
+        {
+          "x": 45.373,
+          "y": -10
+        },
+        {
+          "x": -4,
+          "y": -10
+        },
+        {
+          "x": -4,
+          "y": 57
+        },
+        {
+          "x": 42.333,
+          "y": 57
+        }
+      ],
+      "color": "red"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "strip",
+        "pin": "DOUT"
+      },
+      "to": {
+        "part": "ring",
+        "pin": "DIN"
+      },
+      "waypoints": [
+        {
+          "x": 53.453,
+          "y": -12.999
+        },
+        {
+          "x": 53.453,
+          "y": -24
+        },
+        {
+          "x": 54.005,
+          "y": -24
+        },
+        {
+          "x": 54.005,
+          "y": -29.53
+        },
+        {
+          "x": 48.005,
+          "y": -29.53
+        }
+      ],
+      "color": "green"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "ring",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "strip",
+        "pin": "GND"
+      },
+      "waypoints": [
+        {
+          "x": 42.925,
+          "y": -26
+        },
+        {
+          "x": 39.833,
+          "y": -26
+        },
+        {
+          "x": 39.833,
+          "y": -11.999
+        },
+        {
+          "x": 42.833,
+          "y": -11.999
+        }
+      ],
+      "color": "black"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "ring",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "strip",
+        "pin": "VCC"
+      },
+      "waypoints": [
+        {
+          "x": 45.465,
+          "y": -28
+        },
+        {
+          "x": 43.873,
+          "y": -28
+        },
+        {
+          "x": 43.873,
+          "y": -10.999
+        },
+        {
+          "x": 45.373,
+          "y": -10.999
+        }
+      ],
+      "color": "red"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "neopixel.hex",
+      "format": "hex"
+    }
+  }
+}

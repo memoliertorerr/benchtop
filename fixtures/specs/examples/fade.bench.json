@@ -1,0 +1,11 @@
+{
+  "name": "example: fade",
+  "project": "../../projects/pwm-fade.json",
+  "firmware": {
+    "uno": "../../firmware/uno/pwm-fade.hex"
+  },
+  "expect": [
+    "pin uno:9 frequency is 490.2 Hz ±0.5% between 100ms and 600ms",
+    "led led1 is lit at 2s"
+  ]
+}

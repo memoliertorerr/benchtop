@@ -1,0 +1,104 @@
+{
+  "name": "example: keypad-lock",
+  "project": "../../projects/keypad-lock.json",
+  "firmware": {
+    "uno": "../../firmware/uno/keypad-lock.hex"
+  },
+  "steps": [
+    {
+      "at": "200ms",
+      "part": "pad",
+      "input": {
+        "kind": "key",
+        "key": "1",
+        "down": true
+      }
+    },
+    {
+      "at": "260ms",
+      "part": "pad",
+      "input": {
+        "kind": "key",
+        "key": "1",
+        "down": false
+      }
+    },
+    {
+      "at": "320ms",
+      "part": "pad",
+      "input": {
+        "kind": "key",
+        "key": "2",
+        "down": true
+      }
+    },
+    {
+      "at": "380ms",
+      "part": "pad",
+      "input": {
+        "kind": "key",
+        "key": "2",
+        "down": false
+      }
+    },
+    {
+      "at": "440ms",
+      "part": "pad",
+      "input": {
+        "kind": "key",
+        "key": "3",
+        "down": true
+      }
+    },
+    {
+      "at": "500ms",
+      "part": "pad",
+      "input": {
+        "kind": "key",
+        "key": "3",
+        "down": false
+      }
+    },
+    {
+      "at": "560ms",
+      "part": "pad",
+      "input": {
+        "kind": "key",
+        "key": "4",
+        "down": true
+      }
+    },
+    {
+      "at": "620ms",
+      "part": "pad",
+      "input": {
+        "kind": "key",
+        "key": "4",
+        "down": false
+      }
+    },
+    {
+      "at": "680ms",
+      "part": "pad",
+      "input": {
+        "kind": "key",
+        "key": "#",
+        "down": true
+      }
+    },
+    {
+      "at": "740ms",
+      "part": "pad",
+      "input": {
+        "kind": "key",
+        "key": "#",
+        "down": false
+      }
+    }
+  ],
+  "expect": [
+    "serial contains \"locked\" by 200ms",
+    "serial contains \"unlocked\" by 2s",
+    "servo servo angle is 90 ±3 at 2s"
+  ]
+}

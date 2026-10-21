@@ -1,0 +1,71 @@
+{
+  "format": 1,
+  "name": "cli-demo",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "btn1",
+      "type": "pushbutton",
+      "x": 100,
+      "y": 55,
+      "rotation": 0,
+      "props": {
+        "color": "green"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "uno",
+        "pin": "2"
+      },
+      "to": {
+        "part": "btn1",
+        "pin": "1.l"
+      },
+      "waypoints": [
+        {
+          "x": 62.574,
+          "y": -13.619
+        },
+        {
+          "x": 76,
+          "y": -13.619
+        },
+        {
+          "x": 76,
+          "y": 58.44
+        }
+      ],
+      "color": "blue"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "btn1",
+        "pin": "2.l"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.2"
+      },
+      "waypoints": [
+        {
+          "x": 44.847,
+          "y": 63.467
+        }
+      ],
+      "color": "black"
+    }
+  ],
+  "firmware": {}
+}

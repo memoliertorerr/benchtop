@@ -1,0 +1,57 @@
+{
+  "_comment": "arduino-cli 1.5.1 `compile --json` for a sketch with two errors and a warning (paths shortened to /Users/maker/Arduino/). Trimmed to the fields the bridge reads.",
+  "success": false,
+  "error": "Error during build: exit status 1",
+  "compiler_err": "/Users/maker/Arduino/broken/broken.ino: In function 'void setup()':\n/Users/maker/Arduino/broken/broken.ino:3:1: error: expected ';' before '}' token\n }\n ^\n/Users/maker/Arduino/broken/broken.ino: In function 'void loop()':\n/Users/maker/Arduino/broken/broken.ino:6:20: error: 'HIGHER' was not declared in this scope\n   digitalWrite(13, HIGHER);\n                    ^~~~~~\n/Users/maker/Arduino/broken/broken.ino:6:20: note: suggested alternative: 'HIGH'\n   digitalWrite(13, HIGHER);\n                    ^~~~~~\n                    HIGH\n/Users/maker/Arduino/broken/broken.ino:7:7: warning: unused variable 'unused' [-Wunused-variable]\n   int unused = 1;\n       ^~~~~~\n",
+  "builder_result": {
+    "diagnostics": [
+      {
+        "severity": "ERROR",
+        "message": "expected ';' before '}' token\n }\n ^",
+        "file": "/Users/maker/Arduino/broken/broken.ino",
+        "line": 3,
+        "column": 1,
+        "context": [
+          {
+            "message": "In function 'void setup()':",
+            "file": "/Users/maker/Arduino/broken/broken.ino"
+          }
+        ]
+      },
+      {
+        "severity": "ERROR",
+        "message": "'HIGHER' was not declared in this scope\n   digitalWrite(13, HIGHER);\n                    ^~~~~~",
+        "file": "/Users/maker/Arduino/broken/broken.ino",
+        "line": 6,
+        "column": 20,
+        "context": [
+          {
+            "message": "In function 'void loop()':",
+            "file": "/Users/maker/Arduino/broken/broken.ino"
+          }
+        ],
+        "notes": [
+          {
+            "message": "suggested alternative: 'HIGH'\n   digitalWrite(13, HIGHER);\n                    ^~~~~~\n                    HIGH",
+            "file": "/Users/maker/Arduino/broken/broken.ino",
+            "line": 6,
+            "column": 20
+          }
+        ]
+      },
+      {
+        "severity": "WARNING",
+        "message": "unused variable 'unused' [-Wunused-variable]\n   int unused = 1;\n       ^~~~~~",
+        "file": "/Users/maker/Arduino/broken/broken.ino",
+        "line": 7,
+        "column": 7,
+        "context": [
+          {
+            "message": "In function 'void loop()':",
+            "file": "/Users/maker/Arduino/broken/broken.ino"
+          }
+        ]
+      }
+    ]
+  }
+}

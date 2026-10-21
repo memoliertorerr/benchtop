@@ -1,0 +1,21 @@
+{
+  "name": "example: mega-analog",
+  "project": "../../projects/mega-analog.json",
+  "firmware": {
+    "mega": "../../firmware/mega/analog-hi.hex"
+  },
+  "steps": [
+    {
+      "at": "500ms",
+      "part": "pot4",
+      "input": {
+        "kind": "value",
+        "value": 1.0
+      }
+    }
+  ],
+  "expect": [
+    "serial matches /^20[2-6] (\\d+ ){4}40[7-9] /m by 450ms",
+    "serial matches /(^| )102[0-3]\\r?$/m by 2s"
+  ]
+}

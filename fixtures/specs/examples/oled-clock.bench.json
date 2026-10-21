@@ -1,0 +1,10 @@
+{
+  "name": "example: oled-clock",
+  "project": "../../projects/oled-clock.json",
+  "firmware": {
+    "uno": "../../firmware/uno/oled-clock.hex"
+  },
+  "expect": [
+    "serial contains \"2026-01-01 00:00:01\" by 2s"
+  ]
+}

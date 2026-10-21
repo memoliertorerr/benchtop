@@ -1,0 +1,2504 @@
+{
+  "arduinoCli": "1.5.1",
+  "cores": {
+    "arduino:avr": "1.8.7",
+    "esp32:esp32": "2.0.17"
+  },
+  "libraries": {
+    "Adafruit BusIO": "1.17.4",
+    "Adafruit GFX Library": "1.12.4",
+    "Adafruit SH110X": "2.1.14",
+    "Adafruit SSD1306": "2.5.16",
+    "Adafruit Unified Sensor": "1.1.15",
+    "Adafruit_SH1106-master": "",
+    "ArduinoHttpClient": "0.6.1",
+    "Audio": "1.0.6",
+    "DHT sensor library": "1.4.6",
+    "DHTlib": "0.1.37",
+    "ESP32 BLE Mouse": "0.3.1",
+    "HTTPClient": "2.0.0",
+    "arduinoFFT": "2.0.4",
+    "audio-tools": "0.9.3"
+  },
+  "outputs": [
+    {
+      "board": "esp32",
+      "name": "adc-read",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/adc-read.bin",
+      "sha256": "7606a550b4acfb1c890851457c56b91d7101bbbeacded5b12bd1669bcbd1e1ea",
+      "bytes": 269072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "69df574344716b5ed81b17fadee12cdb0c862ffabf50bdf603b43f67cf23a619"
+    },
+    {
+      "board": "esp32",
+      "name": "adc-read",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/adc-read.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "69df574344716b5ed81b17fadee12cdb0c862ffabf50bdf603b43f67cf23a619"
+    },
+    {
+      "board": "esp32",
+      "name": "adc-read",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/adc-read.syms.tsv",
+      "sha256": "e14b039ba988ddc0726151adbff73b078b351369c42d30708a2af4e6deebcaad",
+      "bytes": 119093,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "69df574344716b5ed81b17fadee12cdb0c862ffabf50bdf603b43f67cf23a619"
+    },
+    {
+      "board": "esp32",
+      "name": "blink",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/blink.bin",
+      "sha256": "bc71a41cca912382e6737b71b01f5f76ca9e0782038b20fb223c3fe9dfb73b8d",
+      "bytes": 237840,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "893b4dd0d074ded2c4f6180d3375aa5b2e38eaf96472f4ece7079995d101f8b3"
+    },
+    {
+      "board": "esp32",
+      "name": "blink",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/blink.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "893b4dd0d074ded2c4f6180d3375aa5b2e38eaf96472f4ece7079995d101f8b3"
+    },
+    {
+      "board": "esp32",
+      "name": "blink",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/blink.syms.tsv",
+      "sha256": "18f4584724b62b2dd7ce2910a8e2f9fb55fbbd6c5b63da47b12a1029f0560839",
+      "bytes": 106407,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "893b4dd0d074ded2c4f6180d3375aa5b2e38eaf96472f4ece7079995d101f8b3"
+    },
+    {
+      "board": "esp32",
+      "name": "crc-bench",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/crc-bench.bin",
+      "sha256": "150c2e2b204b0b6399236d47aa0bbe703cd826deb1aa5562899f40b64cda94bd",
+      "bytes": 262576,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "edf5127e9f97fd43f6ea0c3422f7de5751557eb71856aed4fc5c68aa966f8c1a"
+    },
+    {
+      "board": "esp32",
+      "name": "crc-bench",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/crc-bench.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "edf5127e9f97fd43f6ea0c3422f7de5751557eb71856aed4fc5c68aa966f8c1a"
+    },
+    {
+      "board": "esp32",
+      "name": "crc-bench",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/crc-bench.syms.tsv",
+      "sha256": "0dacfe112bcf01050f7c7bfb37d31db32c7f7226836ace5888874b5144e947a8",
+      "bytes": 115815,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "edf5127e9f97fd43f6ea0c3422f7de5751557eb71856aed4fc5c68aa966f8c1a"
+    },
+    {
+      "board": "esp32",
+      "name": "dac-sine",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/dac-sine.bin",
+      "sha256": "ecd1351f59e8c1951b3836500178f914f46f5f23fc7a6fcc3184148850b0f597",
+      "bytes": 270704,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "433ddeef395af5cf341f7e8f8677ce116e8a777693bcf263888f81b2acf50e0c"
+    },
+    {
+      "board": "esp32",
+      "name": "dac-sine",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/dac-sine.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "433ddeef395af5cf341f7e8f8677ce116e8a777693bcf263888f81b2acf50e0c"
+    },
+    {
+      "board": "esp32",
+      "name": "dac-sine",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/dac-sine.syms.tsv",
+      "sha256": "57526c271c8cf58f8b6f7ed8c6441e5b92f2d8482681458c89607606bb17f7a6",
+      "bytes": 117939,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "433ddeef395af5cf341f7e8f8677ce116e8a777693bcf263888f81b2acf50e0c"
+    },
+    {
+      "board": "esp32",
+      "name": "gpio-input",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/gpio-input.bin",
+      "sha256": "2ba565a58c1129767ade363c550d0e1ed31c3b10d3d984bbf3758de386fda2c1",
+      "bytes": 237920,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "fa035e293330934f2d86faeb5d027b60417ba92f05a759eebeb6b79f3d01c060"
+    },
+    {
+      "board": "esp32",
+      "name": "gpio-input",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/gpio-input.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "fa035e293330934f2d86faeb5d027b60417ba92f05a759eebeb6b79f3d01c060"
+    },
+    {
+      "board": "esp32",
+      "name": "gpio-input",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/gpio-input.syms.tsv",
+      "sha256": "039ff0746065c685aedeaf5ed047bde40ad699da9d72f22fa56232fb7f14421e",
+      "bytes": 106508,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "fa035e293330934f2d86faeb5d027b60417ba92f05a759eebeb6b79f3d01c060"
+    },
+    {
+      "board": "esp32",
+      "name": "gpio-interrupt",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/gpio-interrupt.bin",
+      "sha256": "47f81b3a6a50568ee7b6cac1e6759bc6f24d4f37bf55cf0a79eb24e4b577b6f4",
+      "bytes": 266032,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "3a0ec821dad475a5a00e1e72922552c044a6c90f3a8510ad883d2bf43ce0b2d3"
+    },
+    {
+      "board": "esp32",
+      "name": "gpio-interrupt",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/gpio-interrupt.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "3a0ec821dad475a5a00e1e72922552c044a6c90f3a8510ad883d2bf43ce0b2d3"
+    },
+    {
+      "board": "esp32",
+      "name": "gpio-interrupt",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/gpio-interrupt.syms.tsv",
+      "sha256": "8ea147438ed2062ecef215e23bc12711f13bc7001721a9de4c35a3760d654c33",
+      "bytes": 117384,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "3a0ec821dad475a5a00e1e72922552c044a6c90f3a8510ad883d2bf43ce0b2d3"
+    },
+    {
+      "board": "esp32",
+      "name": "i2c-ds1307",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/i2c-ds1307.bin",
+      "sha256": "330d95bf8b78c21d16a4ccc104de841f1becc1a5ca904acb07b54964eff80767",
+      "bytes": 277968,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Wire": "2.0.0"
+      },
+      "source": "976d966678e880bc98496154e8725a4fe939345e0f6a1cfad53d7462c575fe73"
+    },
+    {
+      "board": "esp32",
+      "name": "i2c-ds1307",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/i2c-ds1307.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Wire": "2.0.0"
+      },
+      "source": "976d966678e880bc98496154e8725a4fe939345e0f6a1cfad53d7462c575fe73"
+    },
+    {
+      "board": "esp32",
+      "name": "i2c-ds1307",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/i2c-ds1307.syms.tsv",
+      "sha256": "c643fb66b06329067f3d61adf570e3c2c2b8e9581e6ca64b6471090cfdd9e496",
+      "bytes": 121579,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Wire": "2.0.0"
+      },
+      "source": "976d966678e880bc98496154e8725a4fe939345e0f6a1cfad53d7462c575fe73"
+    },
+    {
+      "board": "esp32",
+      "name": "i2c-remap",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/i2c-remap.bin",
+      "sha256": "278ce914d5025bc367d778b4cee6239eb2238b1379d7d511a1ad4ac71f786766",
+      "bytes": 276192,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Wire": "2.0.0"
+      },
+      "source": "afcacb7df1ef1c875260da315da71fa445ac947286dc7c476c388ef1fb30b70f"
+    },
+    {
+      "board": "esp32",
+      "name": "i2c-remap",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/i2c-remap.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Wire": "2.0.0"
+      },
+      "source": "afcacb7df1ef1c875260da315da71fa445ac947286dc7c476c388ef1fb30b70f"
+    },
+    {
+      "board": "esp32",
+      "name": "i2c-remap",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/i2c-remap.syms.tsv",
+      "sha256": "f1ca1bf31863e6f4a846f57712e7690fdd244eb1fdae8752db17300a951e330a",
+      "bytes": 121049,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Wire": "2.0.0"
+      },
+      "source": "afcacb7df1ef1c875260da315da71fa445ac947286dc7c476c388ef1fb30b70f"
+    },
+    {
+      "board": "esp32",
+      "name": "i2c-scan",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/i2c-scan.bin",
+      "sha256": "714ee86f2360e4fd4f2f3950c478e59ce1174fa852313835b6542c1f4974dc01",
+      "bytes": 276192,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Wire": "2.0.0"
+      },
+      "source": "026179d1078a7314b8cba6a2b0160d10b0729e620b198e2302095716607ba8eb"
+    },
+    {
+      "board": "esp32",
+      "name": "i2c-scan",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/i2c-scan.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Wire": "2.0.0"
+      },
+      "source": "026179d1078a7314b8cba6a2b0160d10b0729e620b198e2302095716607ba8eb"
+    },
+    {
+      "board": "esp32",
+      "name": "i2c-scan",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/i2c-scan.syms.tsv",
+      "sha256": "f2e4296accce47156fed45633898af9fbf143f75748bd93bdae4a9eeb25fd514",
+      "bytes": 121049,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Wire": "2.0.0"
+      },
+      "source": "026179d1078a7314b8cba6a2b0160d10b0729e620b198e2302095716607ba8eb"
+    },
+    {
+      "board": "esp32",
+      "name": "ledc-fade",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/ledc-fade.bin",
+      "sha256": "1db1a50ab2250065722a6184d1363801237b69f25de417b643631396a8868bbc",
+      "bytes": 268384,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "7cff7c83ac32cce940560362471f1ae1702dc6c4b37ee641f40bc162d9b1ceff"
+    },
+    {
+      "board": "esp32",
+      "name": "ledc-fade",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/ledc-fade.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "7cff7c83ac32cce940560362471f1ae1702dc6c4b37ee641f40bc162d9b1ceff"
+    },
+    {
+      "board": "esp32",
+      "name": "ledc-fade",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/ledc-fade.syms.tsv",
+      "sha256": "7ddd6e6755ef550ecae148fea7bd9f48a4424bea0d4e5f966a4541aacae88e37",
+      "bytes": 118500,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "7cff7c83ac32cce940560362471f1ae1702dc6c4b37ee641f40bc162d9b1ceff"
+    },
+    {
+      "board": "esp32",
+      "name": "mic-level",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/mic-level.bin",
+      "sha256": "63b4cac4efc32a6767f77b403c0adb62b2223221ca4d1bfdacdbe49d27f5ddbe",
+      "bytes": 270304,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "31cc3603d79e731aed39c675083f107e434f9899350833e307238252d502a168"
+    },
+    {
+      "board": "esp32",
+      "name": "mic-level",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/mic-level.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "31cc3603d79e731aed39c675083f107e434f9899350833e307238252d502a168"
+    },
+    {
+      "board": "esp32",
+      "name": "mic-level",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/mic-level.syms.tsv",
+      "sha256": "5da10e0ffd14f6745c121ef1a0c0db72f304ff3a96e531eff0b6d13780637dd4",
+      "bytes": 120134,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "31cc3603d79e731aed39c675083f107e434f9899350833e307238252d502a168"
+    },
+    {
+      "board": "esp32",
+      "name": "neopixel",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/neopixel.bin",
+      "sha256": "b4719a07514d226567c3b5e63251e30698c67ea3e0cec91d9443ff5ff6ed6540",
+      "bytes": 270464,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "2ff414bf64f8a93dc88bab4478754deaa5461581d71486c6afd483efae8b225e"
+    },
+    {
+      "board": "esp32",
+      "name": "neopixel",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/neopixel.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "2ff414bf64f8a93dc88bab4478754deaa5461581d71486c6afd483efae8b225e"
+    },
+    {
+      "board": "esp32",
+      "name": "neopixel",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/neopixel.syms.tsv",
+      "sha256": "dc2ac62d677c81a051bffaed3fea6dbb8edf7e098ea1d47eca36fa41073de8d5",
+      "bytes": 117514,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "2ff414bf64f8a93dc88bab4478754deaa5461581d71486c6afd483efae8b225e"
+    },
+    {
+      "board": "esp32",
+      "name": "oled-clock",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/oled-clock.bin",
+      "sha256": "a3a6bdd2751ffba70030f2924577f7aa5f3b54d0f658c95d18363295b8d46234",
+      "bytes": 293152,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "2.0.0",
+        "Wire": "2.0.0"
+      },
+      "source": "6cee85033013a40687ff1652d6b2ee71ec3d9a792b988a027bf6b547c4e44af1"
+    },
+    {
+      "board": "esp32",
+      "name": "oled-clock",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/oled-clock.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "2.0.0",
+        "Wire": "2.0.0"
+      },
+      "source": "6cee85033013a40687ff1652d6b2ee71ec3d9a792b988a027bf6b547c4e44af1"
+    },
+    {
+      "board": "esp32",
+      "name": "oled-clock",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/oled-clock.syms.tsv",
+      "sha256": "f1dc99d84d3f7e64d30c6c63b103c0c4e99841883b320d9276ce10c4c70e08f4",
+      "bytes": 126366,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "2.0.0",
+        "Wire": "2.0.0"
+      },
+      "source": "6cee85033013a40687ff1652d6b2ee71ec3d9a792b988a027bf6b547c4e44af1"
+    },
+    {
+      "board": "esp32",
+      "name": "pwm-fader",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/pwm-fader.bin",
+      "sha256": "e7696a6a64bdab94cfb56be8a2a8404bcfe7616524c51a4fb5549e05a4be7a2b",
+      "bytes": 274832,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "eaa66ae58ff21560d11d49664f167ba8ef8347878125a5fdc243829f19b339e4"
+    },
+    {
+      "board": "esp32",
+      "name": "pwm-fader",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/pwm-fader.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "eaa66ae58ff21560d11d49664f167ba8ef8347878125a5fdc243829f19b339e4"
+    },
+    {
+      "board": "esp32",
+      "name": "pwm-fader",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/pwm-fader.syms.tsv",
+      "sha256": "a01702a041bf48ae178a495e9ec5c8c549e0f4f29d219657175b72782b61b80b",
+      "bytes": 121570,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "eaa66ae58ff21560d11d49664f167ba8ef8347878125a5fdc243829f19b339e4"
+    },
+    {
+      "board": "esp32",
+      "name": "rainbow-ring",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/rainbow-ring.bin",
+      "sha256": "78fef5a141ff6f7e49a38e1d7b16e8e213b5aa389185862239760ae9b46eee5c",
+      "bytes": 245904,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "d2c0df4e2bc56e128a4fed294fd01d078e41b603235edd59088ef6f9d5cf1f75"
+    },
+    {
+      "board": "esp32",
+      "name": "rainbow-ring",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/rainbow-ring.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "d2c0df4e2bc56e128a4fed294fd01d078e41b603235edd59088ef6f9d5cf1f75"
+    },
+    {
+      "board": "esp32",
+      "name": "rainbow-ring",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/rainbow-ring.syms.tsv",
+      "sha256": "0543c5f93fe2072a74045f83d9104da28e6a1579216bd9ff97d135d941f68c7b",
+      "bytes": 107661,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "d2c0df4e2bc56e128a4fed294fd01d078e41b603235edd59088ef6f9d5cf1f75"
+    },
+    {
+      "board": "esp32",
+      "name": "restart-loop",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/restart-loop.bin",
+      "sha256": "a90b0e0cc2cecde8bc430188c47929b0ccc6b6150c490547bedb3484b6654f87",
+      "bytes": 263392,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "2fa76ba96cf0d1b8cc4d1c577a558e510c5ca456a7c36544b62f487cf4031404"
+    },
+    {
+      "board": "esp32",
+      "name": "restart-loop",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/restart-loop.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "2fa76ba96cf0d1b8cc4d1c577a558e510c5ca456a7c36544b62f487cf4031404"
+    },
+    {
+      "board": "esp32",
+      "name": "restart-loop",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/restart-loop.syms.tsv",
+      "sha256": "5182c1612a6b39cbbd523fbb69a62251e796555d00b164d13da05f5e49c60fae",
+      "bytes": 116042,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "2fa76ba96cf0d1b8cc4d1c577a558e510c5ca456a7c36544b62f487cf4031404"
+    },
+    {
+      "board": "esp32",
+      "name": "rmt-long",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/rmt-long.bin",
+      "sha256": "d6ef6f667dcc802f040ae530098bc75a2d8922951e788bcb496cbd09a4b5e400",
+      "bytes": 270304,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "45e5a6483b5a027810b44cd2da28a76c43714706440e353f74a8fadaed8b5223"
+    },
+    {
+      "board": "esp32",
+      "name": "rmt-long",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/rmt-long.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "45e5a6483b5a027810b44cd2da28a76c43714706440e353f74a8fadaed8b5223"
+    },
+    {
+      "board": "esp32",
+      "name": "rmt-long",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/rmt-long.syms.tsv",
+      "sha256": "cdbedf0dc122f81231dfff725b2a79baee76f45073d62452238263ba152d2c1f",
+      "bytes": 117462,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "45e5a6483b5a027810b44cd2da28a76c43714706440e353f74a8fadaed8b5223"
+    },
+    {
+      "board": "esp32",
+      "name": "serial-echo",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/serial-echo.bin",
+      "sha256": "bc47657903575a76af4606ac27d5a1a5312b633cc0cba65da869d50366d8b1cd",
+      "bytes": 262832,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "0b14dea1a5cf648807cb25618a26f144ee0ac61528a6212ba9b2585171fa9563"
+    },
+    {
+      "board": "esp32",
+      "name": "serial-echo",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/serial-echo.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "0b14dea1a5cf648807cb25618a26f144ee0ac61528a6212ba9b2585171fa9563"
+    },
+    {
+      "board": "esp32",
+      "name": "serial-echo",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/serial-echo.syms.tsv",
+      "sha256": "636d199c5ec9dbb495d4233d9ebb861d6b009abb1d8049120ee7c27bf6bad280",
+      "bytes": 116239,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "0b14dea1a5cf648807cb25618a26f144ee0ac61528a6212ba9b2585171fa9563"
+    },
+    {
+      "board": "esp32",
+      "name": "serial-hello",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/serial-hello.bin",
+      "sha256": "1bd12e5d99e16754f8d67801a760a8490f0e1cd14320f9961df5ee998fc54ba6",
+      "bytes": 262416,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "5e48bbabee054fb9e9c6c4b2f904fed1594107a4b761e531a2bac23cfb93ed41"
+    },
+    {
+      "board": "esp32",
+      "name": "serial-hello",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/serial-hello.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "5e48bbabee054fb9e9c6c4b2f904fed1594107a4b761e531a2bac23cfb93ed41"
+    },
+    {
+      "board": "esp32",
+      "name": "serial-hello",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/serial-hello.syms.tsv",
+      "sha256": "ccb0e9a8ef7a6cb6d5b8c2ad3c21618e344db0a582c8eaf0995a00dd83ed38ae",
+      "bytes": 115864,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "5e48bbabee054fb9e9c6c4b2f904fed1594107a4b761e531a2bac23cfb93ed41"
+    },
+    {
+      "board": "esp32",
+      "name": "spi-loopback",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/spi-loopback.bin",
+      "sha256": "51864fdfa27780ee7a9a98910c9bc4fbad7ae7648351a83dea20cdf65d251337",
+      "bytes": 268656,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "SPI": "2.0.0"
+      },
+      "source": "5bf865fbd1141800a2af9732e2524358f101afeef79c4a6b2b6362e8fa5c2ac6"
+    },
+    {
+      "board": "esp32",
+      "name": "spi-loopback",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/spi-loopback.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "SPI": "2.0.0"
+      },
+      "source": "5bf865fbd1141800a2af9732e2524358f101afeef79c4a6b2b6362e8fa5c2ac6"
+    },
+    {
+      "board": "esp32",
+      "name": "spi-loopback",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/spi-loopback.syms.tsv",
+      "sha256": "403f50c100eab2cc84e1099eeca8f5cc5296f2142cc7968bb86786c612101ea3",
+      "bytes": 118388,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "SPI": "2.0.0"
+      },
+      "source": "5bf865fbd1141800a2af9732e2524358f101afeef79c4a6b2b6362e8fa5c2ac6"
+    },
+    {
+      "board": "esp32",
+      "name": "tft-demo",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/tft-demo.bin",
+      "sha256": "e19df9c588402399c4e59bcbf17aa3446c940cb836693898db2424530efa0ee8",
+      "bytes": 269232,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "SPI": "2.0.0"
+      },
+      "source": "1de1c412a428d411693ca2e69b1bdb141a7aa5882aa50e65f589e6ae17e25d3d"
+    },
+    {
+      "board": "esp32",
+      "name": "tft-demo",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/tft-demo.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "SPI": "2.0.0"
+      },
+      "source": "1de1c412a428d411693ca2e69b1bdb141a7aa5882aa50e65f589e6ae17e25d3d"
+    },
+    {
+      "board": "esp32",
+      "name": "tft-demo",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/tft-demo.syms.tsv",
+      "sha256": "787f1387473213d1d43b5b5ff114ad4dbb1dbcf4732d03ddda0d940d758b633d",
+      "bytes": 118557,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "SPI": "2.0.0"
+      },
+      "source": "1de1c412a428d411693ca2e69b1bdb141a7aa5882aa50e65f589e6ae17e25d3d"
+    },
+    {
+      "board": "esp32",
+      "name": "timekeeping",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/timekeeping.bin",
+      "sha256": "eeb1524b89a70bda2797826df219645d545c4985ad09ed61d8ad4c76de0a9b1c",
+      "bytes": 267968,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "379e2518a1fb9979628bca77b807092054d35114f15e006e21cffe8de477c5c5"
+    },
+    {
+      "board": "esp32",
+      "name": "timekeeping",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/timekeeping.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "379e2518a1fb9979628bca77b807092054d35114f15e006e21cffe8de477c5c5"
+    },
+    {
+      "board": "esp32",
+      "name": "timekeeping",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/timekeeping.syms.tsv",
+      "sha256": "5d18d0e80f51f8da82dbbb4f385c809a4e717dd10182ebeb156d391c83d4598e",
+      "bytes": 117894,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "379e2518a1fb9979628bca77b807092054d35114f15e006e21cffe8de477c5c5"
+    },
+    {
+      "board": "esp32",
+      "name": "uart-chat",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/uart-chat.bin",
+      "sha256": "e5bd5aebafa5f77a29fe1b33917b6569e1899958359c92f8e25968e5ffc32fa4",
+      "bytes": 263504,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "40130398a6edfb33acdd21e561b917d1a1cc8f48c17c287b0b954aad17b91ff0"
+    },
+    {
+      "board": "esp32",
+      "name": "uart-chat",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/uart-chat.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "40130398a6edfb33acdd21e561b917d1a1cc8f48c17c287b0b954aad17b91ff0"
+    },
+    {
+      "board": "esp32",
+      "name": "uart-chat",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/uart-chat.syms.tsv",
+      "sha256": "4a8531098b946bfad1b64115f59a68ed5b33c0179dc5fb61046a5b347e2f6956",
+      "bytes": 116524,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "40130398a6edfb33acdd21e561b917d1a1cc8f48c17c287b0b954aad17b91ff0"
+    },
+    {
+      "board": "esp32",
+      "name": "uart-relay",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/uart-relay.bin",
+      "sha256": "284edb61dcf5c7033bb41cb75fc8af4f065950f7a373a372b513c5c5270212a0",
+      "bytes": 262352,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "2d756c13bac8d962a1dd23fd83da3c142321b56f2360918d57e4f768fd9ce40b"
+    },
+    {
+      "board": "esp32",
+      "name": "uart-relay",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/uart-relay.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "2d756c13bac8d962a1dd23fd83da3c142321b56f2360918d57e4f768fd9ce40b"
+    },
+    {
+      "board": "esp32",
+      "name": "uart-relay",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/uart-relay.syms.tsv",
+      "sha256": "9ef635fe6b150ee8c8210f1e54e0e7ef6cda2b02e6b86dea4c7480281ec7e240",
+      "bytes": 115742,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "2d756c13bac8d962a1dd23fd83da3c142321b56f2360918d57e4f768fd9ce40b"
+    },
+    {
+      "board": "esp32",
+      "name": "wdt-trip",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/wdt-trip.bin",
+      "sha256": "a49a2a4a838fc408367990af409d346c1cefa430f87adf2a9d569dd1e81a2e12",
+      "bytes": 262480,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "61b4a4c95f79fec581d14ca41e7ea2c9dec60fff60f742b3d27bc92b1dbd788f"
+    },
+    {
+      "board": "esp32",
+      "name": "wdt-trip",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/wdt-trip.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "61b4a4c95f79fec581d14ca41e7ea2c9dec60fff60f742b3d27bc92b1dbd788f"
+    },
+    {
+      "board": "esp32",
+      "name": "wdt-trip",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/wdt-trip.syms.tsv",
+      "sha256": "22a7ec421332cf675e0c0330cc1e80097b497e197d680a54723a395d7f9a8129",
+      "bytes": 115864,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "61b4a4c95f79fec581d14ca41e7ea2c9dec60fff60f742b3d27bc92b1dbd788f"
+    },
+    {
+      "board": "mega",
+      "name": "analog-hi",
+      "fqbn": "arduino:avr:mega",
+      "file": "mega/analog-hi.elf",
+      "sha256": "4c2754bb584a7ba9a39cb0f70251490534312384be9b944330b3ccb92979ab8d",
+      "bytes": 29440,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "255a492e67e71cbcea02c437d4c41c59c94744f8c29a53c24832b14ab85db267"
+    },
+    {
+      "board": "mega",
+      "name": "analog-hi",
+      "fqbn": "arduino:avr:mega",
+      "file": "mega/analog-hi.hex",
+      "sha256": "a0eee93ee586d288e6ea6b77d13b0d33ca6ae19f9eac7010daae60425824a412",
+      "bytes": 6367,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "255a492e67e71cbcea02c437d4c41c59c94744f8c29a53c24832b14ab85db267"
+    },
+    {
+      "board": "mega",
+      "name": "blink",
+      "fqbn": "arduino:avr:mega",
+      "file": "mega/blink.elf",
+      "sha256": "4810fad7f86d5ffd872e41dc331f03b9be125fc40bdc63566345fbefa205ec6b",
+      "bytes": 30168,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "eff3335433e2dba45809f8a6e7dbdcbfe9b2572b429a73292c2572c8c7c1adda"
+    },
+    {
+      "board": "mega",
+      "name": "blink",
+      "fqbn": "arduino:avr:mega",
+      "file": "mega/blink.hex",
+      "sha256": "f2ac5244690e19358806dff53f502f3c7511ca513baea2cf49023598745fe9e4",
+      "bytes": 7561,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "eff3335433e2dba45809f8a6e7dbdcbfe9b2572b429a73292c2572c8c7c1adda"
+    },
+    {
+      "board": "mega",
+      "name": "chaser",
+      "fqbn": "arduino:avr:mega",
+      "file": "mega/chaser.elf",
+      "sha256": "a13f1a0f85f981c39edcc094907613f47370b6e1b2155450729f0c00e31906df",
+      "bytes": 20800,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "689c17a18173941597bef59d085e390f63eaabd445e591e00e6586094cbcf132"
+    },
+    {
+      "board": "mega",
+      "name": "chaser",
+      "fqbn": "arduino:avr:mega",
+      "file": "mega/chaser.hex",
+      "sha256": "d5d3d8acf1b63d769ca51434f2d7c3c657bd46516e547e285f97a5f03ea18935",
+      "bytes": 4620,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "689c17a18173941597bef59d085e390f63eaabd445e591e00e6586094cbcf132"
+    },
+    {
+      "board": "mega",
+      "name": "eeprom",
+      "fqbn": "arduino:avr:mega",
+      "file": "mega/eeprom.elf",
+      "sha256": "5adf97ba28001e475620e7b17eec80da27a124ee52d8072fbc9636d8e6a3f614",
+      "bytes": 30004,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "EEPROM": "2.0"
+      },
+      "source": "df09d22d79fd72e065fdf07d173048e8017a70aebd9f781c052390e199d19967"
+    },
+    {
+      "board": "mega",
+      "name": "eeprom",
+      "fqbn": "arduino:avr:mega",
+      "file": "mega/eeprom.hex",
+      "sha256": "52024a2b8a31b824e18a2d3d674eb874205b8bbb1eb33bc01f1ec96be1281147",
+      "bytes": 6011,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "EEPROM": "2.0"
+      },
+      "source": "df09d22d79fd72e065fdf07d173048e8017a70aebd9f781c052390e199d19967"
+    },
+    {
+      "board": "mega",
+      "name": "far-code",
+      "fqbn": "arduino:avr:mega",
+      "file": "mega/far-code.elf",
+      "sha256": "92c470b684ab1dd0d5d860d414596d90b4daf729ff6f46b9a302fd335aabcd97",
+      "bytes": 163420,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "ce49cb390cfc01d864e15489b63eef2d4a2ed9f6f8993c1cd5abe7de5b769bec"
+    },
+    {
+      "board": "mega",
+      "name": "far-code",
+      "fqbn": "arduino:avr:mega",
+      "file": "mega/far-code.hex",
+      "sha256": "c0b5bb985e211b68334686c471db9f1babf364b2b69e194ca4e2e14bd15d1a37",
+      "bytes": 372533,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "ce49cb390cfc01d864e15489b63eef2d4a2ed9f6f8993c1cd5abe7de5b769bec"
+    },
+    {
+      "board": "mega",
+      "name": "interrupts",
+      "fqbn": "arduino:avr:mega",
+      "file": "mega/interrupts.elf",
+      "sha256": "e3eaf743ecaf2629a18e5281a0c2fff9b20c0760c059fef1c5cc8b1fadb45f55",
+      "bytes": 36528,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "edaf13658257881138c601106fcc8c31533e3c4e70c9de6dde886a5005a12cb1"
+    },
+    {
+      "board": "mega",
+      "name": "interrupts",
+      "fqbn": "arduino:avr:mega",
+      "file": "mega/interrupts.hex",
+      "sha256": "adfc077b9fc06c83c22fa644fc99abfddb1839007b727fd37d395027d736b363",
+      "bytes": 9697,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "edaf13658257881138c601106fcc8c31533e3c4e70c9de6dde886a5005a12cb1"
+    },
+    {
+      "board": "mega",
+      "name": "serial-ports",
+      "fqbn": "arduino:avr:mega",
+      "file": "mega/serial-ports.elf",
+      "sha256": "f3c286cd304c18fc3f4bb88153e769053e21aee00ea506ad23f7c18e01f2561a",
+      "bytes": 32444,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "c723b5d1156a4ac7009f30343f511aa4cf45c5f643c3736d98234d85ec2e6457"
+    },
+    {
+      "board": "mega",
+      "name": "serial-ports",
+      "fqbn": "arduino:avr:mega",
+      "file": "mega/serial-ports.hex",
+      "sha256": "71b92824098e4724263cf91797a514fb6652bbd272078381a0c29242d7800179",
+      "bytes": 8208,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "c723b5d1156a4ac7009f30343f511aa4cf45c5f643c3736d98234d85ec2e6457"
+    },
+    {
+      "board": "mega",
+      "name": "timers",
+      "fqbn": "arduino:avr:mega",
+      "file": "mega/timers.elf",
+      "sha256": "b3b439459f1ab24160448aca3cf989389b7208cd8afb1cd9d00292e3894d90f3",
+      "bytes": 20604,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "e5482aa2426d21251209963e99294d6c228c64328fcf82ce09a6cbe1434bd40f"
+    },
+    {
+      "board": "mega",
+      "name": "timers",
+      "fqbn": "arduino:avr:mega",
+      "file": "mega/timers.hex",
+      "sha256": "0bdf88e2ab59d79c91d4730b6846b1734cd4af6c7197b3ac7b7cb86adf915ab4",
+      "bytes": 5430,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "e5482aa2426d21251209963e99294d6c228c64328fcf82ce09a6cbe1434bd40f"
+    },
+    {
+      "board": "nano",
+      "name": "analog-a6",
+      "fqbn": "arduino:avr:nano",
+      "file": "nano/analog-a6.elf",
+      "sha256": "20df6018558b021039eaac35f675f1096a41e629a2fae27c870cbdd1f7837b6f",
+      "bytes": 25480,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "8589d92a70d131bff5b8acc1a5a5af6df1e6affb6aa1fd0b3a434874a19c6e41"
+    },
+    {
+      "board": "nano",
+      "name": "analog-a6",
+      "fqbn": "arduino:avr:nano",
+      "file": "nano/analog-a6.hex",
+      "sha256": "01970577c68ce7b5052429c81d12a56e378cdbbf9a9bf3230e0d10654701f640",
+      "bytes": 5610,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "8589d92a70d131bff5b8acc1a5a5af6df1e6affb6aa1fd0b3a434874a19c6e41"
+    },
+    {
+      "board": "nano",
+      "name": "blink",
+      "fqbn": "arduino:avr:nano",
+      "file": "nano/blink.elf",
+      "sha256": "076fbc0767d84b6d6316450c9a95df07faacaf0eaf4271a96c454ff757e96640",
+      "bytes": 24988,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "aa774f7a336c04708b821c31470a5fa2c4265020cb21cf904de63d3a4756c747"
+    },
+    {
+      "board": "nano",
+      "name": "blink",
+      "fqbn": "arduino:avr:nano",
+      "file": "nano/blink.hex",
+      "sha256": "6acb5a3879ddbdb4442b07ce01f4c9a277bf0f84a8f6425209fb90753b93e149",
+      "bytes": 5528,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "aa774f7a336c04708b821c31470a5fa2c4265020cb21cf904de63d3a4756c747"
+    },
+    {
+      "board": "uno",
+      "name": "a4988-stepper",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/a4988-stepper.elf",
+      "sha256": "74720ec806459542d8ba43b4988407372ff26e64e86581ff89f9686f08b509c9",
+      "bytes": 27128,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "633934b8e83d5cd5f73a5dd47e1f81e1105dc90c3927d445fe02c8d1c962d1d8"
+    },
+    {
+      "board": "uno",
+      "name": "a4988-stepper",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/a4988-stepper.hex",
+      "sha256": "6a8fe455e8f231d04135037dad41def8b9f5bf2a4664fc57633e9a20e85859f1",
+      "bytes": 6019,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "633934b8e83d5cd5f73a5dd47e1f81e1105dc90c3927d445fe02c8d1c962d1d8"
+    },
+    {
+      "board": "uno",
+      "name": "analog-pullup",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/analog-pullup.elf",
+      "sha256": "f848ca5685bbc8992cf13aa20601f535e7036fa421d37df43ec6ddd49aa1a35d",
+      "bytes": 26192,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "a7e69d3287d12e7b67643ab1c5eeac3bd9d349368359093fe8d8ddf760fe8da8"
+    },
+    {
+      "board": "uno",
+      "name": "analog-pullup",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/analog-pullup.hex",
+      "sha256": "00ff1636ea4f78ec264cc7cf1be0691e38c449bdbfd693ae5ea233816b96980f",
+      "bytes": 5696,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "a7e69d3287d12e7b67643ab1c5eeac3bd9d349368359093fe8d8ddf760fe8da8"
+    },
+    {
+      "board": "uno",
+      "name": "analog-read",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/analog-read.elf",
+      "sha256": "b01986e588a75b7b365f0e133df705c24f4b06552ddaa9addb7a6ba96caa3750",
+      "bytes": 24736,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "bae574fc1c1e2c1c82426c433e193bc5129c6235f4af059a82780cb395b5513f"
+    },
+    {
+      "board": "uno",
+      "name": "analog-read",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/analog-read.hex",
+      "sha256": "5acd35b77b631b9f120a8b4d4b7a83921b6100d75e1f6cddbdce7e4644476b36",
+      "bytes": 5340,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "bae574fc1c1e2c1c82426c433e193bc5129c6235f4af059a82780cb395b5513f"
+    },
+    {
+      "board": "uno",
+      "name": "bargraph",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/bargraph.elf",
+      "sha256": "278d1f73d819cc7d04a4ee69d06a21d56051189bd9ba1b47ed7440fde970b5c3",
+      "bytes": 13556,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "3971fbf83b1c7e14964e5fd4595cb159d4917c7ab96a4fef3bb5ee4df685839b"
+    },
+    {
+      "board": "uno",
+      "name": "bargraph",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/bargraph.hex",
+      "sha256": "cb4ad72063886e75d5b11f95d7dc09968194a5475e2d0d60eaf6802e24324ec6",
+      "bytes": 2112,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "3971fbf83b1c7e14964e5fd4595cb159d4917c7ab96a4fef3bb5ee4df685839b"
+    },
+    {
+      "board": "uno",
+      "name": "blink",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/blink.addr2line.txt",
+      "sha256": "e73f0bdbcfe164f4c58076b50e287afa98140930820b4c8d39885cc598abbac0",
+      "bytes": 1207,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "67f8816329a9c996f00c049e4a5976975f655f6d0c8c5251366fafbd9fae4ad1"
+    },
+    {
+      "board": "uno",
+      "name": "blink",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/blink.elf",
+      "sha256": "c49f5962453a5debe195562ef090f7d7165788d687e6937f94a54155075acd39",
+      "bytes": 24964,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "67f8816329a9c996f00c049e4a5976975f655f6d0c8c5251366fafbd9fae4ad1"
+    },
+    {
+      "board": "uno",
+      "name": "blink",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/blink.hex",
+      "sha256": "1f49785f180b7f7ccc1208a1b2ba9458ba7c8ec6120127dbcdd255b75ec8e24e",
+      "bytes": 5532,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "67f8816329a9c996f00c049e4a5976975f655f6d0c8c5251366fafbd9fae4ad1"
+    },
+    {
+      "board": "uno",
+      "name": "button-pullup",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/button-pullup.elf",
+      "sha256": "437f061098f51aa7e04a94127836f423294889835136f5169f0a9505c131afd8",
+      "bytes": 14756,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "7152fed38fbc083939b881f5da2c34de05134abdb37dfc8a4da58165bc20b39d"
+    },
+    {
+      "board": "uno",
+      "name": "button-pullup",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/button-pullup.hex",
+      "sha256": "247f94bb051e9eebb4dfe8099278d810e04ccbf097f1b3ddb53b904e26ea8ebc",
+      "bytes": 2525,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "7152fed38fbc083939b881f5da2c34de05134abdb37dfc8a4da58165bc20b39d"
+    },
+    {
+      "board": "uno",
+      "name": "buzzer",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/buzzer.elf",
+      "sha256": "7f7aacf8ce45df9efb713e68905e924bff835a01cc62ed8ccf87c737215ec450",
+      "bytes": 34344,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "62341ec847b4dafa726e2f22fd72fe48ca23770342c02494457254e314385dad"
+    },
+    {
+      "board": "uno",
+      "name": "buzzer",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/buzzer.hex",
+      "sha256": "c6b91f5995055d229de8f8a1b002feecacdadac4a15fcf1ec8b8f63a41cd8ab9",
+      "bytes": 9018,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "62341ec847b4dafa726e2f22fd72fe48ca23770342c02494457254e314385dad"
+    },
+    {
+      "board": "uno",
+      "name": "checker-demo-pullup",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/checker-demo-pullup.elf",
+      "sha256": "c78a2622e938a01b4108d7d0a6add3d6cab4cb9cf01dc63a41933ef255fd13ca",
+      "bytes": 27292,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "f3a2ba6d8e8008bbb0287b406a9b3318dac55fb24fffbe19612ba8bbcb981d94"
+    },
+    {
+      "board": "uno",
+      "name": "checker-demo-pullup",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/checker-demo-pullup.hex",
+      "sha256": "35e4d372904bb6b31febd561886d6c6dd468d7226c738524396936d1c7373fbd",
+      "bytes": 6085,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "f3a2ba6d8e8008bbb0287b406a9b3318dac55fb24fffbe19612ba8bbcb981d94"
+    },
+    {
+      "board": "uno",
+      "name": "checker-demo",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/checker-demo.elf",
+      "sha256": "b8eba12290fb216d8aa463e746916194516dd3b4ca6533f3d510a31c2ba8db0e",
+      "bytes": 27288,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "70428b06cc4196a982e6ad4eeffd4a8dbe7b73bdf4c7949e016da1db5fb5b2b5"
+    },
+    {
+      "board": "uno",
+      "name": "checker-demo",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/checker-demo.hex",
+      "sha256": "b4431835408e609d4bcdfb90cc513002fd33cba19b67a74ca046f1fb1e22bf4e",
+      "bytes": 6085,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "70428b06cc4196a982e6ad4eeffd4a8dbe7b73bdf4c7949e016da1db5fb5b2b5"
+    },
+    {
+      "board": "uno",
+      "name": "cli-demo",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/cli-demo.elf",
+      "sha256": "a343d3e0550417766f1bb7282caa2ccba24defd2f4f516768e0fd67f36bbbc1b",
+      "bytes": 27236,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "da58565559be70fb79d9fbfb9b5d25828cf68aaccab197b8d050ce1817362309"
+    },
+    {
+      "board": "uno",
+      "name": "cli-demo",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/cli-demo.hex",
+      "sha256": "25055e0381c67c619c64e7df497d39e0cf5d71168d4ce6abaee4279d452b8875",
+      "bytes": 5880,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "da58565559be70fb79d9fbfb9b5d25828cf68aaccab197b8d050ce1817362309"
+    },
+    {
+      "board": "uno",
+      "name": "debug-demo",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/debug-demo.addr2line.txt",
+      "sha256": "e2dc003dd523a0b9a638980c5ab281dec5bb340364596e29df36c30a722afde4",
+      "bytes": 1232,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "88b780be4183a08919bf2c27e13669f2be16abf4d2dfefa4d766a72ffe2cb4d7"
+    },
+    {
+      "board": "uno",
+      "name": "debug-demo",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/debug-demo.elf",
+      "sha256": "f52b98d6c1d132f822f1ccb7b61c0d09d08066d695f4eb37fc88abc5f361a653",
+      "bytes": 25896,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "88b780be4183a08919bf2c27e13669f2be16abf4d2dfefa4d766a72ffe2cb4d7"
+    },
+    {
+      "board": "uno",
+      "name": "debug-demo",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/debug-demo.hex",
+      "sha256": "5f39c6420dfad8a4f3ed4a9f555e3b2e323688b6881348fad379570f5af480c3",
+      "bytes": 5790,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "88b780be4183a08919bf2c27e13669f2be16abf4d2dfefa4d766a72ffe2cb4d7"
+    },
+    {
+      "board": "uno",
+      "name": "dht22-adafruit",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/dht22-adafruit.elf",
+      "sha256": "c41d45b519a12f84727c0a76e50dc533c5b34a5753e7fee0374ca115cc390815",
+      "bytes": 40348,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Adafruit Unified Sensor": "1.1.15",
+        "DHT sensor library": "1.4.6"
+      },
+      "source": "31de9f49b41b72c753d63c839c413a5f9ed8697e67a983fd5989b5028812f492"
+    },
+    {
+      "board": "uno",
+      "name": "dht22-adafruit",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/dht22-adafruit.hex",
+      "sha256": "6eecfd9f39aa43aec6d8b2dd4db27bc90ca0a324861bdde65dd0ca9b2b1f09a4",
+      "bytes": 14451,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Adafruit Unified Sensor": "1.1.15",
+        "DHT sensor library": "1.4.6"
+      },
+      "source": "31de9f49b41b72c753d63c839c413a5f9ed8697e67a983fd5989b5028812f492"
+    },
+    {
+      "board": "uno",
+      "name": "dht22-dhtlib",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/dht22-dhtlib.elf",
+      "sha256": "8d74da4ed4b84aa236a2e28ea2e2ec1d4fe31376f0c71af3b6666779cad777ec",
+      "bytes": 38472,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "DHTlib": "0.1.37"
+      },
+      "source": "00c54c95e9079f9edd57bcb1757fa9794c7e931d2cefe2be5e730657773068b8"
+    },
+    {
+      "board": "uno",
+      "name": "dht22-dhtlib",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/dht22-dhtlib.hex",
+      "sha256": "0c349b8881fa89a5ae3b3bac11c1816b21bf59b34c2bd5a8dee352e41930fc3f",
+      "bytes": 12573,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "DHTlib": "0.1.37"
+      },
+      "source": "00c54c95e9079f9edd57bcb1757fa9794c7e931d2cefe2be5e730657773068b8"
+    },
+    {
+      "board": "uno",
+      "name": "distance-meter",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/distance-meter.elf",
+      "sha256": "8a5e3fa0b7da522182d3b5b9a8662f250d612c62ead32993e45360c5fe06156c",
+      "bytes": 20600,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "7d6e866232faeb8fb992d5b26aa5ba637fe64982fbffaf99e7c4228f4869ab01"
+    },
+    {
+      "board": "uno",
+      "name": "distance-meter",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/distance-meter.hex",
+      "sha256": "8cc6e23c61a57fa1ca1d48b24716a4e905d7e16184e2bcd1848892d2ae059c2f",
+      "bytes": 4448,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "7d6e866232faeb8fb992d5b26aa5ba637fe64982fbffaf99e7c4228f4869ab01"
+    },
+    {
+      "board": "uno",
+      "name": "ds1307",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/ds1307.elf",
+      "sha256": "1a778b953b26025cf7f0781192ccfec7ac8cf0e4b9c4bbebdd871e2d375152a4",
+      "bytes": 52496,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Wire": "1.0"
+      },
+      "source": "99baa0aebca46cd8f48a79e887179259bcd2dbee92df87101782c33a63c88ae4"
+    },
+    {
+      "board": "uno",
+      "name": "ds1307",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/ds1307.hex",
+      "sha256": "fddac7ed50b8764ba489a52fe00ec449f380f0e42696cec0fec52b43705b775a",
+      "bytes": 19102,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Wire": "1.0"
+      },
+      "source": "99baa0aebca46cd8f48a79e887179259bcd2dbee92df87101782c33a63c88ae4"
+    },
+    {
+      "board": "uno",
+      "name": "eeprom",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/eeprom.elf",
+      "sha256": "2e791f654271596eb684c9decf237fd9578725b565b6ca0619188fbd45593d93",
+      "bytes": 22652,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "EEPROM": "2.0"
+      },
+      "source": "284cc95310b9c0516444d574dc7a74e6af69c826ed64f5cdeebb3e3fda9321e6"
+    },
+    {
+      "board": "uno",
+      "name": "eeprom",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/eeprom.hex",
+      "sha256": "77cf3a913c8c7657bf9375d67ccb836a6e9af8a9c115770831b66e785ad97582",
+      "bytes": 4497,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "EEPROM": "2.0"
+      },
+      "source": "284cc95310b9c0516444d574dc7a74e6af69c826ed64f5cdeebb3e3fda9321e6"
+    },
+    {
+      "board": "uno",
+      "name": "encoder-count",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/encoder-count.elf",
+      "sha256": "23aef4ffef53b9279ce0447d10aca200612250e7f7166a22776930367d98e888",
+      "bytes": 29288,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "49b7abdcccead57f9681ca2ce3fe6de7830a3c13659609bce1594ff23945229f"
+    },
+    {
+      "board": "uno",
+      "name": "encoder-count",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/encoder-count.hex",
+      "sha256": "e16475a14c84c91bc237131a4233b96881006aaa96cecd161c58d24d1bfdb709",
+      "bytes": 6334,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "49b7abdcccead57f9681ca2ce3fe6de7830a3c13659609bce1594ff23945229f"
+    },
+    {
+      "board": "uno",
+      "name": "flame-alarm",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/flame-alarm.elf",
+      "sha256": "87d4a781b3f8bb4fae75ce3bc397c03553f0ce196b172526725c18a63a6b55b7",
+      "bytes": 34172,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "148b8f16357f81b8e138dde3fd1aa9a75f8d36cc1b38b43e7b1cdd8cd31e81b0"
+    },
+    {
+      "board": "uno",
+      "name": "flame-alarm",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/flame-alarm.hex",
+      "sha256": "56076f0e09a36711c41ec0cc7a4e219f28a4ff955761a03af96fbf7494806f8b",
+      "bytes": 8842,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "148b8f16357f81b8e138dde3fd1aa9a75f8d36cc1b38b43e7b1cdd8cd31e81b0"
+    },
+    {
+      "board": "uno",
+      "name": "gas-meter",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/gas-meter.elf",
+      "sha256": "910c6fed4b782b9668abd12f5f2d5f9fab55174083cb39ddc003ea7516078b0a",
+      "bytes": 29848,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "1efea7a0e71a17a704e8bc01f4824bd02f9c93e3fdd2b14c78643680d8bb51d6"
+    },
+    {
+      "board": "uno",
+      "name": "gas-meter",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/gas-meter.hex",
+      "sha256": "71681d0106331696e3815aa7d9d7030f539fa681387cae0cbe828e8e96d7c8b1",
+      "bytes": 6768,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "1efea7a0e71a17a704e8bc01f4824bd02f9c93e3fdd2b14c78643680d8bb51d6"
+    },
+    {
+      "board": "uno",
+      "name": "hcsr04",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/hcsr04.elf",
+      "sha256": "bedf6b07f43d5192c698719d0b35581c22bba4e46703f0ab775abb38711d8b8e",
+      "bytes": 33884,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "1d15f58c943fb4016a0b3c6002cc9f5451168563de2ade117872bafc1c88d920"
+    },
+    {
+      "board": "uno",
+      "name": "hcsr04",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/hcsr04.hex",
+      "sha256": "87b170b57a889da5f071b272e0bee4f99ef56e666cb9057891fb5826912fb247",
+      "bytes": 10229,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "1d15f58c943fb4016a0b3c6002cc9f5451168563de2ade117872bafc1c88d920"
+    },
+    {
+      "board": "uno",
+      "name": "i2c-scan",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/i2c-scan.elf",
+      "sha256": "55e836d38c9e4add7229a904d53f6d84fff63e2bd7f50b84d5aececb97c1cb32",
+      "bytes": 37592,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Wire": "1.0"
+      },
+      "source": "11e5e12af8b149f1c1dc3c71c849038f97684237732f8bcad2b5d3d65b0ad36a"
+    },
+    {
+      "board": "uno",
+      "name": "i2c-scan",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/i2c-scan.hex",
+      "sha256": "5b4ed36757b24df348a0e8ae4bad85135adc19652783a788a10e701b3cc18db4",
+      "bytes": 10183,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Wire": "1.0"
+      },
+      "source": "11e5e12af8b149f1c1dc3c71c849038f97684237732f8bcad2b5d3d65b0ad36a"
+    },
+    {
+      "board": "uno",
+      "name": "inputs-report",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/inputs-report.elf",
+      "sha256": "68c476f995ac14eb5cc983c495f93628837c6e3b704a6daed3f6abb90ba3c7ef",
+      "bytes": 28908,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "a42f68cd20613296a22ba218ebb01961dfb4ed366cc32439348b1663d2caec4e"
+    },
+    {
+      "board": "uno",
+      "name": "inputs-report",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/inputs-report.hex",
+      "sha256": "b896bc50fb3d3dd2ff7de327fb6894d6e1e2db2707246e52dce97715245a7cdf",
+      "bytes": 6400,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "a42f68cd20613296a22ba218ebb01961dfb4ed366cc32439348b1663d2caec4e"
+    },
+    {
+      "board": "uno",
+      "name": "interrupt",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/interrupt.elf",
+      "sha256": "2355446366b1cc6f6b6eb9b2a36581b03cde7a0e1e50f690c0ad6f5bf4dee60a",
+      "bytes": 26640,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "21d7fdbd944afb8d073375a5156ee46946c8c3a06099175cee7bbc614bfbe6c6"
+    },
+    {
+      "board": "uno",
+      "name": "interrupt",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/interrupt.hex",
+      "sha256": "2c095b3e1f31b224cc84ebfa56c6fc1dbb7c021f7ec726ca3dad716b3a36748b",
+      "bytes": 6011,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "21d7fdbd944afb8d073375a5156ee46946c8c3a06099175cee7bbc614bfbe6c6"
+    },
+    {
+      "board": "uno",
+      "name": "ir-decode",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/ir-decode.elf",
+      "sha256": "28cc83e6854fc5c1db36b778c4b35c3ac033f1137b5d646ddd43b418caa9eaa6",
+      "bytes": 30440,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "0cd45633da96e7f42b1ad9dcd82fdba9c138cf064b382550a0b69d218d1558da"
+    },
+    {
+      "board": "uno",
+      "name": "ir-decode",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/ir-decode.hex",
+      "sha256": "06e453bde81fa2e61aff8c335fe5c3174616d5323b453582ec57bebacaae50a9",
+      "bytes": 8044,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "0cd45633da96e7f42b1ad9dcd82fdba9c138cf064b382550a0b69d218d1558da"
+    },
+    {
+      "board": "uno",
+      "name": "keypad-lock",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/keypad-lock.elf",
+      "sha256": "df0e2b35a7097e6c4cffead6bb27cfd2ba74b3256e59c91400777f66c44b87da",
+      "bytes": 43316,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Servo": "1.3.0"
+      },
+      "source": "1df90464e54d8b02aaebfb59ae6a2fce5c2f2104d30ab26ba9eb1a222323ca40"
+    },
+    {
+      "board": "uno",
+      "name": "keypad-lock",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/keypad-lock.hex",
+      "sha256": "d82ddec9e5d80fe701c9fed0a1e5fe64c7efed8f26ba517c38558e3c1258c4aa",
+      "bytes": 13293,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Servo": "1.3.0"
+      },
+      "source": "1df90464e54d8b02aaebfb59ae6a2fce5c2f2104d30ab26ba9eb1a222323ca40"
+    },
+    {
+      "board": "uno",
+      "name": "keypad-scan",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/keypad-scan.elf",
+      "sha256": "ec2b7673f888d7a09b8a14837324af7ea0b58b46e417d2dc88defbde9723d1fc",
+      "bytes": 27900,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "00334aca1aaf474b481a6b0e1cb632a614baed7fdb95fbc7d5b96f80ee150647"
+    },
+    {
+      "board": "uno",
+      "name": "keypad-scan",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/keypad-scan.hex",
+      "sha256": "030b242afc0272d510b60da582806c64ab0df5cb5f33f1a9ec4e5ced1514eeef",
+      "bytes": 6444,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "00334aca1aaf474b481a6b0e1cb632a614baed7fdb95fbc7d5b96f80ee150647"
+    },
+    {
+      "board": "uno",
+      "name": "lcd-4bit",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/lcd-4bit.elf",
+      "sha256": "7fa899c7944c8c40a5d5449b9cc8648b6e20be35dc91a05553ae1f2e94c0c533",
+      "bytes": 27668,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "LiquidCrystal": "1.0.7"
+      },
+      "source": "24ab03cdfa33d34325590e1784248629cb1a5178eac19782e6a19f89acb676f7"
+    },
+    {
+      "board": "uno",
+      "name": "lcd-4bit",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/lcd-4bit.hex",
+      "sha256": "e30eb52599804be93a553887e49a1732a4bb9361f359ac58f9c4f54da6eca2b1",
+      "bytes": 5545,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "LiquidCrystal": "1.0.7"
+      },
+      "source": "24ab03cdfa33d34325590e1784248629cb1a5178eac19782e6a19f89acb676f7"
+    },
+    {
+      "board": "uno",
+      "name": "lcd-8bit-2004",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/lcd-8bit-2004.elf",
+      "sha256": "b34189447370692b0e337b6b2d8bab900c56318fd8a4e01c554852203e1519f4",
+      "bytes": 26596,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "LiquidCrystal": "1.0.7"
+      },
+      "source": "639d30baae425d3d398a7c34d8e54d9cb155f86cdc135c8cf4c027da5e869d80"
+    },
+    {
+      "board": "uno",
+      "name": "lcd-8bit-2004",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/lcd-8bit-2004.hex",
+      "sha256": "1050f3226f6c89dc06f14a6b0e7ef29d5d1d3c569d435c0c49cc9e7d61fbee88",
+      "bytes": 5303,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "LiquidCrystal": "1.0.7"
+      },
+      "source": "639d30baae425d3d398a7c34d8e54d9cb155f86cdc135c8cf4c027da5e869d80"
+    },
+    {
+      "board": "uno",
+      "name": "lcd-i2c",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/lcd-i2c.elf",
+      "sha256": "cd5b4b2213b8093a4fd8cdcfb0c77f4cca2c9b862121a17c98fe53f61d0aae78",
+      "bytes": 42476,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Wire": "1.0"
+      },
+      "source": "149d92a17b955cccad35f61bd190a01409750f50d2396a3f3004a03a01171e26"
+    },
+    {
+      "board": "uno",
+      "name": "lcd-i2c",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/lcd-i2c.hex",
+      "sha256": "60cc227b4e89a79072b219d6b7eee6f6b64b6a4e07e7f1f72f7f08e9855d3361",
+      "bytes": 12123,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Wire": "1.0"
+      },
+      "source": "149d92a17b955cccad35f61bd190a01409750f50d2396a3f3004a03a01171e26"
+    },
+    {
+      "board": "uno",
+      "name": "lcd-thermometer",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/lcd-thermometer.elf",
+      "sha256": "2ec98c8fdd7afd17437619c045bdc4d8121f125d0831c33cbb2ea3f911032029",
+      "bytes": 51600,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Adafruit Unified Sensor": "1.1.15",
+        "DHT sensor library": "1.4.6",
+        "Wire": "1.0"
+      },
+      "source": "b0fac572e314841a21b513b025c61cc89dfed951d9d0082e6ee174feabfe223c"
+    },
+    {
+      "board": "uno",
+      "name": "lcd-thermometer",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/lcd-thermometer.hex",
+      "sha256": "82ac17c050e7820da413e4cc8bb385cdedd6e64712f204d7c9e2594fd4d67b04",
+      "bytes": 24727,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Adafruit Unified Sensor": "1.1.15",
+        "DHT sensor library": "1.4.6",
+        "Wire": "1.0"
+      },
+      "source": "b0fac572e314841a21b513b025c61cc89dfed951d9d0082e6ee174feabfe223c"
+    },
+    {
+      "board": "uno",
+      "name": "logic-demo",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/logic-demo.elf",
+      "sha256": "8ec50fcb922114aae1b8a75e3f30e3c18f589addf1598ed92f2602b5551af577",
+      "bytes": 30108,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "SoftwareSerial": "1.0"
+      },
+      "source": "07ee02e61dbd1c35b42f117341293c495877652935b3f061bd411281fd645bbf"
+    },
+    {
+      "board": "uno",
+      "name": "logic-demo",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/logic-demo.hex",
+      "sha256": "a2c85320d7cfa29384be57f966b43df1267fe0353685f1f79e9df0d44520198b",
+      "bytes": 7120,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "SoftwareSerial": "1.0"
+      },
+      "source": "07ee02e61dbd1c35b42f117341293c495877652935b3f061bd411281fd645bbf"
+    },
+    {
+      "board": "uno",
+      "name": "mic-level",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/mic-level.elf",
+      "sha256": "cd20601be2eee8d9efc713b1f89f95223e4d8eedbfb500ffae2899b9ddcd2e9e",
+      "bytes": 24352,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "1c4eb8cce68dfcf2b392aa693a34aef3fc2002284d73aa23591950eb59506664"
+    },
+    {
+      "board": "uno",
+      "name": "mic-level",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/mic-level.hex",
+      "sha256": "b1c604d9775e6c8a6281272cafbfd3fcc39b090481908c239c81b23c575669b7",
+      "bytes": 5602,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "1c4eb8cce68dfcf2b392aa693a34aef3fc2002284d73aa23591950eb59506664"
+    },
+    {
+      "board": "uno",
+      "name": "mpu6050-ad0",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/mpu6050-ad0.elf",
+      "sha256": "f725ddc293b5c51ad23057c43e6558f356aa969965721a1254e9c34aad9cd6a1",
+      "bytes": 47000,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Wire": "1.0"
+      },
+      "source": "7f4ae42df27392e403030bdd9b1262771073d824eddf3cc6f5a983579ad7e3dd"
+    },
+    {
+      "board": "uno",
+      "name": "mpu6050-ad0",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/mpu6050-ad0.hex",
+      "sha256": "7020065694e1972ad7fbad4d65c5dc6baec36e4de330995cb274a0bcc56d6032",
+      "bytes": 13469,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Wire": "1.0"
+      },
+      "source": "7f4ae42df27392e403030bdd9b1262771073d824eddf3cc6f5a983579ad7e3dd"
+    },
+    {
+      "board": "uno",
+      "name": "mpu6050",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/mpu6050.elf",
+      "sha256": "027032fc0eb160f6b5b5f9acd5d5a1992ef0ac9414013f211795951ce58b534d",
+      "bytes": 46988,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Wire": "1.0"
+      },
+      "source": "9bc0738331dc6a2be991e9b6258ddd56c7253a863a2bfaa629e21d8f7a92c493"
+    },
+    {
+      "board": "uno",
+      "name": "mpu6050",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/mpu6050.hex",
+      "sha256": "ba5216cfeabc52aebdaad088959fbe0f41b142cacb2bbc045b0f9702b898f9ec",
+      "bytes": 13469,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Wire": "1.0"
+      },
+      "source": "9bc0738331dc6a2be991e9b6258ddd56c7253a863a2bfaa629e21d8f7a92c493"
+    },
+    {
+      "board": "uno",
+      "name": "neopixel",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/neopixel.elf",
+      "sha256": "1ef905118f4267cba8cced0b654dafd5782ea3a5672ad11e7504c604e7daa9cb",
+      "bytes": 26028,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "eb39f5da55c1655f22c1bdc453d9ccc3e10d80deeb37885cafa37a8542e5f8b3"
+    },
+    {
+      "board": "uno",
+      "name": "neopixel",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/neopixel.hex",
+      "sha256": "09dea3895aaa32405d4376a8ab11e684153c66628a11ebfdf442aece86c0e1da",
+      "bytes": 5831,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "eb39f5da55c1655f22c1bdc453d9ccc3e10d80deeb37885cafa37a8542e5f8b3"
+    },
+    {
+      "board": "uno",
+      "name": "oled-clock",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/oled-clock.elf",
+      "sha256": "476e8156eac262c7c3199a9aff1ae74490a84662d8b29126600d815ca9f2804e",
+      "bytes": 100620,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "1.0",
+        "Wire": "1.0"
+      },
+      "source": "145588adbf5a81114262a453d731473dbc6694b362ddcb0095a9cc41015cce26"
+    },
+    {
+      "board": "uno",
+      "name": "oled-clock",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/oled-clock.hex",
+      "sha256": "a01bd851c721fcf52c44b5d3e7e59c7309d9a7c30a95e320a56b38723ad4cc94",
+      "bytes": 45873,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "1.0",
+        "Wire": "1.0"
+      },
+      "source": "145588adbf5a81114262a453d731473dbc6694b362ddcb0095a9cc41015cce26"
+    },
+    {
+      "board": "uno",
+      "name": "pcm-playback",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/pcm-playback.elf",
+      "sha256": "ebc810fe45daa5a0b127ba5fb6212cdec9e2cce1dc2c90c4cd6d6f4873188547",
+      "bytes": 12596,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "d5815e16993b38884ee057e89428b4da0f6f8392379e01b9a82e9f1826b46cd4"
+    },
+    {
+      "board": "uno",
+      "name": "pcm-playback",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/pcm-playback.hex",
+      "sha256": "63b31508ba6abdc87dc0e01da09a1d76b4be519019c0836590cd450de250b167",
+      "bytes": 1977,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "d5815e16993b38884ee057e89428b4da0f6f8392379e01b9a82e9f1826b46cd4"
+    },
+    {
+      "board": "uno",
+      "name": "pwm-fade",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/pwm-fade.elf",
+      "sha256": "64f183004c8f06dca40e0dbd83992c336e4c402828dcc5de97cfbd6b346489c1",
+      "bytes": 15400,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "2aa92be5a0fed7dd6edbfd2a4100108d0a8beacbec0129e74900f90680d66bbc"
+    },
+    {
+      "board": "uno",
+      "name": "pwm-fade",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/pwm-fade.hex",
+      "sha256": "ab98fa352e216f428bb36c387f6eade3f1bd835e2fe024d4d86821abc7686dac",
+      "bytes": 3201,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "2aa92be5a0fed7dd6edbfd2a4100108d0a8beacbec0129e74900f90680d66bbc"
+    },
+    {
+      "board": "uno",
+      "name": "relay",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/relay.elf",
+      "sha256": "7586146757590e019baaa59d2824be2916f2e0034e2bb86f83ded950757826d9",
+      "bytes": 26228,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "ddbf29557278e556a0997f82784f095db0e9ba9f54c46dfe8e59ecf4af6980d0"
+    },
+    {
+      "board": "uno",
+      "name": "relay",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/relay.hex",
+      "sha256": "0587f04e0210d2db44d8a06f31bd2cda05c8a7ca76e8fbf6a1532ec627735285",
+      "bytes": 5782,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "ddbf29557278e556a0997f82784f095db0e9ba9f54c46dfe8e59ecf4af6980d0"
+    },
+    {
+      "board": "uno",
+      "name": "scale",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/scale.elf",
+      "sha256": "406d3d5a8863ae2b7c4ecb6992225cd06225825bf08bc7cac85744f80e731e2c",
+      "bytes": 34108,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "9768e8114455b56b2b090a6caac6204e76538588ce62c691ae487c69bb72735a"
+    },
+    {
+      "board": "uno",
+      "name": "scale",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/scale.hex",
+      "sha256": "625728363264a210bc5d945e3fc45c31ddc943771470f1a8a7cfe6cc98fdad1a",
+      "bytes": 11067,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "9768e8114455b56b2b090a6caac6204e76538588ce62c691ae487c69bb72735a"
+    },
+    {
+      "board": "uno",
+      "name": "serial-echo",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/serial-echo.elf",
+      "sha256": "3946a703e7e8a1d5360eba7871c2268d570d50c501af0faf962c2dbd2fec2e6a",
+      "bytes": 20692,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "51e689cebd653e5b9156929cfb3be708a50f7fbe965d767893b318ca356e3d65"
+    },
+    {
+      "board": "uno",
+      "name": "serial-echo",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/serial-echo.hex",
+      "sha256": "410a516141709d2c46585835e05ecb6935556f6007deccbc1cde151455c15c0b",
+      "bytes": 4166,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "51e689cebd653e5b9156929cfb3be708a50f7fbe965d767893b318ca356e3d65"
+    },
+    {
+      "board": "uno",
+      "name": "servo-knob",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/servo-knob.elf",
+      "sha256": "88c261cfc834ac1b759989fe6b54fc6efe5cd2010606f3b85d5b8bac8772f570",
+      "bytes": 24668,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Servo": "1.3.0"
+      },
+      "source": "45ef1bc0f3d55445ee979eccd6ef8268b3ba36b21ad50eefa28877495e750dc7"
+    },
+    {
+      "board": "uno",
+      "name": "servo-knob",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/servo-knob.hex",
+      "sha256": "b3e751eb2ea9987f33d527966d52428351470587760c5ccee6ff685bd1f4d430",
+      "bytes": 5839,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Servo": "1.3.0"
+      },
+      "source": "45ef1bc0f3d55445ee979eccd6ef8268b3ba36b21ad50eefa28877495e750dc7"
+    },
+    {
+      "board": "uno",
+      "name": "servo-sweep",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/servo-sweep.elf",
+      "sha256": "4263c6e396457fb021f028e1769941fee043571b3cb53a2b4f402a8c6cebd3d6",
+      "bytes": 36720,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Servo": "1.3.0"
+      },
+      "source": "031c6723496e0eedc02c60bd9eb4388c99cc72ffc3a5e4c24ae0c3dfa5efb6c0"
+    },
+    {
+      "board": "uno",
+      "name": "servo-sweep",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/servo-sweep.hex",
+      "sha256": "e16464a76e7b0bd96910e195d2ff63c02d12f1b78b344e2b98be97b5a74fcde1",
+      "bytes": 9550,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Servo": "1.3.0"
+      },
+      "source": "031c6723496e0eedc02c60bd9eb4388c99cc72ffc3a5e4c24ae0c3dfa5efb6c0"
+    },
+    {
+      "board": "uno",
+      "name": "seven-seg-mux",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/seven-seg-mux.elf",
+      "sha256": "f47aa12caf646bfbd4af500481ce96c6712fcbfd147ff5c614092df386c7ffeb",
+      "bytes": 15724,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "5bf17f23b6b98c8c77f575b9f5d479ddca23c6ac1f3a13eb45388107ffd66df1"
+    },
+    {
+      "board": "uno",
+      "name": "seven-seg-mux",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/seven-seg-mux.hex",
+      "sha256": "034d43ac43d017b145a82b313b9a7abbecab60bcb340930c2951b696fa2189c9",
+      "bytes": 2718,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "5bf17f23b6b98c8c77f575b9f5d479ddca23c6ac1f3a13eb45388107ffd66df1"
+    },
+    {
+      "board": "uno",
+      "name": "simon",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/simon.elf",
+      "sha256": "c8e29a9d18ce056043e991d80ba37d05c2b4ac5be3c660f37a2bf46f3d238a72",
+      "bytes": 41392,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "65a878affc3d83d59d4a4e6f0dd37bc9ef6fbba7a2a5e179dab12ea4a035fdba"
+    },
+    {
+      "board": "uno",
+      "name": "simon",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/simon.hex",
+      "sha256": "8f22fece69b8ccf46b09c4b6c298bbdb33abd6ae0ff3705e9bf0054d4e846fc3",
+      "bytes": 13301,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "65a878affc3d83d59d4a4e6f0dd37bc9ef6fbba7a2a5e179dab12ea4a035fdba"
+    },
+    {
+      "board": "uno",
+      "name": "speaker-melody",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/speaker-melody.elf",
+      "sha256": "eca1f757d5c95e9ddff0a80bbde87dee6ab236276da16dd1e024b7a1b6a761e6",
+      "bytes": 33440,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "28101c4562a3ecc82351c45a12f976fc11e9a71b7ee6d95f8f1066fc2af8d54b"
+    },
+    {
+      "board": "uno",
+      "name": "speaker-melody",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/speaker-melody.hex",
+      "sha256": "62cbf8debb67938b283dd95781fc845acda280c3a44a11ee5c704ab9145da7a1",
+      "bytes": 9321,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "28101c4562a3ecc82351c45a12f976fc11e9a71b7ee6d95f8f1066fc2af8d54b"
+    },
+    {
+      "board": "uno",
+      "name": "ssd1306-adafruit",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/ssd1306-adafruit.elf",
+      "sha256": "39924cb5cdb9cb4d24edb5c0251e180e3474ef9f0b8d60e0a204ddc7ddfc3636",
+      "bytes": 104132,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "1.0",
+        "Wire": "1.0"
+      },
+      "source": "786cf980019517d8182e53d211fbf35af20df610c1f3802f412363191eafa8a3"
+    },
+    {
+      "board": "uno",
+      "name": "ssd1306-adafruit",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/ssd1306-adafruit.hex",
+      "sha256": "b4c064843fd5b9d3b8c81bd60e836db89e1f8e21507dd75cc897fcfe09039d9a",
+      "bytes": 43443,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "1.0",
+        "Wire": "1.0"
+      },
+      "source": "786cf980019517d8182e53d211fbf35af20df610c1f3802f412363191eafa8a3"
+    },
+    {
+      "board": "uno",
+      "name": "ssd1306-raw",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/ssd1306-raw.elf",
+      "sha256": "dc44a25fd0842a45056157ffc4d508831b866d84575bbe05eaf5f6fc091c8cb6",
+      "bytes": 47732,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Wire": "1.0"
+      },
+      "source": "e67951ca94896b0fc40496ec92c00adb15adb0fb4229f8cbeb38336d0780249e"
+    },
+    {
+      "board": "uno",
+      "name": "ssd1306-raw",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/ssd1306-raw.hex",
+      "sha256": "c690ed06936f62bf6b92131c39efa48d39f29c8dfbe60f285ef385e0eeae4fc5",
+      "bytes": 13714,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Wire": "1.0"
+      },
+      "source": "e67951ca94896b0fc40496ec92c00adb15adb0fb4229f8cbeb38336d0780249e"
+    },
+    {
+      "board": "uno",
+      "name": "stepper-28byj48",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/stepper-28byj48.elf",
+      "sha256": "f7471146ee2a5976532a662994cf8900db133f0924efc4224ff11511c3e2a7d6",
+      "bytes": 33092,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Stepper": "1.1.3"
+      },
+      "source": "27df75a5ad1ab4aaeba4d9130a58aa6fbf73d540fcaddae42cdc1d62b4cb433c"
+    },
+    {
+      "board": "uno",
+      "name": "stepper-28byj48",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/stepper-28byj48.hex",
+      "sha256": "7327958f07f5db918750f51b4e8e847f5b51087a116f39486a77011c5882d0c9",
+      "bytes": 9329,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Stepper": "1.1.3"
+      },
+      "source": "27df75a5ad1ab4aaeba4d9130a58aa6fbf73d540fcaddae42cdc1d62b4cb433c"
+    },
+    {
+      "board": "uno",
+      "name": "stepper-bipolar",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/stepper-bipolar.elf",
+      "sha256": "d102a921c14b4db1192fb793f5dc0026931225f8281e7b04baf5b6dc4c615097",
+      "bytes": 33128,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Stepper": "1.1.3"
+      },
+      "source": "14721a496f099575534741882b3fe3bddae24377f37e87fdc58012767b5d9d61"
+    },
+    {
+      "board": "uno",
+      "name": "stepper-bipolar",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/stepper-bipolar.hex",
+      "sha256": "348a7052505ff973b124ecf23c2aa82368fdf088506b67b7e5320f24e9596928",
+      "bytes": 9345,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Stepper": "1.1.3"
+      },
+      "source": "14721a496f099575534741882b3fe3bddae24377f37e87fdc58012767b5d9d61"
+    },
+    {
+      "board": "uno",
+      "name": "tft-demo",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/tft-demo.elf",
+      "sha256": "0e8ebb899761b456279af37ece80e6dd443a2143058722346423493f307af872",
+      "bytes": 36972,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "SPI": "1.0"
+      },
+      "source": "d1b8aba74b9c8412971a479237ed47d2cb3efdb9b6206a644cc802710c99513b"
+    },
+    {
+      "board": "uno",
+      "name": "tft-demo",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/tft-demo.hex",
+      "sha256": "05adecb05a5163c7fac1fb5a1eb4d0645dfae68e1a48dd700e7e1d1b28802537",
+      "bytes": 9558,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "SPI": "1.0"
+      },
+      "source": "d1b8aba74b9c8412971a479237ed47d2cb3efdb9b6206a644cc802710c99513b"
+    },
+    {
+      "board": "uno",
+      "name": "timer1-ctc",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/timer1-ctc.elf",
+      "sha256": "601545978517a807e69c6d1f211f04910d346d7ec3b21f619cbad0ad45c8decc",
+      "bytes": 11912,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "9865e5634e4a88a9d5d9214bf2cd59a901739bddd102b78d11ca2be3cc0a5bdd"
+    },
+    {
+      "board": "uno",
+      "name": "timer1-ctc",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/timer1-ctc.hex",
+      "sha256": "66516d8c806e05c71d72392b044c2fa37bbbe2accc819b389dec9d9765d8a731",
+      "bytes": 1801,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "9865e5634e4a88a9d5d9214bf2cd59a901739bddd102b78d11ca2be3cc0a5bdd"
+    },
+    {
+      "board": "uno",
+      "name": "tone",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/tone.elf",
+      "sha256": "54f4216aab41829b7e8958253262c4cf0b7d1522c07a8640ffacfb99f82fddb3",
+      "bytes": 18436,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "2f585351fe29bef2a1047430c5145f87218481b5e94fedc7691be3e7f77cb8ca"
+    },
+    {
+      "board": "uno",
+      "name": "tone",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/tone.hex",
+      "sha256": "27c4de8d412857b5c56845ab75ddc438be8cf6e70c4d4475afbb83d4fd792045",
+      "bytes": 3978,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "2f585351fe29bef2a1047430c5145f87218481b5e94fedc7691be3e7f77cb8ca"
+    },
+    {
+      "board": "uno",
+      "name": "traffic-light",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/traffic-light.elf",
+      "sha256": "65a7535f70af23e5d9ee37a977f23c4b44cb20c2af297f25e560685f879e133b",
+      "bytes": 15556,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "96c66031bb0f2b77439f261659bfd8580af85ab8afbae92e72467725207d53ea"
+    },
+    {
+      "board": "uno",
+      "name": "traffic-light",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/traffic-light.hex",
+      "sha256": "4fbbafa96dc221919593da4d7039e0a1e5e6bba7f4d7100807ed5cb5ae2d5a48",
+      "bytes": 2934,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "96c66031bb0f2b77439f261659bfd8580af85ab8afbae92e72467725207d53ea"
+    },
+    {
+      "board": "uno",
+      "name": "uart-chat",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/uart-chat.elf",
+      "sha256": "62aa7b5ce5b9955b4c623b9419460769b968693f557afd78be3c023fe91186c7",
+      "bytes": 24624,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "3dafff48a2fa01b414df0f2222fc631933ce0347ba31bb5df979f2c8f1f246e6"
+    },
+    {
+      "board": "uno",
+      "name": "uart-chat",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/uart-chat.hex",
+      "sha256": "a4e408e6dd20fcbd1dc1e255b6516b3d792a1bbb5551ecb59c3f07005500f30a",
+      "bytes": 5455,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "3dafff48a2fa01b414df0f2222fc631933ce0347ba31bb5df979f2c8f1f246e6"
+    },
+    {
+      "board": "uno",
+      "name": "uart-ping",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/uart-ping.elf",
+      "sha256": "de168edad783eecb3bbc9e27eaa03a41dfccc507665cb2d8bbbc317ef7230eff",
+      "bytes": 21544,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "5102a8cd4e0eab58fe8768575206a974b5f2508ca8b98b973ad15f20ed74a0e1"
+    },
+    {
+      "board": "uno",
+      "name": "uart-ping",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/uart-ping.hex",
+      "sha256": "9eb6327c7aca7f58172062cd148cdbc97d2799708575cb8e4fb94d32d0491240",
+      "bytes": 4538,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "5102a8cd4e0eab58fe8768575206a974b5f2508ca8b98b973ad15f20ed74a0e1"
+    },
+    {
+      "board": "uno",
+      "name": "vu-meter",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/vu-meter.elf",
+      "sha256": "faecf0dc4407d6ef9f70ab7de8d17c8c104da0ae03ae59b62d427bd08f7725cc",
+      "bytes": 18740,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "c400c19c4803057b33b444b79fb80c852316991a8ac0e8a349ad8e99e96197be"
+    },
+    {
+      "board": "uno",
+      "name": "vu-meter",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/vu-meter.hex",
+      "sha256": "6f3a7b0661aec7d9b241bdecbb9bcae4b6ba474e0b94f2c3d30bd1571b934a26",
+      "bytes": 3368,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "c400c19c4803057b33b444b79fb80c852316991a8ac0e8a349ad8e99e96197be"
+    }
+  ]
+}

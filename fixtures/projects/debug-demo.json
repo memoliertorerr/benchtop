@@ -1,0 +1,16 @@
+{
+  "format": 1,
+  "name": "debug-demo",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [],
+  "firmware": {}
+}

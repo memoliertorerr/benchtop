@@ -1,0 +1,538 @@
+{
+  "format": 1,
+  "name": "seven-seg-mux",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "r1",
+      "type": "resistor",
+      "x": 54.747,
+      "y": -15.5,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "r2",
+      "type": "resistor",
+      "x": 52.233,
+      "y": -31.5,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "r3",
+      "type": "resistor",
+      "x": 49.72,
+      "y": -15.5,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "r4",
+      "type": "resistor",
+      "x": 47.206,
+      "y": -31.5,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "r5",
+      "type": "resistor",
+      "x": 44.693,
+      "y": -15.5,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "r6",
+      "type": "resistor",
+      "x": 42.179,
+      "y": -31.5,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "r7",
+      "type": "resistor",
+      "x": 37.946,
+      "y": -15.5,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "r8",
+      "type": "resistor",
+      "x": 35.3,
+      "y": -31.5,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "disp",
+      "type": "seven-segment-4",
+      "x": 22,
+      "y": -72,
+      "rotation": 0,
+      "props": {
+        "common": "cathode",
+        "color": "red"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "uno",
+        "pin": "2"
+      },
+      "to": {
+        "part": "r1",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "uno",
+        "pin": "3"
+      },
+      "to": {
+        "part": "r2",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "uno",
+        "pin": "4"
+      },
+      "to": {
+        "part": "r3",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "uno",
+        "pin": "5"
+      },
+      "to": {
+        "part": "r4",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "uno",
+        "pin": "6"
+      },
+      "to": {
+        "part": "r5",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "purple"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "uno",
+        "pin": "7"
+      },
+      "to": {
+        "part": "r6",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "gray"
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "uno",
+        "pin": "8"
+      },
+      "to": {
+        "part": "r7",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "white"
+    },
+    {
+      "id": "w8",
+      "from": {
+        "part": "uno",
+        "pin": "9"
+      },
+      "to": {
+        "part": "r8",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "brown"
+    },
+    {
+      "id": "w9",
+      "from": {
+        "part": "r1",
+        "pin": "1"
+      },
+      "to": {
+        "part": "disp",
+        "pin": "A"
+      },
+      "waypoints": [
+        {
+          "x": 62.574,
+          "y": -50.998
+        },
+        {
+          "x": 78,
+          "y": -50.998
+        },
+        {
+          "x": 78,
+          "y": -74
+        },
+        {
+          "x": 42.023,
+          "y": -74
+        }
+      ],
+      "color": "orange"
+    },
+    {
+      "id": "w10",
+      "from": {
+        "part": "r2",
+        "pin": "1"
+      },
+      "to": {
+        "part": "disp",
+        "pin": "B"
+      },
+      "waypoints": [
+        {
+          "x": 60.06,
+          "y": -49.898
+        },
+        {
+          "x": 79.5,
+          "y": -49.898
+        },
+        {
+          "x": 79.5,
+          "y": -75.2
+        },
+        {
+          "x": 52.184,
+          "y": -75.2
+        }
+      ],
+      "color": "yellow"
+    },
+    {
+      "id": "w11",
+      "from": {
+        "part": "r3",
+        "pin": "1"
+      },
+      "to": {
+        "part": "disp",
+        "pin": "C"
+      },
+      "waypoints": [
+        {
+          "x": 57.547,
+          "y": -48.798
+        },
+        {
+          "x": 47.103,
+          "y": -48.798
+        }
+      ],
+      "color": "green"
+    },
+    {
+      "id": "w12",
+      "from": {
+        "part": "r4",
+        "pin": "1"
+      },
+      "to": {
+        "part": "disp",
+        "pin": "D"
+      },
+      "waypoints": [
+        {
+          "x": 55.033,
+          "y": -47.698
+        },
+        {
+          "x": 42.023,
+          "y": -47.698
+        }
+      ],
+      "color": "blue"
+    },
+    {
+      "id": "w13",
+      "from": {
+        "part": "r5",
+        "pin": "1"
+      },
+      "to": {
+        "part": "disp",
+        "pin": "E"
+      },
+      "waypoints": [
+        {
+          "x": 52.52,
+          "y": -46.598
+        },
+        {
+          "x": 39.482,
+          "y": -46.598
+        }
+      ],
+      "color": "purple"
+    },
+    {
+      "id": "w14",
+      "from": {
+        "part": "r6",
+        "pin": "1"
+      },
+      "to": {
+        "part": "disp",
+        "pin": "F"
+      },
+      "waypoints": [
+        {
+          "x": 50.006,
+          "y": -45.498
+        },
+        {
+          "x": 85.5,
+          "y": -45.498
+        },
+        {
+          "x": 85.5,
+          "y": -80
+        },
+        {
+          "x": 44.563,
+          "y": -80
+        }
+      ],
+      "color": "gray"
+    },
+    {
+      "id": "w15",
+      "from": {
+        "part": "r7",
+        "pin": "1"
+      },
+      "to": {
+        "part": "disp",
+        "pin": "G"
+      },
+      "waypoints": [
+        {
+          "x": 45.773,
+          "y": -44.398
+        },
+        {
+          "x": 49.643,
+          "y": -44.398
+        }
+      ],
+      "color": "white"
+    },
+    {
+      "id": "w16",
+      "from": {
+        "part": "r8",
+        "pin": "1"
+      },
+      "to": {
+        "part": "disp",
+        "pin": "DP"
+      },
+      "waypoints": [
+        {
+          "x": 43.127,
+          "y": -43.298
+        },
+        {
+          "x": 44.563,
+          "y": -43.298
+        }
+      ],
+      "color": "brown"
+    },
+    {
+      "id": "w17",
+      "from": {
+        "part": "uno",
+        "pin": "A0"
+      },
+      "to": {
+        "part": "disp",
+        "pin": "DIG1"
+      },
+      "waypoints": [
+        {
+          "x": 55.033,
+          "y": 56
+        },
+        {
+          "x": -4,
+          "y": 56
+        },
+        {
+          "x": -4,
+          "y": -73
+        },
+        {
+          "x": 39.482,
+          "y": -73
+        }
+      ],
+      "color": "gray"
+    },
+    {
+      "id": "w18",
+      "from": {
+        "part": "uno",
+        "pin": "A1"
+      },
+      "to": {
+        "part": "disp",
+        "pin": "DIG2"
+      },
+      "waypoints": [
+        {
+          "x": 57.547,
+          "y": 57.2
+        },
+        {
+          "x": -5.5,
+          "y": 57.2
+        },
+        {
+          "x": -5.5,
+          "y": -74.2
+        },
+        {
+          "x": 47.103,
+          "y": -74.2
+        }
+      ],
+      "color": "gray"
+    },
+    {
+      "id": "w19",
+      "from": {
+        "part": "uno",
+        "pin": "A2"
+      },
+      "to": {
+        "part": "disp",
+        "pin": "DIG3"
+      },
+      "waypoints": [
+        {
+          "x": 60.06,
+          "y": 58.4
+        },
+        {
+          "x": -7,
+          "y": 58.4
+        },
+        {
+          "x": -7,
+          "y": -75.4
+        },
+        {
+          "x": 49.643,
+          "y": -75.4
+        }
+      ],
+      "color": "gray"
+    },
+    {
+      "id": "w20",
+      "from": {
+        "part": "uno",
+        "pin": "A3"
+      },
+      "to": {
+        "part": "disp",
+        "pin": "DIG4"
+      },
+      "waypoints": [
+        {
+          "x": 62.574,
+          "y": 59.6
+        },
+        {
+          "x": -8.5,
+          "y": 59.6
+        },
+        {
+          "x": -8.5,
+          "y": -38.398
+        },
+        {
+          "x": 52.184,
+          "y": -38.398
+        }
+      ],
+      "color": "gray"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "seven-seg-mux.hex",
+      "format": "hex"
+    }
+  }
+}

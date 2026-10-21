@@ -1,0 +1,22 @@
+{
+  "format": 1,
+  "name": "nano-blink",
+  "parts": [
+    {
+      "id": "nano",
+      "type": "arduino-nano",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [],
+  "firmware": {
+    "nano": {
+      "kind": "file",
+      "name": "blink.hex",
+      "format": "hex"
+    }
+  }
+}

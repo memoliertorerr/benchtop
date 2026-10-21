@@ -1,0 +1,729 @@
+{
+  "format": 1,
+  "name": "inputs-analog",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "pot",
+      "type": "slide-potentiometer",
+      "x": 0,
+      "y": 74,
+      "rotation": 0,
+      "props": {
+        "value": 0.5
+      }
+    },
+    {
+      "id": "joy",
+      "type": "analog-joystick",
+      "x": 66,
+      "y": 66,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "ldr",
+      "type": "photoresistor-sensor",
+      "x": -62,
+      "y": 2,
+      "rotation": 0,
+      "props": {
+        "lux": 500
+      }
+    },
+    {
+      "id": "ntc",
+      "type": "ntc-temperature-sensor",
+      "x": -52,
+      "y": 26,
+      "rotation": 0,
+      "props": {
+        "temperature": 25
+      }
+    },
+    {
+      "id": "snd",
+      "type": "small-sound-sensor",
+      "x": 96,
+      "y": 22,
+      "rotation": 0,
+      "props": {
+        "level": 0
+      }
+    },
+    {
+      "id": "pir",
+      "type": "pir-motion-sensor",
+      "x": 84,
+      "y": -44,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "tilt",
+      "type": "tilt-switch",
+      "x": -40,
+      "y": -34,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "pot",
+        "pin": "SIG"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "A0"
+      },
+      "waypoints": [
+        {
+          "x": -2.735,
+          "y": 90.669
+        },
+        {
+          "x": -3,
+          "y": 60
+        },
+        {
+          "x": 55.033,
+          "y": 60
+        }
+      ],
+      "color": "green"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "pot",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [
+        {
+          "x": -4.735,
+          "y": 85.377
+        },
+        {
+          "x": -5,
+          "y": 58
+        },
+        {
+          "x": 42.333,
+          "y": 58
+        }
+      ],
+      "color": "red"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "pot",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.3"
+      },
+      "waypoints": [
+        {
+          "x": 56.769,
+          "y": 85.377
+        },
+        {
+          "x": 56.769,
+          "y": 62
+        },
+        {
+          "x": 47.36,
+          "y": 62
+        }
+      ],
+      "color": "black"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "joy",
+        "pin": "HORZ"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "A1"
+      },
+      "waypoints": [
+        {
+          "x": 79.812,
+          "y": 100
+        },
+        {
+          "x": 86,
+          "y": 100
+        },
+        {
+          "x": 86,
+          "y": 64
+        },
+        {
+          "x": 57.547,
+          "y": 64
+        }
+      ],
+      "color": "green"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "joy",
+        "pin": "VERT"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "A2"
+      },
+      "waypoints": [
+        {
+          "x": 77.272,
+          "y": 102
+        },
+        {
+          "x": 88,
+          "y": 102
+        },
+        {
+          "x": 88,
+          "y": 66
+        },
+        {
+          "x": 60.06,
+          "y": 66
+        }
+      ],
+      "color": "green"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "joy",
+        "pin": "SEL"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "2"
+      },
+      "waypoints": [
+        {
+          "x": 82.352,
+          "y": 104
+        },
+        {
+          "x": 92,
+          "y": 104
+        },
+        {
+          "x": 92,
+          "y": -6
+        },
+        {
+          "x": 62.574,
+          "y": -6
+        }
+      ],
+      "color": "blue"
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "joy",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [
+        {
+          "x": 74.731,
+          "y": 99
+        },
+        {
+          "x": 42.333,
+          "y": 99
+        }
+      ],
+      "color": "red"
+    },
+    {
+      "id": "w8",
+      "from": {
+        "part": "joy",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.2"
+      },
+      "waypoints": [
+        {
+          "x": 84.893,
+          "y": 106
+        },
+        {
+          "x": 64,
+          "y": 106
+        },
+        {
+          "x": 64,
+          "y": 68
+        },
+        {
+          "x": 44.847,
+          "y": 68
+        }
+      ],
+      "color": "black"
+    },
+    {
+      "id": "w9",
+      "from": {
+        "part": "ldr",
+        "pin": "AO"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "A3"
+      },
+      "waypoints": [
+        {
+          "x": -10,
+          "y": 14.039
+        },
+        {
+          "x": -10,
+          "y": 70
+        },
+        {
+          "x": 62.574,
+          "y": 70
+        }
+      ],
+      "color": "green"
+    },
+    {
+      "id": "w10",
+      "from": {
+        "part": "ldr",
+        "pin": "DO"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "3"
+      },
+      "waypoints": [
+        {
+          "x": -8,
+          "y": 11.472
+        },
+        {
+          "x": -8,
+          "y": -8
+        },
+        {
+          "x": 60.06,
+          "y": -8
+        }
+      ],
+      "color": "blue"
+    },
+    {
+      "id": "w11",
+      "from": {
+        "part": "ldr",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [
+        {
+          "x": -14,
+          "y": 6.233
+        },
+        {
+          "x": -14,
+          "y": 56
+        },
+        {
+          "x": 42.333,
+          "y": 56
+        }
+      ],
+      "color": "red"
+    },
+    {
+      "id": "w12",
+      "from": {
+        "part": "ldr",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [
+        {
+          "x": -12,
+          "y": 8.879
+        },
+        {
+          "x": -12,
+          "y": -4
+        },
+        {
+          "x": 30.559,
+          "y": -4
+        }
+      ],
+      "color": "black"
+    },
+    {
+      "id": "w13",
+      "from": {
+        "part": "ntc",
+        "pin": "OUT"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "A4"
+      },
+      "waypoints": [
+        {
+          "x": -6,
+          "y": 38.039
+        },
+        {
+          "x": -6,
+          "y": 72
+        },
+        {
+          "x": 65.088,
+          "y": 72
+        }
+      ],
+      "color": "green"
+    },
+    {
+      "id": "w14",
+      "from": {
+        "part": "ntc",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [
+        {
+          "x": -14,
+          "y": 35.472
+        }
+      ],
+      "color": "red"
+    },
+    {
+      "id": "w15",
+      "from": {
+        "part": "ntc",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [
+        {
+          "x": -12,
+          "y": 32.932
+        }
+      ],
+      "color": "black"
+    },
+    {
+      "id": "w16",
+      "from": {
+        "part": "snd",
+        "pin": "AOUT"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "A5"
+      },
+      "waypoints": [
+        {
+          "x": 84,
+          "y": 24.91
+        },
+        {
+          "x": 84,
+          "y": 62
+        },
+        {
+          "x": 67.601,
+          "y": 62
+        }
+      ],
+      "color": "green"
+    },
+    {
+      "id": "w17",
+      "from": {
+        "part": "snd",
+        "pin": "DOUT"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "4"
+      },
+      "waypoints": [
+        {
+          "x": 80,
+          "y": 32.716
+        },
+        {
+          "x": 80,
+          "y": -10
+        },
+        {
+          "x": 57.547,
+          "y": -10
+        }
+      ],
+      "color": "blue"
+    },
+    {
+      "id": "w18",
+      "from": {
+        "part": "snd",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [
+        {
+          "x": 90,
+          "y": 30.07
+        },
+        {
+          "x": 90,
+          "y": 54
+        },
+        {
+          "x": 42.333,
+          "y": 54
+        }
+      ],
+      "color": "red"
+    },
+    {
+      "id": "w19",
+      "from": {
+        "part": "snd",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.2"
+      },
+      "waypoints": [
+        {
+          "x": 88,
+          "y": 27.424
+        },
+        {
+          "x": 88,
+          "y": 56.5
+        },
+        {
+          "x": 44.847,
+          "y": 56.5
+        }
+      ],
+      "color": "black"
+    },
+    {
+      "id": "w20",
+      "from": {
+        "part": "pir",
+        "pin": "OUT"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5"
+      },
+      "waypoints": [
+        {
+          "x": 96.149,
+          "y": -12
+        },
+        {
+          "x": 55.033,
+          "y": -12
+        }
+      ],
+      "color": "blue"
+    },
+    {
+      "id": "w21",
+      "from": {
+        "part": "pir",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [
+        {
+          "x": 93.572,
+          "y": -14
+        },
+        {
+          "x": 98,
+          "y": -14
+        },
+        {
+          "x": 98,
+          "y": 52
+        },
+        {
+          "x": 44.333,
+          "y": 52
+        },
+        {
+          "x": 42.333,
+          "y": 52
+        }
+      ],
+      "color": "red"
+    },
+    {
+      "id": "w22",
+      "from": {
+        "part": "pir",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [
+        {
+          "x": 98.722,
+          "y": -16
+        },
+        {
+          "x": 30.559,
+          "y": -16
+        }
+      ],
+      "color": "black"
+    },
+    {
+      "id": "w23",
+      "from": {
+        "part": "tilt",
+        "pin": "OUT"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "6"
+      },
+      "waypoints": [
+        {
+          "x": -14,
+          "y": -24.078
+        },
+        {
+          "x": -14,
+          "y": -14
+        },
+        {
+          "x": 52.52,
+          "y": -14
+        }
+      ],
+      "color": "blue"
+    },
+    {
+      "id": "w24",
+      "from": {
+        "part": "tilt",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [
+        {
+          "x": -16,
+          "y": -26.645
+        },
+        {
+          "x": -16,
+          "y": 56
+        },
+        {
+          "x": -14,
+          "y": 56
+        }
+      ],
+      "color": "red"
+    },
+    {
+      "id": "w25",
+      "from": {
+        "part": "tilt",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [
+        {
+          "x": -12,
+          "y": -29.237
+        },
+        {
+          "x": -12,
+          "y": -4
+        }
+      ],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "inputs-report.hex",
+      "format": "hex"
+    }
+  }
+}

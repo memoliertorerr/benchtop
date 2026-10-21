@@ -1,0 +1,13 @@
+{
+  "name": "example: mega-serial-ports",
+  "project": "../../projects/mega-serial-ports.json",
+  "firmware": {
+    "mega": "../../firmware/mega/serial-ports.hex"
+  },
+  "expect": [
+    "serial contains \"ports\" by 100ms",
+    "serial contains \"S1 1\" by 100ms",
+    "serial contains \"S2 2\" by 100ms",
+    "serial contains \"S3 3\" by 100ms"
+  ]
+}

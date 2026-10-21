@@ -1,0 +1,21 @@
+{
+  "name": "example: servo-knob",
+  "project": "../../projects/servo-knob.json",
+  "firmware": {
+    "uno": "../../firmware/uno/servo-knob.hex"
+  },
+  "steps": [
+    {
+      "at": "1s",
+      "part": "pot",
+      "input": {
+        "kind": "value",
+        "value": 0.25
+      }
+    }
+  ],
+  "expect": [
+    "servo servo angle is 90 ±3 at 1s",
+    "servo servo angle is 45 ±3 at 2s"
+  ]
+}

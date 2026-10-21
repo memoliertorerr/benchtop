@@ -1,0 +1,21 @@
+{
+  "name": "example: nano-analog",
+  "project": "../../projects/nano-analog.json",
+  "firmware": {
+    "nano": "../../firmware/nano/analog-a6.hex"
+  },
+  "steps": [
+    {
+      "at": "500ms",
+      "part": "pot1",
+      "input": {
+        "kind": "value",
+        "value": 0.5
+      }
+    }
+  ],
+  "expect": [
+    "serial matches /^25[4-8] 76[6-9]\\r?$/m by 450ms",
+    "serial matches /^51[0-4] 76[6-9]\\r?$/m by 2s"
+  ]
+}

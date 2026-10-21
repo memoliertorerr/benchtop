@@ -1,0 +1,10 @@
+{
+  "name": "example: hc-sr04",
+  "project": "../../projects/hcsr04.json",
+  "firmware": {
+    "uno": "../../firmware/uno/hcsr04.hex"
+  },
+  "expect": [
+    "serial matches /D=(99\\.\\d|100\\.\\d)/ by 2s"
+  ]
+}

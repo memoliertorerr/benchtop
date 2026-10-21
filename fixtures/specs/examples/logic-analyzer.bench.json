@@ -1,0 +1,12 @@
+{
+  "name": "example: logic-analyzer",
+  "project": "../../projects/logic-demo.json",
+  "firmware": {
+    "uno": "../../firmware/uno/logic-demo.hex"
+  },
+  "expect": [
+    "pin uno:7 frequency is 500 Hz ±0.5% between 100ms and 1s",
+    "pin uno:9 frequency is 490.2 Hz ±0.5% between 100ms and 1s",
+    "pin uno:9 duty is 25.1% ±0.5 between 100ms and 1s"
+  ]
+}

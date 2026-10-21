@@ -1,0 +1,437 @@
+{
+  "format": 1,
+  "name": "simon",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "bz",
+      "type": "buzzer",
+      "x": 82,
+      "y": -48,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "r1",
+      "type": "resistor",
+      "x": 6,
+      "y": -22,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led1",
+      "type": "led",
+      "x": 2,
+      "y": -48,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "btn1",
+      "type": "pushbutton",
+      "x": 0,
+      "y": 62,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r2",
+      "type": "resistor",
+      "x": 24,
+      "y": -22,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led2",
+      "type": "led",
+      "x": 20,
+      "y": -48,
+      "rotation": 0,
+      "props": {
+        "color": "green"
+      }
+    },
+    {
+      "id": "btn2",
+      "type": "pushbutton",
+      "x": 22,
+      "y": 62,
+      "rotation": 0,
+      "props": {
+        "color": "green"
+      }
+    },
+    {
+      "id": "r3",
+      "type": "resistor",
+      "x": 42,
+      "y": -22,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led3",
+      "type": "led",
+      "x": 38,
+      "y": -48,
+      "rotation": 0,
+      "props": {
+        "color": "blue"
+      }
+    },
+    {
+      "id": "btn3",
+      "type": "pushbutton",
+      "x": 44,
+      "y": 62,
+      "rotation": 0,
+      "props": {
+        "color": "blue"
+      }
+    },
+    {
+      "id": "r4",
+      "type": "resistor",
+      "x": 60,
+      "y": -22,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led4",
+      "type": "led",
+      "x": 56,
+      "y": -48,
+      "rotation": 0,
+      "props": {
+        "color": "yellow"
+      }
+    },
+    {
+      "id": "btn4",
+      "type": "pushbutton",
+      "x": 66,
+      "y": 62,
+      "rotation": 0,
+      "props": {
+        "color": "yellow"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "uno",
+        "pin": "12"
+      },
+      "to": {
+        "part": "bz",
+        "pin": "1"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "bz",
+        "pin": "2"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "uno",
+        "pin": "8"
+      },
+      "to": {
+        "part": "r1",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "r1",
+        "pin": "1"
+      },
+      "to": {
+        "part": "led1",
+        "pin": "A"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "led1",
+        "pin": "C"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "uno",
+        "pin": "2"
+      },
+      "to": {
+        "part": "btn1",
+        "pin": "1.l"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "btn1",
+        "pin": "2.l"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w8",
+      "from": {
+        "part": "uno",
+        "pin": "9"
+      },
+      "to": {
+        "part": "r2",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w9",
+      "from": {
+        "part": "r2",
+        "pin": "1"
+      },
+      "to": {
+        "part": "led2",
+        "pin": "A"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w10",
+      "from": {
+        "part": "led2",
+        "pin": "C"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w11",
+      "from": {
+        "part": "uno",
+        "pin": "3"
+      },
+      "to": {
+        "part": "btn2",
+        "pin": "1.l"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w12",
+      "from": {
+        "part": "btn2",
+        "pin": "2.l"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w13",
+      "from": {
+        "part": "uno",
+        "pin": "10"
+      },
+      "to": {
+        "part": "r3",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w14",
+      "from": {
+        "part": "r3",
+        "pin": "1"
+      },
+      "to": {
+        "part": "led3",
+        "pin": "A"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w15",
+      "from": {
+        "part": "led3",
+        "pin": "C"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w16",
+      "from": {
+        "part": "uno",
+        "pin": "4"
+      },
+      "to": {
+        "part": "btn3",
+        "pin": "1.l"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w17",
+      "from": {
+        "part": "btn3",
+        "pin": "2.l"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w18",
+      "from": {
+        "part": "uno",
+        "pin": "11"
+      },
+      "to": {
+        "part": "r4",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w19",
+      "from": {
+        "part": "r4",
+        "pin": "1"
+      },
+      "to": {
+        "part": "led4",
+        "pin": "A"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w20",
+      "from": {
+        "part": "led4",
+        "pin": "C"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w21",
+      "from": {
+        "part": "uno",
+        "pin": "5"
+      },
+      "to": {
+        "part": "btn4",
+        "pin": "1.l"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w22",
+      "from": {
+        "part": "btn4",
+        "pin": "2.l"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "simon.hex",
+      "format": "hex"
+    }
+  }
+}

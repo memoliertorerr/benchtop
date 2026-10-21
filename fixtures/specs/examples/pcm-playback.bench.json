@@ -1,0 +1,10 @@
+{
+  "name": "example: pcm-playback",
+  "project": "../../projects/pcm-playback.json",
+  "firmware": {
+    "uno": "../../firmware/uno/pcm-playback.hex"
+  },
+  "expect": [
+    "pin uno:3 duty is 50% ±1 between 100ms and 300ms"
+  ]
+}

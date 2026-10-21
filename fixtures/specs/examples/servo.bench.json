@@ -1,0 +1,10 @@
+{
+  "name": "example: servo",
+  "project": "../../projects/servo-sweep.json",
+  "firmware": {
+    "uno": "../../firmware/uno/servo-sweep.hex"
+  },
+  "expect": [
+    "serial contains \"done\" by 2s"
+  ]
+}

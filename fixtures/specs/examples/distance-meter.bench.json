@@ -1,0 +1,10 @@
+{
+  "name": "example: distance-meter",
+  "project": "../../projects/distance-meter.json",
+  "firmware": {
+    "uno": "../../firmware/uno/distance-meter.hex"
+  },
+  "expect": [
+    "digits disp show \" 100\" at 2s"
+  ]
+}

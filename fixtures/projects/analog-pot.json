@@ -1,0 +1,133 @@
+{
+  "format": 1,
+  "name": "analog-pot",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "bb",
+      "type": "breadboard-half",
+      "x": 81.28,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "pot1",
+      "type": "potentiometer",
+      "x": 124.301,
+      "y": 9.816,
+      "rotation": 0,
+      "props": {
+        "value": 0.5
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "to": {
+        "part": "bb",
+        "pin": "bp.1"
+      },
+      "waypoints": [
+        {
+          "x": 42.333,
+          "y": 58.668
+        },
+        {
+          "x": 83.82,
+          "y": 58.668
+        }
+      ],
+      "color": "red"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "uno",
+        "pin": "GND.2"
+      },
+      "to": {
+        "part": "bb",
+        "pin": "bn.2"
+      },
+      "waypoints": [
+        {
+          "x": 44.847,
+          "y": 61.668
+        },
+        {
+          "x": 86.36,
+          "y": 61.668
+        }
+      ],
+      "color": "black"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "uno",
+        "pin": "A0"
+      },
+      "to": {
+        "part": "bb",
+        "pin": "21b.h"
+      },
+      "waypoints": [
+        {
+          "x": 55.033,
+          "y": 64.668
+        },
+        {
+          "x": 134.62,
+          "y": 64.668
+        }
+      ],
+      "color": "green"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "bb",
+        "pin": "20b.j"
+      },
+      "to": {
+        "part": "bb",
+        "pin": "bn.17"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "bb",
+        "pin": "22b.j"
+      },
+      "to": {
+        "part": "bb",
+        "pin": "bp.19"
+      },
+      "waypoints": [],
+      "color": "red"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "analog-read.hex",
+      "format": "hex"
+    }
+  }
+}

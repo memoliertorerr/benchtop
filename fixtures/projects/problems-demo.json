@@ -1,0 +1,229 @@
+{
+  "format": 1,
+  "name": "problems-demo",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "led1",
+      "type": "led",
+      "x": 44,
+      "y": -30,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "btn1",
+      "type": "pushbutton",
+      "x": 74,
+      "y": -30,
+      "rotation": 0,
+      "props": {
+        "color": "green"
+      }
+    },
+    {
+      "id": "lcd1",
+      "type": "lcd1602-i2c",
+      "x": -90,
+      "y": -10,
+      "rotation": 0,
+      "props": {
+        "address": "0x27"
+      }
+    },
+    {
+      "id": "pot1",
+      "type": "potentiometer",
+      "x": 100,
+      "y": 30,
+      "rotation": 0,
+      "props": {
+        "value": 0.5
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "uno",
+        "pin": "13"
+      },
+      "to": {
+        "part": "led1",
+        "pin": "A"
+      },
+      "waypoints": [
+        {
+          "x": 33.073,
+          "y": -6
+        },
+        {
+          "x": 50.615,
+          "y": -6
+        }
+      ],
+      "color": "green"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "led1",
+        "pin": "C"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [
+        {
+          "x": 47.969,
+          "y": -4
+        },
+        {
+          "x": 30.559,
+          "y": -4
+        }
+      ],
+      "color": "black"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "uno",
+        "pin": "2"
+      },
+      "to": {
+        "part": "btn1",
+        "pin": "1.l"
+      },
+      "waypoints": [
+        {
+          "x": 62.574,
+          "y": -26.56
+        }
+      ],
+      "color": "blue"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "btn1",
+        "pin": "2.r"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.3"
+      },
+      "waypoints": [
+        {
+          "x": 94.727,
+          "y": -21.533
+        },
+        {
+          "x": 94.727,
+          "y": 60
+        },
+        {
+          "x": 47.36,
+          "y": 60
+        }
+      ],
+      "color": "black"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "lcd1",
+        "pin": "SDA"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "A4"
+      },
+      "waypoints": [
+        {
+          "x": -91.942,
+          "y": 3.494
+        },
+        {
+          "x": -91.942,
+          "y": 62
+        },
+        {
+          "x": 65.088,
+          "y": 62
+        }
+      ],
+      "color": "blue"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "lcd1",
+        "pin": "SCL"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "A5"
+      },
+      "waypoints": [
+        {
+          "x": -93.942,
+          "y": 6.007
+        },
+        {
+          "x": -93.942,
+          "y": 64
+        },
+        {
+          "x": 67.601,
+          "y": 64
+        }
+      ],
+      "color": "yellow"
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "lcd1",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [
+        {
+          "x": -95.942,
+          "y": 0.98
+        },
+        {
+          "x": -95.942,
+          "y": 58
+        },
+        {
+          "x": 42.333,
+          "y": 58
+        }
+      ],
+      "color": "red"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "checker-demo.hex",
+      "format": "hex"
+    }
+  }
+}

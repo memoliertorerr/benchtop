@@ -1,0 +1,119 @@
+{
+  "format": 1,
+  "name": "stepper-bipolar",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "motor",
+      "type": "stepper-bipolar",
+      "x": 26,
+      "y": -66,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "motor",
+        "pin": "A+"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "8"
+      },
+      "waypoints": [
+        {
+          "x": 46.207,
+          "y": -4
+        },
+        {
+          "x": 45.773,
+          "y": -4
+        }
+      ],
+      "color": "green"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "motor",
+        "pin": "A-"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "9"
+      },
+      "waypoints": [
+        {
+          "x": 43.667,
+          "y": -5.5
+        },
+        {
+          "x": 43.127,
+          "y": -5.5
+        }
+      ],
+      "color": "black"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "motor",
+        "pin": "B+"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "10"
+      },
+      "waypoints": [
+        {
+          "x": 48.747,
+          "y": -7
+        },
+        {
+          "x": 40.614,
+          "y": -7
+        }
+      ],
+      "color": "red"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "motor",
+        "pin": "B-"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "11"
+      },
+      "waypoints": [
+        {
+          "x": 51.287,
+          "y": -8.5
+        },
+        {
+          "x": 38.1,
+          "y": -8.5
+        }
+      ],
+      "color": "blue"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "stepper-bipolar.hex",
+      "format": "hex"
+    }
+  }
+}

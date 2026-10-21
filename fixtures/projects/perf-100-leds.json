@@ -1,0 +1,4983 @@
+{
+  "format": 1,
+  "name": "perf-100-leds",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "bb1",
+      "type": "breadboard",
+      "x": 80,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "r1",
+      "type": "resistor",
+      "x": 82.382,
+      "y": 11.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led1",
+      "type": "led",
+      "x": 91.218,
+      "y": -0.953,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r2",
+      "type": "resistor",
+      "x": 100.162,
+      "y": 11.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led2",
+      "type": "led",
+      "x": 108.998,
+      "y": -0.953,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r3",
+      "type": "resistor",
+      "x": 117.942,
+      "y": 11.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led3",
+      "type": "led",
+      "x": 126.778,
+      "y": -0.953,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r4",
+      "type": "resistor",
+      "x": 135.722,
+      "y": 11.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led4",
+      "type": "led",
+      "x": 144.558,
+      "y": -0.953,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r5",
+      "type": "resistor",
+      "x": 153.502,
+      "y": 11.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led5",
+      "type": "led",
+      "x": 162.338,
+      "y": -0.953,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r6",
+      "type": "resistor",
+      "x": 171.282,
+      "y": 11.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led6",
+      "type": "led",
+      "x": 180.118,
+      "y": -0.953,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r7",
+      "type": "resistor",
+      "x": 189.062,
+      "y": 11.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led7",
+      "type": "led",
+      "x": 197.898,
+      "y": -0.953,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r8",
+      "type": "resistor",
+      "x": 206.842,
+      "y": 11.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led8",
+      "type": "led",
+      "x": 215.678,
+      "y": -0.953,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r9",
+      "type": "resistor",
+      "x": 224.622,
+      "y": 11.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led9",
+      "type": "led",
+      "x": 233.458,
+      "y": -0.953,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r10",
+      "type": "resistor",
+      "x": 82.382,
+      "y": 34.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led10",
+      "type": "led",
+      "x": 91.218,
+      "y": 16.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r11",
+      "type": "resistor",
+      "x": 100.162,
+      "y": 34.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led11",
+      "type": "led",
+      "x": 108.998,
+      "y": 16.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r12",
+      "type": "resistor",
+      "x": 117.942,
+      "y": 34.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led12",
+      "type": "led",
+      "x": 126.778,
+      "y": 16.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r13",
+      "type": "resistor",
+      "x": 135.722,
+      "y": 34.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led13",
+      "type": "led",
+      "x": 144.558,
+      "y": 16.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r14",
+      "type": "resistor",
+      "x": 153.502,
+      "y": 34.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led14",
+      "type": "led",
+      "x": 162.338,
+      "y": 16.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r15",
+      "type": "resistor",
+      "x": 171.282,
+      "y": 34.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led15",
+      "type": "led",
+      "x": 180.118,
+      "y": 16.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r16",
+      "type": "resistor",
+      "x": 189.062,
+      "y": 34.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led16",
+      "type": "led",
+      "x": 197.898,
+      "y": 16.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r17",
+      "type": "resistor",
+      "x": 206.842,
+      "y": 34.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led17",
+      "type": "led",
+      "x": 215.678,
+      "y": 16.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r18",
+      "type": "resistor",
+      "x": 224.622,
+      "y": 34.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led18",
+      "type": "led",
+      "x": 233.458,
+      "y": 16.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "bb2",
+      "type": "breadboard",
+      "x": 250,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "r19",
+      "type": "resistor",
+      "x": 252.382,
+      "y": 11.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led19",
+      "type": "led",
+      "x": 261.218,
+      "y": -0.953,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r20",
+      "type": "resistor",
+      "x": 270.162,
+      "y": 11.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led20",
+      "type": "led",
+      "x": 278.998,
+      "y": -0.953,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r21",
+      "type": "resistor",
+      "x": 287.942,
+      "y": 11.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led21",
+      "type": "led",
+      "x": 296.778,
+      "y": -0.953,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r22",
+      "type": "resistor",
+      "x": 305.722,
+      "y": 11.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led22",
+      "type": "led",
+      "x": 314.558,
+      "y": -0.953,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r23",
+      "type": "resistor",
+      "x": 323.501,
+      "y": 11.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led23",
+      "type": "led",
+      "x": 332.338,
+      "y": -0.953,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r24",
+      "type": "resistor",
+      "x": 341.282,
+      "y": 11.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led24",
+      "type": "led",
+      "x": 350.118,
+      "y": -0.953,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r25",
+      "type": "resistor",
+      "x": 359.062,
+      "y": 11.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led25",
+      "type": "led",
+      "x": 367.898,
+      "y": -0.953,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r26",
+      "type": "resistor",
+      "x": 376.842,
+      "y": 11.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led26",
+      "type": "led",
+      "x": 385.678,
+      "y": -0.953,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r27",
+      "type": "resistor",
+      "x": 394.621,
+      "y": 11.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led27",
+      "type": "led",
+      "x": 403.458,
+      "y": -0.953,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r28",
+      "type": "resistor",
+      "x": 252.382,
+      "y": 34.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led28",
+      "type": "led",
+      "x": 261.218,
+      "y": 16.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r29",
+      "type": "resistor",
+      "x": 270.162,
+      "y": 34.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led29",
+      "type": "led",
+      "x": 278.998,
+      "y": 16.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r30",
+      "type": "resistor",
+      "x": 287.942,
+      "y": 34.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led30",
+      "type": "led",
+      "x": 296.778,
+      "y": 16.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r31",
+      "type": "resistor",
+      "x": 305.722,
+      "y": 34.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led31",
+      "type": "led",
+      "x": 314.558,
+      "y": 16.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r32",
+      "type": "resistor",
+      "x": 323.501,
+      "y": 34.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led32",
+      "type": "led",
+      "x": 332.338,
+      "y": 16.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r33",
+      "type": "resistor",
+      "x": 341.282,
+      "y": 34.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led33",
+      "type": "led",
+      "x": 350.118,
+      "y": 16.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r34",
+      "type": "resistor",
+      "x": 359.062,
+      "y": 34.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led34",
+      "type": "led",
+      "x": 367.898,
+      "y": 16.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r35",
+      "type": "resistor",
+      "x": 376.842,
+      "y": 34.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led35",
+      "type": "led",
+      "x": 385.678,
+      "y": 16.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r36",
+      "type": "resistor",
+      "x": 394.621,
+      "y": 34.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led36",
+      "type": "led",
+      "x": 403.458,
+      "y": 16.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "bb3",
+      "type": "breadboard",
+      "x": 80,
+      "y": 56,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "r37",
+      "type": "resistor",
+      "x": 82.382,
+      "y": 67.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led37",
+      "type": "led",
+      "x": 91.218,
+      "y": 55.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r38",
+      "type": "resistor",
+      "x": 100.162,
+      "y": 67.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led38",
+      "type": "led",
+      "x": 108.998,
+      "y": 55.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r39",
+      "type": "resistor",
+      "x": 117.942,
+      "y": 67.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led39",
+      "type": "led",
+      "x": 126.778,
+      "y": 55.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r40",
+      "type": "resistor",
+      "x": 135.722,
+      "y": 67.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led40",
+      "type": "led",
+      "x": 144.558,
+      "y": 55.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r41",
+      "type": "resistor",
+      "x": 153.502,
+      "y": 67.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led41",
+      "type": "led",
+      "x": 162.338,
+      "y": 55.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r42",
+      "type": "resistor",
+      "x": 171.282,
+      "y": 67.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led42",
+      "type": "led",
+      "x": 180.118,
+      "y": 55.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r43",
+      "type": "resistor",
+      "x": 189.062,
+      "y": 67.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led43",
+      "type": "led",
+      "x": 197.898,
+      "y": 55.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r44",
+      "type": "resistor",
+      "x": 206.842,
+      "y": 67.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led44",
+      "type": "led",
+      "x": 215.678,
+      "y": 55.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r45",
+      "type": "resistor",
+      "x": 224.622,
+      "y": 67.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led45",
+      "type": "led",
+      "x": 233.458,
+      "y": 55.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r46",
+      "type": "resistor",
+      "x": 82.382,
+      "y": 90.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led46",
+      "type": "led",
+      "x": 91.218,
+      "y": 72.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r47",
+      "type": "resistor",
+      "x": 100.162,
+      "y": 90.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led47",
+      "type": "led",
+      "x": 108.998,
+      "y": 72.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r48",
+      "type": "resistor",
+      "x": 117.942,
+      "y": 90.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led48",
+      "type": "led",
+      "x": 126.778,
+      "y": 72.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r49",
+      "type": "resistor",
+      "x": 135.722,
+      "y": 90.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led49",
+      "type": "led",
+      "x": 144.558,
+      "y": 72.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r50",
+      "type": "resistor",
+      "x": 153.502,
+      "y": 90.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led50",
+      "type": "led",
+      "x": 162.338,
+      "y": 72.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r51",
+      "type": "resistor",
+      "x": 171.282,
+      "y": 90.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led51",
+      "type": "led",
+      "x": 180.118,
+      "y": 72.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r52",
+      "type": "resistor",
+      "x": 189.062,
+      "y": 90.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led52",
+      "type": "led",
+      "x": 197.898,
+      "y": 72.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r53",
+      "type": "resistor",
+      "x": 206.842,
+      "y": 90.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led53",
+      "type": "led",
+      "x": 215.678,
+      "y": 72.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r54",
+      "type": "resistor",
+      "x": 224.622,
+      "y": 90.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led54",
+      "type": "led",
+      "x": 233.458,
+      "y": 72.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "bb4",
+      "type": "breadboard",
+      "x": 250,
+      "y": 56,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "r55",
+      "type": "resistor",
+      "x": 252.382,
+      "y": 67.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led55",
+      "type": "led",
+      "x": 261.218,
+      "y": 55.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r56",
+      "type": "resistor",
+      "x": 270.162,
+      "y": 67.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led56",
+      "type": "led",
+      "x": 278.998,
+      "y": 55.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r57",
+      "type": "resistor",
+      "x": 287.942,
+      "y": 67.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led57",
+      "type": "led",
+      "x": 296.778,
+      "y": 55.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r58",
+      "type": "resistor",
+      "x": 305.722,
+      "y": 67.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led58",
+      "type": "led",
+      "x": 314.558,
+      "y": 55.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r59",
+      "type": "resistor",
+      "x": 323.501,
+      "y": 67.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led59",
+      "type": "led",
+      "x": 332.338,
+      "y": 55.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r60",
+      "type": "resistor",
+      "x": 341.282,
+      "y": 67.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led60",
+      "type": "led",
+      "x": 350.118,
+      "y": 55.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r61",
+      "type": "resistor",
+      "x": 359.062,
+      "y": 67.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led61",
+      "type": "led",
+      "x": 367.898,
+      "y": 55.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r62",
+      "type": "resistor",
+      "x": 376.842,
+      "y": 67.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led62",
+      "type": "led",
+      "x": 385.678,
+      "y": 55.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r63",
+      "type": "resistor",
+      "x": 394.621,
+      "y": 67.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led63",
+      "type": "led",
+      "x": 403.458,
+      "y": 55.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r64",
+      "type": "resistor",
+      "x": 252.382,
+      "y": 90.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led64",
+      "type": "led",
+      "x": 261.218,
+      "y": 72.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r65",
+      "type": "resistor",
+      "x": 270.162,
+      "y": 90.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led65",
+      "type": "led",
+      "x": 278.998,
+      "y": 72.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r66",
+      "type": "resistor",
+      "x": 287.942,
+      "y": 90.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led66",
+      "type": "led",
+      "x": 296.778,
+      "y": 72.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r67",
+      "type": "resistor",
+      "x": 305.722,
+      "y": 90.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led67",
+      "type": "led",
+      "x": 314.558,
+      "y": 72.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r68",
+      "type": "resistor",
+      "x": 323.501,
+      "y": 90.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led68",
+      "type": "led",
+      "x": 332.338,
+      "y": 72.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r69",
+      "type": "resistor",
+      "x": 341.282,
+      "y": 90.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led69",
+      "type": "led",
+      "x": 350.118,
+      "y": 72.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r70",
+      "type": "resistor",
+      "x": 359.062,
+      "y": 90.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led70",
+      "type": "led",
+      "x": 367.898,
+      "y": 72.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r71",
+      "type": "resistor",
+      "x": 376.842,
+      "y": 90.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led71",
+      "type": "led",
+      "x": 385.678,
+      "y": 72.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r72",
+      "type": "resistor",
+      "x": 394.621,
+      "y": 90.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led72",
+      "type": "led",
+      "x": 403.458,
+      "y": 72.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "bb5",
+      "type": "breadboard",
+      "x": 80,
+      "y": 112,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "r73",
+      "type": "resistor",
+      "x": 82.382,
+      "y": 123.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led73",
+      "type": "led",
+      "x": 91.218,
+      "y": 111.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r74",
+      "type": "resistor",
+      "x": 100.162,
+      "y": 123.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led74",
+      "type": "led",
+      "x": 108.998,
+      "y": 111.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r75",
+      "type": "resistor",
+      "x": 117.942,
+      "y": 123.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led75",
+      "type": "led",
+      "x": 126.778,
+      "y": 111.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r76",
+      "type": "resistor",
+      "x": 135.722,
+      "y": 123.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led76",
+      "type": "led",
+      "x": 144.558,
+      "y": 111.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r77",
+      "type": "resistor",
+      "x": 153.502,
+      "y": 123.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led77",
+      "type": "led",
+      "x": 162.338,
+      "y": 111.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r78",
+      "type": "resistor",
+      "x": 171.282,
+      "y": 123.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led78",
+      "type": "led",
+      "x": 180.118,
+      "y": 111.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r79",
+      "type": "resistor",
+      "x": 189.062,
+      "y": 123.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led79",
+      "type": "led",
+      "x": 197.898,
+      "y": 111.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r80",
+      "type": "resistor",
+      "x": 206.842,
+      "y": 123.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led80",
+      "type": "led",
+      "x": 215.678,
+      "y": 111.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r81",
+      "type": "resistor",
+      "x": 224.622,
+      "y": 123.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led81",
+      "type": "led",
+      "x": 233.458,
+      "y": 111.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r82",
+      "type": "resistor",
+      "x": 82.382,
+      "y": 146.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led82",
+      "type": "led",
+      "x": 91.218,
+      "y": 128.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r83",
+      "type": "resistor",
+      "x": 100.162,
+      "y": 146.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led83",
+      "type": "led",
+      "x": 108.998,
+      "y": 128.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r84",
+      "type": "resistor",
+      "x": 117.942,
+      "y": 146.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led84",
+      "type": "led",
+      "x": 126.778,
+      "y": 128.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r85",
+      "type": "resistor",
+      "x": 135.722,
+      "y": 146.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led85",
+      "type": "led",
+      "x": 144.558,
+      "y": 128.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r86",
+      "type": "resistor",
+      "x": 153.502,
+      "y": 146.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led86",
+      "type": "led",
+      "x": 162.338,
+      "y": 128.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r87",
+      "type": "resistor",
+      "x": 171.282,
+      "y": 146.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led87",
+      "type": "led",
+      "x": 180.118,
+      "y": 128.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r88",
+      "type": "resistor",
+      "x": 189.062,
+      "y": 146.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led88",
+      "type": "led",
+      "x": 197.898,
+      "y": 128.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r89",
+      "type": "resistor",
+      "x": 206.842,
+      "y": 146.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led89",
+      "type": "led",
+      "x": 215.678,
+      "y": 128.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r90",
+      "type": "resistor",
+      "x": 224.622,
+      "y": 146.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led90",
+      "type": "led",
+      "x": 233.458,
+      "y": 128.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "bb6",
+      "type": "breadboard",
+      "x": 250,
+      "y": 112,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "r91",
+      "type": "resistor",
+      "x": 252.382,
+      "y": 123.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led91",
+      "type": "led",
+      "x": 261.218,
+      "y": 111.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r92",
+      "type": "resistor",
+      "x": 270.162,
+      "y": 123.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led92",
+      "type": "led",
+      "x": 278.998,
+      "y": 111.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r93",
+      "type": "resistor",
+      "x": 287.942,
+      "y": 123.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led93",
+      "type": "led",
+      "x": 296.778,
+      "y": 111.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r94",
+      "type": "resistor",
+      "x": 305.722,
+      "y": 123.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led94",
+      "type": "led",
+      "x": 314.558,
+      "y": 111.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r95",
+      "type": "resistor",
+      "x": 323.501,
+      "y": 123.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led95",
+      "type": "led",
+      "x": 332.338,
+      "y": 111.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r96",
+      "type": "resistor",
+      "x": 341.282,
+      "y": 123.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led96",
+      "type": "led",
+      "x": 350.118,
+      "y": 111.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r97",
+      "type": "resistor",
+      "x": 359.062,
+      "y": 123.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led97",
+      "type": "led",
+      "x": 367.898,
+      "y": 111.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r98",
+      "type": "resistor",
+      "x": 376.842,
+      "y": 123.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led98",
+      "type": "led",
+      "x": 385.678,
+      "y": 111.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r99",
+      "type": "resistor",
+      "x": 394.621,
+      "y": 123.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led99",
+      "type": "led",
+      "x": 403.458,
+      "y": 111.047,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r100",
+      "type": "resistor",
+      "x": 252.382,
+      "y": 146.065,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led100",
+      "type": "led",
+      "x": 261.218,
+      "y": 128.827,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "uno",
+        "pin": "13"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "tp.1"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "uno",
+        "pin": "13"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "bp.1"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "tn.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "bn.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "bb1",
+        "pin": "1t.c"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "tp.1"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "bb1",
+        "pin": "6t.c"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "tn.4"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "bb1",
+        "pin": "8t.c"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "tp.5"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w8",
+      "from": {
+        "part": "bb1",
+        "pin": "13t.c"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "tn.10"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w9",
+      "from": {
+        "part": "bb1",
+        "pin": "15t.c"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "tp.11"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w10",
+      "from": {
+        "part": "bb1",
+        "pin": "20t.c"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "tn.15"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w11",
+      "from": {
+        "part": "bb1",
+        "pin": "22t.c"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "tp.17"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w12",
+      "from": {
+        "part": "bb1",
+        "pin": "27t.c"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "tn.21"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w13",
+      "from": {
+        "part": "bb1",
+        "pin": "29t.c"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "tp.23"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w14",
+      "from": {
+        "part": "bb1",
+        "pin": "34t.c"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "tn.27"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w15",
+      "from": {
+        "part": "bb1",
+        "pin": "36t.c"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "tp.29"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w16",
+      "from": {
+        "part": "bb1",
+        "pin": "41t.c"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "tn.33"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w17",
+      "from": {
+        "part": "bb1",
+        "pin": "43t.c"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "tp.35"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w18",
+      "from": {
+        "part": "bb1",
+        "pin": "48t.c"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "tn.39"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w19",
+      "from": {
+        "part": "bb1",
+        "pin": "50t.c"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "tp.41"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w20",
+      "from": {
+        "part": "bb1",
+        "pin": "55t.c"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "tn.45"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w21",
+      "from": {
+        "part": "bb1",
+        "pin": "57t.c"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "tp.46"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w22",
+      "from": {
+        "part": "bb1",
+        "pin": "62t.c"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "tn.50"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w23",
+      "from": {
+        "part": "bb1",
+        "pin": "1b.j"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "bp.1"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w24",
+      "from": {
+        "part": "bb1",
+        "pin": "6b.j"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "bn.4"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w25",
+      "from": {
+        "part": "bb1",
+        "pin": "8b.j"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "bp.5"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w26",
+      "from": {
+        "part": "bb1",
+        "pin": "13b.j"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "bn.10"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w27",
+      "from": {
+        "part": "bb1",
+        "pin": "15b.j"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "bp.11"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w28",
+      "from": {
+        "part": "bb1",
+        "pin": "20b.j"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "bn.15"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w29",
+      "from": {
+        "part": "bb1",
+        "pin": "22b.j"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "bp.17"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w30",
+      "from": {
+        "part": "bb1",
+        "pin": "27b.j"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "bn.21"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w31",
+      "from": {
+        "part": "bb1",
+        "pin": "29b.j"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "bp.23"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w32",
+      "from": {
+        "part": "bb1",
+        "pin": "34b.j"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "bn.27"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w33",
+      "from": {
+        "part": "bb1",
+        "pin": "36b.j"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "bp.29"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w34",
+      "from": {
+        "part": "bb1",
+        "pin": "41b.j"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "bn.33"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w35",
+      "from": {
+        "part": "bb1",
+        "pin": "43b.j"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "bp.35"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w36",
+      "from": {
+        "part": "bb1",
+        "pin": "48b.j"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "bn.39"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w37",
+      "from": {
+        "part": "bb1",
+        "pin": "50b.j"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "bp.41"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w38",
+      "from": {
+        "part": "bb1",
+        "pin": "55b.j"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "bn.45"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w39",
+      "from": {
+        "part": "bb1",
+        "pin": "57b.j"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "bp.46"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w40",
+      "from": {
+        "part": "bb1",
+        "pin": "62b.j"
+      },
+      "to": {
+        "part": "bb1",
+        "pin": "bn.50"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w41",
+      "from": {
+        "part": "uno",
+        "pin": "13"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "tp.1"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w42",
+      "from": {
+        "part": "uno",
+        "pin": "13"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "bp.1"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w43",
+      "from": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "tn.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w44",
+      "from": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "bn.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w45",
+      "from": {
+        "part": "bb2",
+        "pin": "1t.c"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "tp.1"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w46",
+      "from": {
+        "part": "bb2",
+        "pin": "6t.c"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "tn.4"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w47",
+      "from": {
+        "part": "bb2",
+        "pin": "8t.c"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "tp.5"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w48",
+      "from": {
+        "part": "bb2",
+        "pin": "13t.c"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "tn.10"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w49",
+      "from": {
+        "part": "bb2",
+        "pin": "15t.c"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "tp.11"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w50",
+      "from": {
+        "part": "bb2",
+        "pin": "20t.c"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "tn.15"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w51",
+      "from": {
+        "part": "bb2",
+        "pin": "22t.c"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "tp.17"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w52",
+      "from": {
+        "part": "bb2",
+        "pin": "27t.c"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "tn.21"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w53",
+      "from": {
+        "part": "bb2",
+        "pin": "29t.c"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "tp.23"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w54",
+      "from": {
+        "part": "bb2",
+        "pin": "34t.c"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "tn.27"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w55",
+      "from": {
+        "part": "bb2",
+        "pin": "36t.c"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "tp.29"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w56",
+      "from": {
+        "part": "bb2",
+        "pin": "41t.c"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "tn.33"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w57",
+      "from": {
+        "part": "bb2",
+        "pin": "43t.c"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "tp.35"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w58",
+      "from": {
+        "part": "bb2",
+        "pin": "48t.c"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "tn.39"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w59",
+      "from": {
+        "part": "bb2",
+        "pin": "50t.c"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "tp.41"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w60",
+      "from": {
+        "part": "bb2",
+        "pin": "55t.c"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "tn.45"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w61",
+      "from": {
+        "part": "bb2",
+        "pin": "57t.c"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "tp.46"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w62",
+      "from": {
+        "part": "bb2",
+        "pin": "62t.c"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "tn.50"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w63",
+      "from": {
+        "part": "bb2",
+        "pin": "1b.j"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "bp.1"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w64",
+      "from": {
+        "part": "bb2",
+        "pin": "6b.j"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "bn.4"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w65",
+      "from": {
+        "part": "bb2",
+        "pin": "8b.j"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "bp.5"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w66",
+      "from": {
+        "part": "bb2",
+        "pin": "13b.j"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "bn.10"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w67",
+      "from": {
+        "part": "bb2",
+        "pin": "15b.j"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "bp.11"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w68",
+      "from": {
+        "part": "bb2",
+        "pin": "20b.j"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "bn.15"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w69",
+      "from": {
+        "part": "bb2",
+        "pin": "22b.j"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "bp.17"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w70",
+      "from": {
+        "part": "bb2",
+        "pin": "27b.j"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "bn.21"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w71",
+      "from": {
+        "part": "bb2",
+        "pin": "29b.j"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "bp.23"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w72",
+      "from": {
+        "part": "bb2",
+        "pin": "34b.j"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "bn.27"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w73",
+      "from": {
+        "part": "bb2",
+        "pin": "36b.j"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "bp.29"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w74",
+      "from": {
+        "part": "bb2",
+        "pin": "41b.j"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "bn.33"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w75",
+      "from": {
+        "part": "bb2",
+        "pin": "43b.j"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "bp.35"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w76",
+      "from": {
+        "part": "bb2",
+        "pin": "48b.j"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "bn.39"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w77",
+      "from": {
+        "part": "bb2",
+        "pin": "50b.j"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "bp.41"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w78",
+      "from": {
+        "part": "bb2",
+        "pin": "55b.j"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "bn.45"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w79",
+      "from": {
+        "part": "bb2",
+        "pin": "57b.j"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "bp.46"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w80",
+      "from": {
+        "part": "bb2",
+        "pin": "62b.j"
+      },
+      "to": {
+        "part": "bb2",
+        "pin": "bn.50"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w81",
+      "from": {
+        "part": "uno",
+        "pin": "13"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "tp.1"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w82",
+      "from": {
+        "part": "uno",
+        "pin": "13"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "bp.1"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w83",
+      "from": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "tn.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w84",
+      "from": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "bn.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w85",
+      "from": {
+        "part": "bb3",
+        "pin": "1t.c"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "tp.1"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w86",
+      "from": {
+        "part": "bb3",
+        "pin": "6t.c"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "tn.4"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w87",
+      "from": {
+        "part": "bb3",
+        "pin": "8t.c"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "tp.5"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w88",
+      "from": {
+        "part": "bb3",
+        "pin": "13t.c"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "tn.10"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w89",
+      "from": {
+        "part": "bb3",
+        "pin": "15t.c"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "tp.11"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w90",
+      "from": {
+        "part": "bb3",
+        "pin": "20t.c"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "tn.15"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w91",
+      "from": {
+        "part": "bb3",
+        "pin": "22t.c"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "tp.17"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w92",
+      "from": {
+        "part": "bb3",
+        "pin": "27t.c"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "tn.21"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w93",
+      "from": {
+        "part": "bb3",
+        "pin": "29t.c"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "tp.23"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w94",
+      "from": {
+        "part": "bb3",
+        "pin": "34t.c"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "tn.27"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w95",
+      "from": {
+        "part": "bb3",
+        "pin": "36t.c"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "tp.29"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w96",
+      "from": {
+        "part": "bb3",
+        "pin": "41t.c"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "tn.33"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w97",
+      "from": {
+        "part": "bb3",
+        "pin": "43t.c"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "tp.35"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w98",
+      "from": {
+        "part": "bb3",
+        "pin": "48t.c"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "tn.39"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w99",
+      "from": {
+        "part": "bb3",
+        "pin": "50t.c"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "tp.41"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w100",
+      "from": {
+        "part": "bb3",
+        "pin": "55t.c"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "tn.45"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w101",
+      "from": {
+        "part": "bb3",
+        "pin": "57t.c"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "tp.46"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w102",
+      "from": {
+        "part": "bb3",
+        "pin": "62t.c"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "tn.50"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w103",
+      "from": {
+        "part": "bb3",
+        "pin": "1b.j"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "bp.1"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w104",
+      "from": {
+        "part": "bb3",
+        "pin": "6b.j"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "bn.4"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w105",
+      "from": {
+        "part": "bb3",
+        "pin": "8b.j"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "bp.5"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w106",
+      "from": {
+        "part": "bb3",
+        "pin": "13b.j"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "bn.10"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w107",
+      "from": {
+        "part": "bb3",
+        "pin": "15b.j"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "bp.11"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w108",
+      "from": {
+        "part": "bb3",
+        "pin": "20b.j"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "bn.15"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w109",
+      "from": {
+        "part": "bb3",
+        "pin": "22b.j"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "bp.17"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w110",
+      "from": {
+        "part": "bb3",
+        "pin": "27b.j"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "bn.21"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w111",
+      "from": {
+        "part": "bb3",
+        "pin": "29b.j"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "bp.23"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w112",
+      "from": {
+        "part": "bb3",
+        "pin": "34b.j"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "bn.27"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w113",
+      "from": {
+        "part": "bb3",
+        "pin": "36b.j"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "bp.29"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w114",
+      "from": {
+        "part": "bb3",
+        "pin": "41b.j"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "bn.33"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w115",
+      "from": {
+        "part": "bb3",
+        "pin": "43b.j"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "bp.35"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w116",
+      "from": {
+        "part": "bb3",
+        "pin": "48b.j"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "bn.39"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w117",
+      "from": {
+        "part": "bb3",
+        "pin": "50b.j"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "bp.41"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w118",
+      "from": {
+        "part": "bb3",
+        "pin": "55b.j"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "bn.45"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w119",
+      "from": {
+        "part": "bb3",
+        "pin": "57b.j"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "bp.46"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w120",
+      "from": {
+        "part": "bb3",
+        "pin": "62b.j"
+      },
+      "to": {
+        "part": "bb3",
+        "pin": "bn.50"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w121",
+      "from": {
+        "part": "uno",
+        "pin": "13"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "tp.1"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w122",
+      "from": {
+        "part": "uno",
+        "pin": "13"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "bp.1"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w123",
+      "from": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "tn.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w124",
+      "from": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "bn.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w125",
+      "from": {
+        "part": "bb4",
+        "pin": "1t.c"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "tp.1"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w126",
+      "from": {
+        "part": "bb4",
+        "pin": "6t.c"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "tn.4"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w127",
+      "from": {
+        "part": "bb4",
+        "pin": "8t.c"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "tp.5"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w128",
+      "from": {
+        "part": "bb4",
+        "pin": "13t.c"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "tn.10"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w129",
+      "from": {
+        "part": "bb4",
+        "pin": "15t.c"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "tp.11"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w130",
+      "from": {
+        "part": "bb4",
+        "pin": "20t.c"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "tn.15"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w131",
+      "from": {
+        "part": "bb4",
+        "pin": "22t.c"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "tp.17"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w132",
+      "from": {
+        "part": "bb4",
+        "pin": "27t.c"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "tn.21"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w133",
+      "from": {
+        "part": "bb4",
+        "pin": "29t.c"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "tp.23"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w134",
+      "from": {
+        "part": "bb4",
+        "pin": "34t.c"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "tn.27"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w135",
+      "from": {
+        "part": "bb4",
+        "pin": "36t.c"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "tp.29"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w136",
+      "from": {
+        "part": "bb4",
+        "pin": "41t.c"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "tn.33"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w137",
+      "from": {
+        "part": "bb4",
+        "pin": "43t.c"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "tp.35"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w138",
+      "from": {
+        "part": "bb4",
+        "pin": "48t.c"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "tn.39"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w139",
+      "from": {
+        "part": "bb4",
+        "pin": "50t.c"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "tp.41"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w140",
+      "from": {
+        "part": "bb4",
+        "pin": "55t.c"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "tn.45"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w141",
+      "from": {
+        "part": "bb4",
+        "pin": "57t.c"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "tp.46"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w142",
+      "from": {
+        "part": "bb4",
+        "pin": "62t.c"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "tn.50"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w143",
+      "from": {
+        "part": "bb4",
+        "pin": "1b.j"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "bp.1"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w144",
+      "from": {
+        "part": "bb4",
+        "pin": "6b.j"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "bn.4"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w145",
+      "from": {
+        "part": "bb4",
+        "pin": "8b.j"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "bp.5"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w146",
+      "from": {
+        "part": "bb4",
+        "pin": "13b.j"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "bn.10"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w147",
+      "from": {
+        "part": "bb4",
+        "pin": "15b.j"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "bp.11"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w148",
+      "from": {
+        "part": "bb4",
+        "pin": "20b.j"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "bn.15"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w149",
+      "from": {
+        "part": "bb4",
+        "pin": "22b.j"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "bp.17"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w150",
+      "from": {
+        "part": "bb4",
+        "pin": "27b.j"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "bn.21"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w151",
+      "from": {
+        "part": "bb4",
+        "pin": "29b.j"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "bp.23"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w152",
+      "from": {
+        "part": "bb4",
+        "pin": "34b.j"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "bn.27"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w153",
+      "from": {
+        "part": "bb4",
+        "pin": "36b.j"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "bp.29"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w154",
+      "from": {
+        "part": "bb4",
+        "pin": "41b.j"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "bn.33"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w155",
+      "from": {
+        "part": "bb4",
+        "pin": "43b.j"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "bp.35"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w156",
+      "from": {
+        "part": "bb4",
+        "pin": "48b.j"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "bn.39"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w157",
+      "from": {
+        "part": "bb4",
+        "pin": "50b.j"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "bp.41"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w158",
+      "from": {
+        "part": "bb4",
+        "pin": "55b.j"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "bn.45"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w159",
+      "from": {
+        "part": "bb4",
+        "pin": "57b.j"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "bp.46"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w160",
+      "from": {
+        "part": "bb4",
+        "pin": "62b.j"
+      },
+      "to": {
+        "part": "bb4",
+        "pin": "bn.50"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w161",
+      "from": {
+        "part": "uno",
+        "pin": "13"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "tp.1"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w162",
+      "from": {
+        "part": "uno",
+        "pin": "13"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "bp.1"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w163",
+      "from": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "tn.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w164",
+      "from": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "bn.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w165",
+      "from": {
+        "part": "bb5",
+        "pin": "1t.c"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "tp.1"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w166",
+      "from": {
+        "part": "bb5",
+        "pin": "6t.c"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "tn.4"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w167",
+      "from": {
+        "part": "bb5",
+        "pin": "8t.c"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "tp.5"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w168",
+      "from": {
+        "part": "bb5",
+        "pin": "13t.c"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "tn.10"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w169",
+      "from": {
+        "part": "bb5",
+        "pin": "15t.c"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "tp.11"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w170",
+      "from": {
+        "part": "bb5",
+        "pin": "20t.c"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "tn.15"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w171",
+      "from": {
+        "part": "bb5",
+        "pin": "22t.c"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "tp.17"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w172",
+      "from": {
+        "part": "bb5",
+        "pin": "27t.c"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "tn.21"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w173",
+      "from": {
+        "part": "bb5",
+        "pin": "29t.c"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "tp.23"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w174",
+      "from": {
+        "part": "bb5",
+        "pin": "34t.c"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "tn.27"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w175",
+      "from": {
+        "part": "bb5",
+        "pin": "36t.c"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "tp.29"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w176",
+      "from": {
+        "part": "bb5",
+        "pin": "41t.c"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "tn.33"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w177",
+      "from": {
+        "part": "bb5",
+        "pin": "43t.c"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "tp.35"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w178",
+      "from": {
+        "part": "bb5",
+        "pin": "48t.c"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "tn.39"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w179",
+      "from": {
+        "part": "bb5",
+        "pin": "50t.c"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "tp.41"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w180",
+      "from": {
+        "part": "bb5",
+        "pin": "55t.c"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "tn.45"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w181",
+      "from": {
+        "part": "bb5",
+        "pin": "57t.c"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "tp.46"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w182",
+      "from": {
+        "part": "bb5",
+        "pin": "62t.c"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "tn.50"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w183",
+      "from": {
+        "part": "bb5",
+        "pin": "1b.j"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "bp.1"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w184",
+      "from": {
+        "part": "bb5",
+        "pin": "6b.j"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "bn.4"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w185",
+      "from": {
+        "part": "bb5",
+        "pin": "8b.j"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "bp.5"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w186",
+      "from": {
+        "part": "bb5",
+        "pin": "13b.j"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "bn.10"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w187",
+      "from": {
+        "part": "bb5",
+        "pin": "15b.j"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "bp.11"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w188",
+      "from": {
+        "part": "bb5",
+        "pin": "20b.j"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "bn.15"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w189",
+      "from": {
+        "part": "bb5",
+        "pin": "22b.j"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "bp.17"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w190",
+      "from": {
+        "part": "bb5",
+        "pin": "27b.j"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "bn.21"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w191",
+      "from": {
+        "part": "bb5",
+        "pin": "29b.j"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "bp.23"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w192",
+      "from": {
+        "part": "bb5",
+        "pin": "34b.j"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "bn.27"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w193",
+      "from": {
+        "part": "bb5",
+        "pin": "36b.j"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "bp.29"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w194",
+      "from": {
+        "part": "bb5",
+        "pin": "41b.j"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "bn.33"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w195",
+      "from": {
+        "part": "bb5",
+        "pin": "43b.j"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "bp.35"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w196",
+      "from": {
+        "part": "bb5",
+        "pin": "48b.j"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "bn.39"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w197",
+      "from": {
+        "part": "bb5",
+        "pin": "50b.j"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "bp.41"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w198",
+      "from": {
+        "part": "bb5",
+        "pin": "55b.j"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "bn.45"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w199",
+      "from": {
+        "part": "bb5",
+        "pin": "57b.j"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "bp.46"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w200",
+      "from": {
+        "part": "bb5",
+        "pin": "62b.j"
+      },
+      "to": {
+        "part": "bb5",
+        "pin": "bn.50"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w201",
+      "from": {
+        "part": "uno",
+        "pin": "13"
+      },
+      "to": {
+        "part": "bb6",
+        "pin": "tp.1"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w202",
+      "from": {
+        "part": "uno",
+        "pin": "13"
+      },
+      "to": {
+        "part": "bb6",
+        "pin": "bp.1"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w203",
+      "from": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "to": {
+        "part": "bb6",
+        "pin": "tn.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w204",
+      "from": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "to": {
+        "part": "bb6",
+        "pin": "bn.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w205",
+      "from": {
+        "part": "bb6",
+        "pin": "1t.c"
+      },
+      "to": {
+        "part": "bb6",
+        "pin": "tp.1"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w206",
+      "from": {
+        "part": "bb6",
+        "pin": "6t.c"
+      },
+      "to": {
+        "part": "bb6",
+        "pin": "tn.4"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w207",
+      "from": {
+        "part": "bb6",
+        "pin": "8t.c"
+      },
+      "to": {
+        "part": "bb6",
+        "pin": "tp.5"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w208",
+      "from": {
+        "part": "bb6",
+        "pin": "13t.c"
+      },
+      "to": {
+        "part": "bb6",
+        "pin": "tn.10"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w209",
+      "from": {
+        "part": "bb6",
+        "pin": "15t.c"
+      },
+      "to": {
+        "part": "bb6",
+        "pin": "tp.11"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w210",
+      "from": {
+        "part": "bb6",
+        "pin": "20t.c"
+      },
+      "to": {
+        "part": "bb6",
+        "pin": "tn.15"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w211",
+      "from": {
+        "part": "bb6",
+        "pin": "22t.c"
+      },
+      "to": {
+        "part": "bb6",
+        "pin": "tp.17"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w212",
+      "from": {
+        "part": "bb6",
+        "pin": "27t.c"
+      },
+      "to": {
+        "part": "bb6",
+        "pin": "tn.21"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w213",
+      "from": {
+        "part": "bb6",
+        "pin": "29t.c"
+      },
+      "to": {
+        "part": "bb6",
+        "pin": "tp.23"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w214",
+      "from": {
+        "part": "bb6",
+        "pin": "34t.c"
+      },
+      "to": {
+        "part": "bb6",
+        "pin": "tn.27"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w215",
+      "from": {
+        "part": "bb6",
+        "pin": "36t.c"
+      },
+      "to": {
+        "part": "bb6",
+        "pin": "tp.29"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w216",
+      "from": {
+        "part": "bb6",
+        "pin": "41t.c"
+      },
+      "to": {
+        "part": "bb6",
+        "pin": "tn.33"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w217",
+      "from": {
+        "part": "bb6",
+        "pin": "43t.c"
+      },
+      "to": {
+        "part": "bb6",
+        "pin": "tp.35"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w218",
+      "from": {
+        "part": "bb6",
+        "pin": "48t.c"
+      },
+      "to": {
+        "part": "bb6",
+        "pin": "tn.39"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w219",
+      "from": {
+        "part": "bb6",
+        "pin": "50t.c"
+      },
+      "to": {
+        "part": "bb6",
+        "pin": "tp.41"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w220",
+      "from": {
+        "part": "bb6",
+        "pin": "55t.c"
+      },
+      "to": {
+        "part": "bb6",
+        "pin": "tn.45"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w221",
+      "from": {
+        "part": "bb6",
+        "pin": "57t.c"
+      },
+      "to": {
+        "part": "bb6",
+        "pin": "tp.46"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w222",
+      "from": {
+        "part": "bb6",
+        "pin": "62t.c"
+      },
+      "to": {
+        "part": "bb6",
+        "pin": "tn.50"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w223",
+      "from": {
+        "part": "bb6",
+        "pin": "1b.j"
+      },
+      "to": {
+        "part": "bb6",
+        "pin": "bp.1"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w224",
+      "from": {
+        "part": "bb6",
+        "pin": "6b.j"
+      },
+      "to": {
+        "part": "bb6",
+        "pin": "bn.4"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "blink.hex",
+      "format": "hex"
+    }
+  }
+}

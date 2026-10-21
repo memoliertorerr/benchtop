@@ -1,0 +1,400 @@
+{
+  "format": 1,
+  "name": "distance-meter",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "sonar",
+      "type": "hc-sr04",
+      "x": 76,
+      "y": 10,
+      "rotation": 0,
+      "props": {
+        "distance": 100
+      }
+    },
+    {
+      "id": "disp",
+      "type": "seven-segment-4",
+      "x": 22,
+      "y": -72,
+      "rotation": 0,
+      "props": {
+        "common": "cathode",
+        "color": "red"
+      }
+    },
+    {
+      "id": "r1",
+      "type": "resistor",
+      "x": 54.7,
+      "y": -15.5,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "r2",
+      "type": "resistor",
+      "x": 52.18,
+      "y": -31.5,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "r3",
+      "type": "resistor",
+      "x": 49.660000000000004,
+      "y": -15.5,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "r4",
+      "type": "resistor",
+      "x": 47.14,
+      "y": -31.5,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "r5",
+      "type": "resistor",
+      "x": 44.620000000000005,
+      "y": -15.5,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "r6",
+      "type": "resistor",
+      "x": 42.1,
+      "y": -31.5,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "r7",
+      "type": "resistor",
+      "x": 39.58,
+      "y": -15.5,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "sonar",
+        "pin": "TRIG"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "9"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "sonar",
+        "pin": "ECHO"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "10"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "sonar",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "sonar",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "uno",
+        "pin": "2"
+      },
+      "to": {
+        "part": "r1",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "r1",
+        "pin": "1"
+      },
+      "to": {
+        "part": "disp",
+        "pin": "A"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "uno",
+        "pin": "3"
+      },
+      "to": {
+        "part": "r2",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w8",
+      "from": {
+        "part": "r2",
+        "pin": "1"
+      },
+      "to": {
+        "part": "disp",
+        "pin": "B"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w9",
+      "from": {
+        "part": "uno",
+        "pin": "4"
+      },
+      "to": {
+        "part": "r3",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w10",
+      "from": {
+        "part": "r3",
+        "pin": "1"
+      },
+      "to": {
+        "part": "disp",
+        "pin": "C"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w11",
+      "from": {
+        "part": "uno",
+        "pin": "5"
+      },
+      "to": {
+        "part": "r4",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w12",
+      "from": {
+        "part": "r4",
+        "pin": "1"
+      },
+      "to": {
+        "part": "disp",
+        "pin": "D"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w13",
+      "from": {
+        "part": "uno",
+        "pin": "6"
+      },
+      "to": {
+        "part": "r5",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w14",
+      "from": {
+        "part": "r5",
+        "pin": "1"
+      },
+      "to": {
+        "part": "disp",
+        "pin": "E"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w15",
+      "from": {
+        "part": "uno",
+        "pin": "7"
+      },
+      "to": {
+        "part": "r6",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w16",
+      "from": {
+        "part": "r6",
+        "pin": "1"
+      },
+      "to": {
+        "part": "disp",
+        "pin": "F"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w17",
+      "from": {
+        "part": "uno",
+        "pin": "8"
+      },
+      "to": {
+        "part": "r7",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w18",
+      "from": {
+        "part": "r7",
+        "pin": "1"
+      },
+      "to": {
+        "part": "disp",
+        "pin": "G"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w19",
+      "from": {
+        "part": "uno",
+        "pin": "A0"
+      },
+      "to": {
+        "part": "disp",
+        "pin": "DIG1"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w20",
+      "from": {
+        "part": "uno",
+        "pin": "A1"
+      },
+      "to": {
+        "part": "disp",
+        "pin": "DIG2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w21",
+      "from": {
+        "part": "uno",
+        "pin": "A2"
+      },
+      "to": {
+        "part": "disp",
+        "pin": "DIG3"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w22",
+      "from": {
+        "part": "uno",
+        "pin": "A3"
+      },
+      "to": {
+        "part": "disp",
+        "pin": "DIG4"
+      },
+      "waypoints": [],
+      "color": "green"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "distance-meter.hex",
+      "format": "hex"
+    }
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "format": 1,
+  "name": "ir-remote",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "ir1",
+      "type": "ir-receiver",
+      "x": 85,
+      "y": 5,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "remote",
+      "type": "ir-remote",
+      "x": 115,
+      "y": -10,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "ir1",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "ir1",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "ir1",
+        "pin": "DAT"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "green"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "ir-decode.hex",
+      "format": "hex"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "example: blink",
+  "project": "../../projects/blink-led.json",
+  "firmware": {
+    "uno": "../../firmware/uno/blink.hex"
+  },
+  "expect": [
+    "serial contains \"hello\" by 100ms",
+    "led led1 is lit at 250ms",
+    "led led1 is dark at 750ms",
+    "led led1 is lit at 1250ms"
+  ]
+}

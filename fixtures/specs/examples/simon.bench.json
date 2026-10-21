@@ -1,0 +1,10 @@
+{
+  "name": "example: simon",
+  "project": "../../projects/simon.json",
+  "firmware": {
+    "uno": "../../firmware/uno/simon.hex"
+  },
+  "expect": [
+    "serial contains \"round 1\" by 1s"
+  ]
+}

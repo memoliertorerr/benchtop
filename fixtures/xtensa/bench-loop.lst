@@ -1,0 +1,17 @@
+
+bench-loop.elf:     file format elf32-xtensa-le
+
+
+Disassembly of section .text:
+
+40080000 <_start>:
+40080000:	000206        	j	4008000c <_start+0xc>
+40080003:	00          	.byte 00
+40080004:	00 00 fc 3f 	
+40080008:	80 96 98 00 	
+4008000c:	fffe11        	l32r	a1, 40080004 <_start+0x4>
+4008000f:	020c      	movi.n	a2, 0
+40080011:	fffd31        	l32r	a3, 40080008 <_start+0x8>
+40080014:	221b      	addi.n	a2, a2, 1
+40080016:	fa9237        	bne	a2, a3, 40080014 <_start+0x14>
+40080019:	0041f0        	break	1, 15

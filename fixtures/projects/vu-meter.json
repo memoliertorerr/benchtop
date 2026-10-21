@@ -1,0 +1,572 @@
+{
+  "format": 1,
+  "name": "vu-meter",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "mic1",
+      "type": "microphone",
+      "x": 84,
+      "y": 28,
+      "rotation": 0,
+      "props": {
+        "gain": 1
+      }
+    },
+    {
+      "id": "bar",
+      "type": "led-bar-graph",
+      "x": 42,
+      "y": -62,
+      "rotation": 0,
+      "props": {
+        "color": "green"
+      }
+    },
+    {
+      "id": "r1",
+      "type": "resistor",
+      "x": 20.0,
+      "y": -30,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "r2",
+      "type": "resistor",
+      "x": 22.54,
+      "y": -40,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "r3",
+      "type": "resistor",
+      "x": 25.08,
+      "y": -30,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "r4",
+      "type": "resistor",
+      "x": 27.62,
+      "y": -40,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "r5",
+      "type": "resistor",
+      "x": 30.16,
+      "y": -30,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "r6",
+      "type": "resistor",
+      "x": 32.7,
+      "y": -40,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "r7",
+      "type": "resistor",
+      "x": 35.24,
+      "y": -30,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "r8",
+      "type": "resistor",
+      "x": 37.78,
+      "y": -40,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "r9",
+      "type": "resistor",
+      "x": 40.32,
+      "y": -30,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "r10",
+      "type": "resistor",
+      "x": 42.86,
+      "y": -40,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "mic1",
+        "pin": "OUT"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "A0"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "mic1",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "mic1",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "uno",
+        "pin": "2"
+      },
+      "to": {
+        "part": "r1",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "r1",
+        "pin": "1"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "A1"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "uno",
+        "pin": "3"
+      },
+      "to": {
+        "part": "r2",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "r2",
+        "pin": "1"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "A2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w8",
+      "from": {
+        "part": "uno",
+        "pin": "4"
+      },
+      "to": {
+        "part": "r3",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w9",
+      "from": {
+        "part": "r3",
+        "pin": "1"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "A3"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w10",
+      "from": {
+        "part": "uno",
+        "pin": "5"
+      },
+      "to": {
+        "part": "r4",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w11",
+      "from": {
+        "part": "r4",
+        "pin": "1"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "A4"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w12",
+      "from": {
+        "part": "uno",
+        "pin": "6"
+      },
+      "to": {
+        "part": "r5",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w13",
+      "from": {
+        "part": "r5",
+        "pin": "1"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "A5"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w14",
+      "from": {
+        "part": "uno",
+        "pin": "7"
+      },
+      "to": {
+        "part": "r6",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w15",
+      "from": {
+        "part": "r6",
+        "pin": "1"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "A6"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w16",
+      "from": {
+        "part": "uno",
+        "pin": "8"
+      },
+      "to": {
+        "part": "r7",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w17",
+      "from": {
+        "part": "r7",
+        "pin": "1"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "A7"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w18",
+      "from": {
+        "part": "uno",
+        "pin": "9"
+      },
+      "to": {
+        "part": "r8",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w19",
+      "from": {
+        "part": "r8",
+        "pin": "1"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "A8"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w20",
+      "from": {
+        "part": "uno",
+        "pin": "10"
+      },
+      "to": {
+        "part": "r9",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w21",
+      "from": {
+        "part": "r9",
+        "pin": "1"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "A9"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w22",
+      "from": {
+        "part": "uno",
+        "pin": "11"
+      },
+      "to": {
+        "part": "r10",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w23",
+      "from": {
+        "part": "r10",
+        "pin": "1"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "A10"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w24",
+      "from": {
+        "part": "bar",
+        "pin": "C1"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "C2"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w25",
+      "from": {
+        "part": "bar",
+        "pin": "C2"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "C3"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w26",
+      "from": {
+        "part": "bar",
+        "pin": "C3"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "C4"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w27",
+      "from": {
+        "part": "bar",
+        "pin": "C4"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "C5"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w28",
+      "from": {
+        "part": "bar",
+        "pin": "C5"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "C6"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w29",
+      "from": {
+        "part": "bar",
+        "pin": "C6"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "C7"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w30",
+      "from": {
+        "part": "bar",
+        "pin": "C7"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "C8"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w31",
+      "from": {
+        "part": "bar",
+        "pin": "C8"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "C9"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w32",
+      "from": {
+        "part": "bar",
+        "pin": "C9"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "C10"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w33",
+      "from": {
+        "part": "bar",
+        "pin": "C1"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "vu-meter.hex",
+      "format": "hex"
+    }
+  }
+}

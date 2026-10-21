@@ -1,0 +1,30 @@
+{
+  "name": "example: keypad",
+  "project": "../../projects/keypad.json",
+  "firmware": {
+    "uno": "../../firmware/uno/keypad-scan.hex"
+  },
+  "steps": [
+    {
+      "at": "300ms",
+      "part": "pad",
+      "input": {
+        "kind": "key",
+        "key": "5",
+        "down": true
+      }
+    },
+    {
+      "at": "400ms",
+      "part": "pad",
+      "input": {
+        "kind": "key",
+        "key": "5",
+        "down": false
+      }
+    }
+  ],
+  "expect": [
+    "serial matches /^5\\r?$/m by 2s"
+  ]
+}

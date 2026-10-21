@@ -1,0 +1,134 @@
+{
+  "format": 1,
+  "name": "uart-chat",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "esp",
+      "type": "esp32-devkit-v1",
+      "x": 100,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "r1",
+      "type": "resistor",
+      "x": 80,
+      "y": -20,
+      "rotation": 0,
+      "props": {
+        "ohms": 1000
+      }
+    },
+    {
+      "id": "r2",
+      "type": "resistor",
+      "x": 80,
+      "y": -32,
+      "rotation": 0,
+      "props": {
+        "ohms": 2000
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "uno",
+        "pin": "1"
+      },
+      "to": {
+        "part": "r1",
+        "pin": "1"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "r1",
+        "pin": "2"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "RX2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "r2",
+        "pin": "1"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "RX2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "r2",
+        "pin": "2"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "esp",
+        "pin": "TX2"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "0"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "uno",
+        "pin": "GND.2"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "uart-chat.hex",
+      "format": "hex"
+    },
+    "esp": {
+      "kind": "file",
+      "name": "uart-chat.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

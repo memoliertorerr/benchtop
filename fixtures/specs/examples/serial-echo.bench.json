@@ -1,0 +1,16 @@
+{
+  "name": "example: serial-echo",
+  "project": "../../projects/debug-demo.json",
+  "firmware": {
+    "uno": "../../firmware/uno/serial-echo.hex"
+  },
+  "steps": [
+    {
+      "at": "100ms",
+      "serial": "hello"
+    }
+  ],
+  "expect": [
+    "serial contains \"hello\" by 300ms"
+  ]
+}

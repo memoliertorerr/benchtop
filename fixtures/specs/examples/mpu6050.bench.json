@@ -1,0 +1,10 @@
+{
+  "name": "example: mpu6050",
+  "project": "../../projects/mpu6050.json",
+  "firmware": {
+    "uno": "../../firmware/uno/mpu6050.hex"
+  },
+  "expect": [
+    "serial contains \"WHO=0x68\" by 2s"
+  ]
+}

@@ -1,0 +1,145 @@
+{
+  "format": 1,
+  "name": "oled-clock",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "rtc",
+      "type": "ds1307",
+      "x": 80,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "oled",
+      "type": "ssd1306",
+      "x": 8,
+      "y": -42,
+      "rotation": 0,
+      "props": {
+        "address": "0x3C"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "rtc",
+        "pin": "SDA"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "A4"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "rtc",
+        "pin": "SCL"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "A5"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "rtc",
+        "pin": "5V"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "rtc",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "oled",
+        "pin": "DATA"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "A4.2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "oled",
+        "pin": "CLK"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "A5.2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "oled",
+        "pin": "VIN"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w8",
+      "from": {
+        "part": "oled",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "oled-clock.hex",
+      "format": "hex"
+    }
+  }
+}

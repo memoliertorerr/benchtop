@@ -1,0 +1,165 @@
+{
+  "format": 1,
+  "name": "mpu6050",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "imu",
+      "type": "mpu6050",
+      "x": -36,
+      "y": 70,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "imu",
+        "pin": "SDA"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "A4"
+      },
+      "waypoints": [
+        {
+          "x": -23.935,
+          "y": 68.529
+        },
+        {
+          "x": -23.935,
+          "y": 58
+        },
+        {
+          "x": 65.088,
+          "y": 58
+        }
+      ],
+      "color": "blue"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "imu",
+        "pin": "SCL"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "A5"
+      },
+      "waypoints": [
+        {
+          "x": -21.395,
+          "y": 67.329
+        },
+        {
+          "x": -21.395,
+          "y": 59.4
+        },
+        {
+          "x": 67.601,
+          "y": 59.4
+        }
+      ],
+      "color": "yellow"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "imu",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [
+        {
+          "x": -16.315,
+          "y": 66.129
+        },
+        {
+          "x": -16.315,
+          "y": 60.8
+        },
+        {
+          "x": 42.333,
+          "y": 60.8
+        }
+      ],
+      "color": "red"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "imu",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.2"
+      },
+      "waypoints": [
+        {
+          "x": -18.855,
+          "y": 64.929
+        },
+        {
+          "x": -18.855,
+          "y": 62.2
+        },
+        {
+          "x": 44.847,
+          "y": 62.2
+        }
+      ],
+      "color": "black"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "imu",
+        "pin": "AD0"
+      },
+      "to": {
+        "part": "imu",
+        "pin": "GND"
+      },
+      "waypoints": [
+        {
+          "x": -31.529,
+          "y": 63.529
+        },
+        {
+          "x": -16.855,
+          "y": 63.529
+        },
+        {
+          "x": -16.855,
+          "y": 69.529
+        },
+        {
+          "x": -18.855,
+          "y": 69.529
+        }
+      ],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "mpu6050.hex",
+      "format": "hex"
+    }
+  }
+}

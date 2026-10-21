@@ -1,0 +1,12 @@
+{
+  "name": "example: a4988-stepper",
+  "project": "../../projects/a4988-stepper.json",
+  "firmware": {
+    "uno": "../../firmware/uno/a4988-stepper.hex"
+  },
+  "expect": [
+    "serial contains \"full\" by 400ms",
+    "serial contains \"sixteenth\" by 1500ms",
+    "pin uno:3 frequency is 987 Hz \u00b11% between 50ms and 200ms"
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "format": 1,
+  "name": "problems-esp32",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "esp",
+      "type": "test-esp32",
+      "x": 100,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "GPIO4"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "uno",
+        "pin": "7"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "GPIO5"
+      },
+      "waypoints": [],
+      "color": "orange"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "checker-demo.hex",
+      "format": "hex"
+    }
+  }
+}

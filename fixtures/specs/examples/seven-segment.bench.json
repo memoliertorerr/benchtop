@@ -1,0 +1,10 @@
+{
+  "name": "example: seven-segment",
+  "project": "../../projects/seven-seg-mux.json",
+  "firmware": {
+    "uno": "../../firmware/uno/seven-seg-mux.hex"
+  },
+  "expect": [
+    "digits disp show \"1234\" at 2s"
+  ]
+}

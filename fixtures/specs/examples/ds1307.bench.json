@@ -1,0 +1,10 @@
+{
+  "name": "example: ds1307",
+  "project": "../../projects/ds1307.json",
+  "firmware": {
+    "uno": "../../firmware/uno/ds1307.hex"
+  },
+  "expect": [
+    "serial contains \"2026-10-20 00:00:00\" by 2100ms"
+  ]
+}

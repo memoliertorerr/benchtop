@@ -1,0 +1,138 @@
+{
+  "format": 1,
+  "name": "lcd-i2c",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "lcd1",
+      "type": "lcd1602-i2c",
+      "x": 0,
+      "y": -54,
+      "rotation": 0,
+      "props": {
+        "address": "0x27",
+        "background": "green"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "lcd1",
+        "pin": "SCL"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "A5.2"
+      },
+      "waypoints": [
+        {
+          "x": -3,
+          "y": -37.993
+        },
+        {
+          "x": -3,
+          "y": -4
+        },
+        {
+          "x": 23.019,
+          "y": -4
+        }
+      ],
+      "color": "yellow"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "lcd1",
+        "pin": "SDA"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "A4.2"
+      },
+      "waypoints": [
+        {
+          "x": -5,
+          "y": -40.506
+        },
+        {
+          "x": -5,
+          "y": -6
+        },
+        {
+          "x": 25.665,
+          "y": -6
+        }
+      ],
+      "color": "blue"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "lcd1",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [
+        {
+          "x": -9,
+          "y": -45.533
+        },
+        {
+          "x": -9,
+          "y": -8
+        },
+        {
+          "x": 30.559,
+          "y": -8
+        }
+      ],
+      "color": "black"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "lcd1",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [
+        {
+          "x": -7,
+          "y": -43.02
+        },
+        {
+          "x": -7,
+          "y": 56
+        },
+        {
+          "x": 42.333,
+          "y": 56
+        }
+      ],
+      "color": "red"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "lcd-i2c.hex",
+      "format": "hex"
+    }
+  }
+}

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="benchtop" tests="13" failures="0" errors="0" time="0">
+  <testsuite name="blink: D13 toggles every 500 ms" file="fixtures/specs/blink.bench.json" tests="6" failures="0" errors="0" time="0">
+    <properties>
+      <property name="simulated" value="2 s"/>
+    </properties>
+    <testcase name="serial contains &quot;hello&quot; by 100ms" classname="blink: D13 toggles every 500 ms" time="0"/>
+    <testcase name="pin uno:13 is 1 at 250ms" classname="blink: D13 toggles every 500 ms" time="0"/>
+    <testcase name="pin uno:13 is 0 at 750ms" classname="blink: D13 toggles every 500 ms" time="0"/>
+    <testcase name="led led1 is lit at 1250ms" classname="blink: D13 toggles every 500 ms" time="0"/>
+    <testcase name="pin uno:13 frequency is 1 Hz ±0.5% between 0ms and 2s" classname="blink: D13 toggles every 500 ms" time="0"/>
+    <testcase name="pin uno:13 duty is 50% ±0.5 between 0ms and 2s" classname="blink: D13 toggles every 500 ms" time="0"/>
+    <system-out>--- uno ---
+hello
+</system-out>
+  </testsuite>
+  <testsuite name="button: D13 lights while D2 is held" file="fixtures/specs/button.bench.json" tests="3" failures="0" errors="0" time="0">
+    <properties>
+      <property name="simulated" value="350 ms"/>
+    </properties>
+    <testcase name="pin uno:13 is 0 at 90ms" classname="button: D13 lights while D2 is held" time="0"/>
+    <testcase name="pin uno:13 is 1 at 150ms" classname="button: D13 lights while D2 is held" time="0"/>
+    <testcase name="pin uno:13 is 0 at 350ms" classname="button: D13 lights while D2 is held" time="0"/>
+    <system-out>--- uno ---
+</system-out>
+  </testsuite>
+  <testsuite name="DHT22: Adafruit&apos;s library reads 23.4 °C, 45.6 %" file="fixtures/specs/dht22.bench.json" tests="1" failures="0" errors="0" time="0">
+    <properties>
+      <property name="simulated" value="2.3 s"/>
+    </properties>
+    <testcase name="serial contains &quot;T=23.40 H=45.60&quot; by 2300ms" classname="DHT22: Adafruit&apos;s library reads 23.4 °C, 45.6 %" time="0"/>
+    <system-out>--- uno ---
+T=23.40 H=45.60
+</system-out>
+  </testsuite>
+  <testsuite name="serial echo: typed text comes back" file="fixtures/specs/serial-echo.bench.json" tests="1" failures="0" errors="0" time="0">
+    <properties>
+      <property name="simulated" value="300 ms"/>
+    </properties>
+    <testcase name="serial contains &quot;ping 42&quot; by 200ms" classname="serial echo: typed text comes back" time="0"/>
+    <system-out>--- uno ---
+ping 42</system-out>
+  </testsuite>
+  <testsuite name="two boards: Uno pings, ESP32 pongs" file="fixtures/specs/two-boards.bench.json" tests="2" failures="0" errors="0" time="0">
+    <properties>
+      <property name="simulated" value="2 s"/>
+    </properties>
+    <testcase name="serial[esp] contains &quot;ping 1 -&gt; pong 1&quot; by 2s" classname="two boards: Uno pings, ESP32 pongs" time="0"/>
+    <testcase name="serial[uno] contains &quot;got pong 1&quot; by 2s" classname="two boards: Uno pings, ESP32 pongs" time="0"/>
+    <system-out>--- esp ---
+listening
+ping 1 -&gt; pong 1
+ping 2 -&gt; pong 2
+ping 3 -&gt; pong 3
+
+--- uno ---
+ping 1
+got pong 1
+ping 2
+got pong 2
+ping 3
+got pong 3
+</system-out>
+    <system-err>warning esp32-unimplemented-register [esp]: read 0x3FF00468 (DPORT+0x468) = 0x00000100 at PC 0x40083DA3 · read 0x3FF005A0 (DPORT+0x5A0) = 0x00000000 at PC 0x40083DA3 · read 0x3FF48030 (RTC_CNTL+0x030) = 0x00800000 at PC 0x400F0DD8 (+21 more)</system-err>
+  </testsuite>
+</testsuites>

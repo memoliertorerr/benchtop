@@ -1,0 +1,108 @@
+{
+  "format": 1,
+  "name": "esp32-blink",
+  "parts": [
+    {
+      "id": "esp",
+      "type": "esp32-devkit-v1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "bb",
+      "type": "breadboard-half",
+      "x": 81.28,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "r1",
+      "type": "resistor",
+      "x": 93.822,
+      "y": 11.205,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led1",
+      "type": "led",
+      "x": 102.658,
+      "y": 6.667,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "esp",
+        "pin": "D2"
+      },
+      "to": {
+        "part": "bb",
+        "pin": "5t.a"
+      },
+      "waypoints": [
+        {
+          "x": 33.073,
+          "y": -5.619
+        },
+        {
+          "x": 93.98,
+          "y": -5.619
+        }
+      ],
+      "color": "green"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "esp",
+        "pin": "GND.1"
+      },
+      "to": {
+        "part": "bb",
+        "pin": "tn.1"
+      },
+      "waypoints": [
+        {
+          "x": 30.559,
+          "y": -9.619
+        },
+        {
+          "x": 83.82,
+          "y": -9.619
+        }
+      ],
+      "color": "black"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "bb",
+        "pin": "10t.a"
+      },
+      "to": {
+        "part": "bb",
+        "pin": "tn.9"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "esp": {
+      "kind": "file",
+      "name": "blink.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

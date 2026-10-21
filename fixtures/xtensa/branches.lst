@@ -1,0 +1,307 @@
+
+branches.elf:     file format elf32-xtensa-le
+
+
+Disassembly of section .text:
+
+40080000 <_start>:
+40080000:	000206        	j	4008000c <_start+0xc>
+40080003:	00          	.byte 00
+40080004:	00 00 fc 3f 	
+40080008:	00 00 00 80 	
+4008000c:	fffe11        	l32r	a1, 40080004 <_start+0x4>
+4008000f:	0e0c      	movi.n	a14, 0
+40080011:	530c      	movi.n	a3, 5
+40080013:	540c      	movi.n	a4, 5
+40080015:	f57c      	movi.n	a5, -1
+40080017:	fffc61        	l32r	a6, 40080008 <_start+0x8>
+4008001a:	f71c      	movi.n	a7, 31
+4008001c:	080c      	movi.n	a8, 0
+4008001e:	690c      	movi.n	a9, 6
+40080020:	fa0c      	movi.n	a10, 15
+40080022:	0b1c      	movi.n	a11, 16
+40080024:	120c      	movi.n	a2, 1
+40080026:	021347        	beq	a3, a4, 4008002c <_start+0x2c>
+40080029:	00a546        	j	400802c2 <_start+0x2c2>
+4008002c:	ee1b      	addi.n	a14, a14, 1
+4008002e:	220c      	movi.n	a2, 2
+40080030:	041397        	beq	a3, a9, 40080038 <_start+0x38>
+40080033:	000106        	j	4008003b <_start+0x3b>
+40080036:	00          	.byte 00
+40080037:	00          	.byte 00
+40080038:	00a186        	j	400802c2 <_start+0x2c2>
+4008003b:	ee1b      	addi.n	a14, a14, 1
+4008003d:	320c      	movi.n	a2, 3
+4008003f:	029397        	bne	a3, a9, 40080045 <_start+0x45>
+40080042:	009f06        	j	400802c2 <_start+0x2c2>
+40080045:	ee1b      	addi.n	a14, a14, 1
+40080047:	420c      	movi.n	a2, 4
+40080049:	039347        	bne	a3, a4, 40080050 <_start+0x50>
+4008004c:	0000c6        	j	40080053 <_start+0x53>
+4008004f:	00          	.byte 00
+40080050:	009b86        	j	400802c2 <_start+0x2c2>
+40080053:	ee1b      	addi.n	a14, a14, 1
+40080055:	520c      	movi.n	a2, 5
+40080057:	022537        	blt	a5, a3, 4008005d <_start+0x5d>
+4008005a:	009906        	j	400802c2 <_start+0x2c2>
+4008005d:	ee1b      	addi.n	a14, a14, 1
+4008005f:	620c      	movi.n	a2, 6
+40080061:	032357        	blt	a3, a5, 40080068 <_start+0x68>
+40080064:	0000c6        	j	4008006b <_start+0x6b>
+40080067:	00          	.byte 00
+40080068:	009586        	j	400802c2 <_start+0x2c2>
+4008006b:	ee1b      	addi.n	a14, a14, 1
+4008006d:	720c      	movi.n	a2, 7
+4008006f:	02a357        	bge	a3, a5, 40080075 <_start+0x75>
+40080072:	009306        	j	400802c2 <_start+0x2c2>
+40080075:	ee1b      	addi.n	a14, a14, 1
+40080077:	820c      	movi.n	a2, 8
+40080079:	03a537        	bge	a5, a3, 40080080 <_start+0x80>
+4008007c:	0000c6        	j	40080083 <_start+0x83>
+4008007f:	00          	.byte 00
+40080080:	008f86        	j	400802c2 <_start+0x2c2>
+40080083:	ee1b      	addi.n	a14, a14, 1
+40080085:	920c      	movi.n	a2, 9
+40080087:	023357        	bltu	a3, a5, 4008008d <_start+0x8d>
+4008008a:	008d06        	j	400802c2 <_start+0x2c2>
+4008008d:	ee1b      	addi.n	a14, a14, 1
+4008008f:	a20c      	movi.n	a2, 10
+40080091:	033537        	bltu	a5, a3, 40080098 <_start+0x98>
+40080094:	0000c6        	j	4008009b <_start+0x9b>
+40080097:	00          	.byte 00
+40080098:	008986        	j	400802c2 <_start+0x2c2>
+4008009b:	ee1b      	addi.n	a14, a14, 1
+4008009d:	b20c      	movi.n	a2, 11
+4008009f:	02b537        	bgeu	a5, a3, 400800a5 <_start+0xa5>
+400800a2:	008706        	j	400802c2 <_start+0x2c2>
+400800a5:	ee1b      	addi.n	a14, a14, 1
+400800a7:	c20c      	movi.n	a2, 12
+400800a9:	03b357        	bgeu	a3, a5, 400800b0 <_start+0xb0>
+400800ac:	0000c6        	j	400800b3 <_start+0xb3>
+400800af:	00          	.byte 00
+400800b0:	008386        	j	400802c2 <_start+0x2c2>
+400800b3:	ee1b      	addi.n	a14, a14, 1
+400800b5:	d20c      	movi.n	a2, 13
+400800b7:	0283a7        	bany	a3, a10, 400800bd <_start+0xbd>
+400800ba:	008106        	j	400802c2 <_start+0x2c2>
+400800bd:	ee1b      	addi.n	a14, a14, 1
+400800bf:	e20c      	movi.n	a2, 14
+400800c1:	0383b7        	bany	a3, a11, 400800c8 <_start+0xc8>
+400800c4:	0000c6        	j	400800cb <_start+0xcb>
+400800c7:	00          	.byte 00
+400800c8:	007d86        	j	400802c2 <_start+0x2c2>
+400800cb:	ee1b      	addi.n	a14, a14, 1
+400800cd:	f20c      	movi.n	a2, 15
+400800cf:	0203b7        	bnone	a3, a11, 400800d5 <_start+0xd5>
+400800d2:	007b06        	j	400802c2 <_start+0x2c2>
+400800d5:	ee1b      	addi.n	a14, a14, 1
+400800d7:	021c      	movi.n	a2, 16
+400800d9:	0303a7        	bnone	a3, a10, 400800e0 <_start+0xe0>
+400800dc:	0000c6        	j	400800e3 <_start+0xe3>
+400800df:	00          	.byte 00
+400800e0:	007786        	j	400802c2 <_start+0x2c2>
+400800e3:	ee1b      	addi.n	a14, a14, 1
+400800e5:	121c      	movi.n	a2, 17
+400800e7:	024a37        	ball	a10, a3, 400800ed <_start+0xed>
+400800ea:	007506        	j	400802c2 <_start+0x2c2>
+400800ed:	ee1b      	addi.n	a14, a14, 1
+400800ef:	221c      	movi.n	a2, 18
+400800f1:	0343a7        	ball	a3, a10, 400800f8 <_start+0xf8>
+400800f4:	0000c6        	j	400800fb <_start+0xfb>
+400800f7:	00          	.byte 00
+400800f8:	007186        	j	400802c2 <_start+0x2c2>
+400800fb:	ee1b      	addi.n	a14, a14, 1
+400800fd:	321c      	movi.n	a2, 19
+400800ff:	02c3a7        	bnall	a3, a10, 40080105 <_start+0x105>
+40080102:	006f06        	j	400802c2 <_start+0x2c2>
+40080105:	ee1b      	addi.n	a14, a14, 1
+40080107:	421c      	movi.n	a2, 20
+40080109:	03ca37        	bnall	a10, a3, 40080110 <_start+0x110>
+4008010c:	0000c6        	j	40080113 <_start+0x113>
+4008010f:	00          	.byte 00
+40080110:	006b86        	j	400802c2 <_start+0x2c2>
+40080113:	ee1b      	addi.n	a14, a14, 1
+40080115:	521c      	movi.n	a2, 21
+40080117:	02d677        	bbs	a6, a7, 4008011d <_start+0x11d>
+4008011a:	006906        	j	400802c2 <_start+0x2c2>
+4008011d:	ee1b      	addi.n	a14, a14, 1
+4008011f:	621c      	movi.n	a2, 22
+40080121:	025677        	bbc	a6, a7, 40080127 <_start+0x127>
+40080124:	000086        	j	4008012a <_start+0x12a>
+40080127:	0065c6        	j	400802c2 <_start+0x2c2>
+4008012a:	ee1b      	addi.n	a14, a14, 1
+4008012c:	721c      	movi.n	a2, 23
+4008012e:	025377        	bbc	a3, a7, 40080134 <_start+0x134>
+40080131:	006346        	j	400802c2 <_start+0x2c2>
+40080134:	ee1b      	addi.n	a14, a14, 1
+40080136:	821c      	movi.n	a2, 24
+40080138:	04d377        	bbs	a3, a7, 40080140 <_start+0x140>
+4008013b:	000106        	j	40080143 <_start+0x143>
+4008013e:	00          	.byte 00
+4008013f:	00          	.byte 00
+40080140:	005f86        	j	400802c2 <_start+0x2c2>
+40080143:	ee1b      	addi.n	a14, a14, 1
+40080145:	921c      	movi.n	a2, 25
+40080147:	02f6f7        	bbsi	a6, 31, 4008014d <_start+0x14d>
+4008014a:	005d06        	j	400802c2 <_start+0x2c2>
+4008014d:	ee1b      	addi.n	a14, a14, 1
+4008014f:	a21c      	movi.n	a2, 26
+40080151:	0376f7        	bbci	a6, 31, 40080158 <_start+0x158>
+40080154:	0000c6        	j	4008015b <_start+0x15b>
+40080157:	00          	.byte 00
+40080158:	005986        	j	400802c2 <_start+0x2c2>
+4008015b:	ee1b      	addi.n	a14, a14, 1
+4008015d:	b21c      	movi.n	a2, 27
+4008015f:	0273f7        	bbci	a3, 31, 40080165 <_start+0x165>
+40080162:	005706        	j	400802c2 <_start+0x2c2>
+40080165:	ee1b      	addi.n	a14, a14, 1
+40080167:	c21c      	movi.n	a2, 28
+40080169:	03f3f7        	bbsi	a3, 31, 40080170 <_start+0x170>
+4008016c:	0000c6        	j	40080173 <_start+0x173>
+4008016f:	00          	.byte 00
+40080170:	005386        	j	400802c2 <_start+0x2c2>
+40080173:	ee1b      	addi.n	a14, a14, 1
+40080175:	d21c      	movi.n	a2, 29
+40080177:	020526        	beqi	a5, -1, 4008017d <_start+0x17d>
+4008017a:	005106        	j	400802c2 <_start+0x2c2>
+4008017d:	ee1b      	addi.n	a14, a14, 1
+4008017f:	e21c      	movi.n	a2, 30
+40080181:	030326        	beqi	a3, -1, 40080188 <_start+0x188>
+40080184:	0000c6        	j	4008018b <_start+0x18b>
+40080187:	00          	.byte 00
+40080188:	004d86        	j	400802c2 <_start+0x2c2>
+4008018b:	ee1b      	addi.n	a14, a14, 1
+4008018d:	f21c      	movi.n	a2, 31
+4008018f:	024366        	bnei	a3, 4, 40080195 <_start+0x195>
+40080192:	004b06        	j	400802c2 <_start+0x2c2>
+40080195:	ee1b      	addi.n	a14, a14, 1
+40080197:	022c      	movi.n	a2, 32
+40080199:	035366        	bnei	a3, 5, 400801a0 <_start+0x1a0>
+4008019c:	0000c6        	j	400801a3 <_start+0x1a3>
+4008019f:	00          	.byte 00
+400801a0:	004786        	j	400802c2 <_start+0x2c2>
+400801a3:	ee1b      	addi.n	a14, a14, 1
+400801a5:	122c      	movi.n	a2, 33
+400801a7:	0263a6        	blti	a3, 6, 400801ad <_start+0x1ad>
+400801aa:	004506        	j	400802c2 <_start+0x2c2>
+400801ad:	ee1b      	addi.n	a14, a14, 1
+400801af:	222c      	movi.n	a2, 34
+400801b1:	0353a6        	blti	a3, 5, 400801b8 <_start+0x1b8>
+400801b4:	0000c6        	j	400801bb <_start+0x1bb>
+400801b7:	00          	.byte 00
+400801b8:	004186        	j	400802c2 <_start+0x2c2>
+400801bb:	ee1b      	addi.n	a14, a14, 1
+400801bd:	322c      	movi.n	a2, 35
+400801bf:	0253e6        	bgei	a3, 5, 400801c5 <_start+0x1c5>
+400801c2:	003f06        	j	400802c2 <_start+0x2c2>
+400801c5:	ee1b      	addi.n	a14, a14, 1
+400801c7:	422c      	movi.n	a2, 36
+400801c9:	0363e6        	bgei	a3, 6, 400801d0 <_start+0x1d0>
+400801cc:	0000c6        	j	400801d3 <_start+0x1d3>
+400801cf:	00          	.byte 00
+400801d0:	003b86        	j	400802c2 <_start+0x2c2>
+400801d3:	ee1b      	addi.n	a14, a14, 1
+400801d5:	522c      	movi.n	a2, 37
+400801d7:	025326        	beqi	a3, 5, 400801dd <_start+0x1dd>
+400801da:	003906        	j	400802c2 <_start+0x2c2>
+400801dd:	ee1b      	addi.n	a14, a14, 1
+400801df:	622c      	movi.n	a2, 38
+400801e1:	0303b6        	bltui	a3, 0x8000, 400801e8 <_start+0x1e8>
+400801e4:	003686        	j	400802c2 <_start+0x2c2>
+400801e7:	00          	.byte 00
+400801e8:	ee1b      	addi.n	a14, a14, 1
+400801ea:	722c      	movi.n	a2, 39
+400801ec:	0415b6        	bltui	a5, 0x10000, 400801f4 <_start+0x1f4>
+400801ef:	000106        	j	400801f7 <_start+0x1f7>
+400801f2:	00          	.byte 00
+400801f3:	00          	.byte 00
+400801f4:	003286        	j	400802c2 <_start+0x2c2>
+400801f7:	ee1b      	addi.n	a14, a14, 1
+400801f9:	822c      	movi.n	a2, 40
+400801fb:	0215f6        	bgeui	a5, 0x10000, 40080201 <_start+0x201>
+400801fe:	003006        	j	400802c2 <_start+0x2c2>
+40080201:	ee1b      	addi.n	a14, a14, 1
+40080203:	922c      	movi.n	a2, 41
+40080205:	0363f6        	bgeui	a3, 6, 4008020c <_start+0x20c>
+40080208:	0000c6        	j	4008020f <_start+0x20f>
+4008020b:	00          	.byte 00
+4008020c:	002c86        	j	400802c2 <_start+0x2c2>
+4008020f:	ee1b      	addi.n	a14, a14, 1
+40080211:	a22c      	movi.n	a2, 42
+40080213:	02f3b6        	bltui	a3, 0x100, 40080219 <_start+0x219>
+40080216:	002a06        	j	400802c2 <_start+0x2c2>
+40080219:	ee1b      	addi.n	a14, a14, 1
+4008021b:	b22c      	movi.n	a2, 43
+4008021d:	188c      	beqz.n	a8, 40080222 <_start+0x222>
+4008021f:	0027c6        	j	400802c2 <_start+0x2c2>
+40080222:	ee1b      	addi.n	a14, a14, 1
+40080224:	c22c      	movi.n	a2, 44
+40080226:	238c      	beqz.n	a3, 4008022c <_start+0x22c>
+40080228:	0000c6        	j	4008022f <_start+0x22f>
+4008022b:	00          	.byte 00
+4008022c:	002486        	j	400802c2 <_start+0x2c2>
+4008022f:	ee1b      	addi.n	a14, a14, 1
+40080231:	d22c      	movi.n	a2, 45
+40080233:	13cc      	bnez.n	a3, 40080238 <_start+0x238>
+40080235:	002246        	j	400802c2 <_start+0x2c2>
+40080238:	ee1b      	addi.n	a14, a14, 1
+4008023a:	e22c      	movi.n	a2, 46
+4008023c:	18cc      	bnez.n	a8, 40080241 <_start+0x241>
+4008023e:	000086        	j	40080244 <_start+0x244>
+40080241:	001f46        	j	400802c2 <_start+0x2c2>
+40080244:	ee1b      	addi.n	a14, a14, 1
+40080246:	f22c      	movi.n	a2, 47
+40080248:	002596        	bltz	a5, 4008024e <_start+0x24e>
+4008024b:	001cc6        	j	400802c2 <_start+0x2c2>
+4008024e:	ee1b      	addi.n	a14, a14, 1
+40080250:	023c      	movi.n	a2, 48
+40080252:	002396        	bltz	a3, 40080258 <_start+0x258>
+40080255:	000086        	j	4008025b <_start+0x25b>
+40080258:	001986        	j	400802c2 <_start+0x2c2>
+4008025b:	ee1b      	addi.n	a14, a14, 1
+4008025d:	123c      	movi.n	a2, 49
+4008025f:	0028d6        	bgez	a8, 40080265 <_start+0x265>
+40080262:	001706        	j	400802c2 <_start+0x2c2>
+40080265:	ee1b      	addi.n	a14, a14, 1
+40080267:	223c      	movi.n	a2, 50
+40080269:	0035d6        	bgez	a5, 40080270 <_start+0x270>
+4008026c:	0000c6        	j	40080273 <_start+0x273>
+4008026f:	00          	.byte 00
+40080270:	001386        	j	400802c2 <_start+0x2c2>
+40080273:	ee1b      	addi.n	a14, a14, 1
+40080275:	323c      	movi.n	a2, 51
+40080277:	188c      	beqz.n	a8, 4008027c <_start+0x27c>
+40080279:	001146        	j	400802c2 <_start+0x2c2>
+4008027c:	ee1b      	addi.n	a14, a14, 1
+4008027e:	423c      	movi.n	a2, 52
+40080280:	138c      	beqz.n	a3, 40080285 <_start+0x285>
+40080282:	000086        	j	40080288 <_start+0x288>
+40080285:	000e46        	j	400802c2 <_start+0x2c2>
+40080288:	ee1b      	addi.n	a14, a14, 1
+4008028a:	523c      	movi.n	a2, 53
+4008028c:	13cc      	bnez.n	a3, 40080291 <_start+0x291>
+4008028e:	000c06        	j	400802c2 <_start+0x2c2>
+40080291:	ee1b      	addi.n	a14, a14, 1
+40080293:	623c      	movi.n	a2, 54
+40080295:	38cc      	bnez.n	a8, 4008029c <_start+0x29c>
+40080297:	000106        	j	4008029f <_start+0x29f>
+4008029a:	00          	.byte 00
+4008029b:	00          	.byte 00
+4008029c:	000886        	j	400802c2 <_start+0x2c2>
+4008029f:	ee1b      	addi.n	a14, a14, 1
+400802a1:	00a1c2        	movi	a12, 0x100
+400802a4:	723c      	movi.n	a2, 55
+400802a6:	02fc26        	beqi	a12, 0x100, 400802ac <_start+0x2ac>
+400802a9:	000546        	j	400802c2 <_start+0x2c2>
+400802ac:	ee1b      	addi.n	a14, a14, 1
+400802ae:	823c      	movi.n	a2, 56
+400802b0:	04e3e6        	bgei	a3, 128, 400802b8 <_start+0x2b8>
+400802b3:	000106        	j	400802bb <_start+0x2bb>
+400802b6:	00          	.byte 00
+400802b7:	00          	.byte 00
+400802b8:	000186        	j	400802c2 <_start+0x2c2>
+400802bb:	ee1b      	addi.n	a14, a14, 1
+400802bd:	020c      	movi.n	a2, 0
+400802bf:	0041f0        	break	1, 15
+400802c2:	0041f0        	break	1, 15
+400802c5:	000000        	ill

@@ -1,0 +1,7 @@
+{
+  "name": "@benchtop/bridge",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Local compile bridge: runs the installed arduino-cli for the browser app. Zero dependencies; runs under Node type stripping.",
+  "type": "module"
+}

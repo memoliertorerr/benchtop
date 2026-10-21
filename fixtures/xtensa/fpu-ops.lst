@@ -1,0 +1,1398 @@
+
+fpu-ops.elf:     file format elf32-xtensa-le
+
+
+Disassembly of section .text:
+
+40080000 <_start>:
+40080000:	020d06        	j	40080838 <_WindowUnderflow12+0x2f8>
+40080003:	00          	.byte 00
+40080004:	80 e1 00 00 	
+40080008:	c0 e1 00 00 	
+4008000c:	00 e2 00 00 	
+40080010:	40 e2 00 00 	
+40080014:	80 e2 00 00 	
+40080018:	c0 e2 00 00 	
+4008001c:	00 e3 00 00 	
+40080020:	40 e3 00 00 	
+40080024:	c0 e3 00 00 	
+40080028:	00 00 fc 3f 	
+4008002c:	00 04 08 40 	
+40080030:	00 01 fc 3f 	
+40080034:	00 04 fb 3f 	
+40080038:	00 01 fb 3f 	
+4008003c:	00 00 80 3f 	
+40080040:	00 00 80 33 	
+40080044:	00 00 80 3f 	
+40080048:	00 00 80 33 	
+4008004c:	00 00 80 3f 	
+40080050:	00 00 80 33 	
+40080054:	00 00 80 3f 	
+40080058:	00 00 80 33 	
+4008005c:	00 00 80 3f 	
+40080060:	00 00 c0 33 	
+40080064:	00 00 80 3f 	
+40080068:	00 00 c0 33 	
+4008006c:	00 00 80 3f 	
+40080070:	00 00 c0 33 	
+40080074:	00 00 80 3f 	
+40080078:	00 00 c0 33 	
+4008007c:	00 00 80 bf 	
+40080080:	00 00 80 b3 	
+40080084:	00 00 80 bf 	
+40080088:	00 00 80 b3 	
+4008008c:	00 00 80 bf 	
+40080090:	00 00 80 b3 	
+40080094:	00 00 80 bf 	
+40080098:	00 00 80 b3 	
+4008009c:	ff ff 7f 7f 	
+400800a0:	ff ff 7f 7f 	
+400800a4:	ff ff 7f 7f 	
+400800a8:	ff ff 7f 7f 	
+400800ac:	ff ff 7f 7f 	
+400800b0:	ff ff 7f 7f 	
+400800b4:	ff ff 7f 7f 	
+400800b8:	ff ff 7f 7f 	
+400800bc:	00 00 80 00 	
+400800c0:	00 00 00 3f 	
+400800c4:	00 00 00 3f 	
+400800c8:	00 00 00 3f 	
+400800cc:	00 00 00 3f 	
+400800d0:	00 00 00 3f 	
+400800d4:	00 00 80 3f 	
+400800d8:	00 00 80 3f 	
+400800dc:	00 00 80 3f 	
+400800e0:	00 00 80 3f 	
+400800e4:	00 00 80 7f 	
+400800e8:	00 00 80 ff 	
+400800ec:	00 00 80 7f 	
+400800f0:	45 23 c1 7f 	
+400800f4:	00 00 80 3f 	
+400800f8:	45 23 81 7f 	
+400800fc:	00 00 80 3f 	
+40080100:	00 10 80 bf 	
+40080104:	00 08 80 3f 	
+40080108:	00 08 80 3f 	
+4008010c:	00 10 80 3f 	
+40080110:	00 08 80 3f 	
+40080114:	00 08 80 3f 	
+40080118:	00 00 80 3f 	
+4008011c:	00 00 80 39 	
+40080120:	00 00 00 39 	
+40080124:	00 00 80 3f 	
+40080128:	00 00 80 39 	
+4008012c:	00 00 00 39 	
+40080130:	ff ff ff 7f 	
+40080134:	ff ff ff 7f 	
+40080138:	00 00 00 80 	
+4008013c:	00 00 30 40 	
+40080140:	00 00 30 40 	
+40080144:	00 00 30 c0 	
+40080148:	00 00 20 40 	
+4008014c:	00 00 60 40 	
+40080150:	00 00 20 c0 	
+40080154:	00 00 30 40 	
+40080158:	00 00 a0 3f 	
+4008015c:	00 00 20 c0 	
+40080160:	00 00 20 c0 	
+40080164:	00 00 20 40 	
+40080168:	00 00 20 40 	
+4008016c:	00 00 40 4f 	
+40080170:	00 00 c0 7f 	
+40080174:	00 00 80 4f 	
+40080178:	00 00 80 cf 	
+4008017c:	00 00 80 bf 	
+40080180:	00 00 00 bf 	
+40080184:	00 00 30 40 	
+40080188:	00 00 80 3f 	
+4008018c:	00 00 00 40 	
+40080190:	00 00 00 40 	
+40080194:	00 00 00 40 	
+40080198:	00 00 c0 7f 	
+4008019c:	00 00 80 3f 	
+400801a0:	00 00 00 40 	
+400801a4:	00 00 80 3f 	
+400801a8:	00 00 00 80 	
+400801ac:	00 00 80 3f 	
+400801b0:	00 00 00 40 	
+400801b4:	00 00 80 3f 	
+400801b8:	00 00 00 40 	
+400801bc:	00 00 80 3f 	
+400801c0:	00 00 00 40 	
+400801c4:	00 00 80 3f 	
+400801c8:	00 00 00 40 	
+400801cc:	00 00 80 3f 	
+400801d0:	00 00 00 40 	
+400801d4:	00 00 80 3f 	
+400801d8:	00 00 00 40 	
+400801dc:	45 23 81 7f 	
+400801e0:	45 23 81 ff 	
+400801e4:	45 23 81 7f 	
+400801e8:	00 00 80 3f 	
+400801ec:	00 00 00 40 	
+400801f0:	00 02 fb 3f 	
+400801f4:	00 02 fb 3f 	
+400801f8:	00 01 fb 3f 	
+400801fc:	ad 0b 00 00 	
+	...
+
+40080400 <_WindowOverflow4>:
+40080400:	49c500        	s32e	a0, a5, -16
+40080403:	49d510        	s32e	a1, a5, -12
+40080406:	49e520        	s32e	a2, a5, -8
+40080409:	49f530        	s32e	a3, a5, -4
+4008040c:	03f400        	rsr.misc0	a0
+4008040f:	01c002        	addi	a0, a0, 1
+40080412:	13f400        	wsr.misc0	a0
+40080415:	003400        	rfwo
+	...
+
+40080440 <_WindowUnderflow4>:
+40080440:	03f500        	rsr.misc1	a0
+40080443:	01c002        	addi	a0, a0, 1
+40080446:	13f500        	wsr.misc1	a0
+40080449:	09c500        	l32e	a0, a5, -16
+4008044c:	09d510        	l32e	a1, a5, -12
+4008044f:	09e520        	l32e	a2, a5, -8
+40080452:	09f530        	l32e	a3, a5, -4
+40080455:	003500        	rfwu
+	...
+
+40080480 <_WindowOverflow8>:
+40080480:	49c900        	s32e	a0, a9, -16
+40080483:	09d100        	l32e	a0, a1, -12
+40080486:	49d910        	s32e	a1, a9, -12
+40080489:	49e920        	s32e	a2, a9, -8
+4008048c:	49f930        	s32e	a3, a9, -4
+4008048f:	498040        	s32e	a4, a0, -32
+40080492:	499050        	s32e	a5, a0, -28
+40080495:	49a060        	s32e	a6, a0, -24
+40080498:	49b070        	s32e	a7, a0, -20
+4008049b:	03f400        	rsr.misc0	a0
+4008049e:	01c002        	addi	a0, a0, 1
+400804a1:	13f400        	wsr.misc0	a0
+400804a4:	003400        	rfwo
+	...
+
+400804c0 <_WindowUnderflow8>:
+400804c0:	03f500        	rsr.misc1	a0
+400804c3:	01c002        	addi	a0, a0, 1
+400804c6:	13f500        	wsr.misc1	a0
+400804c9:	09d910        	l32e	a1, a9, -12
+400804cc:	09c900        	l32e	a0, a9, -16
+400804cf:	09d170        	l32e	a7, a1, -12
+400804d2:	09e920        	l32e	a2, a9, -8
+400804d5:	098740        	l32e	a4, a7, -32
+400804d8:	09f930        	l32e	a3, a9, -4
+400804db:	099750        	l32e	a5, a7, -28
+400804de:	09a760        	l32e	a6, a7, -24
+400804e1:	09b770        	l32e	a7, a7, -20
+400804e4:	003500        	rfwu
+	...
+
+40080500 <_WindowOverflow12>:
+40080500:	49cd00        	s32e	a0, a13, -16
+40080503:	09d100        	l32e	a0, a1, -12
+40080506:	49dd10        	s32e	a1, a13, -12
+40080509:	49ed20        	s32e	a2, a13, -8
+4008050c:	49fd30        	s32e	a3, a13, -4
+4008050f:	494040        	s32e	a4, a0, -48
+40080512:	495050        	s32e	a5, a0, -44
+40080515:	496060        	s32e	a6, a0, -40
+40080518:	497070        	s32e	a7, a0, -36
+4008051b:	498080        	s32e	a8, a0, -32
+4008051e:	499090        	s32e	a9, a0, -28
+40080521:	49a0a0        	s32e	a10, a0, -24
+40080524:	49b0b0        	s32e	a11, a0, -20
+40080527:	03f400        	rsr.misc0	a0
+4008052a:	01c002        	addi	a0, a0, 1
+4008052d:	13f400        	wsr.misc0	a0
+40080530:	003400        	rfwo
+	...
+
+40080540 <_WindowUnderflow12>:
+40080540:	03f500        	rsr.misc1	a0
+40080543:	01c002        	addi	a0, a0, 1
+40080546:	13f500        	wsr.misc1	a0
+40080549:	09dd10        	l32e	a1, a13, -12
+4008054c:	09cd00        	l32e	a0, a13, -16
+4008054f:	09d1b0        	l32e	a11, a1, -12
+40080552:	09ed20        	l32e	a2, a13, -8
+40080555:	094b40        	l32e	a4, a11, -48
+40080558:	098b80        	l32e	a8, a11, -32
+4008055b:	09fd30        	l32e	a3, a13, -4
+4008055e:	095b50        	l32e	a5, a11, -44
+40080561:	096b60        	l32e	a6, a11, -40
+40080564:	097b70        	l32e	a7, a11, -36
+40080567:	099b90        	l32e	a9, a11, -28
+4008056a:	09aba0        	l32e	a10, a11, -24
+4008056d:	09bbb0        	l32e	a11, a11, -20
+40080570:	003500        	rfwu
+	...
+4008057f:	00          	.byte 00
+40080580:	009f06        	j	40080800 <_WindowUnderflow12+0x2c0>
+	...
+400805bf:	00          	.byte 00
+400805c0:	009086        	j	40080806 <_WindowUnderflow12+0x2c6>
+	...
+400805ff:	00          	.byte 00
+40080600:	008206        	j	4008080c <_WindowUnderflow12+0x2cc>
+	...
+4008063f:	00          	.byte 00
+40080640:	007386        	j	40080812 <_WindowUnderflow12+0x2d2>
+	...
+4008067f:	00          	.byte 00
+40080680:	006506        	j	40080818 <_WindowUnderflow12+0x2d8>
+	...
+400806bf:	00          	.byte 00
+400806c0:	005686        	j	4008081e <_WindowUnderflow12+0x2de>
+	...
+400806ff:	00          	.byte 00
+40080700:	004806        	j	40080824 <_WindowUnderflow12+0x2e4>
+	...
+4008073f:	00          	.byte 00
+40080740:	02fd46        	j	40081339 <cp_second+0x6>
+	...
+400807bf:	00          	.byte 00
+400807c0:	001b06        	j	40080830 <_WindowUnderflow12+0x2f0>
+	...
+400807ff:	00          	.byte 00
+40080800:	fe0121        	l32r	a2, 40080004 <_start+0x4>
+40080803:	0041f0        	break	1, 15
+40080806:	fe0021        	l32r	a2, 40080008 <_start+0x8>
+40080809:	0041f0        	break	1, 15
+4008080c:	fe0021        	l32r	a2, 4008000c <_start+0xc>
+4008080f:	0041f0        	break	1, 15
+40080812:	fdff21        	l32r	a2, 40080010 <_start+0x10>
+40080815:	0041f0        	break	1, 15
+40080818:	fdff21        	l32r	a2, 40080014 <_start+0x14>
+4008081b:	0041f0        	break	1, 15
+4008081e:	fdfe21        	l32r	a2, 40080018 <_start+0x18>
+40080821:	0041f0        	break	1, 15
+40080824:	fdfe21        	l32r	a2, 4008001c <_start+0x1c>
+40080827:	0041f0        	break	1, 15
+4008082a:	fdfd21        	l32r	a2, 40080020 <_start+0x20>
+4008082d:	0041f0        	break	1, 15
+40080830:	fdfd21        	l32r	a2, 40080024 <_start+0x24>
+40080833:	0041f0        	break	1, 15
+40080836:	00          	.byte 00
+40080837:	00          	.byte 00
+40080838:	fdfc11        	l32r	a1, 40080028 <_start+0x28>
+4008083b:	fdfc21        	l32r	a2, 4008002c <_start+0x2c>
+4008083e:	13e720        	wsr.vecbase	a2
+40080841:	020c      	movi.n	a2, 0
+40080843:	13f420        	wsr.misc0	a2
+40080846:	13f520        	wsr.misc1	a2
+40080849:	13f620        	wsr.misc2	a2
+4008084c:	13f720        	wsr.misc3	a2
+4008084f:	fdf821        	l32r	a2, 40080030 <_start+0x30>
+40080852:	f4c132        	addi	a3, a1, -12
+40080855:	0329      	s32i.n	a2, a3, 0
+40080857:	fdf7f1        	l32r	a15, 40080034 <_start+0x34>
+4008085a:	020c      	movi.n	a2, 0
+4008085c:	fdf731        	l32r	a3, 40080038 <_start+0x38>
+4008085f:	0329      	s32i.n	a2, a3, 0
+40080861:	022c      	movi.n	a2, 32
+40080863:	13e620        	wsr.ps	a2
+40080866:	002010        	rsync
+
+40080869 <cp_first>:
+40080869:	0a0000        	add.s	f0, f0, f0
+4008086c:	020c      	movi.n	a2, 0
+4008086e:	f3e820        	wur.fcr	a2
+40080871:	fdf221        	l32r	a2, 4008003c <_start+0x3c>
+40080874:	fa1250        	wfr	f1, a2
+40080877:	fdf221        	l32r	a2, 40080040 <_start+0x40>
+4008087a:	fa2250        	wfr	f2, a2
+4008087d:	020c      	movi.n	a2, 0
+4008087f:	f3e920        	wur.fsr	a2
+40080882:	0a0120        	add.s	f0, f1, f2
+40080885:	fa2040        	rfr	a2, f0
+40080888:	0f29      	s32i.n	a2, a15, 0
+4008088a:	ff4b      	addi.n	a15, a15, 4
+4008088c:	e32e90        	rur.fsr	a2
+4008088f:	0f29      	s32i.n	a2, a15, 0
+40080891:	ff4b      	addi.n	a15, a15, 4
+40080893:	120c      	movi.n	a2, 1
+40080895:	f3e820        	wur.fcr	a2
+40080898:	fdeb21        	l32r	a2, 40080044 <_start+0x44>
+4008089b:	fa1250        	wfr	f1, a2
+4008089e:	fdea21        	l32r	a2, 40080048 <_start+0x48>
+400808a1:	fa2250        	wfr	f2, a2
+400808a4:	020c      	movi.n	a2, 0
+400808a6:	f3e920        	wur.fsr	a2
+400808a9:	0a0120        	add.s	f0, f1, f2
+400808ac:	fa2040        	rfr	a2, f0
+400808af:	0f29      	s32i.n	a2, a15, 0
+400808b1:	ff4b      	addi.n	a15, a15, 4
+400808b3:	e32e90        	rur.fsr	a2
+400808b6:	0f29      	s32i.n	a2, a15, 0
+400808b8:	ff4b      	addi.n	a15, a15, 4
+400808ba:	220c      	movi.n	a2, 2
+400808bc:	f3e820        	wur.fcr	a2
+400808bf:	fde321        	l32r	a2, 4008004c <_start+0x4c>
+400808c2:	fa1250        	wfr	f1, a2
+400808c5:	fde221        	l32r	a2, 40080050 <_start+0x50>
+400808c8:	fa2250        	wfr	f2, a2
+400808cb:	020c      	movi.n	a2, 0
+400808cd:	f3e920        	wur.fsr	a2
+400808d0:	0a0120        	add.s	f0, f1, f2
+400808d3:	fa2040        	rfr	a2, f0
+400808d6:	0f29      	s32i.n	a2, a15, 0
+400808d8:	ff4b      	addi.n	a15, a15, 4
+400808da:	e32e90        	rur.fsr	a2
+400808dd:	0f29      	s32i.n	a2, a15, 0
+400808df:	ff4b      	addi.n	a15, a15, 4
+400808e1:	320c      	movi.n	a2, 3
+400808e3:	f3e820        	wur.fcr	a2
+400808e6:	fddb21        	l32r	a2, 40080054 <_start+0x54>
+400808e9:	fa1250        	wfr	f1, a2
+400808ec:	fddb21        	l32r	a2, 40080058 <_start+0x58>
+400808ef:	fa2250        	wfr	f2, a2
+400808f2:	020c      	movi.n	a2, 0
+400808f4:	f3e920        	wur.fsr	a2
+400808f7:	0a0120        	add.s	f0, f1, f2
+400808fa:	fa2040        	rfr	a2, f0
+400808fd:	0f29      	s32i.n	a2, a15, 0
+400808ff:	ff4b      	addi.n	a15, a15, 4
+40080901:	e32e90        	rur.fsr	a2
+40080904:	0f29      	s32i.n	a2, a15, 0
+40080906:	ff4b      	addi.n	a15, a15, 4
+40080908:	020c      	movi.n	a2, 0
+4008090a:	f3e820        	wur.fcr	a2
+4008090d:	fdd321        	l32r	a2, 4008005c <_start+0x5c>
+40080910:	fa1250        	wfr	f1, a2
+40080913:	fdd321        	l32r	a2, 40080060 <_start+0x60>
+40080916:	fa2250        	wfr	f2, a2
+40080919:	020c      	movi.n	a2, 0
+4008091b:	f3e920        	wur.fsr	a2
+4008091e:	0a0120        	add.s	f0, f1, f2
+40080921:	fa2040        	rfr	a2, f0
+40080924:	0f29      	s32i.n	a2, a15, 0
+40080926:	ff4b      	addi.n	a15, a15, 4
+40080928:	e32e90        	rur.fsr	a2
+4008092b:	0f29      	s32i.n	a2, a15, 0
+4008092d:	ff4b      	addi.n	a15, a15, 4
+4008092f:	120c      	movi.n	a2, 1
+40080931:	f3e820        	wur.fcr	a2
+40080934:	fdcc21        	l32r	a2, 40080064 <_start+0x64>
+40080937:	fa1250        	wfr	f1, a2
+4008093a:	fdcb21        	l32r	a2, 40080068 <_start+0x68>
+4008093d:	fa2250        	wfr	f2, a2
+40080940:	020c      	movi.n	a2, 0
+40080942:	f3e920        	wur.fsr	a2
+40080945:	0a0120        	add.s	f0, f1, f2
+40080948:	fa2040        	rfr	a2, f0
+4008094b:	0f29      	s32i.n	a2, a15, 0
+4008094d:	ff4b      	addi.n	a15, a15, 4
+4008094f:	e32e90        	rur.fsr	a2
+40080952:	0f29      	s32i.n	a2, a15, 0
+40080954:	ff4b      	addi.n	a15, a15, 4
+40080956:	220c      	movi.n	a2, 2
+40080958:	f3e820        	wur.fcr	a2
+4008095b:	fdc421        	l32r	a2, 4008006c <_start+0x6c>
+4008095e:	fa1250        	wfr	f1, a2
+40080961:	fdc321        	l32r	a2, 40080070 <_start+0x70>
+40080964:	fa2250        	wfr	f2, a2
+40080967:	020c      	movi.n	a2, 0
+40080969:	f3e920        	wur.fsr	a2
+4008096c:	0a0120        	add.s	f0, f1, f2
+4008096f:	fa2040        	rfr	a2, f0
+40080972:	0f29      	s32i.n	a2, a15, 0
+40080974:	ff4b      	addi.n	a15, a15, 4
+40080976:	e32e90        	rur.fsr	a2
+40080979:	0f29      	s32i.n	a2, a15, 0
+4008097b:	ff4b      	addi.n	a15, a15, 4
+4008097d:	320c      	movi.n	a2, 3
+4008097f:	f3e820        	wur.fcr	a2
+40080982:	fdbc21        	l32r	a2, 40080074 <_start+0x74>
+40080985:	fa1250        	wfr	f1, a2
+40080988:	fdbc21        	l32r	a2, 40080078 <_start+0x78>
+4008098b:	fa2250        	wfr	f2, a2
+4008098e:	020c      	movi.n	a2, 0
+40080990:	f3e920        	wur.fsr	a2
+40080993:	0a0120        	add.s	f0, f1, f2
+40080996:	fa2040        	rfr	a2, f0
+40080999:	0f29      	s32i.n	a2, a15, 0
+4008099b:	ff4b      	addi.n	a15, a15, 4
+4008099d:	e32e90        	rur.fsr	a2
+400809a0:	0f29      	s32i.n	a2, a15, 0
+400809a2:	ff4b      	addi.n	a15, a15, 4
+400809a4:	020c      	movi.n	a2, 0
+400809a6:	f3e820        	wur.fcr	a2
+400809a9:	fdb421        	l32r	a2, 4008007c <_start+0x7c>
+400809ac:	fa1250        	wfr	f1, a2
+400809af:	fdb421        	l32r	a2, 40080080 <_start+0x80>
+400809b2:	fa2250        	wfr	f2, a2
+400809b5:	020c      	movi.n	a2, 0
+400809b7:	f3e920        	wur.fsr	a2
+400809ba:	0a0120        	add.s	f0, f1, f2
+400809bd:	fa2040        	rfr	a2, f0
+400809c0:	0f29      	s32i.n	a2, a15, 0
+400809c2:	ff4b      	addi.n	a15, a15, 4
+400809c4:	e32e90        	rur.fsr	a2
+400809c7:	0f29      	s32i.n	a2, a15, 0
+400809c9:	ff4b      	addi.n	a15, a15, 4
+400809cb:	120c      	movi.n	a2, 1
+400809cd:	f3e820        	wur.fcr	a2
+400809d0:	fdad21        	l32r	a2, 40080084 <_start+0x84>
+400809d3:	fa1250        	wfr	f1, a2
+400809d6:	fdac21        	l32r	a2, 40080088 <_start+0x88>
+400809d9:	fa2250        	wfr	f2, a2
+400809dc:	020c      	movi.n	a2, 0
+400809de:	f3e920        	wur.fsr	a2
+400809e1:	0a0120        	add.s	f0, f1, f2
+400809e4:	fa2040        	rfr	a2, f0
+400809e7:	0f29      	s32i.n	a2, a15, 0
+400809e9:	ff4b      	addi.n	a15, a15, 4
+400809eb:	e32e90        	rur.fsr	a2
+400809ee:	0f29      	s32i.n	a2, a15, 0
+400809f0:	ff4b      	addi.n	a15, a15, 4
+400809f2:	220c      	movi.n	a2, 2
+400809f4:	f3e820        	wur.fcr	a2
+400809f7:	fda521        	l32r	a2, 4008008c <_start+0x8c>
+400809fa:	fa1250        	wfr	f1, a2
+400809fd:	fda421        	l32r	a2, 40080090 <_start+0x90>
+40080a00:	fa2250        	wfr	f2, a2
+40080a03:	020c      	movi.n	a2, 0
+40080a05:	f3e920        	wur.fsr	a2
+40080a08:	0a0120        	add.s	f0, f1, f2
+40080a0b:	fa2040        	rfr	a2, f0
+40080a0e:	0f29      	s32i.n	a2, a15, 0
+40080a10:	ff4b      	addi.n	a15, a15, 4
+40080a12:	e32e90        	rur.fsr	a2
+40080a15:	0f29      	s32i.n	a2, a15, 0
+40080a17:	ff4b      	addi.n	a15, a15, 4
+40080a19:	320c      	movi.n	a2, 3
+40080a1b:	f3e820        	wur.fcr	a2
+40080a1e:	fd9d21        	l32r	a2, 40080094 <_start+0x94>
+40080a21:	fa1250        	wfr	f1, a2
+40080a24:	fd9d21        	l32r	a2, 40080098 <_start+0x98>
+40080a27:	fa2250        	wfr	f2, a2
+40080a2a:	020c      	movi.n	a2, 0
+40080a2c:	f3e920        	wur.fsr	a2
+40080a2f:	0a0120        	add.s	f0, f1, f2
+40080a32:	fa2040        	rfr	a2, f0
+40080a35:	0f29      	s32i.n	a2, a15, 0
+40080a37:	ff4b      	addi.n	a15, a15, 4
+40080a39:	e32e90        	rur.fsr	a2
+40080a3c:	0f29      	s32i.n	a2, a15, 0
+40080a3e:	ff4b      	addi.n	a15, a15, 4
+40080a40:	020c      	movi.n	a2, 0
+40080a42:	f3e820        	wur.fcr	a2
+40080a45:	fd9521        	l32r	a2, 4008009c <_start+0x9c>
+40080a48:	fa1250        	wfr	f1, a2
+40080a4b:	fd9521        	l32r	a2, 400800a0 <_start+0xa0>
+40080a4e:	fa2250        	wfr	f2, a2
+40080a51:	020c      	movi.n	a2, 0
+40080a53:	f3e920        	wur.fsr	a2
+40080a56:	0a0120        	add.s	f0, f1, f2
+40080a59:	fa2040        	rfr	a2, f0
+40080a5c:	0f29      	s32i.n	a2, a15, 0
+40080a5e:	ff4b      	addi.n	a15, a15, 4
+40080a60:	e32e90        	rur.fsr	a2
+40080a63:	0f29      	s32i.n	a2, a15, 0
+40080a65:	ff4b      	addi.n	a15, a15, 4
+40080a67:	120c      	movi.n	a2, 1
+40080a69:	f3e820        	wur.fcr	a2
+40080a6c:	fd8e21        	l32r	a2, 400800a4 <_start+0xa4>
+40080a6f:	fa1250        	wfr	f1, a2
+40080a72:	fd8d21        	l32r	a2, 400800a8 <_start+0xa8>
+40080a75:	fa2250        	wfr	f2, a2
+40080a78:	020c      	movi.n	a2, 0
+40080a7a:	f3e920        	wur.fsr	a2
+40080a7d:	0a0120        	add.s	f0, f1, f2
+40080a80:	fa2040        	rfr	a2, f0
+40080a83:	0f29      	s32i.n	a2, a15, 0
+40080a85:	ff4b      	addi.n	a15, a15, 4
+40080a87:	e32e90        	rur.fsr	a2
+40080a8a:	0f29      	s32i.n	a2, a15, 0
+40080a8c:	ff4b      	addi.n	a15, a15, 4
+40080a8e:	220c      	movi.n	a2, 2
+40080a90:	f3e820        	wur.fcr	a2
+40080a93:	fd8621        	l32r	a2, 400800ac <_start+0xac>
+40080a96:	fa1250        	wfr	f1, a2
+40080a99:	fd8521        	l32r	a2, 400800b0 <_start+0xb0>
+40080a9c:	fa2250        	wfr	f2, a2
+40080a9f:	020c      	movi.n	a2, 0
+40080aa1:	f3e920        	wur.fsr	a2
+40080aa4:	0a0120        	add.s	f0, f1, f2
+40080aa7:	fa2040        	rfr	a2, f0
+40080aaa:	0f29      	s32i.n	a2, a15, 0
+40080aac:	ff4b      	addi.n	a15, a15, 4
+40080aae:	e32e90        	rur.fsr	a2
+40080ab1:	0f29      	s32i.n	a2, a15, 0
+40080ab3:	ff4b      	addi.n	a15, a15, 4
+40080ab5:	320c      	movi.n	a2, 3
+40080ab7:	f3e820        	wur.fcr	a2
+40080aba:	fd7e21        	l32r	a2, 400800b4 <_start+0xb4>
+40080abd:	fa1250        	wfr	f1, a2
+40080ac0:	fd7e21        	l32r	a2, 400800b8 <_start+0xb8>
+40080ac3:	fa2250        	wfr	f2, a2
+40080ac6:	020c      	movi.n	a2, 0
+40080ac8:	f3e920        	wur.fsr	a2
+40080acb:	0a0120        	add.s	f0, f1, f2
+40080ace:	fa2040        	rfr	a2, f0
+40080ad1:	0f29      	s32i.n	a2, a15, 0
+40080ad3:	ff4b      	addi.n	a15, a15, 4
+40080ad5:	e32e90        	rur.fsr	a2
+40080ad8:	0f29      	s32i.n	a2, a15, 0
+40080ada:	ff4b      	addi.n	a15, a15, 4
+40080adc:	020c      	movi.n	a2, 0
+40080ade:	f3e820        	wur.fcr	a2
+40080ae1:	fd7621        	l32r	a2, 400800bc <_start+0xbc>
+40080ae4:	fa1250        	wfr	f1, a2
+40080ae7:	fd7621        	l32r	a2, 400800c0 <_start+0xc0>
+40080aea:	fa2250        	wfr	f2, a2
+40080aed:	020c      	movi.n	a2, 0
+40080aef:	f3e920        	wur.fsr	a2
+40080af2:	2a0120        	mul.s	f0, f1, f2
+40080af5:	fa2040        	rfr	a2, f0
+40080af8:	0f29      	s32i.n	a2, a15, 0
+40080afa:	ff4b      	addi.n	a15, a15, 4
+40080afc:	e32e90        	rur.fsr	a2
+40080aff:	0f29      	s32i.n	a2, a15, 0
+40080b01:	ff4b      	addi.n	a15, a15, 4
+40080b03:	020c      	movi.n	a2, 0
+40080b05:	f3e820        	wur.fcr	a2
+40080b08:	120c      	movi.n	a2, 1
+40080b0a:	fa1250        	wfr	f1, a2
+40080b0d:	fd6d21        	l32r	a2, 400800c4 <_start+0xc4>
+40080b10:	fa2250        	wfr	f2, a2
+40080b13:	020c      	movi.n	a2, 0
+40080b15:	f3e920        	wur.fsr	a2
+40080b18:	2a0120        	mul.s	f0, f1, f2
+40080b1b:	fa2040        	rfr	a2, f0
+40080b1e:	0f29      	s32i.n	a2, a15, 0
+40080b20:	ff4b      	addi.n	a15, a15, 4
+40080b22:	e32e90        	rur.fsr	a2
+40080b25:	0f29      	s32i.n	a2, a15, 0
+40080b27:	ff4b      	addi.n	a15, a15, 4
+40080b29:	120c      	movi.n	a2, 1
+40080b2b:	f3e820        	wur.fcr	a2
+40080b2e:	120c      	movi.n	a2, 1
+40080b30:	fa1250        	wfr	f1, a2
+40080b33:	fd6521        	l32r	a2, 400800c8 <_start+0xc8>
+40080b36:	fa2250        	wfr	f2, a2
+40080b39:	020c      	movi.n	a2, 0
+40080b3b:	f3e920        	wur.fsr	a2
+40080b3e:	2a0120        	mul.s	f0, f1, f2
+40080b41:	fa2040        	rfr	a2, f0
+40080b44:	0f29      	s32i.n	a2, a15, 0
+40080b46:	ff4b      	addi.n	a15, a15, 4
+40080b48:	e32e90        	rur.fsr	a2
+40080b4b:	0f29      	s32i.n	a2, a15, 0
+40080b4d:	ff4b      	addi.n	a15, a15, 4
+40080b4f:	220c      	movi.n	a2, 2
+40080b51:	f3e820        	wur.fcr	a2
+40080b54:	120c      	movi.n	a2, 1
+40080b56:	fa1250        	wfr	f1, a2
+40080b59:	fd5c21        	l32r	a2, 400800cc <_start+0xcc>
+40080b5c:	fa2250        	wfr	f2, a2
+40080b5f:	020c      	movi.n	a2, 0
+40080b61:	f3e920        	wur.fsr	a2
+40080b64:	2a0120        	mul.s	f0, f1, f2
+40080b67:	fa2040        	rfr	a2, f0
+40080b6a:	0f29      	s32i.n	a2, a15, 0
+40080b6c:	ff4b      	addi.n	a15, a15, 4
+40080b6e:	e32e90        	rur.fsr	a2
+40080b71:	0f29      	s32i.n	a2, a15, 0
+40080b73:	ff4b      	addi.n	a15, a15, 4
+40080b75:	320c      	movi.n	a2, 3
+40080b77:	f3e820        	wur.fcr	a2
+40080b7a:	120c      	movi.n	a2, 1
+40080b7c:	fa1250        	wfr	f1, a2
+40080b7f:	fd5421        	l32r	a2, 400800d0 <_start+0xd0>
+40080b82:	fa2250        	wfr	f2, a2
+40080b85:	020c      	movi.n	a2, 0
+40080b87:	f3e920        	wur.fsr	a2
+40080b8a:	2a0120        	mul.s	f0, f1, f2
+40080b8d:	fa2040        	rfr	a2, f0
+40080b90:	0f29      	s32i.n	a2, a15, 0
+40080b92:	ff4b      	addi.n	a15, a15, 4
+40080b94:	e32e90        	rur.fsr	a2
+40080b97:	0f29      	s32i.n	a2, a15, 0
+40080b99:	ff4b      	addi.n	a15, a15, 4
+40080b9b:	020c      	movi.n	a2, 0
+40080b9d:	f3e820        	wur.fcr	a2
+40080ba0:	fd4d21        	l32r	a2, 400800d4 <_start+0xd4>
+40080ba3:	fa1250        	wfr	f1, a2
+40080ba6:	fd4c21        	l32r	a2, 400800d8 <_start+0xd8>
+40080ba9:	fa2250        	wfr	f2, a2
+40080bac:	020c      	movi.n	a2, 0
+40080bae:	f3e920        	wur.fsr	a2
+40080bb1:	1a0120        	sub.s	f0, f1, f2
+40080bb4:	fa2040        	rfr	a2, f0
+40080bb7:	0f29      	s32i.n	a2, a15, 0
+40080bb9:	ff4b      	addi.n	a15, a15, 4
+40080bbb:	e32e90        	rur.fsr	a2
+40080bbe:	0f29      	s32i.n	a2, a15, 0
+40080bc0:	ff4b      	addi.n	a15, a15, 4
+40080bc2:	320c      	movi.n	a2, 3
+40080bc4:	f3e820        	wur.fcr	a2
+40080bc7:	fd4521        	l32r	a2, 400800dc <_start+0xdc>
+40080bca:	fa1250        	wfr	f1, a2
+40080bcd:	fd4421        	l32r	a2, 400800e0 <_start+0xe0>
+40080bd0:	fa2250        	wfr	f2, a2
+40080bd3:	020c      	movi.n	a2, 0
+40080bd5:	f3e920        	wur.fsr	a2
+40080bd8:	1a0120        	sub.s	f0, f1, f2
+40080bdb:	fa2040        	rfr	a2, f0
+40080bde:	0f29      	s32i.n	a2, a15, 0
+40080be0:	ff4b      	addi.n	a15, a15, 4
+40080be2:	e32e90        	rur.fsr	a2
+40080be5:	0f29      	s32i.n	a2, a15, 0
+40080be7:	ff4b      	addi.n	a15, a15, 4
+40080be9:	020c      	movi.n	a2, 0
+40080beb:	f3e820        	wur.fcr	a2
+40080bee:	fd3d21        	l32r	a2, 400800e4 <_start+0xe4>
+40080bf1:	fa1250        	wfr	f1, a2
+40080bf4:	fd3d21        	l32r	a2, 400800e8 <_start+0xe8>
+40080bf7:	fa2250        	wfr	f2, a2
+40080bfa:	020c      	movi.n	a2, 0
+40080bfc:	f3e920        	wur.fsr	a2
+40080bff:	0a0120        	add.s	f0, f1, f2
+40080c02:	fa2040        	rfr	a2, f0
+40080c05:	0f29      	s32i.n	a2, a15, 0
+40080c07:	ff4b      	addi.n	a15, a15, 4
+40080c09:	e32e90        	rur.fsr	a2
+40080c0c:	0f29      	s32i.n	a2, a15, 0
+40080c0e:	ff4b      	addi.n	a15, a15, 4
+40080c10:	020c      	movi.n	a2, 0
+40080c12:	f3e820        	wur.fcr	a2
+40080c15:	020c      	movi.n	a2, 0
+40080c17:	fa1250        	wfr	f1, a2
+40080c1a:	fd3421        	l32r	a2, 400800ec <_start+0xec>
+40080c1d:	fa2250        	wfr	f2, a2
+40080c20:	020c      	movi.n	a2, 0
+40080c22:	f3e920        	wur.fsr	a2
+40080c25:	2a0120        	mul.s	f0, f1, f2
+40080c28:	fa2040        	rfr	a2, f0
+40080c2b:	0f29      	s32i.n	a2, a15, 0
+40080c2d:	ff4b      	addi.n	a15, a15, 4
+40080c2f:	e32e90        	rur.fsr	a2
+40080c32:	0f29      	s32i.n	a2, a15, 0
+40080c34:	ff4b      	addi.n	a15, a15, 4
+40080c36:	020c      	movi.n	a2, 0
+40080c38:	f3e820        	wur.fcr	a2
+40080c3b:	fd2d21        	l32r	a2, 400800f0 <_start+0xf0>
+40080c3e:	fa1250        	wfr	f1, a2
+40080c41:	fd2c21        	l32r	a2, 400800f4 <_start+0xf4>
+40080c44:	fa2250        	wfr	f2, a2
+40080c47:	020c      	movi.n	a2, 0
+40080c49:	f3e920        	wur.fsr	a2
+40080c4c:	0a0120        	add.s	f0, f1, f2
+40080c4f:	fa2040        	rfr	a2, f0
+40080c52:	0f29      	s32i.n	a2, a15, 0
+40080c54:	ff4b      	addi.n	a15, a15, 4
+40080c56:	e32e90        	rur.fsr	a2
+40080c59:	0f29      	s32i.n	a2, a15, 0
+40080c5b:	ff4b      	addi.n	a15, a15, 4
+40080c5d:	020c      	movi.n	a2, 0
+40080c5f:	f3e820        	wur.fcr	a2
+40080c62:	fd2521        	l32r	a2, 400800f8 <_start+0xf8>
+40080c65:	fa1250        	wfr	f1, a2
+40080c68:	fd2521        	l32r	a2, 400800fc <_start+0xfc>
+40080c6b:	fa2250        	wfr	f2, a2
+40080c6e:	020c      	movi.n	a2, 0
+40080c70:	f3e920        	wur.fsr	a2
+40080c73:	0a0120        	add.s	f0, f1, f2
+40080c76:	fa2040        	rfr	a2, f0
+40080c79:	0f29      	s32i.n	a2, a15, 0
+40080c7b:	ff4b      	addi.n	a15, a15, 4
+40080c7d:	e32e90        	rur.fsr	a2
+40080c80:	0f29      	s32i.n	a2, a15, 0
+40080c82:	ff4b      	addi.n	a15, a15, 4
+40080c84:	020c      	movi.n	a2, 0
+40080c86:	f3e820        	wur.fcr	a2
+40080c89:	fd1d21        	l32r	a2, 40080100 <_start+0x100>
+40080c8c:	fa0250        	wfr	f0, a2
+40080c8f:	fd1d21        	l32r	a2, 40080104 <_start+0x104>
+40080c92:	fa1250        	wfr	f1, a2
+40080c95:	fd1c21        	l32r	a2, 40080108 <_start+0x108>
+40080c98:	fa2250        	wfr	f2, a2
+40080c9b:	020c      	movi.n	a2, 0
+40080c9d:	f3e920        	wur.fsr	a2
+40080ca0:	4a0120        	madd.s	f0, f1, f2
+40080ca3:	fa2040        	rfr	a2, f0
+40080ca6:	0f29      	s32i.n	a2, a15, 0
+40080ca8:	ff4b      	addi.n	a15, a15, 4
+40080caa:	e32e90        	rur.fsr	a2
+40080cad:	0f29      	s32i.n	a2, a15, 0
+40080caf:	ff4b      	addi.n	a15, a15, 4
+40080cb1:	020c      	movi.n	a2, 0
+40080cb3:	f3e820        	wur.fcr	a2
+40080cb6:	fd1521        	l32r	a2, 4008010c <_start+0x10c>
+40080cb9:	fa0250        	wfr	f0, a2
+40080cbc:	fd1521        	l32r	a2, 40080110 <_start+0x110>
+40080cbf:	fa1250        	wfr	f1, a2
+40080cc2:	fd1421        	l32r	a2, 40080114 <_start+0x114>
+40080cc5:	fa2250        	wfr	f2, a2
+40080cc8:	020c      	movi.n	a2, 0
+40080cca:	f3e920        	wur.fsr	a2
+40080ccd:	5a0120        	msub.s	f0, f1, f2
+40080cd0:	fa2040        	rfr	a2, f0
+40080cd3:	0f29      	s32i.n	a2, a15, 0
+40080cd5:	ff4b      	addi.n	a15, a15, 4
+40080cd7:	e32e90        	rur.fsr	a2
+40080cda:	0f29      	s32i.n	a2, a15, 0
+40080cdc:	ff4b      	addi.n	a15, a15, 4
+40080cde:	020c      	movi.n	a2, 0
+40080ce0:	f3e820        	wur.fcr	a2
+40080ce3:	fd0d21        	l32r	a2, 40080118 <_start+0x118>
+40080ce6:	fa0250        	wfr	f0, a2
+40080ce9:	fd0c21        	l32r	a2, 4008011c <_start+0x11c>
+40080cec:	fa1250        	wfr	f1, a2
+40080cef:	fd0c21        	l32r	a2, 40080120 <_start+0x120>
+40080cf2:	fa2250        	wfr	f2, a2
+40080cf5:	020c      	movi.n	a2, 0
+40080cf7:	f3e920        	wur.fsr	a2
+40080cfa:	4a0120        	madd.s	f0, f1, f2
+40080cfd:	fa2040        	rfr	a2, f0
+40080d00:	0f29      	s32i.n	a2, a15, 0
+40080d02:	ff4b      	addi.n	a15, a15, 4
+40080d04:	e32e90        	rur.fsr	a2
+40080d07:	0f29      	s32i.n	a2, a15, 0
+40080d09:	ff4b      	addi.n	a15, a15, 4
+40080d0b:	220c      	movi.n	a2, 2
+40080d0d:	f3e820        	wur.fcr	a2
+40080d10:	fd0521        	l32r	a2, 40080124 <_start+0x124>
+40080d13:	fa0250        	wfr	f0, a2
+40080d16:	fd0421        	l32r	a2, 40080128 <_start+0x128>
+40080d19:	fa1250        	wfr	f1, a2
+40080d1c:	fd0421        	l32r	a2, 4008012c <_start+0x12c>
+40080d1f:	fa2250        	wfr	f2, a2
+40080d22:	020c      	movi.n	a2, 0
+40080d24:	f3e920        	wur.fsr	a2
+40080d27:	4a0120        	madd.s	f0, f1, f2
+40080d2a:	fa2040        	rfr	a2, f0
+40080d2d:	0f29      	s32i.n	a2, a15, 0
+40080d2f:	ff4b      	addi.n	a15, a15, 4
+40080d31:	e32e90        	rur.fsr	a2
+40080d34:	0f29      	s32i.n	a2, a15, 0
+40080d36:	ff4b      	addi.n	a15, a15, 4
+40080d38:	020c      	movi.n	a2, 0
+40080d3a:	f3e820        	wur.fcr	a2
+40080d3d:	730c      	movi.n	a3, 7
+40080d3f:	020c      	movi.n	a2, 0
+40080d41:	f3e920        	wur.fsr	a2
+40080d44:	ca0310        	float.s	f0, a3, 1
+40080d47:	fa2040        	rfr	a2, f0
+40080d4a:	0f29      	s32i.n	a2, a15, 0
+40080d4c:	ff4b      	addi.n	a15, a15, 4
+40080d4e:	e32e90        	rur.fsr	a2
+40080d51:	0f29      	s32i.n	a2, a15, 0
+40080d53:	ff4b      	addi.n	a15, a15, 4
+40080d55:	020c      	movi.n	a2, 0
+40080d57:	f3e820        	wur.fcr	a2
+40080d5a:	fcf531        	l32r	a3, 40080130 <_start+0x130>
+40080d5d:	020c      	movi.n	a2, 0
+40080d5f:	f3e920        	wur.fsr	a2
+40080d62:	ca0300        	float.s	f0, a3, 0
+40080d65:	fa2040        	rfr	a2, f0
+40080d68:	0f29      	s32i.n	a2, a15, 0
+40080d6a:	ff4b      	addi.n	a15, a15, 4
+40080d6c:	e32e90        	rur.fsr	a2
+40080d6f:	0f29      	s32i.n	a2, a15, 0
+40080d71:	ff4b      	addi.n	a15, a15, 4
+40080d73:	120c      	movi.n	a2, 1
+40080d75:	f3e820        	wur.fcr	a2
+40080d78:	fcef31        	l32r	a3, 40080134 <_start+0x134>
+40080d7b:	020c      	movi.n	a2, 0
+40080d7d:	f3e920        	wur.fsr	a2
+40080d80:	ca0300        	float.s	f0, a3, 0
+40080d83:	fa2040        	rfr	a2, f0
+40080d86:	0f29      	s32i.n	a2, a15, 0
+40080d88:	ff4b      	addi.n	a15, a15, 4
+40080d8a:	e32e90        	rur.fsr	a2
+40080d8d:	0f29      	s32i.n	a2, a15, 0
+40080d8f:	ff4b      	addi.n	a15, a15, 4
+40080d91:	020c      	movi.n	a2, 0
+40080d93:	f3e820        	wur.fcr	a2
+40080d96:	937c      	movi.n	a3, -7
+40080d98:	020c      	movi.n	a2, 0
+40080d9a:	f3e920        	wur.fsr	a2
+40080d9d:	ca0320        	float.s	f0, a3, 2
+40080da0:	fa2040        	rfr	a2, f0
+40080da3:	0f29      	s32i.n	a2, a15, 0
+40080da5:	ff4b      	addi.n	a15, a15, 4
+40080da7:	e32e90        	rur.fsr	a2
+40080daa:	0f29      	s32i.n	a2, a15, 0
+40080dac:	ff4b      	addi.n	a15, a15, 4
+40080dae:	020c      	movi.n	a2, 0
+40080db0:	f3e820        	wur.fcr	a2
+40080db3:	f37c      	movi.n	a3, -1
+40080db5:	020c      	movi.n	a2, 0
+40080db7:	f3e920        	wur.fsr	a2
+40080dba:	da0300        	ufloat.s	f0, a3, 0
+40080dbd:	fa2040        	rfr	a2, f0
+40080dc0:	0f29      	s32i.n	a2, a15, 0
+40080dc2:	ff4b      	addi.n	a15, a15, 4
+40080dc4:	e32e90        	rur.fsr	a2
+40080dc7:	0f29      	s32i.n	a2, a15, 0
+40080dc9:	ff4b      	addi.n	a15, a15, 4
+40080dcb:	120c      	movi.n	a2, 1
+40080dcd:	f3e820        	wur.fcr	a2
+40080dd0:	f37c      	movi.n	a3, -1
+40080dd2:	020c      	movi.n	a2, 0
+40080dd4:	f3e920        	wur.fsr	a2
+40080dd7:	da0300        	ufloat.s	f0, a3, 0
+40080dda:	fa2040        	rfr	a2, f0
+40080ddd:	0f29      	s32i.n	a2, a15, 0
+40080ddf:	ff4b      	addi.n	a15, a15, 4
+40080de1:	e32e90        	rur.fsr	a2
+40080de4:	0f29      	s32i.n	a2, a15, 0
+40080de6:	ff4b      	addi.n	a15, a15, 4
+40080de8:	020c      	movi.n	a2, 0
+40080dea:	f3e820        	wur.fcr	a2
+40080ded:	fcd231        	l32r	a3, 40080138 <_start+0x138>
+40080df0:	020c      	movi.n	a2, 0
+40080df2:	f3e920        	wur.fsr	a2
+40080df5:	da03f0        	ufloat.s	f0, a3, 15
+40080df8:	fa2040        	rfr	a2, f0
+40080dfb:	0f29      	s32i.n	a2, a15, 0
+40080dfd:	ff4b      	addi.n	a15, a15, 4
+40080dff:	e32e90        	rur.fsr	a2
+40080e02:	0f29      	s32i.n	a2, a15, 0
+40080e04:	ff4b      	addi.n	a15, a15, 4
+40080e06:	020c      	movi.n	a2, 0
+40080e08:	f3e820        	wur.fcr	a2
+40080e0b:	fccc21        	l32r	a2, 4008013c <_start+0x13c>
+40080e0e:	fa1250        	wfr	f1, a2
+40080e11:	020c      	movi.n	a2, 0
+40080e13:	f3e920        	wur.fsr	a2
+40080e16:	9a3100        	trunc.s	a3, f1, 0
+40080e19:	0f39      	s32i.n	a3, a15, 0
+40080e1b:	ff4b      	addi.n	a15, a15, 4
+40080e1d:	e32e90        	rur.fsr	a2
+40080e20:	0f29      	s32i.n	a2, a15, 0
+40080e22:	ff4b      	addi.n	a15, a15, 4
+40080e24:	020c      	movi.n	a2, 0
+40080e26:	f3e820        	wur.fcr	a2
+40080e29:	fcc521        	l32r	a2, 40080140 <_start+0x140>
+40080e2c:	fa1250        	wfr	f1, a2
+40080e2f:	020c      	movi.n	a2, 0
+40080e31:	f3e920        	wur.fsr	a2
+40080e34:	9a3120        	trunc.s	a3, f1, 2
+40080e37:	0f39      	s32i.n	a3, a15, 0
+40080e39:	ff4b      	addi.n	a15, a15, 4
+40080e3b:	e32e90        	rur.fsr	a2
+40080e3e:	0f29      	s32i.n	a2, a15, 0
+40080e40:	ff4b      	addi.n	a15, a15, 4
+40080e42:	020c      	movi.n	a2, 0
+40080e44:	f3e820        	wur.fcr	a2
+40080e47:	fcbf21        	l32r	a2, 40080144 <_start+0x144>
+40080e4a:	fa1250        	wfr	f1, a2
+40080e4d:	020c      	movi.n	a2, 0
+40080e4f:	f3e920        	wur.fsr	a2
+40080e52:	9a3100        	trunc.s	a3, f1, 0
+40080e55:	0f39      	s32i.n	a3, a15, 0
+40080e57:	ff4b      	addi.n	a15, a15, 4
+40080e59:	e32e90        	rur.fsr	a2
+40080e5c:	0f29      	s32i.n	a2, a15, 0
+40080e5e:	ff4b      	addi.n	a15, a15, 4
+40080e60:	020c      	movi.n	a2, 0
+40080e62:	f3e820        	wur.fcr	a2
+40080e65:	fcb821        	l32r	a2, 40080148 <_start+0x148>
+40080e68:	fa1250        	wfr	f1, a2
+40080e6b:	020c      	movi.n	a2, 0
+40080e6d:	f3e920        	wur.fsr	a2
+40080e70:	8a3100        	round.s	a3, f1, 0
+40080e73:	0f39      	s32i.n	a3, a15, 0
+40080e75:	ff4b      	addi.n	a15, a15, 4
+40080e77:	e32e90        	rur.fsr	a2
+40080e7a:	0f29      	s32i.n	a2, a15, 0
+40080e7c:	ff4b      	addi.n	a15, a15, 4
+40080e7e:	020c      	movi.n	a2, 0
+40080e80:	f3e820        	wur.fcr	a2
+40080e83:	fcb221        	l32r	a2, 4008014c <_start+0x14c>
+40080e86:	fa1250        	wfr	f1, a2
+40080e89:	020c      	movi.n	a2, 0
+40080e8b:	f3e920        	wur.fsr	a2
+40080e8e:	8a3100        	round.s	a3, f1, 0
+40080e91:	0f39      	s32i.n	a3, a15, 0
+40080e93:	ff4b      	addi.n	a15, a15, 4
+40080e95:	e32e90        	rur.fsr	a2
+40080e98:	0f29      	s32i.n	a2, a15, 0
+40080e9a:	ff4b      	addi.n	a15, a15, 4
+40080e9c:	020c      	movi.n	a2, 0
+40080e9e:	f3e820        	wur.fcr	a2
+40080ea1:	fcab21        	l32r	a2, 40080150 <_start+0x150>
+40080ea4:	fa1250        	wfr	f1, a2
+40080ea7:	020c      	movi.n	a2, 0
+40080ea9:	f3e920        	wur.fsr	a2
+40080eac:	8a3100        	round.s	a3, f1, 0
+40080eaf:	0f39      	s32i.n	a3, a15, 0
+40080eb1:	ff4b      	addi.n	a15, a15, 4
+40080eb3:	e32e90        	rur.fsr	a2
+40080eb6:	0f29      	s32i.n	a2, a15, 0
+40080eb8:	ff4b      	addi.n	a15, a15, 4
+40080eba:	020c      	movi.n	a2, 0
+40080ebc:	f3e820        	wur.fcr	a2
+40080ebf:	fca521        	l32r	a2, 40080154 <_start+0x154>
+40080ec2:	fa1250        	wfr	f1, a2
+40080ec5:	020c      	movi.n	a2, 0
+40080ec7:	f3e920        	wur.fsr	a2
+40080eca:	8a3100        	round.s	a3, f1, 0
+40080ecd:	0f39      	s32i.n	a3, a15, 0
+40080ecf:	ff4b      	addi.n	a15, a15, 4
+40080ed1:	e32e90        	rur.fsr	a2
+40080ed4:	0f29      	s32i.n	a2, a15, 0
+40080ed6:	ff4b      	addi.n	a15, a15, 4
+40080ed8:	020c      	movi.n	a2, 0
+40080eda:	f3e820        	wur.fcr	a2
+40080edd:	fc9e21        	l32r	a2, 40080158 <_start+0x158>
+40080ee0:	fa1250        	wfr	f1, a2
+40080ee3:	020c      	movi.n	a2, 0
+40080ee5:	f3e920        	wur.fsr	a2
+40080ee8:	8a3110        	round.s	a3, f1, 1
+40080eeb:	0f39      	s32i.n	a3, a15, 0
+40080eed:	ff4b      	addi.n	a15, a15, 4
+40080eef:	e32e90        	rur.fsr	a2
+40080ef2:	0f29      	s32i.n	a2, a15, 0
+40080ef4:	ff4b      	addi.n	a15, a15, 4
+40080ef6:	020c      	movi.n	a2, 0
+40080ef8:	f3e820        	wur.fcr	a2
+40080efb:	fc9821        	l32r	a2, 4008015c <_start+0x15c>
+40080efe:	fa1250        	wfr	f1, a2
+40080f01:	020c      	movi.n	a2, 0
+40080f03:	f3e920        	wur.fsr	a2
+40080f06:	aa3100        	floor.s	a3, f1, 0
+40080f09:	0f39      	s32i.n	a3, a15, 0
+40080f0b:	ff4b      	addi.n	a15, a15, 4
+40080f0d:	e32e90        	rur.fsr	a2
+40080f10:	0f29      	s32i.n	a2, a15, 0
+40080f12:	ff4b      	addi.n	a15, a15, 4
+40080f14:	020c      	movi.n	a2, 0
+40080f16:	f3e820        	wur.fcr	a2
+40080f19:	fc9121        	l32r	a2, 40080160 <_start+0x160>
+40080f1c:	fa1250        	wfr	f1, a2
+40080f1f:	020c      	movi.n	a2, 0
+40080f21:	f3e920        	wur.fsr	a2
+40080f24:	ba3100        	ceil.s	a3, f1, 0
+40080f27:	0f39      	s32i.n	a3, a15, 0
+40080f29:	ff4b      	addi.n	a15, a15, 4
+40080f2b:	e32e90        	rur.fsr	a2
+40080f2e:	0f29      	s32i.n	a2, a15, 0
+40080f30:	ff4b      	addi.n	a15, a15, 4
+40080f32:	020c      	movi.n	a2, 0
+40080f34:	f3e820        	wur.fcr	a2
+40080f37:	fc8b21        	l32r	a2, 40080164 <_start+0x164>
+40080f3a:	fa1250        	wfr	f1, a2
+40080f3d:	020c      	movi.n	a2, 0
+40080f3f:	f3e920        	wur.fsr	a2
+40080f42:	aa3100        	floor.s	a3, f1, 0
+40080f45:	0f39      	s32i.n	a3, a15, 0
+40080f47:	ff4b      	addi.n	a15, a15, 4
+40080f49:	e32e90        	rur.fsr	a2
+40080f4c:	0f29      	s32i.n	a2, a15, 0
+40080f4e:	ff4b      	addi.n	a15, a15, 4
+40080f50:	020c      	movi.n	a2, 0
+40080f52:	f3e820        	wur.fcr	a2
+40080f55:	fc8421        	l32r	a2, 40080168 <_start+0x168>
+40080f58:	fa1250        	wfr	f1, a2
+40080f5b:	020c      	movi.n	a2, 0
+40080f5d:	f3e920        	wur.fsr	a2
+40080f60:	ba3100        	ceil.s	a3, f1, 0
+40080f63:	0f39      	s32i.n	a3, a15, 0
+40080f65:	ff4b      	addi.n	a15, a15, 4
+40080f67:	e32e90        	rur.fsr	a2
+40080f6a:	0f29      	s32i.n	a2, a15, 0
+40080f6c:	ff4b      	addi.n	a15, a15, 4
+40080f6e:	020c      	movi.n	a2, 0
+40080f70:	f3e820        	wur.fcr	a2
+40080f73:	fc7e21        	l32r	a2, 4008016c <_start+0x16c>
+40080f76:	fa1250        	wfr	f1, a2
+40080f79:	020c      	movi.n	a2, 0
+40080f7b:	f3e920        	wur.fsr	a2
+40080f7e:	ea3100        	utrunc.s	a3, f1, 0
+40080f81:	0f39      	s32i.n	a3, a15, 0
+40080f83:	ff4b      	addi.n	a15, a15, 4
+40080f85:	e32e90        	rur.fsr	a2
+40080f88:	0f29      	s32i.n	a2, a15, 0
+40080f8a:	ff4b      	addi.n	a15, a15, 4
+40080f8c:	020c      	movi.n	a2, 0
+40080f8e:	f3e820        	wur.fcr	a2
+40080f91:	fc7721        	l32r	a2, 40080170 <_start+0x170>
+40080f94:	fa1250        	wfr	f1, a2
+40080f97:	020c      	movi.n	a2, 0
+40080f99:	f3e920        	wur.fsr	a2
+40080f9c:	9a3100        	trunc.s	a3, f1, 0
+40080f9f:	0f39      	s32i.n	a3, a15, 0
+40080fa1:	ff4b      	addi.n	a15, a15, 4
+40080fa3:	e32e90        	rur.fsr	a2
+40080fa6:	0f29      	s32i.n	a2, a15, 0
+40080fa8:	ff4b      	addi.n	a15, a15, 4
+40080faa:	020c      	movi.n	a2, 0
+40080fac:	f3e820        	wur.fcr	a2
+40080faf:	fc7121        	l32r	a2, 40080174 <_start+0x174>
+40080fb2:	fa1250        	wfr	f1, a2
+40080fb5:	020c      	movi.n	a2, 0
+40080fb7:	f3e920        	wur.fsr	a2
+40080fba:	9a3100        	trunc.s	a3, f1, 0
+40080fbd:	0f39      	s32i.n	a3, a15, 0
+40080fbf:	ff4b      	addi.n	a15, a15, 4
+40080fc1:	e32e90        	rur.fsr	a2
+40080fc4:	0f29      	s32i.n	a2, a15, 0
+40080fc6:	ff4b      	addi.n	a15, a15, 4
+40080fc8:	020c      	movi.n	a2, 0
+40080fca:	f3e820        	wur.fcr	a2
+40080fcd:	fc6a21        	l32r	a2, 40080178 <_start+0x178>
+40080fd0:	fa1250        	wfr	f1, a2
+40080fd3:	020c      	movi.n	a2, 0
+40080fd5:	f3e920        	wur.fsr	a2
+40080fd8:	9a3100        	trunc.s	a3, f1, 0
+40080fdb:	0f39      	s32i.n	a3, a15, 0
+40080fdd:	ff4b      	addi.n	a15, a15, 4
+40080fdf:	e32e90        	rur.fsr	a2
+40080fe2:	0f29      	s32i.n	a2, a15, 0
+40080fe4:	ff4b      	addi.n	a15, a15, 4
+40080fe6:	020c      	movi.n	a2, 0
+40080fe8:	f3e820        	wur.fcr	a2
+40080feb:	fc6421        	l32r	a2, 4008017c <_start+0x17c>
+40080fee:	fa1250        	wfr	f1, a2
+40080ff1:	020c      	movi.n	a2, 0
+40080ff3:	f3e920        	wur.fsr	a2
+40080ff6:	ea3100        	utrunc.s	a3, f1, 0
+40080ff9:	0f39      	s32i.n	a3, a15, 0
+40080ffb:	ff4b      	addi.n	a15, a15, 4
+40080ffd:	e32e90        	rur.fsr	a2
+40081000:	0f29      	s32i.n	a2, a15, 0
+40081002:	ff4b      	addi.n	a15, a15, 4
+40081004:	020c      	movi.n	a2, 0
+40081006:	f3e820        	wur.fcr	a2
+40081009:	fc5d21        	l32r	a2, 40080180 <_start+0x180>
+4008100c:	fa1250        	wfr	f1, a2
+4008100f:	020c      	movi.n	a2, 0
+40081011:	f3e920        	wur.fsr	a2
+40081014:	ea3100        	utrunc.s	a3, f1, 0
+40081017:	0f39      	s32i.n	a3, a15, 0
+40081019:	ff4b      	addi.n	a15, a15, 4
+4008101b:	e32e90        	rur.fsr	a2
+4008101e:	0f29      	s32i.n	a2, a15, 0
+40081020:	ff4b      	addi.n	a15, a15, 4
+40081022:	220c      	movi.n	a2, 2
+40081024:	f3e820        	wur.fcr	a2
+40081027:	fc5721        	l32r	a2, 40080184 <_start+0x184>
+4008102a:	fa1250        	wfr	f1, a2
+4008102d:	020c      	movi.n	a2, 0
+4008102f:	f3e920        	wur.fsr	a2
+40081032:	9a3100        	trunc.s	a3, f1, 0
+40081035:	0f39      	s32i.n	a3, a15, 0
+40081037:	ff4b      	addi.n	a15, a15, 4
+40081039:	e32e90        	rur.fsr	a2
+4008103c:	0f29      	s32i.n	a2, a15, 0
+4008103e:	ff4b      	addi.n	a15, a15, 4
+40081040:	020c      	movi.n	a2, 0
+40081042:	f3e820        	wur.fcr	a2
+40081045:	fc5021        	l32r	a2, 40080188 <_start+0x188>
+40081048:	fa1250        	wfr	f1, a2
+4008104b:	fc5021        	l32r	a2, 4008018c <_start+0x18c>
+4008104e:	fa2250        	wfr	f2, a2
+40081051:	020c      	movi.n	a2, 0
+40081053:	130420        	wsr.br	a2
+40081056:	020c      	movi.n	a2, 0
+40081058:	f3e920        	wur.fsr	a2
+4008105b:	1b0120        	un.s	b0, f1, f2
+4008105e:	2b1120        	oeq.s	b1, f1, f2
+40081061:	3b2120        	ueq.s	b2, f1, f2
+40081064:	4b3120        	olt.s	b3, f1, f2
+40081067:	5b4120        	ult.s	b4, f1, f2
+4008106a:	6b5120        	ole.s	b5, f1, f2
+4008106d:	7b6120        	ule.s	b6, f1, f2
+40081070:	030430        	rsr.br	a3
+40081073:	643030        	extui	a3, a3, 0, 7
+40081076:	0f39      	s32i.n	a3, a15, 0
+40081078:	ff4b      	addi.n	a15, a15, 4
+4008107a:	e32e90        	rur.fsr	a2
+4008107d:	0f29      	s32i.n	a2, a15, 0
+4008107f:	ff4b      	addi.n	a15, a15, 4
+40081081:	fc4321        	l32r	a2, 40080190 <_start+0x190>
+40081084:	fa1250        	wfr	f1, a2
+40081087:	fc4321        	l32r	a2, 40080194 <_start+0x194>
+4008108a:	fa2250        	wfr	f2, a2
+4008108d:	020c      	movi.n	a2, 0
+4008108f:	130420        	wsr.br	a2
+40081092:	020c      	movi.n	a2, 0
+40081094:	f3e920        	wur.fsr	a2
+40081097:	1b0120        	un.s	b0, f1, f2
+4008109a:	2b1120        	oeq.s	b1, f1, f2
+4008109d:	3b2120        	ueq.s	b2, f1, f2
+400810a0:	4b3120        	olt.s	b3, f1, f2
+400810a3:	5b4120        	ult.s	b4, f1, f2
+400810a6:	6b5120        	ole.s	b5, f1, f2
+400810a9:	7b6120        	ule.s	b6, f1, f2
+400810ac:	030430        	rsr.br	a3
+400810af:	643030        	extui	a3, a3, 0, 7
+400810b2:	0f39      	s32i.n	a3, a15, 0
+400810b4:	ff4b      	addi.n	a15, a15, 4
+400810b6:	e32e90        	rur.fsr	a2
+400810b9:	0f29      	s32i.n	a2, a15, 0
+400810bb:	ff4b      	addi.n	a15, a15, 4
+400810bd:	fc3621        	l32r	a2, 40080198 <_start+0x198>
+400810c0:	fa1250        	wfr	f1, a2
+400810c3:	fc3621        	l32r	a2, 4008019c <_start+0x19c>
+400810c6:	fa2250        	wfr	f2, a2
+400810c9:	020c      	movi.n	a2, 0
+400810cb:	130420        	wsr.br	a2
+400810ce:	020c      	movi.n	a2, 0
+400810d0:	f3e920        	wur.fsr	a2
+400810d3:	1b0120        	un.s	b0, f1, f2
+400810d6:	2b1120        	oeq.s	b1, f1, f2
+400810d9:	3b2120        	ueq.s	b2, f1, f2
+400810dc:	4b3120        	olt.s	b3, f1, f2
+400810df:	5b4120        	ult.s	b4, f1, f2
+400810e2:	6b5120        	ole.s	b5, f1, f2
+400810e5:	7b6120        	ule.s	b6, f1, f2
+400810e8:	030430        	rsr.br	a3
+400810eb:	643030        	extui	a3, a3, 0, 7
+400810ee:	0f39      	s32i.n	a3, a15, 0
+400810f0:	ff4b      	addi.n	a15, a15, 4
+400810f2:	e32e90        	rur.fsr	a2
+400810f5:	0f29      	s32i.n	a2, a15, 0
+400810f7:	ff4b      	addi.n	a15, a15, 4
+400810f9:	fc2921        	l32r	a2, 400801a0 <_start+0x1a0>
+400810fc:	fa1250        	wfr	f1, a2
+400810ff:	fc2921        	l32r	a2, 400801a4 <_start+0x1a4>
+40081102:	fa2250        	wfr	f2, a2
+40081105:	020c      	movi.n	a2, 0
+40081107:	130420        	wsr.br	a2
+4008110a:	020c      	movi.n	a2, 0
+4008110c:	f3e920        	wur.fsr	a2
+4008110f:	1b0120        	un.s	b0, f1, f2
+40081112:	2b1120        	oeq.s	b1, f1, f2
+40081115:	3b2120        	ueq.s	b2, f1, f2
+40081118:	4b3120        	olt.s	b3, f1, f2
+4008111b:	5b4120        	ult.s	b4, f1, f2
+4008111e:	6b5120        	ole.s	b5, f1, f2
+40081121:	7b6120        	ule.s	b6, f1, f2
+40081124:	030430        	rsr.br	a3
+40081127:	643030        	extui	a3, a3, 0, 7
+4008112a:	0f39      	s32i.n	a3, a15, 0
+4008112c:	ff4b      	addi.n	a15, a15, 4
+4008112e:	e32e90        	rur.fsr	a2
+40081131:	0f29      	s32i.n	a2, a15, 0
+40081133:	ff4b      	addi.n	a15, a15, 4
+40081135:	020c      	movi.n	a2, 0
+40081137:	fa1250        	wfr	f1, a2
+4008113a:	fc1b21        	l32r	a2, 400801a8 <_start+0x1a8>
+4008113d:	fa2250        	wfr	f2, a2
+40081140:	020c      	movi.n	a2, 0
+40081142:	130420        	wsr.br	a2
+40081145:	020c      	movi.n	a2, 0
+40081147:	f3e920        	wur.fsr	a2
+4008114a:	1b0120        	un.s	b0, f1, f2
+4008114d:	2b1120        	oeq.s	b1, f1, f2
+40081150:	3b2120        	ueq.s	b2, f1, f2
+40081153:	4b3120        	olt.s	b3, f1, f2
+40081156:	5b4120        	ult.s	b4, f1, f2
+40081159:	6b5120        	ole.s	b5, f1, f2
+4008115c:	7b6120        	ule.s	b6, f1, f2
+4008115f:	030430        	rsr.br	a3
+40081162:	643030        	extui	a3, a3, 0, 7
+40081165:	0f39      	s32i.n	a3, a15, 0
+40081167:	ff4b      	addi.n	a15, a15, 4
+40081169:	e32e90        	rur.fsr	a2
+4008116c:	0f29      	s32i.n	a2, a15, 0
+4008116e:	ff4b      	addi.n	a15, a15, 4
+40081170:	fc0f21        	l32r	a2, 400801ac <_start+0x1ac>
+40081173:	fa1250        	wfr	f1, a2
+40081176:	fc0e21        	l32r	a2, 400801b0 <_start+0x1b0>
+40081179:	fa2250        	wfr	f2, a2
+4008117c:	030c      	movi.n	a3, 0
+4008117e:	020c      	movi.n	a2, 0
+40081180:	f3e920        	wur.fsr	a2
+40081183:	8b1230        	moveqz.s	f1, f2, a3
+40081186:	fa2140        	rfr	a2, f1
+40081189:	0f29      	s32i.n	a2, a15, 0
+4008118b:	ff4b      	addi.n	a15, a15, 4
+4008118d:	e32e90        	rur.fsr	a2
+40081190:	0f29      	s32i.n	a2, a15, 0
+40081192:	ff4b      	addi.n	a15, a15, 4
+40081194:	fc0821        	l32r	a2, 400801b4 <_start+0x1b4>
+40081197:	fa1250        	wfr	f1, a2
+4008119a:	fc0721        	l32r	a2, 400801b8 <_start+0x1b8>
+4008119d:	fa2250        	wfr	f2, a2
+400811a0:	030c      	movi.n	a3, 0
+400811a2:	020c      	movi.n	a2, 0
+400811a4:	f3e920        	wur.fsr	a2
+400811a7:	9b1230        	movnez.s	f1, f2, a3
+400811aa:	fa2140        	rfr	a2, f1
+400811ad:	0f29      	s32i.n	a2, a15, 0
+400811af:	ff4b      	addi.n	a15, a15, 4
+400811b1:	e32e90        	rur.fsr	a2
+400811b4:	0f29      	s32i.n	a2, a15, 0
+400811b6:	ff4b      	addi.n	a15, a15, 4
+400811b8:	fc0121        	l32r	a2, 400801bc <_start+0x1bc>
+400811bb:	fa1250        	wfr	f1, a2
+400811be:	fc0021        	l32r	a2, 400801c0 <_start+0x1c0>
+400811c1:	fa2250        	wfr	f2, a2
+400811c4:	f37c      	movi.n	a3, -1
+400811c6:	020c      	movi.n	a2, 0
+400811c8:	f3e920        	wur.fsr	a2
+400811cb:	ab1230        	movltz.s	f1, f2, a3
+400811ce:	fa2140        	rfr	a2, f1
+400811d1:	0f29      	s32i.n	a2, a15, 0
+400811d3:	ff4b      	addi.n	a15, a15, 4
+400811d5:	e32e90        	rur.fsr	a2
+400811d8:	0f29      	s32i.n	a2, a15, 0
+400811da:	ff4b      	addi.n	a15, a15, 4
+400811dc:	fbfa21        	l32r	a2, 400801c4 <_start+0x1c4>
+400811df:	fa1250        	wfr	f1, a2
+400811e2:	fbf921        	l32r	a2, 400801c8 <_start+0x1c8>
+400811e5:	fa2250        	wfr	f2, a2
+400811e8:	f37c      	movi.n	a3, -1
+400811ea:	020c      	movi.n	a2, 0
+400811ec:	f3e920        	wur.fsr	a2
+400811ef:	bb1230        	movgez.s	f1, f2, a3
+400811f2:	fa2140        	rfr	a2, f1
+400811f5:	0f29      	s32i.n	a2, a15, 0
+400811f7:	ff4b      	addi.n	a15, a15, 4
+400811f9:	e32e90        	rur.fsr	a2
+400811fc:	0f29      	s32i.n	a2, a15, 0
+400811fe:	ff4b      	addi.n	a15, a15, 4
+40081200:	120c      	movi.n	a2, 1
+40081202:	130420        	wsr.br	a2
+40081205:	fbf121        	l32r	a2, 400801cc <_start+0x1cc>
+40081208:	fa1250        	wfr	f1, a2
+4008120b:	fbf121        	l32r	a2, 400801d0 <_start+0x1d0>
+4008120e:	fa2250        	wfr	f2, a2
+40081211:	030c      	movi.n	a3, 0
+40081213:	020c      	movi.n	a2, 0
+40081215:	f3e920        	wur.fsr	a2
+40081218:	db1200        	movt.s	f1, f2, b0
+4008121b:	fa2140        	rfr	a2, f1
+4008121e:	0f29      	s32i.n	a2, a15, 0
+40081220:	ff4b      	addi.n	a15, a15, 4
+40081222:	e32e90        	rur.fsr	a2
+40081225:	0f29      	s32i.n	a2, a15, 0
+40081227:	ff4b      	addi.n	a15, a15, 4
+40081229:	fbea21        	l32r	a2, 400801d4 <_start+0x1d4>
+4008122c:	fa1250        	wfr	f1, a2
+4008122f:	fbea21        	l32r	a2, 400801d8 <_start+0x1d8>
+40081232:	fa2250        	wfr	f2, a2
+40081235:	030c      	movi.n	a3, 0
+40081237:	020c      	movi.n	a2, 0
+40081239:	f3e920        	wur.fsr	a2
+4008123c:	cb1200        	movf.s	f1, f2, b0
+4008123f:	fa2140        	rfr	a2, f1
+40081242:	0f29      	s32i.n	a2, a15, 0
+40081244:	ff4b      	addi.n	a15, a15, 4
+40081246:	e32e90        	rur.fsr	a2
+40081249:	0f29      	s32i.n	a2, a15, 0
+4008124b:	ff4b      	addi.n	a15, a15, 4
+4008124d:	020c      	movi.n	a2, 0
+4008124f:	f3e920        	wur.fsr	a2
+40081252:	fbe221        	l32r	a2, 400801dc <_start+0x1dc>
+40081255:	fa1250        	wfr	f1, a2
+40081258:	fa2140        	rfr	a2, f1
+4008125b:	0f29      	s32i.n	a2, a15, 0
+4008125d:	ff4b      	addi.n	a15, a15, 4
+4008125f:	e32e90        	rur.fsr	a2
+40081262:	0f29      	s32i.n	a2, a15, 0
+40081264:	ff4b      	addi.n	a15, a15, 4
+40081266:	fa2100        	mov.s	f2, f1
+40081269:	fa2240        	rfr	a2, f2
+4008126c:	0f29      	s32i.n	a2, a15, 0
+4008126e:	ff4b      	addi.n	a15, a15, 4
+40081270:	e32e90        	rur.fsr	a2
+40081273:	0f29      	s32i.n	a2, a15, 0
+40081275:	ff4b      	addi.n	a15, a15, 4
+40081277:	fbda21        	l32r	a2, 400801e0 <_start+0x1e0>
+4008127a:	fa1250        	wfr	f1, a2
+4008127d:	fa2110        	abs.s	f2, f1
+40081280:	fa2240        	rfr	a2, f2
+40081283:	0f29      	s32i.n	a2, a15, 0
+40081285:	ff4b      	addi.n	a15, a15, 4
+40081287:	e32e90        	rur.fsr	a2
+4008128a:	0f29      	s32i.n	a2, a15, 0
+4008128c:	ff4b      	addi.n	a15, a15, 4
+4008128e:	fbd521        	l32r	a2, 400801e4 <_start+0x1e4>
+40081291:	fa1250        	wfr	f1, a2
+40081294:	fa2160        	neg.s	f2, f1
+40081297:	fa2240        	rfr	a2, f2
+4008129a:	0f29      	s32i.n	a2, a15, 0
+4008129c:	ff4b      	addi.n	a15, a15, 4
+4008129e:	e32e90        	rur.fsr	a2
+400812a1:	0f29      	s32i.n	a2, a15, 0
+400812a3:	ff4b      	addi.n	a15, a15, 4
+400812a5:	fbd021        	l32r	a2, 400801e8 <_start+0x1e8>
+400812a8:	fa1250        	wfr	f1, a2
+400812ab:	fbd021        	l32r	a2, 400801ec <_start+0x1ec>
+400812ae:	fa2250        	wfr	f2, a2
+400812b1:	fbcf61        	l32r	a6, 400801f0 <_start+0x1f0>
+400812b4:	470c      	movi.n	a7, 4
+400812b6:	004613        	ssi	f1, a6, 0
+400812b9:	000633        	lsi	f3, a6, 0
+400812bc:	fa2340        	rfr	a2, f3
+400812bf:	0f29      	s32i.n	a2, a15, 0
+400812c1:	ff4b      	addi.n	a15, a15, 4
+400812c3:	e32e90        	rur.fsr	a2
+400812c6:	0f29      	s32i.n	a2, a15, 0
+400812c8:	ff4b      	addi.n	a15, a15, 4
+400812ca:	02c623        	ssip	f2, a6, 8
+400812cd:	f8c662        	addi	a6, a6, -8
+400812d0:	028633        	lsip	f3, a6, 8
+400812d3:	fa2340        	rfr	a2, f3
+400812d6:	0f29      	s32i.n	a2, a15, 0
+400812d8:	ff4b      	addi.n	a15, a15, 4
+400812da:	e32e90        	rur.fsr	a2
+400812dd:	0f29      	s32i.n	a2, a15, 0
+400812df:	ff4b      	addi.n	a15, a15, 4
+400812e1:	fbc481        	l32r	a8, 400801f4 <_start+0x1f4>
+400812e4:	c03680        	sub	a3, a6, a8
+400812e7:	0f39      	s32i.n	a3, a15, 0
+400812e9:	ff4b      	addi.n	a15, a15, 4
+400812eb:	e32e90        	rur.fsr	a2
+400812ee:	0f29      	s32i.n	a2, a15, 0
+400812f0:	ff4b      	addi.n	a15, a15, 4
+400812f2:	481670        	ssx	f1, a6, a7
+400812f5:	083670        	lsx	f3, a6, a7
+400812f8:	fa2340        	rfr	a2, f3
+400812fb:	0f29      	s32i.n	a2, a15, 0
+400812fd:	ff4b      	addi.n	a15, a15, 4
+400812ff:	e32e90        	rur.fsr	a2
+40081302:	0f29      	s32i.n	a2, a15, 0
+40081304:	ff4b      	addi.n	a15, a15, 4
+40081306:	582670        	ssxp	f2, a6, a7
+40081309:	fcc662        	addi	a6, a6, -4
+4008130c:	183670        	lsxp	f3, a6, a7
+4008130f:	fa2340        	rfr	a2, f3
+40081312:	0f29      	s32i.n	a2, a15, 0
+40081314:	ff4b      	addi.n	a15, a15, 4
+40081316:	e32e90        	rur.fsr	a2
+40081319:	0f29      	s32i.n	a2, a15, 0
+4008131b:	ff4b      	addi.n	a15, a15, 4
+4008131d:	c03680        	sub	a3, a6, a8
+40081320:	0f39      	s32i.n	a3, a15, 0
+40081322:	ff4b      	addi.n	a15, a15, 4
+40081324:	e32e90        	rur.fsr	a2
+40081327:	0f29      	s32i.n	a2, a15, 0
+40081329:	ff4b      	addi.n	a15, a15, 4
+4008132b:	020c      	movi.n	a2, 0
+4008132d:	13e020        	wsr.cpenable	a2
+40081330:	002010        	rsync
+
+40081333 <cp_second>:
+40081333:	e33e90        	rur.fsr	a3
+40081336:	0041f0        	break	1, 15
+40081339:	13d120        	wsr.excsave1	a2
+4008133c:	13f430        	wsr.misc0	a3
+4008133f:	03e820        	rsr.exccause	a2
+40081342:	21c266        	bnei	a2, 32, 40081367 <cp_second+0x34>
+40081345:	fbac31        	l32r	a3, 400801f8 <_start+0x1f8>
+40081348:	0328      	l32i.n	a2, a3, 0
+4008134a:	221b      	addi.n	a2, a2, 1
+4008134c:	0329      	s32i.n	a2, a3, 0
+4008134e:	a02230        	addx4	a2, a2, a3
+40081351:	03b130        	rsr.epc1	a3
+40081354:	0239      	s32i.n	a3, a2, 0
+40081356:	120c      	movi.n	a2, 1
+40081358:	13e020        	wsr.cpenable	a2
+4008135b:	002010        	rsync
+4008135e:	03d120        	rsr.excsave1	a2
+40081361:	03f430        	rsr.misc0	a3
+40081364:	003000        	rfe
+40081367:	fba521        	l32r	a2, 400801fc <_start+0x1fc>
+4008136a:	0041f0        	break	1, 15
+4008136d:	000000        	ill

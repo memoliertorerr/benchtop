@@ -1,0 +1,11 @@
+{
+  "name": "example: lcd-thermometer",
+  "project": "../../projects/lcd-thermometer.json",
+  "firmware": {
+    "uno": "../../firmware/uno/lcd-thermometer.hex"
+  },
+  "expect": [
+    "lcd lcd row 0 is \"Temp   24.0 C\" at 2s",
+    "lcd lcd row 1 is \"Humid  40.0 %\" at 2s"
+  ]
+}

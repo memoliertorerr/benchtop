@@ -1,0 +1,327 @@
+{
+  "format": 1,
+  "name": "mega-analog",
+  "parts": [
+    {
+      "id": "mega",
+      "type": "arduino-mega",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "pot1",
+      "type": "potentiometer",
+      "x": 4,
+      "y": 58,
+      "rotation": 180,
+      "props": {
+        "value": 0.2
+      }
+    },
+    {
+      "id": "pot2",
+      "type": "potentiometer",
+      "x": 29,
+      "y": 58,
+      "rotation": 180,
+      "props": {
+        "value": 0.4
+      }
+    },
+    {
+      "id": "pot3",
+      "type": "potentiometer",
+      "x": 54,
+      "y": 58,
+      "rotation": 180,
+      "props": {
+        "value": 0.6
+      }
+    },
+    {
+      "id": "pot4",
+      "type": "potentiometer",
+      "x": 79,
+      "y": 58,
+      "rotation": 180,
+      "props": {
+        "value": 0.8
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "pot1",
+        "pin": "SIG"
+      },
+      "to": {
+        "part": "mega",
+        "pin": "A0"
+      },
+      "waypoints": [
+        {
+          "x": 13.681,
+          "y": 51.5
+        },
+        {
+          "x": 55.166,
+          "y": 51.5
+        }
+      ],
+      "color": "green"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "pot1",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "mega",
+        "pin": "5V"
+      },
+      "waypoints": [
+        {
+          "x": 11.035,
+          "y": 52.5
+        },
+        {
+          "x": 43.524,
+          "y": 52.5
+        }
+      ],
+      "color": "red"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "pot1",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "mega",
+        "pin": "GND.2"
+      },
+      "waypoints": [
+        {
+          "x": 16.327,
+          "y": 53.5
+        },
+        {
+          "x": 46.104,
+          "y": 53.5
+        }
+      ],
+      "color": "black"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "pot2",
+        "pin": "SIG"
+      },
+      "to": {
+        "part": "mega",
+        "pin": "A5"
+      },
+      "waypoints": [
+        {
+          "x": 38.681,
+          "y": 51.75
+        },
+        {
+          "x": 67.799,
+          "y": 51.75
+        }
+      ],
+      "color": "green"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "pot2",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "mega",
+        "pin": "5V"
+      },
+      "waypoints": [
+        {
+          "x": 36.035,
+          "y": 52.75
+        },
+        {
+          "x": 43.524,
+          "y": 52.75
+        }
+      ],
+      "color": "red"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "pot2",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "mega",
+        "pin": "GND.2"
+      },
+      "waypoints": [
+        {
+          "x": 41.327,
+          "y": 53.75
+        },
+        {
+          "x": 46.104,
+          "y": 53.75
+        }
+      ],
+      "color": "black"
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "pot3",
+        "pin": "SIG"
+      },
+      "to": {
+        "part": "mega",
+        "pin": "A8"
+      },
+      "waypoints": [
+        {
+          "x": 63.681,
+          "y": 52.0
+        },
+        {
+          "x": 76.795,
+          "y": 52.0
+        }
+      ],
+      "color": "green"
+    },
+    {
+      "id": "w8",
+      "from": {
+        "part": "pot3",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "mega",
+        "pin": "5V"
+      },
+      "waypoints": [
+        {
+          "x": 61.035,
+          "y": 53.0
+        },
+        {
+          "x": 43.524,
+          "y": 53.0
+        }
+      ],
+      "color": "red"
+    },
+    {
+      "id": "w9",
+      "from": {
+        "part": "pot3",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "mega",
+        "pin": "GND.3"
+      },
+      "waypoints": [
+        {
+          "x": 66.327,
+          "y": 54.0
+        },
+        {
+          "x": 48.617,
+          "y": 54.0
+        }
+      ],
+      "color": "black"
+    },
+    {
+      "id": "w10",
+      "from": {
+        "part": "pot4",
+        "pin": "SIG"
+      },
+      "to": {
+        "part": "mega",
+        "pin": "A15"
+      },
+      "waypoints": [
+        {
+          "x": 88.681,
+          "y": 52.25
+        },
+        {
+          "x": 94.655,
+          "y": 52.25
+        }
+      ],
+      "color": "green"
+    },
+    {
+      "id": "w11",
+      "from": {
+        "part": "pot4",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "mega",
+        "pin": "5V"
+      },
+      "waypoints": [
+        {
+          "x": 86.035,
+          "y": 53.25
+        },
+        {
+          "x": 43.524,
+          "y": 53.25
+        }
+      ],
+      "color": "red"
+    },
+    {
+      "id": "w12",
+      "from": {
+        "part": "pot4",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "mega",
+        "pin": "GND.3"
+      },
+      "waypoints": [
+        {
+          "x": 91.327,
+          "y": 54.25
+        },
+        {
+          "x": 48.617,
+          "y": 54.25
+        }
+      ],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "mega": {
+      "kind": "file",
+      "name": "analog-hi.hex",
+      "format": "hex"
+    }
+  }
+}

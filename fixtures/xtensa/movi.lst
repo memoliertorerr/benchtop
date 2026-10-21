@@ -1,0 +1,24 @@
+
+movi.elf:     file format elf32-xtensa-le
+
+
+Disassembly of section .text:
+
+40080000 <_start>:
+40080000:	000106        	j	40080008 <_start+0x8>
+40080003:	00          	.byte 00
+40080004:	00 00 fc 3f 	
+40080008:	ffff11        	l32r	a1, 40080004 <_start+0x4>
+4008000b:	00a822        	movi	a2, 0xfffff800
+4008000e:	ffa732        	movi	a3, 0x7ff
+40080011:	80d342        	addmi	a4, a3, 0xffff8000
+40080014:	7fd352        	addmi	a5, a3, 0x7f00
+40080017:	80c362        	addi	a6, a3, -128
+4008001a:	7fc372        	addi	a7, a3, 127
+4008001d:	00a082        	movi	a8, 0
+40080020:	01d882        	addmi	a8, a8, 0x100
+40080023:	00a092        	movi	a9, 0
+40080026:	ffafa2        	movi	a10, -1
+40080029:	ffcaa2        	addi	a10, a10, -1
+4008002c:	0041f0        	break	1, 15
+	...

@@ -1,0 +1,322 @@
+{
+  "format": 1,
+  "name": "inputs-dip",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "dip",
+      "type": "dip-switch-8",
+      "x": 40,
+      "y": -40,
+      "rotation": 0,
+      "props": {
+        "value": 133
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "dip",
+        "pin": "1a"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "2"
+      },
+      "waypoints": [
+        {
+          "x": 42.143,
+          "y": -15.8
+        },
+        {
+          "x": 62.574,
+          "y": -15.8
+        }
+      ],
+      "color": "green"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "dip",
+        "pin": "2a"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "3"
+      },
+      "waypoints": [
+        {
+          "x": 44.683,
+          "y": -14.4
+        },
+        {
+          "x": 60.06,
+          "y": -14.4
+        }
+      ],
+      "color": "green"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "dip",
+        "pin": "3a"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "4"
+      },
+      "waypoints": [
+        {
+          "x": 47.223,
+          "y": -13
+        },
+        {
+          "x": 57.547,
+          "y": -13
+        }
+      ],
+      "color": "green"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "dip",
+        "pin": "4a"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5"
+      },
+      "waypoints": [
+        {
+          "x": 49.763,
+          "y": -11.6
+        },
+        {
+          "x": 55.033,
+          "y": -11.6
+        }
+      ],
+      "color": "green"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "dip",
+        "pin": "5a"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "6"
+      },
+      "waypoints": [
+        {
+          "x": 52.303,
+          "y": -10.2
+        },
+        {
+          "x": 52.52,
+          "y": -10.2
+        }
+      ],
+      "color": "green"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "dip",
+        "pin": "6a"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "7"
+      },
+      "waypoints": [
+        {
+          "x": 54.843,
+          "y": -8.8
+        },
+        {
+          "x": 50.006,
+          "y": -8.8
+        }
+      ],
+      "color": "green"
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "dip",
+        "pin": "7a"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "8"
+      },
+      "waypoints": [
+        {
+          "x": 57.383,
+          "y": -7.4
+        },
+        {
+          "x": 45.773,
+          "y": -7.4
+        }
+      ],
+      "color": "green"
+    },
+    {
+      "id": "w8",
+      "from": {
+        "part": "dip",
+        "pin": "8a"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "9"
+      },
+      "waypoints": [
+        {
+          "x": 59.923,
+          "y": -6
+        },
+        {
+          "x": 43.127,
+          "y": -6
+        }
+      ],
+      "color": "green"
+    },
+    {
+      "id": "w9",
+      "from": {
+        "part": "dip",
+        "pin": "1b"
+      },
+      "to": {
+        "part": "dip",
+        "pin": "2b"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w10",
+      "from": {
+        "part": "dip",
+        "pin": "2b"
+      },
+      "to": {
+        "part": "dip",
+        "pin": "3b"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w11",
+      "from": {
+        "part": "dip",
+        "pin": "3b"
+      },
+      "to": {
+        "part": "dip",
+        "pin": "4b"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w12",
+      "from": {
+        "part": "dip",
+        "pin": "4b"
+      },
+      "to": {
+        "part": "dip",
+        "pin": "5b"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w13",
+      "from": {
+        "part": "dip",
+        "pin": "5b"
+      },
+      "to": {
+        "part": "dip",
+        "pin": "6b"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w14",
+      "from": {
+        "part": "dip",
+        "pin": "6b"
+      },
+      "to": {
+        "part": "dip",
+        "pin": "7b"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w15",
+      "from": {
+        "part": "dip",
+        "pin": "7b"
+      },
+      "to": {
+        "part": "dip",
+        "pin": "8b"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w16",
+      "from": {
+        "part": "dip",
+        "pin": "1b"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [
+        {
+          "x": 42.143,
+          "y": -43.206
+        },
+        {
+          "x": 30.559,
+          "y": -43.206
+        }
+      ],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "inputs-report.hex",
+      "format": "hex"
+    }
+  }
+}

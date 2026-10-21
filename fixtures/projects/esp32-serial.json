@@ -1,0 +1,22 @@
+{
+  "format": 1,
+  "name": "esp32-serial",
+  "parts": [
+    {
+      "id": "esp",
+      "type": "esp32-devkit-v1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [],
+  "firmware": {
+    "esp": {
+      "kind": "file",
+      "name": "serial-hello.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

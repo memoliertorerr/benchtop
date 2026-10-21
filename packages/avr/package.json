@@ -1,0 +1,15 @@
+{
+  "name": "@benchtop/avr",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Arduino Uno (ATmega328P) MCU adapter built on avr8js. DOM-free.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@benchtop/core": "0.0.0",
+    "avr8js": "0.21.1"
+  }
+}

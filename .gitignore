@@ -1,0 +1,17 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.vite/
+.DS_Store
+# arduino-cli build folders for fixture sketches (fixed paths, see fixtures/README.md)
+fixtures/.build/
+# fetched inputs that are never committed (the ESP32 ROM: npm run fetch:esp32-rom)
+.cache/
+# local-only agent settings
+.claude/settings.local.json
+.claude/launch.json
+# user firmware dropped in for local testing (fixtures live under */fixtures/)
+*.local.hex
+*.local.bin
+*.local.elf

@@ -1,0 +1,326 @@
+{
+  "format": 1,
+  "name": "mega-chaser",
+  "parts": [
+    {
+      "id": "mega",
+      "type": "arduino-mega",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "bar",
+      "type": "led-bar-graph",
+      "x": 125,
+      "y": 3.36,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r1",
+      "type": "resistor",
+      "x": 135,
+      "y": 32,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "mega",
+        "pin": "23"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "A1"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "mega",
+        "pin": "25"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "A2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "mega",
+        "pin": "27"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "A3"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "mega",
+        "pin": "29"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "A4"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "mega",
+        "pin": "31"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "A5"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "mega",
+        "pin": "33"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "A6"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "mega",
+        "pin": "35"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "A7"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w8",
+      "from": {
+        "part": "mega",
+        "pin": "37"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "A8"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w9",
+      "from": {
+        "part": "mega",
+        "pin": "39"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "A9"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w10",
+      "from": {
+        "part": "mega",
+        "pin": "41"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "A10"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w11",
+      "from": {
+        "part": "bar",
+        "pin": "C1"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "C2"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w12",
+      "from": {
+        "part": "bar",
+        "pin": "C2"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "C3"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w13",
+      "from": {
+        "part": "bar",
+        "pin": "C3"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "C4"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w14",
+      "from": {
+        "part": "bar",
+        "pin": "C4"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "C5"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w15",
+      "from": {
+        "part": "bar",
+        "pin": "C5"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "C6"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w16",
+      "from": {
+        "part": "bar",
+        "pin": "C6"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "C7"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w17",
+      "from": {
+        "part": "bar",
+        "pin": "C7"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "C8"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w18",
+      "from": {
+        "part": "bar",
+        "pin": "C8"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "C9"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w19",
+      "from": {
+        "part": "bar",
+        "pin": "C9"
+      },
+      "to": {
+        "part": "bar",
+        "pin": "C10"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w20",
+      "from": {
+        "part": "bar",
+        "pin": "C10"
+      },
+      "to": {
+        "part": "r1",
+        "pin": "1"
+      },
+      "waypoints": [
+        {
+          "x": 133.831,
+          "y": 33.495
+        }
+      ],
+      "color": "black"
+    },
+    {
+      "id": "w21",
+      "from": {
+        "part": "r1",
+        "pin": "2"
+      },
+      "to": {
+        "part": "mega",
+        "pin": "GND.5"
+      },
+      "waypoints": [
+        {
+          "x": 150.557,
+          "y": 45.31
+        }
+      ],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "mega": {
+      "kind": "file",
+      "name": "chaser.hex",
+      "format": "hex"
+    }
+  }
+}

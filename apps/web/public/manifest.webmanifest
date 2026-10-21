@@ -1,0 +1,11 @@
+{
+  "name": "Benchtop",
+  "short_name": "Benchtop",
+  "description": "Arduino Uno and ESP32 circuit simulator that runs real firmware in the browser.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b1016",
+  "theme_color": "#0b1016",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

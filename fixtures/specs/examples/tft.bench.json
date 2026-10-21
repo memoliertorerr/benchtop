@@ -1,0 +1,11 @@
+{
+  "name": "example: tft",
+  "project": "../../projects/tft-demo.json",
+  "firmware": {
+    "uno": "../../firmware/uno/tft-demo.hex"
+  },
+  "expect": [
+    "serial contains \"drawn\" by 1s",
+    "serial matches /^0\\r?$/m by 1100ms"
+  ]
+}

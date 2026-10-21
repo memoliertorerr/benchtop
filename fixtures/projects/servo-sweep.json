@@ -1,0 +1,117 @@
+{
+  "format": 1,
+  "name": "servo-sweep",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "servo",
+      "type": "servo",
+      "x": 20,
+      "y": -50,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "servo",
+        "pin": "PWM"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "9"
+      },
+      "waypoints": [
+        {
+          "x": 14,
+          "y": -31.744
+        },
+        {
+          "x": 14,
+          "y": -6
+        },
+        {
+          "x": 43.127,
+          "y": -6
+        }
+      ],
+      "color": "orange"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "servo",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [
+        {
+          "x": 10,
+          "y": -36.771
+        },
+        {
+          "x": 10,
+          "y": -8
+        },
+        {
+          "x": 30.559,
+          "y": -8
+        }
+      ],
+      "color": "black"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "servo",
+        "pin": "V+"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [
+        {
+          "x": 6,
+          "y": -34.257
+        },
+        {
+          "x": 6,
+          "y": -10
+        },
+        {
+          "x": -4,
+          "y": -10
+        },
+        {
+          "x": -4,
+          "y": 57
+        },
+        {
+          "x": 42.333,
+          "y": 57
+        }
+      ],
+      "color": "red"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "servo-sweep.hex",
+      "format": "hex"
+    }
+  }
+}

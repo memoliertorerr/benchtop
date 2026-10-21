@@ -1,0 +1,28 @@
+{
+  "name": "example: esp32-button",
+  "project": "../../projects/esp32-button.json",
+  "firmware": {
+    "esp": "../../firmware/esp32/gpio-input.bin"
+  },
+  "steps": [
+    {
+      "at": "1s",
+      "part": "btn1",
+      "input": {
+        "kind": "press"
+      }
+    },
+    {
+      "at": "1300ms",
+      "part": "btn1",
+      "input": {
+        "kind": "release"
+      }
+    }
+  ],
+  "expect": [
+    "led led1 is dark at 950ms",
+    "led led1 is lit at 1250ms",
+    "led led1 is dark at 2s"
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "name": "two boards: Uno pings, ESP32 pongs",
+  "project": "../projects/uart-chat.json",
+  "firmware": { "uno": "../firmware/uno/uart-chat.hex", "esp": "../firmware/esp32/uart-chat.bin" },
+  "expect": ["serial[esp] contains \"ping 1 -> pong 1\" by 2s", "serial[uno] contains \"got pong 1\" by 2s"]
+}

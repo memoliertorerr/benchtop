@@ -1,0 +1,62 @@
+{
+  "format": 1,
+  "name": "uno-esp32-uart",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "esp",
+      "type": "esp32-devkit-v1",
+      "x": 100,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "uno",
+        "pin": "1"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "RX2"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "uart-ping.hex",
+      "format": "hex"
+    },
+    "esp": {
+      "kind": "file",
+      "name": "uart-relay.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

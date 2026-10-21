@@ -1,0 +1,13 @@
+{
+  "name": "example: bargraph",
+  "project": "../../projects/bargraph.json",
+  "firmware": {
+    "uno": "../../firmware/uno/bargraph.hex"
+  },
+  "expect": [
+    "pin uno:11 is 1 at 1s",
+    "pin uno:6 is 1 at 1s",
+    "pin uno:5 is 0 at 1s",
+    "pin uno:2 is 0 at 1s"
+  ]
+}

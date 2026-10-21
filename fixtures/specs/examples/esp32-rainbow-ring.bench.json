@@ -1,0 +1,11 @@
+{
+  "name": "example: esp32-rainbow-ring",
+  "project": "../../projects/esp32-rainbow-ring.json",
+  "firmware": {
+    "esp": "../../firmware/esp32/rainbow-ring.bin"
+  },
+  "expect": [
+    "pixel ring[0] is #004e07 at 1200ms",
+    "pixel ring[0] is #000e47 at 2s"
+  ]
+}

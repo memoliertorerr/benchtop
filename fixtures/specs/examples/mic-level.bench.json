@@ -1,0 +1,10 @@
+{
+  "name": "example: mic-level",
+  "project": "../../projects/mic-level.json",
+  "firmware": {
+    "uno": "../../firmware/uno/mic-level.hex"
+  },
+  "expect": [
+    "serial matches /^\\d+\\r?$/m by 1200ms"
+  ]
+}

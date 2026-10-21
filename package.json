@@ -1,0 +1,36 @@
+{
+  "name": "benchtop",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Fast, visual Arduino Uno + ESP32 circuit simulator for debugging sketches without hardware.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @benchtop/web",
+    "bridge": "node apps/bridge/src/main.ts",
+    "bench": "node apps/cli/src/main.ts",
+    "bench:esp32": "node scripts/bench-esp32.ts",
+    "start": "npm run build && node apps/bridge/src/main.ts --serve apps/web/dist",
+    "build": "npm run build -w @benchtop/web",
+    "fixtures": "node scripts/build-fixtures.ts",
+    "fetch:esp32-rom": "node scripts/fetch-esp32-rom.ts",
+    "screenshots": "node scripts/screenshots.ts",
+    "typecheck": "tsc -p tsconfig.json && tsc -p apps/web/tsconfig.json && tsc -p apps/bridge/tsconfig.json && tsc -p apps/cli/tsconfig.json && tsc -p tsconfig.node.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "verify": "npm run typecheck && npm run test && npm run bench -- test fixtures/specs && npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.1",
+    "typescript": "7.0.2",
+    "vite": "8.3.2",
+    "vitest": "5.0.3"
+  }
+}

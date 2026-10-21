@@ -1,0 +1,10 @@
+{
+  "name": "example: oled",
+  "project": "../../projects/ssd1306-adafruit.json",
+  "firmware": {
+    "uno": "../../firmware/uno/ssd1306-adafruit.hex"
+  },
+  "expect": [
+    "serial contains \"FB:\" by 2s"
+  ]
+}

@@ -1,0 +1,135 @@
+{
+  "format": 1,
+  "name": "esp32-tft-demo",
+  "parts": [
+    {
+      "id": "esp",
+      "type": "esp32-devkit-v1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "tft",
+      "type": "ili9341",
+      "x": 45,
+      "y": -20,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "tft",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "3V3"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "tft",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "tft",
+        "pin": "CS"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "D5"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "tft",
+        "pin": "RST"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "D22"
+      },
+      "waypoints": [],
+      "color": "purple"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "tft",
+        "pin": "D/C"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "D4"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "tft",
+        "pin": "MOSI"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "D23"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "tft",
+        "pin": "SCK"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "D18"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w8",
+      "from": {
+        "part": "tft",
+        "pin": "LED"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "3V3"
+      },
+      "waypoints": [],
+      "color": "red"
+    }
+  ],
+  "firmware": {
+    "esp": {
+      "kind": "file",
+      "name": "tft-demo.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

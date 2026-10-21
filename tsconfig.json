@@ -1,0 +1,6 @@
+{
+  "//": "DOM-free check for production code in packages/*: it must run in a Web Worker and in plain Node. Tests and scripts are checked by tsconfig.node.json; apps/web has its own tsconfig.",
+  "extends": "./tsconfig.base.json",
+  "include": ["packages/*/src/**/*.ts"],
+  "exclude": ["**/*.test.ts", "**/*.test-helper.ts"]
+}

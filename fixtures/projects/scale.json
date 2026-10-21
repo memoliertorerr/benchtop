@@ -1,0 +1,85 @@
+{
+  "format": 1,
+  "name": "scale",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "cell",
+      "type": "hx711",
+      "x": 85,
+      "y": 0,
+      "rotation": 0,
+      "props": {
+        "type": "5kg"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "cell",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "cell",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "cell",
+        "pin": "DT"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "3"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "cell",
+        "pin": "SCK"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "blue"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "scale.hex",
+      "format": "hex"
+    }
+  }
+}

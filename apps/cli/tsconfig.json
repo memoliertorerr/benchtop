@@ -1,0 +1,10 @@
+{
+  "//": "The CLI is a Node app: Node types, no DOM. Run with plain `node` (type stripping).",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
+}

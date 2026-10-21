@@ -1,0 +1,19 @@
+{
+  "//": "Tests, scripts and tool configs: Node types allowed (tests read fixtures with node:fs); vite/client for the web tests that import ?raw/?url modules.",
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node", "vite/client"],
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact"
+  },
+  "include": [
+    "packages/*/src/**/*.test.ts",
+    "packages/*/src/**/*.test-helper.ts",
+    "apps/*/src/**/*.test.ts",
+    "apps/*/src/**/*.test.tsx",
+    "apps/*/src/**/*.test-helper.ts",
+    "scripts/**/*.ts",
+    "vitest.config.ts"
+  ]
+}

@@ -1,0 +1,137 @@
+{
+  "format": 1,
+  "name": "ds1307",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "rtc",
+      "type": "ds1307",
+      "x": -40,
+      "y": 20,
+      "rotation": 0,
+      "props": {
+        "start": "2026-01-01T00:00:00"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "rtc",
+        "pin": "SDA"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "A4"
+      },
+      "waypoints": [
+        {
+          "x": -40.486,
+          "y": 29.128
+        },
+        {
+          "x": -40.486,
+          "y": 58
+        },
+        {
+          "x": 65.088,
+          "y": 58
+        }
+      ],
+      "color": "blue"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "rtc",
+        "pin": "SCL"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "A5"
+      },
+      "waypoints": [
+        {
+          "x": -41.686,
+          "y": 31.642
+        },
+        {
+          "x": -41.686,
+          "y": 59.4
+        },
+        {
+          "x": 67.601,
+          "y": 59.4
+        }
+      ],
+      "color": "yellow"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "rtc",
+        "pin": "5V"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [
+        {
+          "x": -42.886,
+          "y": 26.615
+        },
+        {
+          "x": -42.886,
+          "y": 60.8
+        },
+        {
+          "x": 42.333,
+          "y": 60.8
+        }
+      ],
+      "color": "red"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "rtc",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.2"
+      },
+      "waypoints": [
+        {
+          "x": -44.086,
+          "y": 23.969
+        },
+        {
+          "x": -44.086,
+          "y": 62.2
+        },
+        {
+          "x": 44.847,
+          "y": 62.2
+        }
+      ],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "ds1307.hex",
+      "format": "hex"
+    }
+  }
+}

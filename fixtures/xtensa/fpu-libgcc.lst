@@ -1,0 +1,147 @@
+
+fpu-libgcc.elf:     file format elf32-xtensa-le
+
+
+Disassembly of section .text:
+
+40080000 <_start>:
+40080000:	000306        	j	40080010 <_start+0x10>
+40080003:	00          	.byte 00
+40080004:	00 00 fc 3f 	
+40080008:	20 00 04 00 	
+4008000c:	00 08 fb 3f 	
+40080010:	fffd11        	l32r	a1, 40080004 <_start+0x4>
+40080013:	fffd21        	l32r	a2, 40080008 <_start+0x8>
+40080016:	13e620        	wsr.ps	a2
+40080019:	120c      	movi.n	a2, 1
+4008001b:	13e020        	wsr.cpenable	a2
+4008001e:	002010        	rsync
+40080021:	fffa41        	l32r	a4, 4008000c <_start+0xc>
+40080024:	2428      	l32i.n	a2, a4, 8
+40080026:	f3e820        	wur.fcr	a2
+40080029:	020c      	movi.n	a2, 0
+4008002b:	f3e920        	wur.fsr	a2
+4008002e:	04a8      	l32i.n	a10, a4, 0
+40080030:	14b8      	l32i.n	a11, a4, 4
+40080032:	4458      	l32i.n	a5, a4, 16
+40080034:	0d1526        	beqi	a5, 1, 40080045 <_start+0x45>
+40080037:	122526        	beqi	a5, 2, 4008004d <_start+0x4d>
+4008003a:	173526        	beqi	a5, 3, 40080055 <_start+0x55>
+4008003d:	000265        	call8	40080064 <__divsf3>
+40080040:	000506        	j	40080058 <_start+0x58>
+40080043:	00          	.byte 00
+40080044:	00          	.byte 00
+40080045:	0007a5        	call8	400800c0 <__ieee754_sqrtf>
+40080048:	000306        	j	40080058 <_start+0x58>
+4008004b:	00          	.byte 00
+4008004c:	00          	.byte 00
+4008004d:	000d65        	call8	40080124 <__recipsf2>
+40080050:	000106        	j	40080058 <_start+0x58>
+40080053:	00          	.byte 00
+40080054:	00          	.byte 00
+40080055:	000ee5        	call8	40080144 <__rsqrtsf2>
+40080058:	54a9      	s32i.n	a10, a4, 20
+4008005a:	e32e90        	rur.fsr	a2
+4008005d:	6429      	s32i.n	a2, a4, 24
+4008005f:	0041f0        	break	1, 15
+	...
+
+40080064 <__divsf3>:
+40080064:	002136        	entry	a1, 16
+40080067:	fa1250        	wfr	f1, a2
+4008006a:	fa2350        	wfr	f2, a3
+4008006d:	fa3270        	div0.s	f3, f2
+40080070:	fa42b0        	nexp01.s	f4, f2
+40080073:	fa5130        	const.s	f5, 1
+40080076:	6a5430        	maddn.s	f5, f4, f3
+40080079:	fa6300        	mov.s	f6, f3
+4008007c:	fa7200        	mov.s	f7, f2
+4008007f:	fa21b0        	nexp01.s	f2, f1
+40080082:	6a6560        	maddn.s	f6, f5, f6
+40080085:	fa5130        	const.s	f5, 1
+40080088:	fa0030        	const.s	f0, 0
+4008008b:	fa8260        	neg.s	f8, f2
+4008008e:	6a5460        	maddn.s	f5, f4, f6
+40080091:	6a0830        	maddn.s	f0, f8, f3
+40080094:	fa71d0        	mkdadj.s	f7, f1
+40080097:	6a6560        	maddn.s	f6, f5, f6
+4008009a:	6a8400        	maddn.s	f8, f4, f0
+4008009d:	fa3130        	const.s	f3, 1
+400800a0:	6a3460        	maddn.s	f3, f4, f6
+400800a3:	6a0860        	maddn.s	f0, f8, f6
+400800a6:	fa2260        	neg.s	f2, f2
+400800a9:	6a6360        	maddn.s	f6, f3, f6
+400800ac:	6a2400        	maddn.s	f2, f4, f0
+400800af:	fa07f0        	addexpm.s	f0, f7
+400800b2:	fa67e0        	addexp.s	f6, f7
+400800b5:	7a0260        	divn.s	f0, f2, f6
+400800b8:	fa2040        	rfr	a2, f0
+400800bb:	f01d      	retw.n
+400800bd:	000000        	ill
+
+400800c0 <__ieee754_sqrtf>:
+400800c0:	002136        	entry	a1, 16
+400800c3:	fa1250        	wfr	f1, a2
+400800c6:	fa2190        	sqrt0.s	f2, f1
+400800c9:	fa3030        	const.s	f3, 0
+400800cc:	6a3220        	maddn.s	f3, f2, f2
+400800cf:	fa41b0        	nexp01.s	f4, f1
+400800d2:	fa0330        	const.s	f0, 3
+400800d5:	fa40e0        	addexp.s	f4, f0
+400800d8:	6a0340        	maddn.s	f0, f3, f4
+400800db:	fa31b0        	nexp01.s	f3, f1
+400800de:	fa5360        	neg.s	f5, f3
+400800e1:	6a2020        	maddn.s	f2, f0, f2
+400800e4:	fa0030        	const.s	f0, 0
+400800e7:	fa6030        	const.s	f6, 0
+400800ea:	fa7030        	const.s	f7, 0
+400800ed:	6a0520        	maddn.s	f0, f5, f2
+400800f0:	6a6240        	maddn.s	f6, f2, f4
+400800f3:	fa4330        	const.s	f4, 3
+400800f6:	6a7420        	maddn.s	f7, f4, f2
+400800f9:	6a3000        	maddn.s	f3, f0, f0
+400800fc:	6a4620        	maddn.s	f4, f6, f2
+400800ff:	fa2760        	neg.s	f2, f7
+40080102:	6a0320        	maddn.s	f0, f3, f2
+40080105:	6a7470        	maddn.s	f7, f4, f7
+40080108:	fa21c0        	mksadj.s	f2, f1
+4008010b:	fa11b0        	nexp01.s	f1, f1
+4008010e:	6a1000        	maddn.s	f1, f0, f0
+40080111:	fa3760        	neg.s	f3, f7
+40080114:	fa02f0        	addexpm.s	f0, f2
+40080117:	fa32e0        	addexp.s	f3, f2
+4008011a:	7a0130        	divn.s	f0, f1, f3
+4008011d:	fa2040        	rfr	a2, f0
+40080120:	f01d      	retw.n
+	...
+
+40080124 <__recipsf2>:
+40080124:	002136        	entry	a1, 16
+40080127:	fa1250        	wfr	f1, a2
+4008012a:	fa0180        	recip0.s	f0, f1
+4008012d:	fa2130        	const.s	f2, 1
+40080130:	5a2100        	msub.s	f2, f1, f0
+40080133:	6a0020        	maddn.s	f0, f0, f2
+40080136:	fa2130        	const.s	f2, 1
+40080139:	5a2100        	msub.s	f2, f1, f0
+4008013c:	6a0020        	maddn.s	f0, f0, f2
+4008013f:	fa2040        	rfr	a2, f0
+40080142:	f01d      	retw.n
+
+40080144 <__rsqrtsf2>:
+40080144:	002136        	entry	a1, 16
+40080147:	fa1250        	wfr	f1, a2
+4008014a:	fa01a0        	rsqrt0.s	f0, f1
+4008014d:	2a2100        	mul.s	f2, f1, f0
+40080150:	fa3330        	const.s	f3, 3
+40080153:	2a4300        	mul.s	f4, f3, f0
+40080156:	fa5130        	const.s	f5, 1
+40080159:	5a5200        	msub.s	f5, f2, f0
+4008015c:	6a0450        	maddn.s	f0, f4, f5
+4008015f:	2a2100        	mul.s	f2, f1, f0
+40080162:	2a1300        	mul.s	f1, f3, f0
+40080165:	fa3130        	const.s	f3, 1
+40080168:	5a3200        	msub.s	f3, f2, f0
+4008016b:	6a0130        	maddn.s	f0, f1, f3
+4008016e:	fa2040        	rfr	a2, f0
+40080171:	f01d      	retw.n

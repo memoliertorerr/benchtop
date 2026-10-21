@@ -1,0 +1,209 @@
+
+mac16.elf:     file format elf32-xtensa-le
+
+
+Disassembly of section .text:
+
+40080000 <_start>:
+40080000:	000e06        	j	4008003c <_start+0x3c>
+40080003:	00          	.byte 00
+40080004:	00 00 fc 3f 	
+40080008:	00 04 fb 3f 	
+4008000c:	fe ff 03 00 	
+40080010:	07 00 05 00 	
+40080014:	ff 7f 00 00 	
+40080018:	03 00 02 00 	
+4008001c:	0b 00 f9 ff 	
+40080020:	05 00 04 00 	
+40080024:	ff ff 00 80 	
+40080028:	00 02 fb 3f 	
+4008002c:	11 11 11 11 	
+40080030:	22 22 22 22 	
+40080034:	33 33 33 33 	
+40080038:	44 44 44 44 	
+4008003c:	fff211        	l32r	a1, 40080004 <_start+0x4>
+4008003f:	fff2f1        	l32r	a15, 40080008 <_start+0x8>
+40080042:	022c      	movi.n	a2, 32
+40080044:	13e620        	wsr.ps	a2
+40080047:	002010        	rsync
+4008004a:	fff021        	l32r	a2, 4008000c <_start+0xc>
+4008004d:	fff031        	l32r	a3, 40080010 <_start+0x10>
+40080050:	740234        	mul.aa.ll	a2, a3
+40080053:	031080        	rsr.acclo	a8
+40080056:	0f89      	s32i.n	a8, a15, 0
+40080058:	ff4b      	addi.n	a15, a15, 4
+4008005a:	031180        	rsr.acchi	a8
+4008005d:	0f89      	s32i.n	a8, a15, 0
+4008005f:	ff4b      	addi.n	a15, a15, 4
+40080061:	750234        	mul.aa.hl	a2, a3
+40080064:	031080        	rsr.acclo	a8
+40080067:	0f89      	s32i.n	a8, a15, 0
+40080069:	ff4b      	addi.n	a15, a15, 4
+4008006b:	031180        	rsr.acchi	a8
+4008006e:	0f89      	s32i.n	a8, a15, 0
+40080070:	ff4b      	addi.n	a15, a15, 4
+40080072:	760234        	mul.aa.lh	a2, a3
+40080075:	031080        	rsr.acclo	a8
+40080078:	0f89      	s32i.n	a8, a15, 0
+4008007a:	ff4b      	addi.n	a15, a15, 4
+4008007c:	031180        	rsr.acchi	a8
+4008007f:	0f89      	s32i.n	a8, a15, 0
+40080081:	ff4b      	addi.n	a15, a15, 4
+40080083:	770234        	mul.aa.hh	a2, a3
+40080086:	031080        	rsr.acclo	a8
+40080089:	0f89      	s32i.n	a8, a15, 0
+4008008b:	ff4b      	addi.n	a15, a15, 4
+4008008d:	031180        	rsr.acchi	a8
+40080090:	0f89      	s32i.n	a8, a15, 0
+40080092:	ff4b      	addi.n	a15, a15, 4
+40080094:	700234        	umul.aa.ll	a2, a3
+40080097:	031080        	rsr.acclo	a8
+4008009a:	0f89      	s32i.n	a8, a15, 0
+4008009c:	ff4b      	addi.n	a15, a15, 4
+4008009e:	031180        	rsr.acchi	a8
+400800a1:	0f89      	s32i.n	a8, a15, 0
+400800a3:	ff4b      	addi.n	a15, a15, 4
+400800a5:	730234        	umul.aa.hh	a2, a3
+400800a8:	031080        	rsr.acclo	a8
+400800ab:	0f89      	s32i.n	a8, a15, 0
+400800ad:	ff4b      	addi.n	a15, a15, 4
+400800af:	031180        	rsr.acchi	a8
+400800b2:	0f89      	s32i.n	a8, a15, 0
+400800b4:	ff4b      	addi.n	a15, a15, 4
+400800b6:	00a082        	movi	a8, 0
+400800b9:	131080        	wsr.acclo	a8
+400800bc:	131180        	wsr.acchi	a8
+400800bf:	ffd561        	l32r	a6, 40080014 <_start+0x14>
+400800c2:	2ca172        	movi	a7, 0x12c
+400800c5:	028776        	loop	a7, 400800cb <_start+0xcb>
+400800c8:	780664        	mula.aa.ll	a6, a6
+400800cb:	031080        	rsr.acclo	a8
+400800ce:	0f89      	s32i.n	a8, a15, 0
+400800d0:	ff4b      	addi.n	a15, a15, 4
+400800d2:	031180        	rsr.acchi	a8
+400800d5:	0f89      	s32i.n	a8, a15, 0
+400800d7:	04cff2        	addi	a15, a15, 4
+400800da:	bca272        	movi	a7, 0x2bc
+400800dd:	028776        	loop	a7, 400800e3 <_start+0xe3>
+400800e0:	7c0664        	muls.aa.ll	a6, a6
+400800e3:	031080        	rsr.acclo	a8
+400800e6:	0f89      	s32i.n	a8, a15, 0
+400800e8:	ff4b      	addi.n	a15, a15, 4
+400800ea:	031180        	rsr.acchi	a8
+400800ed:	0f89      	s32i.n	a8, a15, 0
+400800ef:	ff4b      	addi.n	a15, a15, 4
+400800f1:	f87c      	movi.n	a8, -1
+400800f3:	131080        	wsr.acclo	a8
+400800f6:	7fa082        	movi	a8, 127
+400800f9:	131180        	wsr.acchi	a8
+400800fc:	160c      	movi.n	a6, 1
+400800fe:	780664        	mula.aa.ll	a6, a6
+40080101:	031080        	rsr.acclo	a8
+40080104:	0f89      	s32i.n	a8, a15, 0
+40080106:	ff4b      	addi.n	a15, a15, 4
+40080108:	031180        	rsr.acchi	a8
+4008010b:	0f89      	s32i.n	a8, a15, 0
+4008010d:	ff4b      	addi.n	a15, a15, 4
+4008010f:	ffc281        	l32r	a8, 40080018 <_start+0x18>
+40080112:	132080        	wsr.m0	a8
+40080115:	ffc181        	l32r	a8, 4008001c <_start+0x1c>
+40080118:	132180        	wsr.m1	a8
+4008011b:	ffc181        	l32r	a8, 40080020 <_start+0x20>
+4008011e:	132280        	wsr.m2	a8
+40080121:	ffc081        	l32r	a8, 40080024 <_start+0x24>
+40080124:	132380        	wsr.m3	a8
+40080127:	340204        	mul.ad.ll	a2, m2
+4008012a:	031080        	rsr.acclo	a8
+4008012d:	0f89      	s32i.n	a8, a15, 0
+4008012f:	ff4b      	addi.n	a15, a15, 4
+40080131:	031180        	rsr.acchi	a8
+40080134:	0f89      	s32i.n	a8, a15, 0
+40080136:	ff4b      	addi.n	a15, a15, 4
+40080138:	370344        	mul.ad.hh	a3, m3
+4008013b:	031080        	rsr.acclo	a8
+4008013e:	0f89      	s32i.n	a8, a15, 0
+40080140:	ff4b      	addi.n	a15, a15, 4
+40080142:	031180        	rsr.acchi	a8
+40080145:	0f89      	s32i.n	a8, a15, 0
+40080147:	ff4b      	addi.n	a15, a15, 4
+40080149:	660034        	mul.da.lh	m0, a3
+4008014c:	031080        	rsr.acclo	a8
+4008014f:	0f89      	s32i.n	a8, a15, 0
+40080151:	ff4b      	addi.n	a15, a15, 4
+40080153:	031180        	rsr.acchi	a8
+40080156:	0f89      	s32i.n	a8, a15, 0
+40080158:	ff4b      	addi.n	a15, a15, 4
+4008015a:	654024        	mul.da.hl	m1, a2
+4008015d:	031080        	rsr.acclo	a8
+40080160:	0f89      	s32i.n	a8, a15, 0
+40080162:	ff4b      	addi.n	a15, a15, 4
+40080164:	031180        	rsr.acchi	a8
+40080167:	0f89      	s32i.n	a8, a15, 0
+40080169:	ff4b      	addi.n	a15, a15, 4
+4008016b:	274004        	mul.dd.hh	m1, m2
+4008016e:	031080        	rsr.acclo	a8
+40080171:	0f89      	s32i.n	a8, a15, 0
+40080173:	ff4b      	addi.n	a15, a15, 4
+40080175:	031180        	rsr.acchi	a8
+40080178:	0f89      	s32i.n	a8, a15, 0
+4008017a:	ff4b      	addi.n	a15, a15, 4
+4008017c:	260044        	mul.dd.lh	m0, m3
+4008017f:	031080        	rsr.acclo	a8
+40080182:	0f89      	s32i.n	a8, a15, 0
+40080184:	ff4b      	addi.n	a15, a15, 4
+40080186:	031180        	rsr.acchi	a8
+40080189:	0f89      	s32i.n	a8, a15, 0
+4008018b:	ff4b      	addi.n	a15, a15, 4
+4008018d:	ffa641        	l32r	a4, 40080028 <_start+0x28>
+40080190:	ffa781        	l32r	a8, 4008002c <_start+0x2c>
+40080193:	0489      	s32i.n	a8, a4, 0
+40080195:	ffa681        	l32r	a8, 40080030 <_start+0x30>
+40080198:	1489      	s32i.n	a8, a4, 4
+4008019a:	ffa681        	l32r	a8, 40080034 <_start+0x34>
+4008019d:	2489      	s32i.n	a8, a4, 8
+4008019f:	ffa681        	l32r	a8, 40080038 <_start+0x38>
+400801a2:	3489      	s32i.n	a8, a4, 12
+400801a4:	ffa191        	l32r	a9, 40080028 <_start+0x28>
+400801a7:	fcc942        	addi	a4, a9, -4
+400801aa:	800404        	ldinc	m0, a4
+400801ad:	032080        	rsr.m0	a8
+400801b0:	0f89      	s32i.n	a8, a15, 0
+400801b2:	ff4b      	addi.n	a15, a15, 4
+400801b4:	c08490        	sub	a8, a4, a9
+400801b7:	0f89      	s32i.n	a8, a15, 0
+400801b9:	ff4b      	addi.n	a15, a15, 4
+400801bb:	598b      	addi.n	a5, a9, 8
+400801bd:	901504        	lddec	m1, a5
+400801c0:	032180        	rsr.m1	a8
+400801c3:	0f89      	s32i.n	a8, a15, 0
+400801c5:	ff4b      	addi.n	a15, a15, 4
+400801c7:	c08590        	sub	a8, a5, a9
+400801ca:	0f89      	s32i.n	a8, a15, 0
+400801cc:	ff4b      	addi.n	a15, a15, 4
+400801ce:	080c      	movi.n	a8, 0
+400801d0:	131080        	wsr.acclo	a8
+400801d3:	131180        	wsr.acchi	a8
+400801d6:	ff9281        	l32r	a8, 40080020 <_start+0x20>
+400801d9:	132280        	wsr.m2	a8
+400801dc:	080404        	mula.dd.ll.ldinc	m0, a4, m0, m2
+400801df:	031080        	rsr.acclo	a8
+400801e2:	0f89      	s32i.n	a8, a15, 0
+400801e4:	ff4b      	addi.n	a15, a15, 4
+400801e6:	032080        	rsr.m0	a8
+400801e9:	0f89      	s32i.n	a8, a15, 0
+400801eb:	ff4b      	addi.n	a15, a15, 4
+400801ed:	c08490        	sub	a8, a4, a9
+400801f0:	0f89      	s32i.n	a8, a15, 0
+400801f2:	ff4b      	addi.n	a15, a15, 4
+400801f4:	5b7534        	mula.da.hh.lddec	m3, a5, m1, a3
+400801f7:	031080        	rsr.acclo	a8
+400801fa:	0f89      	s32i.n	a8, a15, 0
+400801fc:	ff4b      	addi.n	a15, a15, 4
+400801fe:	032380        	rsr.m3	a8
+40080201:	0f89      	s32i.n	a8, a15, 0
+40080203:	ff4b      	addi.n	a15, a15, 4
+40080205:	c08590        	sub	a8, a5, a9
+40080208:	0f89      	s32i.n	a8, a15, 0
+4008020a:	ff4b      	addi.n	a15, a15, 4
+4008020c:	0041f0        	break	1, 15
+	...

@@ -1,0 +1,145 @@
+
+alu.elf:     file format elf32-xtensa-le
+
+
+Disassembly of section .text:
+
+40080000 <_start>:
+40080000:	000606        	j	4008001c <_start+0x1c>
+40080003:	00          	.byte 00
+40080004:	00 00 fc 3f 	
+40080008:	00 04 fb 3f 	
+4008000c:	f0 f0 00 00 	
+40080010:	f0 0f 00 00 	
+40080014:	00 00 00 80 	
+40080018:	45 23 01 00 	
+4008001c:	fffa11        	l32r	a1, 40080004 <_start+0x4>
+4008001f:	fffaf1        	l32r	a15, 40080008 <_start+0x8>
+40080022:	720c      	movi.n	a2, 7
+40080024:	530c      	movi.n	a3, 5
+40080026:	804230        	add	a4, a2, a3
+40080029:	0f49      	s32i.n	a4, a15, 0
+4008002b:	ff4b      	addi.n	a15, a15, 4
+4008002d:	c04230        	sub	a4, a2, a3
+40080030:	0f49      	s32i.n	a4, a15, 0
+40080032:	ff4b      	addi.n	a15, a15, 4
+40080034:	c04320        	sub	a4, a3, a2
+40080037:	0f49      	s32i.n	a4, a15, 0
+40080039:	ff4b      	addi.n	a15, a15, 4
+4008003b:	904230        	addx2	a4, a2, a3
+4008003e:	0f49      	s32i.n	a4, a15, 0
+40080040:	ff4b      	addi.n	a15, a15, 4
+40080042:	a04230        	addx4	a4, a2, a3
+40080045:	0f49      	s32i.n	a4, a15, 0
+40080047:	ff4b      	addi.n	a15, a15, 4
+40080049:	b04230        	addx8	a4, a2, a3
+4008004c:	0f49      	s32i.n	a4, a15, 0
+4008004e:	ff4b      	addi.n	a15, a15, 4
+40080050:	d04230        	subx2	a4, a2, a3
+40080053:	0f49      	s32i.n	a4, a15, 0
+40080055:	ff4b      	addi.n	a15, a15, 4
+40080057:	e04230        	subx4	a4, a2, a3
+4008005a:	0f49      	s32i.n	a4, a15, 0
+4008005c:	ff4b      	addi.n	a15, a15, 4
+4008005e:	f04230        	subx8	a4, a2, a3
+40080061:	0f49      	s32i.n	a4, a15, 0
+40080063:	ff4b      	addi.n	a15, a15, 4
+40080065:	ffe951        	l32r	a5, 4008000c <_start+0xc>
+40080068:	ffea61        	l32r	a6, 40080010 <_start+0x10>
+4008006b:	104560        	and	a4, a5, a6
+4008006e:	0f49      	s32i.n	a4, a15, 0
+40080070:	ff4b      	addi.n	a15, a15, 4
+40080072:	204560        	or	a4, a5, a6
+40080075:	0f49      	s32i.n	a4, a15, 0
+40080077:	ff4b      	addi.n	a15, a15, 4
+40080079:	304560        	xor	a4, a5, a6
+4008007c:	0f49      	s32i.n	a4, a15, 0
+4008007e:	ff4b      	addi.n	a15, a15, 4
+40080080:	604020        	neg	a4, a2
+40080083:	0f49      	s32i.n	a4, a15, 0
+40080085:	ff4b      	addi.n	a15, a15, 4
+40080087:	604140        	abs	a4, a4
+4008008a:	0f49      	s32i.n	a4, a15, 0
+4008008c:	ff4b      	addi.n	a15, a15, 4
+4008008e:	ffe171        	l32r	a7, 40080014 <_start+0x14>
+40080091:	604170        	abs	a4, a7
+40080094:	0f49      	s32i.n	a4, a15, 0
+40080096:	ff4b      	addi.n	a15, a15, 4
+40080098:	d87c      	movi.n	a8, -3
+4008009a:	434280        	min	a4, a2, a8
+4008009d:	0f49      	s32i.n	a4, a15, 0
+4008009f:	ff4b      	addi.n	a15, a15, 4
+400800a1:	534280        	max	a4, a2, a8
+400800a4:	0f49      	s32i.n	a4, a15, 0
+400800a6:	ff4b      	addi.n	a15, a15, 4
+400800a8:	634280        	minu	a4, a2, a8
+400800ab:	0f49      	s32i.n	a4, a15, 0
+400800ad:	ff4b      	addi.n	a15, a15, 4
+400800af:	734280        	maxu	a4, a2, a8
+400800b2:	0f49      	s32i.n	a4, a15, 0
+400800b4:	ff4b      	addi.n	a15, a15, 4
+400800b6:	ffa192        	movi	a9, 0x1ff
+400800b9:	234900        	sext	a4, a9, 7
+400800bc:	0f49      	s32i.n	a4, a15, 0
+400800be:	ff4b      	addi.n	a15, a15, 4
+400800c0:	7fa192        	movi	a9, 0x17f
+400800c3:	234900        	sext	a4, a9, 7
+400800c6:	0f49      	s32i.n	a4, a15, 0
+400800c8:	ff4b      	addi.n	a15, a15, 4
+400800ca:	ffd391        	l32r	a9, 40080018 <_start+0x18>
+400800cd:	234980        	sext	a4, a9, 15
+400800d0:	0f49      	s32i.n	a4, a15, 0
+400800d2:	ff4b      	addi.n	a15, a15, 4
+400800d4:	e8a392        	movi	a9, 0x3e8
+400800d7:	334900        	clamps	a4, a9, 7
+400800da:	0f49      	s32i.n	a4, a15, 0
+400800dc:	ff4b      	addi.n	a15, a15, 4
+400800de:	18ac92        	movi	a9, 0xfffffc18
+400800e1:	334900        	clamps	a4, a9, 7
+400800e4:	0f49      	s32i.n	a4, a15, 0
+400800e6:	ff4b      	addi.n	a15, a15, 4
+400800e8:	64a092        	movi	a9, 100
+400800eb:	334900        	clamps	a4, a9, 7
+400800ee:	0f49      	s32i.n	a4, a15, 0
+400800f0:	ff4b      	addi.n	a15, a15, 4
+400800f2:	190c      	movi.n	a9, 1
+400800f4:	40f940        	nsau	a4, a9
+400800f7:	0f49      	s32i.n	a4, a15, 0
+400800f9:	ff4b      	addi.n	a15, a15, 4
+400800fb:	090c      	movi.n	a9, 0
+400800fd:	40f940        	nsau	a4, a9
+40080100:	0f49      	s32i.n	a4, a15, 0
+40080102:	ff4b      	addi.n	a15, a15, 4
+40080104:	190c      	movi.n	a9, 1
+40080106:	40e940        	nsa	a4, a9
+40080109:	0f49      	s32i.n	a4, a15, 0
+4008010b:	ff4b      	addi.n	a15, a15, 4
+4008010d:	e97c      	movi.n	a9, -2
+4008010f:	40e940        	nsa	a4, a9
+40080112:	0f49      	s32i.n	a4, a15, 0
+40080114:	ff4b      	addi.n	a15, a15, 4
+40080116:	090c      	movi.n	a9, 0
+40080118:	40e940        	nsa	a4, a9
+4008011b:	0f49      	s32i.n	a4, a15, 0
+4008011d:	ff4b      	addi.n	a15, a15, 4
+4008011f:	dea0a2        	movi	a10, 222
+40080122:	0b0c      	movi.n	a11, 0
+40080124:	6fa042        	movi	a4, 111
+40080127:	834ab0        	moveqz	a4, a10, a11
+4008012a:	0f49      	s32i.n	a4, a15, 0
+4008012c:	ff4b      	addi.n	a15, a15, 4
+4008012e:	6fa042        	movi	a4, 111
+40080131:	934ab0        	movnez	a4, a10, a11
+40080134:	0f49      	s32i.n	a4, a15, 0
+40080136:	ff4b      	addi.n	a15, a15, 4
+40080138:	bb7c      	movi.n	a11, -5
+4008013a:	6fa042        	movi	a4, 111
+4008013d:	a34ab0        	movltz	a4, a10, a11
+40080140:	0f49      	s32i.n	a4, a15, 0
+40080142:	ff4b      	addi.n	a15, a15, 4
+40080144:	6fa042        	movi	a4, 111
+40080147:	b34ab0        	movgez	a4, a10, a11
+4008014a:	0f49      	s32i.n	a4, a15, 0
+4008014c:	ff4b      	addi.n	a15, a15, 4
+4008014e:	0041f0        	break	1, 15
+40080151:	000000        	ill

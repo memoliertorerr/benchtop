@@ -1,0 +1,12 @@
+{
+  "name": "example: neopixel",
+  "project": "../../projects/neopixel.json",
+  "firmware": {
+    "uno": "../../firmware/uno/neopixel.hex"
+  },
+  "expect": [
+    "serial contains \"sent\" by 500ms",
+    "pixel strip[0] is #10ff00 at 600ms",
+    "pixel ring[0] is #38b748 at 600ms"
+  ]
+}
