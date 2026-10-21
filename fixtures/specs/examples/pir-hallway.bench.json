@@ -1,0 +1,17 @@
+{
+  "name": "example: pir-hallway",
+  "project": "../../projects/env-pir-hallway.json",
+  "firmware": {
+    "uno": "../../firmware/uno/pir-hallway.hex"
+  },
+  "duration": "5s",
+  "expect": [
+    "serial contains \"motion: light on\" by 1500ms",
+    "pin uno:8 is 1 at 2s",
+    "pin uno:13 is 1 at 2s",
+    "env light at pir > 80 at 2s",
+    "serial contains \"clear: light off\" by 4800ms",
+    "pin uno:8 is 0 at 4800ms",
+    "env light at pir < 60 at 4800ms"
+  ]
+}

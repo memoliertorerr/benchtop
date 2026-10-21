@@ -8,7 +8,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { assembleBench, type Bench, type FirmwareImage, NS_PER_MS, type PartInput, parseProject, type VisualState } from '@benchtop/core';
-import { analogSpecFor, applyTftUpdate, sevenSegmentText as decodeSevenSegment, TFT_PACKED, TFT_WIDTH, unpackPixel } from '@benchtop/parts';
+import { analogSpecFor, applyTftUpdate, envSpecFor, sevenSegmentText as decodeSevenSegment, TFT_PACKED, TFT_WIDTH, unpackPixel } from '@benchtop/parts';
 import { REPO_ROOT } from '../../../../packages/core/src/firmware/fixtures.test-helper.ts';
 import { loadCachedRom } from '../../../../packages/esp32/src/test-support/rom.test-helper.ts';
 import { createBenchEnv } from '../sim/env.ts';
@@ -45,7 +45,7 @@ export function runExample(example: Example): ExampleRun {
   const images: Record<string, FirmwareImage> = {};
   for (const [board, files] of Object.entries(example.boards)) images[board] = image(files.firmware);
   const rom = Object.values(example.boards).some((b) => b.firmware.startsWith('esp32/')) ? loadCachedRom() : undefined;
-  const bench = assembleBench(parsed.doc, createBenchEnv(rom), images, { analogSpecFor });
+  const bench = assembleBench(parsed.doc, createBenchEnv(rom), images, { analogSpecFor, envSpecFor });
   const text: Record<string, string> = {};
   for (const board of Object.keys(example.boards)) {
     text[board] = '';

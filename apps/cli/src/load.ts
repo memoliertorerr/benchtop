@@ -8,7 +8,7 @@
 import { avrMcuFactory } from '@benchtop/avr';
 import { esp32McuFactory } from '@benchtop/esp32';
 import { assembleBench, type Bench, type BenchEnv, type FirmwareImage, type Mcu, type ProjectDoc, validateProject } from '@benchtop/core';
-import { analogSpecFor, benchEnvParts } from '@benchtop/parts';
+import { analogSpecFor, benchEnvParts, envSpecFor } from '@benchtop/parts';
 
 export class UsageError extends Error {
   constructor(message: string) {
@@ -101,7 +101,7 @@ export function buildBench(doc: ProjectDoc, images: Readonly<Record<string, Firm
       return mcu;
     },
   };
-  return { bench: assembleBench(doc, env, images, { analogSpecFor }), mcus };
+  return { bench: assembleBench(doc, env, images, { analogSpecFor, envSpecFor }), mcus };
 }
 
 /** A board part's pin name as the definition spells it (13 ↔ D13 on boards), or undefined. */

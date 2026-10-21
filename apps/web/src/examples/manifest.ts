@@ -13,7 +13,7 @@
 import type { ProjectDoc } from '@benchtop/core';
 import { CATALOG } from '@benchtop/parts';
 
-export const CATEGORIES = ['Basics', 'Displays', 'Sensors', 'Motors', 'Sound', 'ESP32', 'Mega', 'Two boards'] as const;
+export const CATEGORIES = ['Basics', 'Displays', 'Sensors', 'Motors', 'Sound', 'Environment', 'ESP32', 'Mega', 'Two boards'] as const;
 export type Category = (typeof CATEGORIES)[number];
 
 export interface ExampleBoard {
@@ -92,6 +92,11 @@ export const EXAMPLES: readonly Example[] = [
   ex('stepper', 'Stepper (28BYJ-48)', 'Motors', 'stepper-28byj48', uno('stepper-28byj48'), 'Stepper.h turns a 28BYJ-48 on a ULN2003 driver a quarter turn at a time.'),
   ex('a4988-stepper', 'A4988 stepper driver', 'Motors', 'a4988-stepper', uno('a4988-stepper'), 'An A4988 on STEP/DIR turns a bipolar stepper one turn in full steps, then one turn back in sixteenth steps — watch the shaft move in fine increments.'),
   ex('relay', 'Relay', 'Motors', 'relay', uno('relay'), 'D7 switches a relay coil every 500 ms; its contact lights an LED.'),
+  // BT56: the environment — a room around the bench whose sources the sensors read.
+  ex('gas-fan', 'Gas alarm with a fan', 'Environment', 'env-gas-fan', uno('gas-fan'), 'A gas leak opens near an MQ-2: past the alarm level the buzzer sounds and an extractor fan on D7 runs until the air is clean again. Switch the leak in the Inspector; the heatmap shows the gas spreading.'),
+  ex('pir-hallway', 'PIR hallway light', 'Environment', 'env-pir-hallway', uno('pir-hallway'), 'A person walks down a hallway past a PIR sensor: the lamp on D8 lights while they are in view and goes off a second after they leave.'),
+  ex('parking-sensor', 'Parking sensor', 'Environment', 'env-parking', uno('parking'), 'A car drives toward an HC-SR04: the beeps come faster as it closes in, and a steady tone says STOP below 30 cm.'),
+  ex('thermostat', 'Thermostat', 'Environment', 'env-thermostat', uno('thermostat'), 'An NTC reads the room and D7 switches a heater to hold 25 °C with half a degree of hysteresis; the heatmap shows the warm air.'),
   ex('buzzer', 'Buzzers', 'Sound', 'buzzer', uno('buzzer'), 'tone() plays 440 Hz then 880 Hz on a passive buzzer; an active one beeps after. Unmute to hear them.'),
   ex('speaker-melody', 'Speaker melody', 'Sound', 'speaker-melody', uno('speaker-melody'), 'tone() plays three notes on a speaker on D8 — through your computer’s speakers once you unmute.'),
   ex('pcm-playback', 'PCM through PWM', 'Sound', 'pcm-playback', uno('pcm-playback'), 'A 1 kHz sine as 8 kHz samples in Timer2’s 62.5 kHz PWM on D3; the speaker filters the carrier away.'),
@@ -132,12 +137,12 @@ export const EXAMPLES: readonly Example[] = [
 // The examples' files, by repo-relative path. Literal patterns (the bundler needs them):
 // projects and sketches as text, AVR firmware (Uno, Nano, Mega) as text, ESP32 images as asset URLs.
 const PROJECTS = import.meta.glob(
-  '../../../../fixtures/projects/{blink-led,button-pullup,pwm-fade,traffic-light,simon,debug-demo,analog-pot,logic-demo,lcd-4bit,lcd-i2c,lcd-thermometer,ssd1306-adafruit,oled-clock,seven-seg-mux,bargraph,neopixel,dht22,hcsr04,distance-meter,ds1307,mpu6050,keypad,encoder,servo-sweep,servo-knob,keypad-lock,stepper-28byj48,relay,buzzer,speaker-melody,pcm-playback,mic-level,vu-meter,esp32-blink,esp32-serial,esp32-button,esp32-pwm-fader,esp32-neopixel,esp32-rainbow-ring,esp32-oled-clock,esp32-dac-sine,esp32-mic-level,esp32-i2c,uart-chat,uno-esp32-uart-divider,nano-analog,mega-chaser,mega-serial-ports,mega-analog,tft-demo,esp32-tft-demo,ir-remote,scale,flame-alarm,gas-meter,a4988-stepper}.json',
+  '../../../../fixtures/projects/{blink-led,button-pullup,pwm-fade,traffic-light,simon,debug-demo,analog-pot,logic-demo,lcd-4bit,lcd-i2c,lcd-thermometer,ssd1306-adafruit,oled-clock,seven-seg-mux,bargraph,neopixel,dht22,hcsr04,distance-meter,ds1307,mpu6050,keypad,encoder,servo-sweep,servo-knob,keypad-lock,stepper-28byj48,relay,buzzer,speaker-melody,pcm-playback,mic-level,vu-meter,esp32-blink,esp32-serial,esp32-button,esp32-pwm-fader,esp32-neopixel,esp32-rainbow-ring,esp32-oled-clock,esp32-dac-sine,esp32-mic-level,esp32-i2c,uart-chat,uno-esp32-uart-divider,nano-analog,mega-chaser,mega-serial-ports,mega-analog,tft-demo,esp32-tft-demo,ir-remote,scale,flame-alarm,gas-meter,a4988-stepper,env-gas-fan,env-pir-hallway,env-parking,env-thermostat}.json',
   { import: 'default' },
 ) as Record<string, () => Promise<unknown>>;
 const HEX = import.meta.glob(
   [
-    '../../../../fixtures/firmware/uno/{blink,button-pullup,pwm-fade,traffic-light,simon,serial-echo,analog-read,logic-demo,lcd-4bit,lcd-i2c,lcd-thermometer,ssd1306-adafruit,oled-clock,seven-seg-mux,bargraph,neopixel,dht22-adafruit,hcsr04,distance-meter,ds1307,mpu6050,keypad-scan,encoder-count,servo-sweep,servo-knob,keypad-lock,stepper-28byj48,relay,buzzer,speaker-melody,pcm-playback,mic-level,vu-meter,uart-chat,uart-ping,tft-demo,ir-decode,scale,flame-alarm,gas-meter,a4988-stepper}.hex',
+    '../../../../fixtures/firmware/uno/{blink,button-pullup,pwm-fade,traffic-light,simon,serial-echo,analog-read,logic-demo,lcd-4bit,lcd-i2c,lcd-thermometer,ssd1306-adafruit,oled-clock,seven-seg-mux,bargraph,neopixel,dht22-adafruit,hcsr04,distance-meter,ds1307,mpu6050,keypad-scan,encoder-count,servo-sweep,servo-knob,keypad-lock,stepper-28byj48,relay,buzzer,speaker-melody,pcm-playback,mic-level,vu-meter,uart-chat,uart-ping,tft-demo,ir-decode,scale,flame-alarm,gas-meter,a4988-stepper,gas-fan,pir-hallway,parking,thermostat}.hex',
     '../../../../fixtures/firmware/nano/analog-a6.hex',
     '../../../../fixtures/firmware/mega/{chaser,serial-ports,analog-hi}.hex',
   ],
@@ -149,7 +154,7 @@ const BIN = import.meta.glob(
 ) as Record<string, () => Promise<string>>;
 const SKETCHES = import.meta.glob(
   [
-    '../../../../fixtures/sketches/uno/{blink,button-pullup,pwm-fade,traffic-light,simon,serial-echo,analog-read,logic-demo,lcd-4bit,lcd-i2c,lcd-thermometer,ssd1306-adafruit,oled-clock,seven-seg-mux,bargraph,neopixel,dht22-adafruit,hcsr04,distance-meter,ds1307,mpu6050,keypad-scan,encoder-count,servo-sweep,servo-knob,keypad-lock,stepper-28byj48,relay,buzzer,speaker-melody,pcm-playback,mic-level,vu-meter,uart-chat,uart-ping,tft-demo,ir-decode,scale,flame-alarm,gas-meter,a4988-stepper}/*.{ino,h,hpp,c,cpp}',
+    '../../../../fixtures/sketches/uno/{blink,button-pullup,pwm-fade,traffic-light,simon,serial-echo,analog-read,logic-demo,lcd-4bit,lcd-i2c,lcd-thermometer,ssd1306-adafruit,oled-clock,seven-seg-mux,bargraph,neopixel,dht22-adafruit,hcsr04,distance-meter,ds1307,mpu6050,keypad-scan,encoder-count,servo-sweep,servo-knob,keypad-lock,stepper-28byj48,relay,buzzer,speaker-melody,pcm-playback,mic-level,vu-meter,uart-chat,uart-ping,tft-demo,ir-decode,scale,flame-alarm,gas-meter,a4988-stepper,gas-fan,pir-hallway,parking,thermostat}/*.{ino,h,hpp,c,cpp}',
     '../../../../fixtures/sketches/nano/analog-a6/*.{ino,h,hpp,c,cpp}',
     '../../../../fixtures/sketches/mega/{chaser,serial-ports,analog-hi}/*.{ino,h,hpp,c,cpp}',
     '../../../../fixtures/sketches/esp32/{blink,serial-hello,gpio-input,pwm-fader,neopixel,rainbow-ring,oled-clock,dac-sine,mic-level,i2c-scan,uart-chat,uart-relay,tft-demo}/*.{ino,h,hpp,c,cpp}',

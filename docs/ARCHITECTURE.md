@@ -30,7 +30,7 @@ simulation core has no DOM, the same code runs headless in Node for tests and CI
 
 | Package | Owns | Must not |
 |---|---|---|
-| `@benchtop/core` | time units, scheduler, netlist, signal resolution, the `PartDefinition` / `PartModel` / `Mcu` contracts, the project document schema | import any other `@benchtop/*` package; touch DOM or Node APIs |
+| `@benchtop/core` | time units, scheduler, netlist, signal resolution, the analog layer, the environment world, the `PartDefinition` / `PartModel` / `Mcu` contracts, the project document schema | import any other `@benchtop/*` package; touch DOM or Node APIs |
 | `@benchtop/avr` | the Uno `Mcu`: ATmega328P peripherals via avr8js, Uno pin map, Intel HEX and ELF loading | know about parts or the UI |
 | `@benchtop/esp32` | the ESP32 `Mcu` (`createEsp32Mcu`, `esp32McuFactory`): Xtensa LX6 core, SoC (memory map, peripherals, two cores, pins), direct boot, boot debugging | know about parts or the UI |
 | `@benchtop/parts` | the part catalog: pin layouts, internal buses (breadboards), metadata, behavior models | touch DOM — views live in `apps/web` |
@@ -101,7 +101,7 @@ selected).
 
 Problem codes the bench emits today: `unknown-part-type`, `unresolved-wire`,
 `bad-part-definition`, `mcu-unavailable`, `part-model-error`, `i2c-unattached`,
-`spi-unattached` (info) — fixed at build; `short` and `oscillation` — live, from the resolver;
+`spi-unattached` (info), `environment-duplicate` — fixed at build; `short` and `oscillation` — live, from the resolver;
 `mcu-fault` / `mcu-halted` / `mcu-breakpoint` — while an MCU is stopped; `timer-storm`; plus
 whatever parts `report()` (kept until reset, newest message per code and part set).
 
@@ -432,6 +432,85 @@ with THD over harmonics 2–5 ≈ 2 % (< 10 %) — the 8 kHz sampling's own imag
 (≈ 9 % and 5 %, as on the chip) are left out of that THD; the ESP32's DAC; the microphone into
 an Uno's A0 and an ESP32's GPIO34 reading 440 ±10 Hz; the microphone's queue rules. The
 player and downsampler have Node tests (`stream-player.test.ts`).
+
+### Environment
+
+A small, deterministic world in the worker feeds the sensors what the room holds at their bench
+position (`packages/core/src/env/`). It exists only when the document has a part whose
+`envSpecFor` role is `ambient` (the bench takes `BenchOptions.envSpecFor`, like
+`analogSpecFor`; `@benchtop/parts` provides it), so nothing changes for other circuits and no
+contract changed: the ambient conditions are that part's props, sources and bodies are ordinary
+parts, and sensors get values through the inputs they already take.
+
+- **Roles** (`env/spec.ts`): `ambient` (temperature °C, humidity %RH, light lux, sound dB, gas
+  ppm baseline, ventilation ACH, mixing m²/s, the room's floor `roomWidth` × `roomDepth` m, the
+  mixing `layer` m, `heatLoss` 1/s, `scale` = room mm per bench mm, `overlay`), `source` (gas
+  leak L/min, heater W, flame strength, lamp lm, sound dB at 1 m, fan m³/min; optionally an
+  IN/GND control pair), `body` (a warm circle — a person — or a box, with a patrol) and `sensor`
+  (samples: a field, how to deliver it — `value`, a `set:<channel>=` channel, or `press-while` —
+  a unit map and an epsilon; an optional cone). A sensor with prop `followEnvironment: false`
+  is left to its own props and inputs.
+- **Space:** room metres = bench mm × `scale` / 1000, y down like the bench. A part's position
+  is its centre; a sensor faces its local −y turned with the part's rotation (rotation 0: up on
+  the screen). The room's floor is centred on the parts and grown to hold them all 25 cm from
+  its walls; the grids cover it with 64 cells along the longer side (cells ≥ 5 cm).
+- **Grids** (`grid.ts`): gas (ppm above the baseline) and heat (°C above the ambient) on a 2D
+  grid: explicit 5-point diffusion with closed walls (no flux leaves the room, so a field's
+  total is conserved without decay), substeps keeping D·h/dx² ≤ 0.2, sources added per second,
+  decay as exp(−k·h) per substep (ventilation ACH/3600; heat adds `heatLoss`), a fan's sink over
+  the cells within 0.5 m of it (the grids have no air currents, so a fan draws from a
+  disc — `flow` m³/min shared over those cells' volume). A leak of r L/min adds r/60 000/V × 10⁶ ppm/s to its cell column V = cell² ×
+  layer; a heater P/(1200·V) °C/s (ρ·cp of air); a flame 80 W and 12 lm per unit of strength (a
+  candle). The 2D grid stands for the occupied air layer: the `layer` (0.3 m by default) is how
+  far a source's gas or warm air spreads vertically near it. A grid with nothing in it and
+  nothing feeding it isn't stepped.
+- **Closed forms** (`world.ts`): light = ambient + Σ lm/(4πr²) (r ≥ 5 cm, no occlusion); sound =
+  10·log₁₀ of the ambient's and every source's energy, each L₁ − 20·log₁₀ r (r ≥ 10 cm);
+  humidity = the ambient's absolute humidity at the local temperature (Magnus); flame infrared
+  = Σ strength·(0.2 m / r)² over flames inside the sensor's cone, at most 1.
+- **Bodies** (`bodies.ts`, `cone.ts`): a body's position is a pure function of the time it has
+  walked (paused at each end of its patrol), which advances only while it walks, so a replay
+  lands on the same positions. Distance sensors get the exact nearest point of any body inside
+  their cone (convexity: the shape's own nearest point if it's inside the wedge, else a hit on
+  one of the wedge's edge rays); a PIR gets a press every period while a warm body walks inside
+  its cone.
+- **On the bench** (`runtime.ts`): every 50 ms of simulated time (`ENV_PERIOD_NS`, a bench
+  timer) sources read their wired control inputs (on above 1.5 V across IN–GND), the world
+  steps and each sensor's samples are delivered — only when they moved by more than the
+  sample's epsilon, so an analog island isn't re-solved for nothing. Inputs to the ambient part,
+  a source or a body go to the world (`set:<param>=<v>`, `set:on=0|1`, press/release), not to a
+  model. A reset rebuilds the world and delivers every sensor's starting values at t = 0.
+  `collectFrame` adds the world's visuals: a body's offset from its document position in bench
+  mm, a source's `on`, and — at most every 250 ms while the overlay is on — the ambient part's
+  heatmap (`hm`: one byte per cell on fixed scales, packed four to a number like the SSD1306's
+  framebuffer, with its origin and cell size in bench mm). `bench.envSample(part, field)` reads a
+  point field at a part (the CLI's `env` expectations). A second ambient part is an
+  `environment-duplicate` warning. Cost: a 4 × 3 m room with a leak and a heater (two 64 × 48
+  grids, 4 substeps a period) and 20 sensors take ≈ 3–4 ms per simulated second in Node.
+- **The parts** (`packages/parts/src/environment/`): `environment` (the room: the
+  ambient props above, `overlay` off/gas/temperature/light/sound), and pinless sources and
+  bodies — `gas-leak` (rate L/min), `flame` (strength), `sound-source` (dB at 1 m), `person`
+  (a 0.4 m warm circle) and `object` (width × depth cm), the last two with a patrol (`toX`/`toY`
+  bench mm, `speed` m/s, `pause` s) — plus `heater` (W), `lamp` (lm) and `fan` (m³/min), which
+  carry an IN/GND control pair: wired, IN decides (on above 1.5 V); unwired, their `on` prop and
+  inputs do (and they aren't reported as unwired parts). `envSpecFor` (`environment/specs.ts`)
+  also gives every sensor's samples: MQ-2 ppm (value), flame IR (value; ±30°, 1.5 m, looking
+  left from the module's IR end), DHT22 temperature/humidity (channels), NTC °C and LDR lux
+  (values), the sound modules' level (dB − 40)/60 (value), PIR motion (press-while; ±55°, 7 m),
+  HC-SR04 distance in cm (channel; ±15°, 4 m; 0 = nothing in range) and the MPU-6050's
+  temperature (channel `temp`). Cones look up the screen unless noted, turned with the part.
+- **UI**: views of our own (`apps/web/src/views/environment.ts`: the room badge, a gas
+  valve, a heater grille, a candle, a bulb, a speaker, a fan whose rotor spins while on, a
+  person from above, a box) that glow while on; bodies move by their visual offset and are
+  drawn at their room size. The room badge's view passes the heatmap to
+  `editor/heatmap.ts`, and `editor/EnvironmentLayer.tsx` paints it under the parts — one canvas
+  pixel per cell, scaled up smoothly to the grid's bench-mm rectangle, at 35 % opacity, on a
+  fixed blue → red scale that is transparent at the field's floor — and, for the selected parts,
+  a sensor's cone and a body's patrol line. Inspector (`views/controls.ts`): the room's ambient
+  sliders and its Heatmap select, each source's level and an on/off toggle, a body's speed and
+  walking toggle — stopped they edit props, running they send channel inputs (`set:<prop>=<v>`).
+  A sensor that follows the room shows "Set by the environment" and a checkbox that sets
+  `followEnvironment: false`.
 
 ### MCUs
 
@@ -1203,8 +1282,10 @@ become part input. The serial monitor (`ui/SerialMonitor.tsx`) keeps the newest 
 board (`ui/serial-buffer.ts`: lines split across chunks, UTF-8 streamed, simulated-time stamps)
 and appends DOM nodes rather than re-rendering; autoscroll pauses while you read further up.
 Examples: **Examples…** opens a gallery (`ui/ExamplesGallery.tsx`, a
-modal dialog) of the entries in `examples/manifest.ts` — 45 circuits in seven categories (Basics,
-Displays, Sensors, Motors, Sound, ESP32, Two boards). Each names a committed fixture project and,
+modal dialog) of the entries in `examples/manifest.ts` — 60 circuits in nine categories (Basics,
+Displays, Sensors, Motors, Sound, Environment, ESP32, Mega, Two boards; Environment has four: a
+gas alarm whose fan clears the room, a PIR hallway light, a parking sensor with a car driving in,
+a thermostat). Each names a committed fixture project and,
 per board, the firmware its tests run and the sketch folder it was built from; the files load
 through `import.meta.glob` patterns that list exactly the examples' files (projects, sketches and
 .hex as text, ESP32 .bin as `?url` assets fetched on open), so nothing loads until asked and
@@ -1408,7 +1489,9 @@ nothing from `apps/web`.
   `--firmware` is an error (the CLI doesn't compile sketches).
 - Times are `<number><ns|us|ms|s>`; a bare number is an error.
 - Script: an array of steps or `{ steps, expect }`. A step is `{ at, part, input }` (a PartInput;
-  part ids and input shapes checked) or `{ at, serial, board? }`: text sent to the
+  part ids and input shapes checked), `{ at, part, set: { <channel>: number | boolean } }`
+  — one channel input `set:<channel>=<v>` per key, in key order, booleans as 1/0, at most 32 —
+  or `{ at, serial, board? }`: text sent to the
   board's UART 0 as the serial monitor would (`board` optional with one board; ≤ 64 Ki
   characters). Steps apply at exactly their time, in file order.
 - Assertions (`--expect`, repeatable, plus the script's): `serial contains "<text>" by <time>`
@@ -1428,6 +1511,7 @@ nothing from `apps/web`.
   | `lcd <p> row <n> is "<text>" at <t>` | row n (from 0) equals the text, trailing spaces ignored; display off = blank | `row 1 is "t=1"` |
   | `pixel <p>[<i>] is #rrggbb at <t>` | the pixel's 0xRRGGBB | `#38b748`, or the pixel count |
   | `digits <p> show "<text>" at <t>` | the digits (`sevenSegmentText` from @benchtop/parts: 0–9, '-', ' ' dark, '?' other) | `shows "1234"` |
+  | `env <gas\|temperature\|humidity\|light\|sound> at <p> is <v> ±<tol> at <t>` (or `>`, `<`, `>=`, `<=` `<v>`) | the room's value at a part placed in it (`bench.envSample`); a usage error without an environment part or on a part with no place in it | `gas 812.40 ppm` |
 
   Visual forms read the part's latest visual state at `t` (frames are collected at every stop)
   and check the part's type up front (an LED, a servo, an LCD and its row count, a NeoPixel, a

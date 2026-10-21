@@ -9,6 +9,7 @@ export const PART_CATEGORIES = [
   { id: 'sensors', title: 'Sensors' },
   { id: 'motors', title: 'Motors' },
   { id: 'power', title: 'Power' },
+  { id: 'environment', title: 'Environment' },
 ] as const;
 
 export type PartCategoryId = (typeof PART_CATEGORIES)[number]['id'];

@@ -204,6 +204,34 @@ export const UNO_CHECKS: Record<string, (r: ExampleRun) => void> = {
     r.runTo(2000);
     expect(r.serial('uno').split('\r\n').filter(Boolean).at(-1)).toMatch(/ alarm=1$/);
   },
+  // BT56: the environment examples.
+  'gas-fan'(r) {
+    r.runTo(1000);
+    expect(r.serial('uno')).toMatch(/^a0=9\d fan=0\r\n/);
+    r.input('leak', key('set:on=1', true));
+    r.runTo(3000);
+    expect(r.serial('uno')).toMatch(/fan=1\r\n/);
+    expect(r.history('fan').some(({ visual }) => visual.on === true)).toBe(true);
+  },
+  'pir-hallway'(r) {
+    r.runTo(2000);
+    expect(r.serial('uno')).toBe('hallway ready\r\nmotion: light on\r\n');
+    expect(r.history('lamp').at(-1)?.visual.on).toBe(true);
+    expect(r.history('walker').length).toBeGreaterThan(5); // walking
+  },
+  'parking-sensor'(r) {
+    r.runTo(2000);
+    const cm = r.serial('uno').split('\r\n').filter((l) => l.startsWith('D=')).map((l) => Number(l.slice(2)));
+    expect(cm[0]).toBeGreaterThan(190);
+    expect(cm.at(-1)).toBeLessThan(140);
+  },
+  thermostat(r) {
+    r.runTo(2000);
+    const lines = r.serial('uno').split('\r\n').filter(Boolean);
+    expect(lines[0]).toBe('t=20.0 heater=1');
+    expect(Number(/t=([\d.]+)/.exec(lines.at(-1) ?? '')?.[1])).toBeGreaterThan(21.5);
+    expect(r.history('heat').some(({ visual }) => visual.on === true)).toBe(true);
+  },
   'a4988-stepper'(r) {
     r.runTo(2000);
     expect(r.serial('uno')).toBe('full\r\nsixteenth\r\n');

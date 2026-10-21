@@ -1556,6 +1556,28 @@
     },
     {
       "board": "uno",
+      "name": "gas-fan",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/gas-fan.elf",
+      "sha256": "d22299c619c8ccd762215f5e3b7a6503e2cac6a1e30d5f0361854f191bf22a84",
+      "bytes": 33960,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "4e06915b94705c4af93539774aa6172eb0695a0ea64fdd54bb7dbd107ccda8b9"
+    },
+    {
+      "board": "uno",
+      "name": "gas-fan",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/gas-fan.hex",
+      "sha256": "40d42e4a7e5b54490fb062bf01a4dfdc6e62e143344d91f8ce66129178abc2f1",
+      "bytes": 8649,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "4e06915b94705c4af93539774aa6172eb0695a0ea64fdd54bb7dbd107ccda8b9"
+    },
+    {
+      "board": "uno",
       "name": "gas-meter",
       "fqbn": "arduino:avr:uno",
       "file": "uno/gas-meter.elf",
@@ -2004,6 +2026,28 @@
     },
     {
       "board": "uno",
+      "name": "parking",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/parking.elf",
+      "sha256": "9b3b03e601dd0dc187a1f435df69105f3de7035017e89a3ca4c1454602675a00",
+      "bytes": 37008,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "7a57bf6bb2a5b0c77499c6f51f1e27f9f0f9c24ca78c11bc7c561d4cb44dffae"
+    },
+    {
+      "board": "uno",
+      "name": "parking",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/parking.hex",
+      "sha256": "572318db240d3eee42211addb05a5ab853341f86227d7239a0f830c7c7660cef",
+      "bytes": 9909,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "7a57bf6bb2a5b0c77499c6f51f1e27f9f0f9c24ca78c11bc7c561d4cb44dffae"
+    },
+    {
+      "board": "uno",
       "name": "pcm-playback",
       "fqbn": "arduino:avr:uno",
       "file": "uno/pcm-playback.elf",
@@ -2023,6 +2067,28 @@
       "core": "arduino:avr@1.8.7",
       "libraries": {},
       "source": "d5815e16993b38884ee057e89428b4da0f6f8392379e01b9a82e9f1826b46cd4"
+    },
+    {
+      "board": "uno",
+      "name": "pir-hallway",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/pir-hallway.elf",
+      "sha256": "9d817bab7aa7287b500f29d8f32adf95d4edc8254cf8c7e5e5dbef97d63a25b1",
+      "bytes": 26344,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "88820a4c1b70ee47e11a93dccbcf4a3f1c6dc7fd44848c03f4c7dad5580a7c74"
+    },
+    {
+      "board": "uno",
+      "name": "pir-hallway",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/pir-hallway.hex",
+      "sha256": "3a637b2a7a857f30b1af6e4f074fcb19cc02004a86e9210b8e9f32632ce439e6",
+      "bytes": 5794,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "88820a4c1b70ee47e11a93dccbcf4a3f1c6dc7fd44848c03f4c7dad5580a7c74"
     },
     {
       "board": "uno",
@@ -2367,6 +2433,28 @@
         "SPI": "1.0"
       },
       "source": "d1b8aba74b9c8412971a479237ed47d2cb3efdb9b6206a644cc802710c99513b"
+    },
+    {
+      "board": "uno",
+      "name": "thermostat",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/thermostat.elf",
+      "sha256": "c4a250b45d48d6ea96ee83bda4fa92a557cca118780bc7f46978832836c30834",
+      "bytes": 33376,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "2e89f5bb2dcf6646b6d833c62c8f46b0664397ada7ce600013d9670b04974e75"
+    },
+    {
+      "board": "uno",
+      "name": "thermostat",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/thermostat.hex",
+      "sha256": "e6310cc6ae7fd714c2095ff561851bb84743a972af9f49d95aea83628442b0d2",
+      "bytes": 11783,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "2e89f5bb2dcf6646b6d833c62c8f46b0664397ada7ce600013d9670b04974e75"
     },
     {
       "board": "uno",

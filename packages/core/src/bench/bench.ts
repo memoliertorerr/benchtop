@@ -57,6 +57,8 @@ import type {
 import type { ProjectDoc } from '../contracts/project.ts';
 import { type Level, type NetState, Strength } from '../contracts/signal.ts';
 import { cyclesToNanos, nanosToCycles, NS_PER_MS, NS_PER_US, type Nanos } from '../contracts/time.ts';
+import { ENV_PERIOD_NS, EnvRuntime } from '../env/runtime.ts';
+import type { EnvSpecFor, PointField } from '../env/spec.ts';
 import { buildNetlist, type Netlist } from '../netlist/netlist.ts';
 import { type ResolverLink, SignalResolver } from '../signals/resolver.ts';
 import { Scheduler } from './scheduler.ts';
@@ -88,6 +90,11 @@ export interface BenchOptions {
   analog?: boolean;
   /** Diodes (LEDs) per part type, for the analog layer; `@benchtop/parts` has `analogSpecFor`. */
   analogSpecFor?: AnalogSpecFor;
+  /**
+   * Environment roles per part type (BT54; `@benchtop/parts` has `envSpecFor`). With it, a
+   * document holding an ambient part gets a world that feeds its sensors.
+   */
+  envSpecFor?: EnvSpecFor;
 }
 
 /** Visual state of the parts that called `invalidate()` since the previous frame. */
@@ -222,6 +229,8 @@ export class Bench {
   private readonly analogParts = new Set<string>();
   /** Parts on a network too large to solve: their pins read switch-level volts. */
   private readonly switchLevelParts = new Set<string>();
+  /** The environment (BT54), or null without an ambient part or `envSpecFor`. */
+  private readonly env: EnvRuntime | null = null;
 
   constructor(doc: ProjectDoc, env: BenchEnv, options: BenchOptions = {}) {
     // Topology.
@@ -425,12 +434,51 @@ export class Bench {
       return island >= 0 && analog.tooLarge[island] === 0;
     });
     this.scheduler.schedule(CHECK_INTERVAL_NS, this.checkTick);
+
+    // The environment (BT54): a world feeding the sensors, when the document has an ambient part.
+    if (options.envSpecFor !== undefined) {
+      this.env = EnvRuntime.build(
+        doc.parts,
+        defOf,
+        options.envSpecFor,
+        {
+          deliver: (partId, input) => this.parts.get(partId)?.model?.input?.(input),
+          pinVolts: (partId, pin) => {
+            const net = netlist.netOf(partId, pin);
+            return net < 0 ? undefined : resolver.state(net).volts;
+          },
+          pinWired: (partId, pin) => {
+            const net = netlist.netOf(partId, pin);
+            return net >= 0 && netlist.pinsOfNet(net).length > 1;
+          },
+        },
+        (ids) => this.buildProblems.push(problem('warning', 'environment-duplicate', 'Only the first environment part sets the room; the others do nothing.', ids)),
+      );
+      if (this.env !== null) {
+        // A source's control input is optional: an unwired heater or lamp is normal.
+        const env = this.env;
+        for (let i = this.buildProblems.length - 1; i >= 0; i--) {
+          const p = this.buildProblems[i];
+          if (p.code === 'unwired-part' && p.parts.length === 1 && env.owns(p.parts[0])) this.buildProblems.splice(i, 1);
+        }
+        env.reset();
+        this.scheduler.schedule(ENV_PERIOD_NS, this.envTick);
+      }
+    }
   }
 
   /** Runs the dynamic checks and schedules the next run. */
   private readonly checkTick = (): void => {
     this.dynamicProblems = this.checks.run();
     this.scheduler.schedule(this.time + CHECK_INTERVAL_NS, this.checkTick);
+  };
+
+  /** Steps the environment, feeds its sensors and schedules the next period. */
+  private readonly envTick = (): void => {
+    const env = this.env;
+    if (env === null) return;
+    env.tick(this.time);
+    this.scheduler.schedule(this.time + ENV_PERIOD_NS, this.envTick);
   };
 
   /** Current simulated time, ns: the running MCU's cycle time while one runs, else bench time. */
@@ -557,6 +605,10 @@ export class Bench {
     for (const slot of this.mcus) for (const entry of slot.pinEntries) entry.apply();
     this.syncAll();
     this.scheduler.schedule(CHECK_INTERVAL_NS, this.checkTick);
+    if (this.env !== null) {
+      this.env.reset();
+      this.scheduler.schedule(ENV_PERIOD_NS, this.envTick);
+    }
     // Probes restart with time: the state at 0, then changes.
     for (const slot of this.probes) {
       if (slot === null) continue;
@@ -570,7 +622,21 @@ export class Bench {
   input(partId: string, event: PartInput): void {
     const slot = this.parts.get(partId);
     if (slot === undefined) throw new Error(`no part "${partId}" on the bench`);
-    slot.model?.input?.(event);
+    if (this.env?.owns(partId)) this.env.input(partId, event);
+    else slot.model?.input?.(event);
+  }
+
+  /**
+   * The environment's value of a point field at a part's position (BT54), or undefined without
+   * an environment or for a part it doesn't place (an ambient part, a part with no env role).
+   */
+  envSample(partId: string, field: PointField): number | undefined {
+    return this.env?.sampleAt(partId, field);
+  }
+
+  /** True when the bench has an environment (an ambient part and `envSpecFor`). */
+  get hasEnvironment(): boolean {
+    return this.env !== null;
   }
 
   /** Receives a board's UART 0 output, in batches flushed at each quantum boundary. */
@@ -594,6 +660,7 @@ export class Bench {
       if (visual !== undefined) parts.push([slot.id, visual]);
     }
     this.dirtyParts.splice(0, count);
+    this.env?.collect(parts, this.time);
     return { t: this.time, parts };
   }
 

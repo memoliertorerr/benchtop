@@ -44,7 +44,7 @@ import {
   validateProject,
   type VisualState,
 } from '@benchtop/core';
-import { analogSpecFor } from '@benchtop/parts';
+import { analogSpecFor, envSpecFor } from '@benchtop/parts';
 import { createBenchEnv, type RecordingEnv } from './env.ts';
 import { createFrameRingBuffer, FrameRingWriter } from './frame-ring.ts';
 import { type DebugStopReason, type FromSim, type ProbeChunk, PROTOCOL_VERSION, type ToSim } from './protocol.ts';
@@ -285,7 +285,7 @@ export class SimSession {
     // assembleBench resets the bench, which invalidates every part: the first frame carries
     // every view's state and nothing keeps showing what a previous bench left on screen.
     const project = validateProject(doc);
-    const bench = assembleBench(project, this.env, firmware, { analogSpecFor });
+    const bench = assembleBench(project, this.env, firmware, { analogSpecFor, envSpecFor });
     for (const board of this.env.mcus.keys()) {
       bench.onSerial(board, (bytes) => {
         this.recording?.serialOut(bench.now(), board, bytes);

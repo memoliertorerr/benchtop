@@ -1,0 +1,191 @@
+{
+  "format": 1,
+  "name": "env-parking",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "sonar",
+      "type": "hc-sr04",
+      "x": 20,
+      "y": -46,
+      "rotation": 0,
+      "props": {
+        "distance": 100
+      }
+    },
+    {
+      "id": "bz1",
+      "type": "buzzer",
+      "x": 90,
+      "y": 30,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "car",
+      "type": "object",
+      "x": 22.5,
+      "y": -168.5,
+      "rotation": 0,
+      "props": {
+        "width": 180,
+        "depth": 100,
+        "toX": 0,
+        "toY": 90,
+        "speed": 0.5,
+        "pause": 0.5,
+        "on": true
+      }
+    },
+    {
+      "id": "room",
+      "type": "environment",
+      "x": -45,
+      "y": -80,
+      "rotation": 0,
+      "props": {
+        "scale": 20,
+        "roomWidth": 4,
+        "roomDepth": 5
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "sonar",
+        "pin": "TRIG"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "9"
+      },
+      "waypoints": [
+        {
+          "x": 41.511,
+          "y": -4
+        },
+        {
+          "x": 43.127,
+          "y": -4
+        }
+      ],
+      "color": "orange"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "sonar",
+        "pin": "ECHO"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "10"
+      },
+      "waypoints": [
+        {
+          "x": 44.156,
+          "y": -5.5
+        },
+        {
+          "x": 40.614,
+          "y": -5.5
+        }
+      ],
+      "color": "yellow"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "sonar",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [
+        {
+          "x": 46.802,
+          "y": -7
+        },
+        {
+          "x": 30.559,
+          "y": -7
+        }
+      ],
+      "color": "black"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "sonar",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [
+        {
+          "x": 38.865,
+          "y": -10.5
+        },
+        {
+          "x": 86,
+          "y": -10.5
+        },
+        {
+          "x": 86,
+          "y": 62.5
+        },
+        {
+          "x": 42.333,
+          "y": 62.5
+        }
+      ],
+      "color": "red"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "bz1",
+        "pin": "1"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "8"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "bz1",
+        "pin": "2"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "parking.hex",
+      "format": "hex"
+    }
+  }
+}

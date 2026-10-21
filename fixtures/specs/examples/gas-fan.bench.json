@@ -1,0 +1,34 @@
+{
+  "name": "example: gas-fan",
+  "project": "../../projects/env-gas-fan.json",
+  "firmware": {
+    "uno": "../../firmware/uno/gas-fan.hex"
+  },
+  "duration": "8s",
+  "steps": [
+    {
+      "at": "1s",
+      "part": "leak",
+      "set": {
+        "on": true
+      }
+    },
+    {
+      "at": "3s",
+      "part": "leak",
+      "set": {
+        "on": false
+      }
+    }
+  ],
+  "expect": [
+    "env gas at gas < 1 at 900ms",
+    "env gas at gas > 200 at 3s",
+    "serial contains \"fan=1\" by 3s",
+    "pin uno:7 is 1 at 4s",
+    "pin uno:8 frequency is 2000 ±1% between 2600ms and 3200ms",
+    "serial matches /fan=1[\\s\\S]*fan=0/ by 8s",
+    "pin uno:7 is 0 at 8s",
+    "env gas at gas < 50 at 8s"
+  ]
+}

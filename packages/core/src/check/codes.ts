@@ -62,4 +62,5 @@ export const PROBLEM_CODES: Readonly<Record<string, ProblemCodeInfo>> = {
   'mcu-halted': { title: 'MCU stopped', hint: 'The firmware halted (sleep forever, or nothing loaded).' },
   'mcu-breakpoint': { title: 'Breakpoint', hint: 'The debugger stopped the MCU.' },
   'timer-storm': { title: 'Timer storm', hint: 'Part timers kept firing without time advancing; the run was cut short.' },
+  'environment-duplicate': { title: 'More than one environment', hint: 'A bench has one room: delete the extra environment parts (only the first is used).' },
 };

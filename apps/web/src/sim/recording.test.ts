@@ -37,9 +37,10 @@ function harness() {
 }
 
 /** Loads a fixture project, records `act` in real time, stops, and replays the spec in the CLI. */
-function recordAndReplay(name: string, firmware: string, act: (h: ReturnType<typeof harness>) => void) {
+function recordAndReplay(name: string, firmware: string, act: (h: ReturnType<typeof harness>) => void, edit?: (doc: ProjectDoc) => void) {
   const h = harness();
   const doc = JSON.parse(readFixtureText(`fixtures/projects/${name}.json`)) as ProjectDoc;
+  edit?.(doc);
   const fwPath = join(REPO_ROOT, 'fixtures', 'firmware', 'uno', `${firmware}.hex`);
   h.session.handle({ type: 'hello', protocol: PROTOCOL_VERSION });
   h.session.handle({ type: 'load', doc, firmware: { uno: { format: 'hex', text: readFileSync(fwPath, 'utf8') } } });
@@ -117,6 +118,28 @@ describe('recording a test (BT50)', () => {
     expect(echo.report.assertions.map((a) => a.ok)).toEqual([true]);
     expect(echo.report.serial.uno).toBe(echo.shown);
     expect(echo.shown).toBe('ping "7"\n');
+  });
+
+  it('an environment source switched from the Inspector is recorded like any input (BT55)', () => {
+    const rec = recordAndReplay(
+      'gas-meter',
+      'gas-meter',
+      (h) => {
+        h.advance(300);
+        h.session.handle({ type: 'input', part: 'leak', event: { kind: 'key', key: 'set:on=1', down: true } });
+        h.advance(3200);
+      },
+      (doc) =>
+        doc.parts.push(
+          { id: 'room', type: 'environment', x: -150, y: 120, rotation: 0, props: { ventilation: 0 } },
+          { id: 'leak', type: 'gas-leak', x: 79.1, y: 1.3, rotation: 0, props: { rate: 5, on: false } },
+        ),
+    );
+    expect(rec.test.steps).toEqual([{ at: expect.any(Number), part: 'leak', input: { kind: 'key', key: 'set:on=1', down: true } }]);
+    expect(rec.test.proposals).toContainEqual(expect.stringMatching(/^serial contains "a0=\d+ alarm=1" by \d+ms$/));
+    expect(rec.report.error).toBeNull();
+    expect(rec.report.assertions.every((a) => a.ok)).toBe(true);
+    expect(rec.report.serial.uno).toBe(rec.shown);
   });
 
   it('a reset or a new load ends a recording; stop without one posts nothing', () => {

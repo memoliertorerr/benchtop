@@ -10,6 +10,7 @@ const QUIET = [
   'packages/parts/src/integration/logic-analyzer.test.ts', // simulated MHz with and without probes
   'packages/esp32/src/soc/soc.test.ts', // the SoC bus within 15 % of the bare machine
   'packages/esp32/src/boot/blink.test.ts', // skip-ahead speedup ≥ 1.5×
+  'packages/core/src/env/runtime-perf.test.ts', // BT54 the environment's cost per simulated second
 ];
 
 export default defineConfig({

@@ -1,5 +1,5 @@
 import type { PartInstance } from '@benchtop/core';
-import { channelInput } from '@benchtop/parts';
+import { channelInput, ENV_SENSOR_TYPES } from '@benchtop/parts';
 import { signal } from '@preact/signals';
 import { editor } from '../editor/app-store.ts';
 import { sim, simRunning } from '../sim/host.ts';
@@ -30,9 +30,29 @@ function MicControl({ part }: { part: PartInstance }) {
 /** Values sent while running, by "part:prop"; the document keeps the initial values. */
 const live = signal<ReadonlyMap<string, number>>(new Map());
 
+/**
+ * BT55: a sensor that samples the room while the bench has an environment part — its sliders
+ * would be overwritten by the room, so they give way to a note and an opt-out.
+ */
+function EnvSensorNote({ part }: { part: PartInstance }) {
+  return (
+    <div class="part-controls">
+      <div class="field-label">Controls</div>
+      <p class="muted env-note">Set by the environment: it reads the room where it stands.</p>
+      <label class="field field-check">
+        <input type="checkbox" checked onChange={() => editor.setProp(part.id, 'followEnvironment', false)} />
+        <span class="field-label">Follow the environment</span>
+      </label>
+    </div>
+  );
+}
+
 /** The Inspector's live controls for a part (light, temperature, motion …), if it has any. */
 export function PartControls({ part, defaults }: { part: PartInstance; defaults: Record<string, unknown> }) {
   if (part.type === 'microphone') return <MicControl part={part} />;
+  if (ENV_SENSOR_TYPES.has(part.type) && part.props.followEnvironment !== false && editor.doc.value.parts.some((p) => p.type === 'environment')) {
+    return <EnvSensorNote part={part} />;
+  }
   const controls = CONTROLS[part.type];
   if (controls === undefined) return null;
   const running = simRunning.value;
@@ -72,6 +92,55 @@ export function PartControls({ part, defaults }: { part: PartInstance; defaults:
                 value={valueToSlider(control, value)}
                 onInput={(event) => slide(control, Number((event.target as HTMLInputElement).value))}
               />
+            </label>
+          );
+        }
+        if (control.kind === 'toggle') {
+          const key = `${part.id}:${control.prop}`;
+          const initial = (part.props[control.prop] ?? defaults[control.prop]) === true;
+          const checked = running ? (values.get(key) ?? (initial ? 1 : 0)) !== 0 : initial;
+          return (
+            <label key={control.label} class="field field-check">
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={(event) => {
+                  const on = (event.target as HTMLInputElement).checked;
+                  if (simRunning.peek()) {
+                    sim.input(part.id, channelInput(control.channel, on ? 1 : 0));
+                    live.value = new Map(live.peek()).set(key, on ? 1 : 0);
+                  } else editor.setProp(part.id, control.prop, on);
+                }}
+              />
+              <span class="field-label">{control.label}</span>
+            </label>
+          );
+        }
+        if (control.kind === 'select') {
+          const key = `${part.id}:${control.prop}`;
+          const initial = String(part.props[control.prop] ?? defaults[control.prop] ?? control.options[0]);
+          const liveIndex = running ? values.get(key) : undefined;
+          const current = liveIndex === undefined ? initial : (control.options[liveIndex] ?? initial);
+          return (
+            <label key={control.label} class="field">
+              <span class="field-label">{control.label}</span>
+              <select
+                value={current}
+                onChange={(event) => {
+                  const name = (event.target as HTMLSelectElement).value;
+                  const index = control.options.indexOf(name);
+                  if (simRunning.peek()) {
+                    sim.input(part.id, channelInput(control.channel, index));
+                    live.value = new Map(live.peek()).set(key, index);
+                  } else editor.setProp(part.id, control.prop, name);
+                }}
+              >
+                {control.options.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
             </label>
           );
         }

@@ -63,6 +63,16 @@ PWM-DAC samples, the ESP32's DAC — and a microphone part can listen to your mi
 after you click **Use microphone**; nothing is recorded or stored). A nodal solver gives resistive
 networks real voltages (dimmer LEDs through bigger resistors, true ADC readings).
 
+**Environment** — a room around the bench, set up with parts rather than new screens: an
+Environment part holds the ambient temperature, humidity, light, sound and gas, and you place
+sources in the room — a gas leak, a heater, a candle, a lamp, a sound source, an extractor fan —
+and a person or a box that walks or drives a set path. Gas and heat spread and fade on a coarse
+grid in the simulation worker, light and sound fall off with distance, and the sensors read
+what the room holds where they stand: an MQ-2 smells the leak, a DHT22 or NTC feels the heater,
+a photoresistor sees the lamp, a PIR notices the person walking past, an HC-SR04 measures the
+box. A heater, lamp or fan can be switched by a pin. A faint heatmap can show any field, and
+tests switch sources and set values on a timeline.
+
 **Two boards at once** — an Uno and an ESP32 (or two of either) on one bench, each at its own
 clock; a wire between one board's TX and the other's RX (directly or through a resistor
 divider) carries the bytes, and a baud mismatch is reported.
@@ -83,14 +93,15 @@ npm install
 npm run dev          # the editor at http://localhost:5173
 ```
 
-**Examples…** opens 56 ready-to-run circuits, each with its sketch, which you can change and
+**Examples…** opens 60 ready-to-run circuits, each with its sketch, which you can change and
 run again (Basics: blink, button, fade, traffic light, a Simon game, serial echo, a Nano on a
 breadboard; Displays: LCDs,
 an LCD thermometer, OLED and an OLED clock, a color TFT, 7-segment, bar graph, NeoPixels; Sensors: DHT22,
 HC-SR04 and a distance meter, DS1307, MPU-6050, an IR remote, a kitchen scale, a flame alarm, a
 gas meter, keypad, rotary encoder; Motors: servo sweep, a
 servo knob, a keypad lock, a stepper, an A4988 stepper driver, a relay; Sound: buzzers, a speaker melody, PCM through PWM,
-a microphone pitch meter, a VU meter; ESP32: blink, serial, button, a PWM fader, NeoPixel, a
+a microphone pitch meter, a VU meter; Environment: a gas alarm with an extractor fan, a PIR
+hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, a PWM fader, NeoPixel, a
 rainbow ring, an OLED clock, a color TFT, the DAC, the microphone, an I2C scan; Mega: an LED chaser, four
 serial ports, a 16-input analog scanner; Two boards: an Uno ↔ ESP32
 chat and relay).
@@ -185,6 +196,9 @@ Expectations can also read what parts show and how pins move: `led led1 is lit a
 `servo servo angle is 90 ±3 at 2s`, `lcd lcd1 row 0 is "Hello" at 1s`, `pixel ring[0] is
 #ff0000 at 1s`, `digits disp show "1234" at 2s`, `pin uno:9 frequency is 490 ±1% between 100ms
 and 1s`, `pin uno:9 duty is 25% ±1 between 100ms and 1s`, `serial matches /T=\d+/ by 3s`.
+With an environment part, a step can switch or tune a source — `{ "at": "1s", "part": "leak",
+"set": { "rate": 5, "on": true } }` — and `env gas at mq2 > 300 at 4s` (or `is 22 ±0.5`; gas,
+temperature, humidity, light, sound) reads the room at a part.
 
 `test` runs every spec it finds, in parallel, and writes JUnit XML (which CI systems show as test
 results) and a Markdown summary:

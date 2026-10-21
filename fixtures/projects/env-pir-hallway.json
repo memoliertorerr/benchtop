@@ -1,0 +1,139 @@
+{
+  "format": 1,
+  "name": "env-pir-hallway",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "pir",
+      "type": "pir-motion-sensor",
+      "x": 90,
+      "y": -40,
+      "rotation": 0,
+      "props": {
+        "holdMs": 1000,
+        "retrigger": true,
+        "blockMs": 2500
+      }
+    },
+    {
+      "id": "lamp",
+      "type": "lamp",
+      "x": 100,
+      "y": 30,
+      "rotation": 0,
+      "props": {
+        "lumens": 800,
+        "on": false
+      }
+    },
+    {
+      "id": "walker",
+      "type": "person",
+      "x": -43,
+      "y": -97.8,
+      "rotation": 0,
+      "props": {
+        "toX": 250,
+        "toY": 0,
+        "speed": 1.5,
+        "pause": 0.5,
+        "on": true
+      }
+    },
+    {
+      "id": "room",
+      "type": "environment",
+      "x": -40,
+      "y": -30,
+      "rotation": 0,
+      "props": {
+        "scale": 20,
+        "roomWidth": 6,
+        "roomDepth": 3,
+        "overlay": "light",
+        "light": 50
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "pir",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "pir",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "pir",
+        "pin": "OUT"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "lamp",
+        "pin": "IN"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "8"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "lamp",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "pir-hallway.hex",
+      "format": "hex"
+    }
+  }
+}

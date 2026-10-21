@@ -28,6 +28,7 @@ import { type Camera, DEFAULT_CAMERA, fitRect, pan, type Point, PX_PER_MM, scale
 import { GRID_MM, partBounds, pinWorld, snapPart, snapValue } from './geometry.ts';
 import { hitPin, type PinSpot, pinSpots } from './pins.ts';
 import type { EditorStore } from './store.ts';
+import { EnvironmentLayer } from './EnvironmentLayer.tsx';
 import { WireLayer } from './Wires.tsx';
 import { frameDoc } from './frame.ts';
 import { matchShortcut, shortcutsOpen } from './shortcuts.ts';
@@ -489,6 +490,7 @@ export function Canvas({ store }: { store: EditorStore }) {
       onDrop={onDrop}
     >
       <div class="world" ref={world}>
+        <EnvironmentLayer doc={doc} selection={selection} />
         {doc.parts.map((part) => (
           <PartView key={part.id} part={part} selected={selection.has(part.id)} />
         ))}

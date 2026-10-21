@@ -1,0 +1,122 @@
+{
+  "format": 1,
+  "name": "env-thermostat",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "ntc",
+      "type": "ntc-temperature-sensor",
+      "x": 85,
+      "y": 10,
+      "rotation": 0,
+      "props": {
+        "temperature": 25,
+        "beta": 3950
+      }
+    },
+    {
+      "id": "heat",
+      "type": "heater",
+      "x": 88,
+      "y": 40,
+      "rotation": 0,
+      "props": {
+        "watts": 500,
+        "on": false
+      }
+    },
+    {
+      "id": "room",
+      "type": "environment",
+      "x": -40,
+      "y": -30,
+      "rotation": 0,
+      "props": {
+        "temperature": 20,
+        "heatLoss": 0.05,
+        "overlay": "temperature"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "ntc",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "ntc",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "ntc",
+        "pin": "OUT"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "A0"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "heat",
+        "pin": "IN"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "7"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "heat",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "thermostat.hex",
+      "format": "hex"
+    }
+  }
+}

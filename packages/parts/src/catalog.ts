@@ -46,6 +46,7 @@ import { ntcTemperatureSensor } from './sensors/ntc-temperature-sensor.ts';
 import { photoresistorSensor } from './sensors/photoresistor-sensor.ts';
 import { pirMotionSensor } from './sensors/pir-motion-sensor.ts';
 import { bigSoundSensor, smallSoundSensor } from './sensors/sound-sensor.ts';
+import { ENVIRONMENT_PARTS } from './environment/parts.ts';
 
 const ALL: readonly PartDefinition[] = [
   arduinoUno,
@@ -100,6 +101,7 @@ const ALL: readonly PartDefinition[] = [
   neopixelRing,
   neopixelMatrix,
   relayKs2e,
+  ...ENVIRONMENT_PARTS,
 ];
 
 export const CATALOG: ReadonlyMap<string, PartDefinition> = new Map(ALL.map((d) => [d.type, d]));

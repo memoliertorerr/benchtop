@@ -3,6 +3,7 @@ export * from './bench/index.ts';
 export * from './check/index.ts';
 export * from './contracts/index.ts';
 export * from './debug/index.ts';
+export * from './env/index.ts';
 export * from './firmware/index.ts';
 export * from './geometry.ts';
 export * from './netlist/index.ts';

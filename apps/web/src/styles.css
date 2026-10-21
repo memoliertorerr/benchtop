@@ -377,6 +377,55 @@ input {
 }
 
 /* Wires: an SVG in mm above the parts. Only the hit strokes and handles take the pointer. */
+/* BT55: the environment's heatmap and guides, under the parts. */
+.env-heatmap {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0.35;
+  image-rendering: auto;
+}
+
+.env-guides {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.env-cone {
+  fill: color-mix(in srgb, var(--accent) 10%, transparent);
+  stroke: color-mix(in srgb, var(--accent) 55%, transparent);
+  stroke-width: 0.3;
+  stroke-dasharray: 1.5 1;
+}
+
+.env-patrol {
+  fill: none;
+  stroke: color-mix(in srgb, var(--accent) 70%, transparent);
+  stroke-width: 0.6;
+  stroke-dasharray: 2 1.5;
+}
+
+.environment-view {
+  transform-origin: center center;
+  transition: transform 50ms linear;
+}
+
+.environment-view svg {
+  display: block;
+}
+
+.env-fan.on .fan-rotor {
+  animation: env-spin 0.5s linear infinite;
+}
+
+@keyframes env-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .wire-layer {
   position: absolute;
   left: 0;

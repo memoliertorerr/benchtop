@@ -1,0 +1,14 @@
+{
+  "name": "example: parking-sensor",
+  "project": "../../projects/env-parking.json",
+  "firmware": {
+    "uno": "../../firmware/uno/parking.hex"
+  },
+  "duration": "4500ms",
+  "expect": [
+    "serial matches /^D=19\\d\\r?$/m by 300ms",
+    "serial matches /^D=1[0-4]\\d\\r?$/m by 2s",
+    "serial contains \"STOP\" by 4200ms",
+    "pin uno:8 frequency is 2000 ±1% between 4200ms and 4500ms"
+  ]
+}

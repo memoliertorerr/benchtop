@@ -1,0 +1,166 @@
+{
+  "format": 1,
+  "name": "env-gas-fan",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "gas",
+      "type": "gas-sensor",
+      "x": 85,
+      "y": 0,
+      "rotation": 0,
+      "props": {
+        "ppm": 0,
+        "threshold": 0.5
+      }
+    },
+    {
+      "id": "leak",
+      "type": "gas-leak",
+      "x": 96,
+      "y": -19,
+      "rotation": 0,
+      "props": {
+        "rate": 2,
+        "on": false
+      }
+    },
+    {
+      "id": "fan",
+      "type": "fan",
+      "x": 116,
+      "y": -26,
+      "rotation": 0,
+      "props": {
+        "flow": 6,
+        "on": false
+      }
+    },
+    {
+      "id": "bz1",
+      "type": "buzzer",
+      "x": 90,
+      "y": 30,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "room",
+      "type": "environment",
+      "x": -40,
+      "y": -30,
+      "rotation": 0,
+      "props": {
+        "overlay": "gas",
+        "ventilation": 1
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "gas",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "gas",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "gas",
+        "pin": "AOUT"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "A0"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "fan",
+        "pin": "IN"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "7"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "fan",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "bz1",
+        "pin": "1"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "8"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "bz1",
+        "pin": "2"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.3"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "gas-fan.hex",
+      "format": "hex"
+    }
+  }
+}

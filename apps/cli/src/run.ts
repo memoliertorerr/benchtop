@@ -16,8 +16,13 @@
  *   <lit|dark>` (brightness ≥ 0.3 / ≤ 0.05), `servo <part> angle is <deg> ±<deg>`, `lcd <part>
  *   row <n> is "<text>"` (rows from 0, trailing spaces ignored), `pixel <part>[<i>] is #rrggbb`,
  *   `digits <part> show "<text>"`. ± may be written +- or +/-.
+ * - BT55: `env <gas|temperature|humidity|light|sound> at <part> is <v> ±<tol> at <time>` (or
+ *   `>`, `<`, `>=`, `<=` <v>): the environment's value at a part that sits in it (a sensor, a
+ *   source, a body) — ppm, °C, %RH, lux, dB.
  * - Script: an array of steps or { steps: [...], expect: [...] }. A step is { at, part, input }
- *   (a part input) or { at, serial, board? } (BT48: text sent to a board's UART 0, as typed in the
+ *   (a part input), { at, part, set: { <channel>: <number|boolean>, … } } (BT55: channel inputs
+ *   `set:<channel>=<v>`, booleans as 1/0 — an environment source's rate or on/off, a DHT22's
+ *   temperature) or { at, serial, board? } (BT48: text sent to a board's UART 0, as typed in the
  *   serial monitor; `board` may be left out with one board). Steps apply at exactly their time,
  *   in file order; assertions at the same time see their effect.
  *
@@ -25,7 +30,7 @@
  */
 
 import { type Bench, MAX_PROBES, type Mcu, type NetState, type PartInput, type Problem, type ProjectDoc, type VisualState } from '@benchtop/core';
-import { sevenSegmentText } from '@benchtop/parts';
+import { envSpecFor, sevenSegmentText } from '@benchtop/parts';
 import { buildBench, type CliIo, loadFirmware, loadProject, parseJson, projectFromJson, readText, resolvePin, UsageError } from './load.ts';
 
 export { UsageError } from './load.ts';
@@ -100,7 +105,12 @@ export type Assertion =
   | { kind: 'pixel'; text: string; part: string; index: number; rgb: number; at: number }
   | { kind: 'digits'; text: string; part: string; expected: string; at: number }
   | { kind: 'frequency'; text: string; part: string; pin: string; hz: number; percent: number; from: number; to: number }
-  | { kind: 'duty'; text: string; part: string; pin: string; percent: number; tolerance: number; from: number; to: number };
+  | { kind: 'duty'; text: string; part: string; pin: string; percent: number; tolerance: number; from: number; to: number }
+  | { kind: 'env'; text: string; field: EnvField; part: string; op: EnvOp; value: number; tolerance: number; at: number };
+
+type EnvField = 'gas' | 'temperature' | 'humidity' | 'light' | 'sound';
+type EnvOp = 'is' | '>' | '<' | '>=' | '<=';
+const ENV_UNITS: Readonly<Record<EnvField, string>> = { gas: 'ppm', temperature: '°C', humidity: '%RH', light: 'lux', sound: 'dB' };
 
 /** The time an assertion is decided at: its `at`, its `by`, or the end of its window. */
 export function decidedAt(a: Assertion): number {
@@ -131,6 +141,7 @@ const FORMS = [
   'lcd <part> row <n> is "<text>" at <time>',
   'pixel <part>[<i>] is #rrggbb at <time>',
   'digits <part> show "<text>" at <time>',
+  'env <gas|temperature|humidity|light|sound> at <part> is <v> ±<tol> at <time> (or > < >= <= <v>)',
 ];
 
 const NUM = String.raw`(\d+(?:\.\d+)?)`;
@@ -148,6 +159,7 @@ const GRAMMAR = {
   lcd: re(String.raw`lcd\s+(\S+)\s+row\s+(\d+)\s+is\s+${QUOTED}\s+at\s+(\S+)`),
   pixel: re(String.raw`pixel\s+([^\s[]+)\[(\d+)\]\s+is\s+#([0-9a-fA-F]{6})\s+at\s+(\S+)`),
   digits: re(String.raw`digits\s+(\S+)\s+shows?\s+${QUOTED}\s+at\s+(\S+)`),
+  env: re(String.raw`env\s+(gas|temperature|humidity|light|sound)\s+at\s+(\S+)\s+(?:is\s+(-?\d+(?:\.\d+)?)${PM}${NUM}|(>=|<=|>|<)\s*(-?\d+(?:\.\d+)?))\s+at\s+(\S+)`),
 };
 
 /** A regex from `serial matches /…/flags`: i, m, s and u only (g and y would make it stateful). */
@@ -188,6 +200,11 @@ export function parseAssertion(text: string): Assertion {
   if ((m = GRAMMAR.lcd.exec(t)) !== null) return { kind: 'lcd', text: t, part: m[1], row: Number(m[2]), expected: unescape(m[3], t), at: parseTime(m[4]) };
   if ((m = GRAMMAR.pixel.exec(t)) !== null) return { kind: 'pixel', text: t, part: m[1], index: Number(m[2]), rgb: Number.parseInt(m[3], 16), at: parseTime(m[4]) };
   if ((m = GRAMMAR.digits.exec(t)) !== null) return { kind: 'digits', text: t, part: m[1], expected: unescape(m[2], t), at: parseTime(m[3]) };
+  if ((m = GRAMMAR.env.exec(t)) !== null) {
+    const field = m[1] as EnvField;
+    if (m[3] !== undefined) return { kind: 'env', text: t, field, part: m[2], op: 'is', value: Number(m[3]), tolerance: Number(m[4]), at: parseTime(m[7]) };
+    return { kind: 'env', text: t, field, part: m[2], op: m[5] as EnvOp, value: Number(m[6]), tolerance: 0, at: parseTime(m[7]) };
+  }
   throw new UsageError(`not an assertion: ${t} (expected one of: ${FORMS.join(' · ')})`);
 }
 
@@ -214,6 +231,23 @@ function parseInput(value: unknown, where: string): PartInput {
   }
 }
 
+/** Channels one `set` step may set. */
+export const MAX_SET_CHANNELS = 32;
+
+/** A `set` step's channels → channel inputs (`set:<channel>=<v>`, booleans as 1/0), in key order. */
+function parseSet(value: unknown, where: string): PartInput[] {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new UsageError(`${where}: "set" must map channel names to numbers or booleans`);
+  const entries = Object.entries(value as Record<string, unknown>);
+  if (entries.length === 0) throw new UsageError(`${where}: "set" names no channel`);
+  if (entries.length > MAX_SET_CHANNELS) throw new UsageError(`${where}: "set" names more than ${MAX_SET_CHANNELS} channels`);
+  return entries.map(([channel, v]) => {
+    if (!/^[a-zA-Z][a-zA-Z0-9_-]{0,31}$/.test(channel)) throw new UsageError(`${where}: "${channel}" is not a channel name`);
+    if (typeof v === 'boolean') return { kind: 'key', key: `set:${channel}=${v ? 1 : 0}`, down: true };
+    if (typeof v !== 'number' || !Number.isFinite(v)) throw new UsageError(`${where}: "set.${channel}" must be a finite number or a boolean`);
+    return { kind: 'key', key: `set:${channel}=${v}`, down: true };
+  });
+}
+
 /** A script file's steps and assertions; part ids and boards are checked against the project. */
 export function parseScript(json: unknown, doc: ProjectDoc, boards: readonly string[]): { steps: ScriptStep[]; expect: string[] } {
   const body = json as { steps?: unknown; expect?: unknown } | unknown[];
@@ -222,8 +256,8 @@ export function parseScript(json: unknown, doc: ProjectDoc, boards: readonly str
   if (!Array.isArray(steps)) throw new UsageError('script: expected an array of steps, or { "steps": [...], "expect": [...] }');
   if (!Array.isArray(expect) || expect.some((e) => typeof e !== 'string')) throw new UsageError('script: "expect" must be an array of strings');
   const parts = new Set(doc.parts.map((p) => p.id));
-  const parsed = steps.map((raw: unknown, i): ScriptStep => {
-    const step = raw as { at?: unknown; part?: unknown; input?: unknown; serial?: unknown; board?: unknown } | null;
+  const parsed = steps.map((raw: unknown, i): ScriptStep | ScriptStep[] => {
+    const step = raw as { at?: unknown; part?: unknown; input?: unknown; set?: unknown; serial?: unknown; board?: unknown } | null;
     const where = `script step ${i + 1}`;
     if (typeof step !== 'object' || step === null) throw new UsageError(`${where}: must be an object`);
     if (typeof step.at !== 'string') throw new UsageError(`${where}: "at" must be a time string like "100ms"`);
@@ -239,9 +273,15 @@ export function parseScript(json: unknown, doc: ProjectDoc, boards: readonly str
       return { kind: 'serial', at: parseTime(step.at), board, text: step.serial };
     }
     if (typeof step.part !== 'string' || !parts.has(step.part)) throw new UsageError(`${where}: no part "${String(step.part)}" in the project`);
+    if (step.set !== undefined) {
+      if (step.input !== undefined) throw new UsageError(`${where}: give "input" or "set", not both`);
+      const at = parseTime(step.at);
+      const part = step.part;
+      return parseSet(step.set, where).map((input): ScriptStep => ({ kind: 'input', at, part, input }));
+    }
     return { kind: 'input', at: parseTime(step.at), part: step.part, input: parseInput(step.input, where) };
   });
-  return { steps: parsed, expect: expect as string[] };
+  return { steps: parsed.flat(), expect: expect as string[] };
 }
 
 /** `run` arguments: <project.json> [--firmware <board>=<path>]… [--script f] [--expect a]… [--duration t] [--report f]. */
@@ -312,6 +352,13 @@ function checkAgainstProject(a: Assertion, doc: ProjectDoc, boards: readonly str
     a.pin = name;
     return;
   }
+  if (a.kind === 'env') {
+    const roleOf = (p: ProjectDoc['parts'][number]): string | undefined => envSpecFor(p.type, p.props)?.role;
+    if (!doc.parts.some((p) => roleOf(p) === 'ambient')) throw new UsageError(`${a.text}: the project has no environment part`);
+    const role = roleOf(part);
+    if (role === undefined || role === 'ambient') throw new UsageError(`${a.text}: "${a.part}" is a ${part.type}, not a part placed in the environment (a sensor, a source or a body)`);
+    return;
+  }
   const kind = VISUAL_TYPES[a.kind];
   if (!kind.test(part.type)) throw new UsageError(`${a.text}: "${a.part}" is a ${part.type}, not ${kind.what}`);
   if (a.kind === 'lcd' && a.row >= LCD_SIZES[part.type].rows) throw new UsageError(`${a.text}: a ${part.type} has rows 0–${LCD_SIZES[part.type].rows - 1}`);
@@ -351,6 +398,24 @@ function checkVisual(
       const shown = sevenSegmentText((Array.isArray(visual?.values) ? visual.values : []) as number[]);
       return { ok: shown === a.expected, detail: `shows ${JSON.stringify(shown)}` };
     }
+  }
+}
+
+/** An `env` expectation against the world's value at the part. */
+function checkEnv(a: Extract<Assertion, { kind: 'env' }>, value: number | undefined): { ok: boolean; detail: string } {
+  if (value === undefined) return { ok: false, detail: `no ${a.field} at "${a.part}" (it isn't placed in the environment)` };
+  const shown = `${a.field} ${value.toFixed(2)} ${ENV_UNITS[a.field]}`;
+  switch (a.op) {
+    case 'is':
+      return { ok: Math.abs(value - a.value) <= a.tolerance, detail: shown };
+    case '>':
+      return { ok: value > a.value, detail: shown };
+    case '<':
+      return { ok: value < a.value, detail: shown };
+    case '>=':
+      return { ok: value >= a.value, detail: shown };
+    case '<=':
+      return { ok: value <= a.value, detail: shown };
   }
 }
 
@@ -534,6 +599,8 @@ export function runHeadless(options: RunOptions, io: RunIo): RunReport {
           const state = bench.pinState(a.part, a.pin);
           const level = state === undefined ? 'z' : levelOf(state);
           results.set(a, { text: a.text, ok: level === a.level, atNs: t, detail: `level ${level}` });
+        } else if (a.kind === 'env') {
+          results.set(a, { text: a.text, atNs: t, ...checkEnv(a, bench.envSample(a.part, a.field)) });
         } else {
           const type = doc.parts.find((p) => p.id === a.part)?.type ?? '';
           results.set(a, { text: a.text, atNs: t, ...checkVisual(a, latest.get(a.part), type) });

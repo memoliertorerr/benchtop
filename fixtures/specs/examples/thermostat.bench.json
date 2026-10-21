@@ -1,0 +1,15 @@
+{
+  "name": "example: thermostat",
+  "project": "../../projects/env-thermostat.json",
+  "firmware": {
+    "uno": "../../firmware/uno/thermostat.hex"
+  },
+  "duration": "8s",
+  "expect": [
+    "serial contains \"t=20.0 heater=1\" by 100ms",
+    "pin uno:7 is 1 at 1s",
+    "env temperature at ntc > 23 at 3s",
+    "serial matches /heater=1[\\s\\S]*t=25\\.\\d heater=0/ by 6s",
+    "env temperature at ntc is 25 ±1 at 8s"
+  ]
+}
