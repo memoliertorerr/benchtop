@@ -46,9 +46,16 @@ export interface RunOptions {
   projectJson?: unknown;
   expect: readonly string[];
   duration?: string | undefined;
+  /** BT68: the longest run accepted (ns of simulated time); a longer one is a usage error. */
+  maxDurationNs?: number | undefined;
+  /** BT68: wall-clock budget (ms); the run stops with an error when it is used up. */
+  maxWallMs?: number | undefined;
 }
 
 export type RunIo = CliIo;
+
+/** Simulated time between wall-clock checks when a run has a budget. */
+const WALL_SLICE_NS = 10_000_000;
 
 export interface AssertionResult {
   text: string;
@@ -527,6 +534,7 @@ export function runHeadless(options: RunOptions, io: RunIo): RunReport {
       const t = decidedAt(a);
       if (t > duration) throw new UsageError(`${a.text}: ${formatNs(t)} is past the run's ${formatNs(duration)}`);
     }
+    if (options.maxDurationNs !== undefined && duration > options.maxDurationNs) throw new UsageError(`the run is ${formatNs(duration)} long; the limit is ${formatNs(options.maxDurationNs)}`);
 
     const images = loadFirmware(io, doc, boards, options.firmware);
     const built = buildBench(doc, images, cachedRoms(io));
@@ -581,8 +589,19 @@ export function runHeadless(options: RunOptions, io: RunIo): RunReport {
     };
     collect();
     const stops = [...new Set([...times, ...drains, ...windows.map((w) => w.a.from), duration])].sort((a, b) => a - b);
+    const budget = options.maxWallMs;
+    const advance = (t: number): void => {
+      if (budget === undefined) {
+        bench.runUntil(t);
+        return;
+      }
+      while (bench.now() < t) {
+        bench.runUntil(Math.min(t, bench.now() + WALL_SLICE_NS));
+        if (io.now() - start > budget) throw new UsageError(`the run used up its ${budget} ms wall-clock budget at ${formatNs(bench.now())} of simulated time`);
+      }
+    };
     for (const t of stops) {
-      bench.runUntil(t);
+      advance(t);
       for (const w of windows) drainWindow(bench, w);
       for (const step of script.steps) {
         if (step.at !== t) continue;

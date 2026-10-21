@@ -14,6 +14,9 @@
  *     BT58: the project's PCB (the layout given, else one seeded from the bench) checked by DRC
  *     and exported — Gerbers, drill, BOM, KiCad netlist + footprints, the layout — into the
  *     folder (or one ZIP). Exits 0, 1 with --drc when DRC finds an error, 2 on a usage error.
+ *   mcp [--root <folder>] [--max-sim <time>] [--max-wall <seconds>]
+ *     BT68: a Model Context Protocol server on stdio (mcp/): an AI assistant reads the catalog,
+ *     validates and runs circuits and test specs, with every path inside the root folder.
  */
 
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -21,6 +24,7 @@ import { dirname, resolve } from 'node:path';
 import { parseGdbArgs, startGdbServer } from './gdb.ts';
 import { nodeIo } from './node-io.ts';
 import { parsePcbArgs, runPcb } from './pcb.ts';
+import { runMcp } from './mcp/command.ts';
 import { junitXml, markdownReport } from './reports.ts';
 import { parseRunArgs, type RunReport, runHeadless, summaryLine, UsageError } from './run.ts';
 import { discoverSpecs, parseTestArgs, runSuite, specLine, suiteLine } from './suite.ts';
@@ -32,6 +36,7 @@ const USAGE = `usage: benchtop run <project.json> --firmware <board>=<file.hex|.
        benchtop gdb [--port 3333] [--speed realtime|max] [--board <id>] <project.json>
          --firmware <board>=<file.elf>
        benchtop pcb <project.json> [--pcb <layout.pcb.json>] --out <folder> [--zip] [--drc]
+       benchtop mcp [--root <folder>] [--max-sim <time>] [--max-wall <seconds>]
   assertions: serial contains "<text>" by <time>   ·   serial matches /<regex>/ by <time>
     pin <part>:<pin> is <0|1|z|x> at <time>
     pin <part>:<pin> frequency is <hz> ±<pct>% between <time> and <time>
@@ -108,6 +113,7 @@ function main(argv: readonly string[]): number | Promise<number> {
   if (command === 'gdb') return gdb(rest);
   if (command === 'pcb') return pcb(rest);
   if (command === 'test') return test(rest);
+  if (command === 'mcp') return runMcp(rest, io);
   if (command !== 'run') {
     console.error(command === undefined || command === '--help' || command === '-h' ? USAGE : `unknown command "${command}"\n${USAGE}`);
     return 2;

@@ -16,12 +16,11 @@
  * Every request must carry an allowed Host; any Origin must be allowed, and POST must have one.
  */
 
-import { type FSWatcher, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, watch, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { type FSWatcher, readFileSync, statSync, watch } from 'node:fs';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { extname, join, relative, resolve, sep } from 'node:path';
-import { type CompileResult, compile as runCompile } from './compile.ts';
+import { extname, join, resolve, sep } from 'node:path';
+import { type CompileResult, compileInlineSketch, compile as runCompile } from './compile.ts';
 import { runArduinoCli } from '../../../scripts/arduino-cli.ts';
 import {
   FQBN_ALLOWLIST,
@@ -187,32 +186,7 @@ export function createBridge(options: BridgeOptions): Bridge {
   };
 
   /** An inline sketch (BT42): written to a fresh temp folder, compiled, removed. */
-  const compileInline = async (fqbn: string, files: Record<string, string>, main: string): Promise<CompileResult> => {
-    const root = mkdtempSync(join(tmpdir(), 'benchtop-inline-'));
-    const name = main.slice(0, -'.ino'.length);
-    const dir = join(root, name);
-    try {
-      mkdirSync(dir);
-      for (const [file, text] of Object.entries(files)) writeFileSync(join(dir, file), text);
-      const result = await compile(dir, fqbn, `inline\u0000${fqbn}\u0000${name}`);
-      // Name the files as the editor does: macOS's temp dir also appears under /private.
-      const roots = [realpathSync(dir), dir].sort((a, b) => b.length - a.length);
-      const local = (file: string): string => {
-        const inside = roots.find((r) => file.startsWith(r + sep));
-        return inside === undefined ? file : relative(inside, file);
-      };
-      const scrub = (text: string): string => roots.reduce((t, r) => t.split(r + sep).join(''), text);
-      return {
-        ...result,
-        diagnostics: result.diagnostics.map((d) => ({ ...d, file: local(d.file) })),
-        stdout: scrub(result.stdout),
-        stderr: scrub(result.stderr),
-        ...(result.error === undefined ? {} : { error: scrub(result.error) }),
-      };
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
-  };
+  const compileInline = (fqbn: string, files: Record<string, string>, main: string): Promise<CompileResult> => compileInlineSketch(compile, fqbn, files, main);
   const watches = new Map<string, SketchWatch>();
   let health: Promise<string> | null = null;
   let port = 0;

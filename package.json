@@ -17,6 +17,7 @@
     "bridge": "node apps/bridge/src/main.ts",
     "bench": "node apps/cli/src/main.ts",
     "bench:esp32": "node scripts/bench-esp32.ts",
+    "mcp": "node apps/cli/src/main.ts mcp",
     "start": "npm run build && node apps/bridge/src/main.ts --serve apps/web/dist",
     "build": "npm run build -w @benchtop/web",
     "fixtures": "node scripts/build-fixtures.ts",

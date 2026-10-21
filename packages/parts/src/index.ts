@@ -21,3 +21,4 @@ export { FLAME_PIN_PX, GAS_PIN_PX } from './sensors/flame-gas.ts';
 export { bipolarPosition } from './actuators/stepper.ts';
 export { ENV_SENSOR_TYPES, envSpecFor, soundLevel } from './environment/specs.ts';
 export { ENVIRONMENT_PARTS, OVERLAY_NAMES } from './environment/parts.ts';
+export { PART_INPUTS, type PartInputSpec, partInputs } from './part-inputs.ts';

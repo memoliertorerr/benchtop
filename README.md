@@ -231,6 +231,37 @@ npm run bench -- gdb fixtures/projects/debug-demo.json --firmware uno=fixtures/f
 `run` prints a JSON report and exits 0 (pass), 1 (an assertion failed) or 2 (usage or load
 error). `gdb` listens on 127.0.0.1:3333 for `avr-gdb` (`target remote :3333`).
 
+### Use with an AI assistant (MCP)
+
+`bench mcp` is a [Model Context Protocol](https://modelcontextprotocol.io) server on stdio: an
+assistant can browse the part catalog, check a project, run circuits with assertions and run
+test specs, or open a live session — on your project or on a gallery example — and drive it
+step by step (inputs, serial, part states, measured pins). Point your MCP client at it with the
+folder it may use, for example with Claude Code:
+
+```bash
+claude mcp add benchtop -- node /path/to/benchtop/apps/cli/src/main.ts mcp --root /path/to/your/project
+```
+
+Other clients take the same command in their JSON configuration:
+
+```json
+{ "mcpServers": { "benchtop": { "command": "node", "args": ["/path/to/benchtop/apps/cli/src/main.ts", "mcp", "--root", "/path/to/your/project"] } } }
+```
+
+The tools: the part catalog (`list_parts`, `describe_part`), `validate_project`,
+`run_simulation`, `run_tests`, live sessions (`sim_open`, `sim_run`, `sim_input`, `sim_serial`,
+`sim_state`, `sim_reset`, `sim_close`, `sim_list`), the gallery (`list_examples`,
+`open_example`, and each example as a resource), AVR debugging in a session (`debug_registers`,
+`debug_memory`, `debug_breakpoints`, `debug_step`), `compile_sketch` (with your arduino-cli)
+and the PCB pair `pcb_check` and `pcb_export`.
+
+What it can touch: it reads files only inside `--root`, writes only to `<root>/.benchtop/`
+(compiled firmware, PCB exports), runs no shell and opens no network connection; the one
+program it starts is arduino-cli, for `compile_sketch`. A call simulates at most 60 s
+(`--max-sim`) and spends at most 30 s of wall time (`--max-wall`); at most 8 sessions stay
+open.
+
 ### Testing in CI
 
 A test spec (`*.bench.json`) is one run as a file — project, firmware, scripted inputs (button

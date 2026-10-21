@@ -1,0 +1,1009 @@
+[
+  {
+    "id": "blink",
+    "title": "Blink",
+    "category": "Basics",
+    "project": "blink-led",
+    "boards": {
+      "uno": {
+        "firmware": "uno/blink.hex",
+        "sketch": "uno/blink"
+      }
+    },
+    "pcb": "blink",
+    "description": "The classic: an LED on D13 (through 220 Ω on a breadboard) blinks once a second. It has a PCB too: an Uno shield — switch to PCB in the toolbar."
+  },
+  {
+    "id": "button",
+    "title": "Button",
+    "category": "Basics",
+    "project": "button-pullup",
+    "boards": {
+      "uno": {
+        "firmware": "uno/button-pullup.hex",
+        "sketch": "uno/button-pullup"
+      }
+    },
+    "description": "A pushbutton from D2 to GND with the internal pull-up lights the LED on D13 while held."
+  },
+  {
+    "id": "fade",
+    "title": "Fade",
+    "category": "Basics",
+    "project": "pwm-fade",
+    "boards": {
+      "uno": {
+        "firmware": "uno/pwm-fade.hex",
+        "sketch": "uno/pwm-fade"
+      }
+    },
+    "description": "analogWrite on D9 ramps an LED up and down with PWM."
+  },
+  {
+    "id": "traffic-light",
+    "title": "Traffic light",
+    "category": "Basics",
+    "project": "traffic-light",
+    "boards": {
+      "uno": {
+        "firmware": "uno/traffic-light.hex",
+        "sketch": "uno/traffic-light"
+      }
+    },
+    "description": "Red, red + yellow, green, yellow — a traffic light on D10, D9 and D8, cycling every 2 s."
+  },
+  {
+    "id": "simon",
+    "title": "Simon game",
+    "category": "Basics",
+    "project": "simon",
+    "boards": {
+      "uno": {
+        "firmware": "uno/simon.hex",
+        "sketch": "uno/simon"
+      }
+    },
+    "description": "Four buttons, four LEDs and a buzzer: repeat the growing sequence. Run it and press the buttons."
+  },
+  {
+    "id": "serial-echo",
+    "title": "Serial echo",
+    "category": "Basics",
+    "project": "debug-demo",
+    "boards": {
+      "uno": {
+        "firmware": "uno/serial-echo.hex",
+        "sketch": "uno/serial-echo"
+      }
+    },
+    "description": "Type in the serial monitor (9600 baud): the Uno sends every byte straight back."
+  },
+  {
+    "id": "potentiometer",
+    "title": "Potentiometer",
+    "category": "Basics",
+    "project": "analog-pot",
+    "boards": {
+      "uno": {
+        "firmware": "uno/analog-read.hex",
+        "sketch": "uno/analog-read"
+      }
+    },
+    "description": "analogRead(A0) of a potentiometer printed ten times a second — turn the knob."
+  },
+  {
+    "id": "nano-analog",
+    "title": "Nano on a breadboard",
+    "category": "Basics",
+    "project": "nano-analog",
+    "boards": {
+      "nano": {
+        "firmware": "nano/analog-a6.hex",
+        "sketch": "nano/analog-a6"
+      }
+    },
+    "description": "An Arduino Nano straddles a breadboard and reads two potentiometers on A6 and A7 — analog-only pins the Uno lacks. Turn the knobs; watch Serial or the Plotter."
+  },
+  {
+    "id": "logic-analyzer",
+    "title": "Logic analyzer demo",
+    "category": "Basics",
+    "project": "logic-demo",
+    "boards": {
+      "uno": {
+        "firmware": "uno/logic-demo.hex",
+        "sketch": "uno/logic-demo"
+      }
+    },
+    "description": "SoftwareSerial on D3, PWM on D9 and a 1 kHz square wave on D7: probe them with the Probe tool."
+  },
+  {
+    "id": "lcd1602",
+    "title": "LCD 16×2",
+    "category": "Displays",
+    "project": "lcd-4bit",
+    "boards": {
+      "uno": {
+        "firmware": "uno/lcd-4bit.hex",
+        "sketch": "uno/lcd-4bit"
+      }
+    },
+    "description": "LiquidCrystal in 4-bit mode: \"Hello, Benchtop!\" and a seconds counter."
+  },
+  {
+    "id": "lcd-i2c",
+    "title": "LCD 16×2 over I2C",
+    "category": "Displays",
+    "project": "lcd-i2c",
+    "boards": {
+      "uno": {
+        "firmware": "uno/lcd-i2c.hex",
+        "sketch": "uno/lcd-i2c"
+      }
+    },
+    "description": "The same text through a PCF8574 backpack at 0x27; the backlight goes off at 1.5 s."
+  },
+  {
+    "id": "lcd-thermometer",
+    "title": "LCD thermometer",
+    "category": "Displays",
+    "project": "lcd-thermometer",
+    "boards": {
+      "uno": {
+        "firmware": "uno/lcd-thermometer.hex",
+        "sketch": "uno/lcd-thermometer"
+      }
+    },
+    "description": "A DHT22 read every 2 s, temperature and humidity on an I2C LCD — change them with its sliders."
+  },
+  {
+    "id": "oled",
+    "title": "OLED (SSD1306)",
+    "category": "Displays",
+    "project": "ssd1306-adafruit",
+    "boards": {
+      "uno": {
+        "firmware": "uno/ssd1306-adafruit.hex",
+        "sketch": "uno/ssd1306-adafruit"
+      }
+    },
+    "description": "Adafruit_SSD1306 draws a border, text and a circle on a 128×64 I2C OLED."
+  },
+  {
+    "id": "oled-clock",
+    "title": "OLED clock",
+    "category": "Displays",
+    "project": "oled-clock",
+    "boards": {
+      "uno": {
+        "firmware": "uno/oled-clock.hex",
+        "sketch": "uno/oled-clock"
+      }
+    },
+    "description": "A DS1307 real-time clock shown large on an SSD1306 OLED, and printed every second."
+  },
+  {
+    "id": "tft",
+    "title": "Color TFT (ILI9341)",
+    "category": "Displays",
+    "project": "tft-demo",
+    "boards": {
+      "uno": {
+        "firmware": "uno/tft-demo.hex",
+        "sketch": "uno/tft-demo"
+      }
+    },
+    "description": "A 240×320 ILI9341 on hardware SPI, driven by a small driver in the sketch itself: colored boxes, a title, and a counter that redraws only its digit."
+  },
+  {
+    "id": "seven-segment",
+    "title": "7-segment display",
+    "category": "Displays",
+    "project": "seven-seg-mux",
+    "boards": {
+      "uno": {
+        "firmware": "uno/seven-seg-mux.hex",
+        "sketch": "uno/seven-seg-mux"
+      }
+    },
+    "description": "A 4-digit display multiplexed at ~120 Hz shows \"1234\"."
+  },
+  {
+    "id": "bargraph",
+    "title": "LED bar graph",
+    "category": "Displays",
+    "project": "bargraph",
+    "boards": {
+      "uno": {
+        "firmware": "uno/bargraph.hex",
+        "sketch": "uno/bargraph"
+      }
+    },
+    "description": "Ten LEDs on D11…D2, six of them lit."
+  },
+  {
+    "id": "neopixel",
+    "title": "NeoPixel strip and ring",
+    "category": "Displays",
+    "project": "neopixel",
+    "boards": {
+      "uno": {
+        "firmware": "uno/neopixel.hex",
+        "sketch": "uno/neopixel"
+      }
+    },
+    "description": "24 WS2812 pixels — a strip chained into a ring — bit-banged from D6."
+  },
+  {
+    "id": "dht22",
+    "title": "Temperature and humidity (DHT22)",
+    "category": "Sensors",
+    "project": "dht22",
+    "boards": {
+      "uno": {
+        "firmware": "uno/dht22-adafruit.hex",
+        "sketch": "uno/dht22-adafruit"
+      }
+    },
+    "description": "Adafruit's DHT library reads a DHT22 every 2.1 s — change its sliders."
+  },
+  {
+    "id": "hc-sr04",
+    "title": "Ultrasonic distance (HC-SR04)",
+    "category": "Sensors",
+    "project": "hcsr04",
+    "boards": {
+      "uno": {
+        "firmware": "uno/hcsr04.hex",
+        "sketch": "uno/hcsr04"
+      }
+    },
+    "description": "pulseIn times the echo and prints the distance in cm, ten times a second."
+  },
+  {
+    "id": "distance-meter",
+    "title": "Distance meter",
+    "category": "Sensors",
+    "project": "distance-meter",
+    "boards": {
+      "uno": {
+        "firmware": "uno/distance-meter.hex",
+        "sketch": "uno/distance-meter"
+      }
+    },
+    "description": "An HC-SR04 measured five times a second, the distance in cm on a 4-digit 7-segment display."
+  },
+  {
+    "id": "ds1307",
+    "title": "Real-time clock (DS1307)",
+    "category": "Sensors",
+    "project": "ds1307",
+    "boards": {
+      "uno": {
+        "firmware": "uno/ds1307.hex",
+        "sketch": "uno/ds1307"
+      }
+    },
+    "description": "Sets the clock to just before midnight and prints the time every second."
+  },
+  {
+    "id": "mpu6050",
+    "title": "Accelerometer (MPU-6050)",
+    "category": "Sensors",
+    "project": "mpu6050",
+    "boards": {
+      "uno": {
+        "firmware": "uno/mpu6050.hex",
+        "sketch": "uno/mpu6050"
+      }
+    },
+    "description": "Raw I2C reads of acceleration, temperature and rotation."
+  },
+  {
+    "id": "ir-remote",
+    "title": "IR remote",
+    "category": "Sensors",
+    "project": "ir-remote",
+    "boards": {
+      "uno": {
+        "firmware": "uno/ir-decode.hex",
+        "sketch": "uno/ir-decode"
+      }
+    },
+    "description": "Press the remote’s keys while it runs: an IR receiver on D2 turns them into NEC frames, and a small decoder in the sketch prints each key (and \"repeat\" while you hold one)."
+  },
+  {
+    "id": "scale",
+    "title": "Kitchen scale (HX711)",
+    "category": "Sensors",
+    "project": "scale",
+    "boards": {
+      "uno": {
+        "firmware": "uno/scale.hex",
+        "sketch": "uno/scale"
+      }
+    },
+    "description": "A load cell through an HX711, read by a shift-in in the sketch: it tares at start, then prints grams twice a second — set the weight in the Inspector."
+  },
+  {
+    "id": "flame-alarm",
+    "title": "Flame alarm",
+    "category": "Sensors",
+    "project": "flame-alarm",
+    "boards": {
+      "uno": {
+        "firmware": "uno/flame-alarm.hex",
+        "sketch": "uno/flame-alarm"
+      }
+    },
+    "description": "A flame sensor module: raise the infrared in the Inspector past the trimmer’s threshold and the buzzer sounds; the sketch prints each change with the analog reading."
+  },
+  {
+    "id": "gas-meter",
+    "title": "Gas meter (MQ-2)",
+    "category": "Sensors",
+    "project": "gas-meter",
+    "boards": {
+      "uno": {
+        "firmware": "uno/gas-meter.hex",
+        "sketch": "uno/gas-meter"
+      }
+    },
+    "description": "An MQ-2 module prints its analog reading four times a second and raises an alarm past the threshold — set the gas concentration in ppm in the Inspector."
+  },
+  {
+    "id": "keypad",
+    "title": "Keypad 4×4",
+    "category": "Sensors",
+    "project": "keypad",
+    "boards": {
+      "uno": {
+        "firmware": "uno/keypad-scan.hex",
+        "sketch": "uno/keypad-scan"
+      }
+    },
+    "description": "A matrix keypad scanned row by row; each key press is printed."
+  },
+  {
+    "id": "encoder",
+    "title": "Rotary encoder (KY-040)",
+    "category": "Sensors",
+    "project": "encoder",
+    "boards": {
+      "uno": {
+        "firmware": "uno/encoder-count.hex",
+        "sketch": "uno/encoder-count"
+      }
+    },
+    "description": "Counts detents up and down and reports shaft presses."
+  },
+  {
+    "id": "servo",
+    "title": "Servo sweep",
+    "category": "Motors",
+    "project": "servo-sweep",
+    "boards": {
+      "uno": {
+        "firmware": "uno/servo-sweep.hex",
+        "sketch": "uno/servo-sweep"
+      }
+    },
+    "description": "Servo.h sweeps a servo from 0° to 180° and back in 5° steps."
+  },
+  {
+    "id": "servo-knob",
+    "title": "Servo knob",
+    "category": "Motors",
+    "project": "servo-knob",
+    "boards": {
+      "uno": {
+        "firmware": "uno/servo-knob.hex",
+        "sketch": "uno/servo-knob"
+      }
+    },
+    "description": "A potentiometer steers a servo: turn the knob in the Inspector while it runs."
+  },
+  {
+    "id": "keypad-lock",
+    "title": "Keypad lock",
+    "category": "Motors",
+    "project": "keypad-lock",
+    "boards": {
+      "uno": {
+        "firmware": "uno/keypad-lock.hex",
+        "sketch": "uno/keypad-lock"
+      }
+    },
+    "description": "Type 1 2 3 4 # on the keypad: the servo latch opens for 3 s; a wrong code beeps."
+  },
+  {
+    "id": "stepper",
+    "title": "Stepper (28BYJ-48)",
+    "category": "Motors",
+    "project": "stepper-28byj48",
+    "boards": {
+      "uno": {
+        "firmware": "uno/stepper-28byj48.hex",
+        "sketch": "uno/stepper-28byj48"
+      }
+    },
+    "description": "Stepper.h turns a 28BYJ-48 on a ULN2003 driver a quarter turn at a time."
+  },
+  {
+    "id": "a4988-stepper",
+    "title": "A4988 stepper driver",
+    "category": "Motors",
+    "project": "a4988-stepper",
+    "boards": {
+      "uno": {
+        "firmware": "uno/a4988-stepper.hex",
+        "sketch": "uno/a4988-stepper"
+      }
+    },
+    "description": "An A4988 on STEP/DIR turns a bipolar stepper one turn in full steps, then one turn back in sixteenth steps — watch the shaft move in fine increments."
+  },
+  {
+    "id": "relay",
+    "title": "Relay",
+    "category": "Motors",
+    "project": "relay",
+    "boards": {
+      "uno": {
+        "firmware": "uno/relay.hex",
+        "sketch": "uno/relay"
+      }
+    },
+    "description": "D7 switches a relay coil every 500 ms; its contact lights an LED."
+  },
+  {
+    "id": "gas-fan",
+    "title": "Gas alarm with a fan",
+    "category": "Environment",
+    "project": "env-gas-fan",
+    "boards": {
+      "uno": {
+        "firmware": "uno/gas-fan.hex",
+        "sketch": "uno/gas-fan"
+      }
+    },
+    "description": "A gas leak opens near an MQ-2: past the alarm level the buzzer sounds and an extractor fan on D7 runs until the air is clean again. Switch the leak in the Inspector; the heatmap shows the gas spreading."
+  },
+  {
+    "id": "pir-hallway",
+    "title": "PIR hallway light",
+    "category": "Environment",
+    "project": "env-pir-hallway",
+    "boards": {
+      "uno": {
+        "firmware": "uno/pir-hallway.hex",
+        "sketch": "uno/pir-hallway"
+      }
+    },
+    "description": "A person walks down a hallway past a PIR sensor: the lamp on D8 lights while they are in view and goes off a second after they leave."
+  },
+  {
+    "id": "parking-sensor",
+    "title": "Parking sensor",
+    "category": "Environment",
+    "project": "env-parking",
+    "boards": {
+      "uno": {
+        "firmware": "uno/parking.hex",
+        "sketch": "uno/parking"
+      }
+    },
+    "description": "A car drives toward an HC-SR04: the beeps come faster as it closes in, and a steady tone says STOP below 30 cm."
+  },
+  {
+    "id": "thermostat",
+    "title": "Thermostat",
+    "category": "Environment",
+    "project": "env-thermostat",
+    "boards": {
+      "uno": {
+        "firmware": "uno/thermostat.hex",
+        "sketch": "uno/thermostat"
+      }
+    },
+    "description": "An NTC reads the room and D7 switches a heater to hold 25 °C with half a degree of hysteresis; the heatmap shows the warm air."
+  },
+  {
+    "id": "buzzer",
+    "title": "Buzzers",
+    "category": "Sound",
+    "project": "buzzer",
+    "boards": {
+      "uno": {
+        "firmware": "uno/buzzer.hex",
+        "sketch": "uno/buzzer"
+      }
+    },
+    "description": "tone() plays 440 Hz then 880 Hz on a passive buzzer; an active one beeps after. Unmute to hear them."
+  },
+  {
+    "id": "speaker-melody",
+    "title": "Speaker melody",
+    "category": "Sound",
+    "project": "speaker-melody",
+    "boards": {
+      "uno": {
+        "firmware": "uno/speaker-melody.hex",
+        "sketch": "uno/speaker-melody"
+      }
+    },
+    "description": "tone() plays three notes on a speaker on D8 — through your computer’s speakers once you unmute."
+  },
+  {
+    "id": "pcm-playback",
+    "title": "PCM through PWM",
+    "category": "Sound",
+    "project": "pcm-playback",
+    "boards": {
+      "uno": {
+        "firmware": "uno/pcm-playback.hex",
+        "sketch": "uno/pcm-playback"
+      }
+    },
+    "description": "A 1 kHz sine as 8 kHz samples in Timer2’s 62.5 kHz PWM on D3; the speaker filters the carrier away."
+  },
+  {
+    "id": "mic-level",
+    "title": "Microphone pitch",
+    "category": "Sound",
+    "project": "mic-level",
+    "boards": {
+      "uno": {
+        "firmware": "uno/mic-level.hex",
+        "sketch": "uno/mic-level"
+      }
+    },
+    "description": "A microphone on A0; the sketch prints the pitch it hears every 500 ms. Run, select the mic, click “Use microphone” and whistle."
+  },
+  {
+    "id": "vu-meter",
+    "title": "VU meter",
+    "category": "Sound",
+    "project": "vu-meter",
+    "boards": {
+      "uno": {
+        "firmware": "uno/vu-meter.hex",
+        "sketch": "uno/vu-meter"
+      }
+    },
+    "description": "A microphone and a 10-LED bar graph: the louder it hears, the more bars light. Try “Use microphone”."
+  },
+  {
+    "id": "esp32-blink",
+    "title": "ESP32 blink",
+    "category": "ESP32",
+    "project": "esp32-blink",
+    "boards": {
+      "esp": {
+        "firmware": "esp32/blink.bin",
+        "sketch": "esp32/blink"
+      }
+    },
+    "description": "An ESP32 DevKit V1 blinks an LED on D2 (and its onboard LED) through FreeRTOS."
+  },
+  {
+    "id": "esp32-serial-hello",
+    "title": "ESP32 serial hello",
+    "category": "ESP32",
+    "project": "esp32-serial",
+    "boards": {
+      "esp": {
+        "firmware": "esp32/serial-hello.bin",
+        "sketch": "esp32/serial-hello"
+      }
+    },
+    "description": "A full dual-core boot on the real ROM, then \"hello from esp32\" at 115200 baud."
+  },
+  {
+    "id": "esp32-button",
+    "title": "ESP32 button",
+    "category": "ESP32",
+    "project": "esp32-button",
+    "boards": {
+      "esp": {
+        "firmware": "esp32/gpio-input.bin",
+        "sketch": "esp32/gpio-input"
+      }
+    },
+    "description": "A button on D4 with INPUT_PULLUP lights the LED on D2 while held."
+  },
+  {
+    "id": "esp32-pwm-fader",
+    "title": "ESP32 PWM fader",
+    "category": "ESP32",
+    "project": "esp32-pwm-fader",
+    "boards": {
+      "esp": {
+        "firmware": "esp32/pwm-fader.bin",
+        "sketch": "esp32/pwm-fader"
+      }
+    },
+    "description": "A potentiometer on GPIO34 (ADC1) sets an LED’s brightness through LEDC PWM."
+  },
+  {
+    "id": "esp32-neopixel",
+    "title": "ESP32 NeoPixel",
+    "category": "ESP32",
+    "project": "esp32-neopixel",
+    "boards": {
+      "esp": {
+        "firmware": "esp32/neopixel.bin",
+        "sketch": "esp32/neopixel"
+      }
+    },
+    "description": "neopixelWrite through the RMT peripheral: red, green, blue, dim white."
+  },
+  {
+    "id": "esp32-rainbow-ring",
+    "title": "ESP32 rainbow ring",
+    "category": "ESP32",
+    "project": "esp32-rainbow-ring",
+    "boards": {
+      "esp": {
+        "firmware": "esp32/rainbow-ring.bin",
+        "sketch": "esp32/rainbow-ring"
+      }
+    },
+    "description": "A turning rainbow on a 16-pixel NeoPixel ring, sent bit by bit through the RMT peripheral."
+  },
+  {
+    "id": "esp32-oled-clock",
+    "title": "ESP32 OLED clock",
+    "category": "ESP32",
+    "project": "esp32-oled-clock",
+    "boards": {
+      "esp": {
+        "firmware": "esp32/oled-clock.bin",
+        "sketch": "esp32/oled-clock"
+      }
+    },
+    "description": "A DS1307 and an SSD1306 on the ESP32’s I2C: the time large on the OLED."
+  },
+  {
+    "id": "esp32-tft",
+    "title": "ESP32 color TFT",
+    "category": "ESP32",
+    "project": "esp32-tft-demo",
+    "boards": {
+      "esp": {
+        "firmware": "esp32/tft-demo.bin",
+        "sketch": "esp32/tft-demo"
+      }
+    },
+    "description": "The same ILI9341 picture over the ESP32’s VSPI bus (SCK 18, MOSI 23), with CS on D5 and D/C on D4."
+  },
+  {
+    "id": "esp32-dac-sine",
+    "title": "ESP32 DAC sine",
+    "category": "ESP32",
+    "project": "esp32-dac-sine",
+    "boards": {
+      "esp": {
+        "firmware": "esp32/dac-sine.bin",
+        "sketch": "esp32/dac-sine"
+      }
+    },
+    "description": "dacWrite on GPIO25 steps a 500 Hz sine into a speaker (unmute to hear it)."
+  },
+  {
+    "id": "esp32-mic-level",
+    "title": "ESP32 microphone pitch",
+    "category": "ESP32",
+    "project": "esp32-mic-level",
+    "boards": {
+      "esp": {
+        "firmware": "esp32/mic-level.bin",
+        "sketch": "esp32/mic-level"
+      }
+    },
+    "description": "A microphone on GPIO34 (ADC1); the sketch prints the pitch it hears every 500 ms."
+  },
+  {
+    "id": "esp32-i2c-scan",
+    "title": "ESP32 I2C scan",
+    "category": "ESP32",
+    "project": "esp32-i2c",
+    "boards": {
+      "esp": {
+        "firmware": "esp32/i2c-scan.bin",
+        "sketch": "esp32/i2c-scan"
+      }
+    },
+    "description": "Wire scans the bus and finds the OLED (0x3C) and the clock (0x68)."
+  },
+  {
+    "id": "pico-blink",
+    "title": "Pico blink",
+    "category": "Raspberry Pi Pico",
+    "project": "pico-blink",
+    "boards": {
+      "pico": {
+        "firmware": "pico/blink.uf2",
+        "sketch": "pico/blink"
+      }
+    },
+    "description": "The Raspberry Pi Pico on its own: the onboard LED (GP25) blinks every half second."
+  },
+  {
+    "id": "pico-potentiometer",
+    "title": "Pico potentiometer",
+    "category": "Raspberry Pi Pico",
+    "project": "pico-analog-read",
+    "boards": {
+      "pico": {
+        "firmware": "pico/analog-read.uf2",
+        "sketch": "pico/analog-read"
+      }
+    },
+    "description": "analogRead of a potentiometer on GP26 (ADC0) at 12 bits, printed ten times a second on USB serial — turn the knob."
+  },
+  {
+    "id": "pico-fade",
+    "title": "Pico PWM steps",
+    "category": "Raspberry Pi Pico",
+    "project": "pico-pwm-fade",
+    "boards": {
+      "pico": {
+        "firmware": "pico/pwm-fade.uf2",
+        "sketch": "pico/pwm-fade"
+      }
+    },
+    "description": "analogWrite on GP15 at 1 kHz: an LED steps through 0, 25, 50, 75 and 100 % duty, 200 ms each."
+  },
+  {
+    "id": "pico-oled",
+    "title": "Pico OLED",
+    "category": "Raspberry Pi Pico",
+    "project": "pico-i2c-oled",
+    "boards": {
+      "pico": {
+        "firmware": "pico/i2c-oled.uf2",
+        "sketch": "pico/i2c-oled"
+      }
+    },
+    "description": "Adafruit SSD1306 over Wire on GP4 (SDA) and GP5 (SCL): a box, \"PICO\" and a seconds counter."
+  },
+  {
+    "id": "pico-tft",
+    "title": "Pico color TFT",
+    "category": "Raspberry Pi Pico",
+    "project": "pico-spi-tft",
+    "boards": {
+      "pico": {
+        "firmware": "pico/spi-tft.uf2",
+        "sketch": "pico/spi-tft"
+      }
+    },
+    "description": "The ILI9341 picture over SPI0 (SCK GP18, MOSI GP19), with CS on GP17 and D/C on GP20, then a digit counter."
+  },
+  {
+    "id": "pico-neopixel",
+    "title": "Pico NeoPixel",
+    "category": "Raspberry Pi Pico",
+    "project": "pico-neopixel",
+    "boards": {
+      "pico": {
+        "firmware": "pico/neopixel.uf2",
+        "sketch": "pico/neopixel"
+      }
+    },
+    "description": "Eight WS2812 pixels on GP2 driven by a PIO program, not bit-banging: pixel 0 steps red, green, blue every half second."
+  },
+  {
+    "id": "pico-micropython-blink",
+    "title": "MicroPython blink",
+    "category": "Raspberry Pi Pico",
+    "project": "pico-blink",
+    "boards": {
+      "pico": {
+        "micropython": "blink"
+      }
+    },
+    "description": "MicroPython on the Pico: main.py toggles the LED every 250 ms and prints the count. Edit it in the Code tab and press Run — nothing to compile."
+  },
+  {
+    "id": "pico-micropython-neopixel",
+    "title": "MicroPython NeoPixel",
+    "category": "Raspberry Pi Pico",
+    "project": "pico-neopixel",
+    "boards": {
+      "pico": {
+        "micropython": "neopixel"
+      }
+    },
+    "description": "MicroPython's neopixel module drives the WS2812 strip on GP2: pixel 0 steps red, green, blue every half second."
+  },
+  {
+    "id": "pico-pio-square",
+    "title": "Pico PIO square wave",
+    "category": "Raspberry Pi Pico",
+    "project": "pico-pio-square",
+    "boards": {
+      "pico": {
+        "firmware": "pico/pio-square.uf2",
+        "sketch": "pico/pio-square"
+      }
+    },
+    "description": "A two-instruction PIO program toggles GP3 at exactly 10 kHz while the CPU sleeps: probe GP3 with the Probe tool."
+  },
+  {
+    "id": "pico2-blink",
+    "title": "Pico 2 blink",
+    "category": "Raspberry Pi Pico 2",
+    "project": "pico2-blink",
+    "boards": {
+      "pico": {
+        "firmware": "pico2/blink.uf2",
+        "sketch": "pico2/blink"
+      }
+    },
+    "description": "The Raspberry Pi Pico 2 on its own: the RP2350's RISC-V cores boot through the real bootrom and blink the onboard LED (GP25) every half second."
+  },
+  {
+    "id": "pico2-potentiometer",
+    "title": "Pico 2 potentiometer",
+    "category": "Raspberry Pi Pico 2",
+    "project": "pico2-analog-read",
+    "boards": {
+      "pico": {
+        "firmware": "pico2/analog-read.uf2",
+        "sketch": "pico2/analog-read"
+      }
+    },
+    "description": "analogRead of a potentiometer on GP26 (ADC0) at 12 bits, printed ten times a second on USB serial — turn the knob."
+  },
+  {
+    "id": "pico2-fade",
+    "title": "Pico 2 PWM steps",
+    "category": "Raspberry Pi Pico 2",
+    "project": "pico2-pwm-fade",
+    "boards": {
+      "pico": {
+        "firmware": "pico2/pwm-fade.uf2",
+        "sketch": "pico2/pwm-fade"
+      }
+    },
+    "description": "analogWrite on GP15 at 1 kHz: an LED steps through 0, 25, 50, 75 and 100 % duty, 200 ms each."
+  },
+  {
+    "id": "pico2-oled",
+    "title": "Pico 2 OLED",
+    "category": "Raspberry Pi Pico 2",
+    "project": "pico2-i2c-oled",
+    "boards": {
+      "pico": {
+        "firmware": "pico2/i2c-oled.uf2",
+        "sketch": "pico2/i2c-oled"
+      }
+    },
+    "description": "Adafruit SSD1306 over Wire on GP4 (SDA) and GP5 (SCL): a box, \"PICO\" and a seconds counter."
+  },
+  {
+    "id": "pico2-tft",
+    "title": "Pico 2 color TFT",
+    "category": "Raspberry Pi Pico 2",
+    "project": "pico2-spi-tft",
+    "boards": {
+      "pico": {
+        "firmware": "pico2/spi-tft.uf2",
+        "sketch": "pico2/spi-tft"
+      }
+    },
+    "description": "The ILI9341 picture over SPI0 (SCK GP18, MOSI GP19), with CS on GP17 and D/C on GP20, then a digit counter."
+  },
+  {
+    "id": "pico2-neopixel",
+    "title": "Pico 2 NeoPixel",
+    "category": "Raspberry Pi Pico 2",
+    "project": "pico2-neopixel",
+    "boards": {
+      "pico": {
+        "firmware": "pico2/neopixel.uf2",
+        "sketch": "pico2/neopixel"
+      }
+    },
+    "description": "Eight WS2812 pixels on GP2 driven by the RP2350's PIO: pixel 0 steps red, green, blue every half second."
+  },
+  {
+    "id": "pico2-micropython-blink",
+    "title": "Pico 2 MicroPython blink",
+    "category": "Raspberry Pi Pico 2",
+    "project": "pico2-blink",
+    "boards": {
+      "pico": {
+        "micropython": "blink"
+      }
+    },
+    "description": "MicroPython on the Pico 2's RISC-V cores: main.py toggles the LED every 250 ms and prints the count. Edit it in the Code tab and press Run — nothing to compile."
+  },
+  {
+    "id": "pico2-button-irq",
+    "title": "Pico 2 button interrupt",
+    "category": "Raspberry Pi Pico 2",
+    "project": "pico2-button-irq",
+    "boards": {
+      "pico": {
+        "firmware": "pico2/button-irq.uf2",
+        "sketch": "pico2/button-irq"
+      }
+    },
+    "description": "A pushbutton on GP14 with the internal pull-up; attachInterrupt counts presses and prints them on USB serial — press it."
+  },
+  {
+    "id": "mega-chaser",
+    "title": "Mega LED chaser",
+    "category": "Mega",
+    "project": "mega-chaser",
+    "boards": {
+      "mega": {
+        "firmware": "mega/chaser.hex",
+        "sketch": "mega/chaser"
+      }
+    },
+    "description": "Ten LEDs on the Mega’s odd pins D23–D41 light one after another, there and back — one shared resistor, since one LED is lit at a time."
+  },
+  {
+    "id": "mega-serial-ports",
+    "title": "Mega serial ports",
+    "category": "Mega",
+    "project": "mega-serial-ports",
+    "boards": {
+      "mega": {
+        "firmware": "mega/serial-ports.hex",
+        "sketch": "mega/serial-ports"
+      }
+    },
+    "description": "The Mega has four UARTs: Serial1–3 are each wired back to themselves (TX→RX), and Serial reports what every port heard."
+  },
+  {
+    "id": "mega-analog",
+    "title": "Mega analog scanner",
+    "category": "Mega",
+    "project": "mega-analog",
+    "boards": {
+      "mega": {
+        "firmware": "mega/analog-hi.hex",
+        "sketch": "mega/analog-hi"
+      }
+    },
+    "description": "All 16 analog inputs read ten times a second; four potentiometers on A0, A5, A8 and A15 — turn them, or watch the Plotter."
+  },
+  {
+    "id": "uart-chat",
+    "title": "Uno ↔ ESP32 chat",
+    "category": "Two boards",
+    "project": "uart-chat",
+    "boards": {
+      "uno": {
+        "firmware": "uno/uart-chat.hex",
+        "sketch": "uno/uart-chat"
+      },
+      "esp": {
+        "firmware": "esp32/uart-chat.bin",
+        "sketch": "esp32/uart-chat"
+      }
+    },
+    "description": "The Uno sends \"ping n\" through a 5 V → 3.3 V divider; the ESP32 answers \"pong n\" on its TX2; both serial monitors show the chat."
+  },
+  {
+    "id": "uart-relay",
+    "title": "Uno → ESP32 relay",
+    "category": "Two boards",
+    "project": "uno-esp32-uart-divider",
+    "boards": {
+      "uno": {
+        "firmware": "uno/uart-ping.hex",
+        "sketch": "uno/uart-ping"
+      },
+      "esp": {
+        "firmware": "esp32/uart-relay.bin",
+        "sketch": "esp32/uart-relay"
+      }
+    },
+    "description": "The Uno pings ten times a second; the ESP32 copies what its Serial2 hears to its own serial monitor."
+  }
+]

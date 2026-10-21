@@ -1676,7 +1676,8 @@ become part input. The serial monitor (`ui/SerialMonitor.tsx`) keeps the newest 
 board (`ui/serial-buffer.ts`: lines split across chunks, UTF-8 streamed, simulated-time stamps)
 and appends DOM nodes rather than re-rendering; autoscroll pauses while you read further up.
 Examples: **Examples…** opens a gallery (`ui/ExamplesGallery.tsx`, a
-modal dialog) of the entries in `examples/manifest.ts` — 77 circuits in eleven categories (Basics,
+modal dialog) of the entries in `fixtures/examples.json` (`examples/manifest.ts` reads and
+checks it — the MCP server reads it too) — 77 circuits in eleven categories (Basics,
 Displays, Sensors, Motors, Sound, Environment, ESP32, Raspberry Pi Pico, Raspberry Pi Pico 2, Mega,
 Two boards; Environment has four: a gas alarm whose fan clears the room, a PIR hallway light, a
 parking sensor with a car driving in, a thermostat; the Pico has nine: blink, a potentiometer,
@@ -2012,6 +2013,73 @@ between slices, so a 0x03 is answered within milliseconds (1.3 ms in the test). 
 exists on the dev machine; a scripted RSP client over `node:net` is the test. Watchpoints,
 target descriptions and multi-MCU threads aren't supported.
 
+### MCP server
+
+`npm run bench -- mcp [--root <folder>] [--max-sim <time>] [--max-wall <seconds>]` (or `node
+apps/cli/src/main.ts mcp …`, which MCP clients run) serves Benchtop to an AI assistant over the
+Model Context Protocol on stdio — one more front end over the headless runner, in
+`apps/cli/src/mcp/`, with no dependency:
+
+- `jsonrpc.ts` frames JSON-RPC 2.0 one message per line (parse errors, invalid requests,
+  notifications unanswered, client responses ignored, batches answered element by element).
+- `server.ts` (`McpServer`) speaks the protocol: `initialize` takes the client's version when it
+  is 2025-11-25, 2025-06-18, 2025-03-26 or 2024-11-05, else answers with the newest, and
+  declares `tools` and `resources`; `tools/list`; `tools/call` validates the arguments against
+  the tool's schema (`schema.ts`, a JSON Schema subset a test holds every tool to) and returns
+  the tool's JSON as one text block — and as `structuredContent` from 2025-06-18. A tool's own
+  failure (bad arguments, a path outside the root, an invalid project, a missing ROM, a limit)
+  is an `isError` result carrying the CLI's message, so the assistant can correct itself; an
+  unknown tool or method is a JSON-RPC error. No prompts, sampling, elicitation or tasks.
+- `sandbox.ts` confines files: every path is relative to `--root` (default: the working folder)
+  and must resolve — symlinks followed — inside it; `Sandbox.io()` is the CLI's `CliIo` with
+  that check on every read, so a project or spec can't point outside whatever it says. The
+  downloaded ROMs and interpreters come from the CLI's own cache, never from a tool's path.
+- `command.ts` parses the flags, routes `console.*` to stderr (stdout carries protocol lines
+  only) and serves stdin until it closes.
+- Tools (`tools/`): `list_parts` and `describe_part` (pins with roles and supplies, props and
+  defaults, a board's MCU and pin map, and `PART_INPUTS` — what each part takes while running,
+  a table in `@benchtop/parts` checked on a bench by its test); `validate_project`
+  (`parseProject`'s errors with their paths, then the wired bench's problems without firmware);
+  `run_simulation` (`runHeadless` with the project by path or inline, firmware paths, inline
+  MicroPython sketches for the Picos put into the project's firmware table as the Code tab
+  stores them, steps, assertions, a duration — the report with serial cut to 64 KB a board);
+  `run_tests` (specs from files or folders, one after another).
+- Live sessions (`sessions.ts`, `tools/sim.ts`): `sim_open` builds a bench like
+  `run_simulation` and keeps it (ids `s1`, `s2`, …; at most `maxSessions`, default 8 — opening
+  one more closes the one used longest ago); `sim_run` advances it by a duration in 10 ms
+  slices, stopping early at a serial text (`untilSerial`), at the wall-clock budget or at a
+  breakpoint, and returns the serial text since the last call (the newest 64 KB a board, with
+  what was dropped), problems not reported before, and per watched pin ("part:pin") its edges,
+  frequency (from rising edges), duty and final level over that run; `sim_input` checks the part
+  and input through the spec parser (`parseScript`) and sends it at the current time;
+  `sim_serial`; `sim_state` returns every part's latest visual state (arrays over 32 entries —
+  framebuffers — summarized unless `full`) and pin levels and volts; `sim_reset`, `sim_close`,
+  `sim_list`.
+- Examples (`tools/examples.ts`): `list_examples` and `open_example` (a session on an
+  example's own firmware, with its sketch sources) and the resources `benchtop://examples/<id>`
+  (card, project document, sketches) come from `fixtures/examples.json` in the Benchtop
+  repository — the files it names are read by id from that fixed list, never from a client's
+  path, so they stay readable whatever `--root` is.
+- Debugging (`tools/debug.ts`) on boards whose MCU is debuggable (AVR): `debug_registers`
+  (with SREG's flags and where the PC is — function+offset and file:line from the session's
+  tables, built from the board's .elf when it was given one), `debug_memory` (data, flash or
+  EEPROM by address or symbol, ≤ 1024 bytes, side-effect free), `debug_breakpoints` (set,
+  clear, list — `resolveBreakpoint`'s address, function and file:line forms) and `debug_step`
+  (instructions, or over a call with `stepOver`); `sim_run` continues and stops at a breakpoint
+  with where it is.
+- Building (`tools/build.ts`): `compile_sketch` (a sketch folder under the root or inline
+  files, for a board part type — the same FQBN per board as the web app, which a test checks —
+  or an allowlisted FQBN; `scripts/compile.ts` runs the local arduino-cli) writes its outputs
+  to `<root>/.benchtop/build/<name>/` and names the firmware to run (the .elf for AVR, so the
+  debug tools see symbols); `pcb_check` returns DRC's violations, the unrouted connections and
+  the counts for a project's layout or a seeded one (`projectPcb`, shared with `bench pcb`);
+  `pcb_export` writes the fabrication files (or one ZIP) to `<root>/.benchtop/pcb/<name>/`.
+  `.benchtop/` is the only place the server writes (`writeOutputs`, every path checked against
+  the root again).
+- Bounds: `runHeadless` takes `maxDurationNs` (a longer run is a usage error) and `maxWallMs`
+  (with a budget it runs in 10 ms simulated slices and stops with an error when the budget is
+  spent); the server passes `--max-sim` (default 60 s) and `--max-wall` (default 30 s).
+
 ## PCB
 
 `@benchtop/pcb` (`packages/pcb/src/`, DOM-free, on core and parts) lays a bench project out as a
@@ -2122,6 +2190,8 @@ vias; errors with JSON Pointer paths).
 ## Compile bridge
 
 The one thing a browser can't do is run `arduino-cli`, so `apps/bridge` (zero dependencies,
+its compile code — the run, diagnostics, inline sketches, the FQBN allowlist and the inline
+sketch rules — in `scripts/compile.ts`, shared with the CLI's MCP server;
 plain Node type stripping) does it on the same machine: `npm run bridge` listens on
 127.0.0.1:5175 and the Vite dev server proxies `/api` to it; `npm start` builds the app and
 serves it from the bridge on one origin (with the same cross-origin isolation headers).

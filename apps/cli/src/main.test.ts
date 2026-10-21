@@ -63,3 +63,28 @@ describe('benchtop run (spawned node)', () => {
     }
   }, 120_000);
 });
+
+describe('benchtop mcp (spawned node)', () => {
+  it('serves MCP on stdio under plain node: initialize, then a run_simulation, stdout only protocol lines', () => {
+    const env = { ...process.env };
+    delete env.NODE_OPTIONS;
+    const messages = [
+      { jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'spawn-test', version: '1' } } },
+      { jsonrpc: '2.0', method: 'notifications/initialized' },
+      { jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'run_simulation', arguments: { project: 'fixtures/projects/blink-led.json', firmware: { uno: 'fixtures/firmware/uno/blink.hex' }, expect: ['pin uno:13 is 1 at 250ms'] } } },
+    ];
+    // Run from another folder: --root, not the working folder, decides where paths point.
+    const result = spawnSync(process.execPath, [join(REPO_ROOT, 'apps/cli/src/main.ts'), 'mcp', '--root', REPO_ROOT], {
+      cwd: tmpdir(),
+      env,
+      input: `${messages.map((m) => JSON.stringify(m)).join('\n')}\n`,
+      encoding: 'utf8',
+      timeout: 60_000,
+    });
+    expect(result.status).toBe(0);
+    const replies = result.stdout.trim().split('\n').map((line) => JSON.parse(line) as { id: number; result: { protocolVersion?: string; structuredContent?: { ok: boolean } } });
+    expect(replies.map((r) => r.id)).toEqual([1, 2]);
+    expect(replies[0].result.protocolVersion).toBe('2025-06-18');
+    expect(replies[1].result.structuredContent?.ok).toBe(true);
+  }, 60_000);
+});

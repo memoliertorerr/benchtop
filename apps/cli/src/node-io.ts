@@ -8,7 +8,8 @@ import { MICROPYTHON_CACHE_DIR, MICROPYTHON_PICO, MICROPYTHON_PICO2_RISCV } from
 import { ROM_CACHE_DIR, ROM_IMAGE } from '@benchtop/rp2350';
 import type { SuiteIo } from './suite.ts';
 
-const REPO = decodeURIComponent(new URL('../../..', import.meta.url).pathname);
+/** The Benchtop repository (its caches and, BT69, the gallery's examples for the MCP server). */
+export const REPO = decodeURIComponent(new URL('../../..', import.meta.url).pathname);
 /** The ESP32 ROM `npm run fetch:esp32-rom` caches in the repository (BT34). */
 const ESP32_ROM = resolve(REPO, '.cache/esp32-rom/esp32_rev0_rom.elf');
 /** The Pico's MicroPython UF2 `npm run fetch:micropython` caches (BT63). */

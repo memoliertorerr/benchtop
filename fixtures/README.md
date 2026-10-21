@@ -151,6 +151,11 @@ against them. After changing a spec or what its firmware prints, regenerate them
 `npm run verify` runs the whole `specs/` tree. A new example needs its spec (examples.test.ts
 says so); a spec whose example is gone fails too.
 
+`examples.json` is the gallery's list — id, title, category, project, each board's
+firmware and sketch (or MicroPython folder), an optional PCB, the card's description. The web
+app's examples manifest reads it, and so does the CLI's MCP server (`list_examples`,
+`open_example`, `benchtop://examples/<id>`). A new example is an entry here plus its spec.
+
 ## Adding a sketch
 
 1. Create `fixtures/sketches/<board>/<name>/<name>.ino` with a header comment saying exactly

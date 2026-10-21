@@ -8,6 +8,8 @@ coverage/
 fixtures/.build/
 # fetched inputs that are never committed (the ESP32 ROM: npm run fetch:esp32-rom)
 .cache/
+# what the MCP server writes in its root folder (compiled firmware, PCB exports)
+.benchtop/
 # local-only agent settings
 .claude/settings.local.json
 .claude/launch.json

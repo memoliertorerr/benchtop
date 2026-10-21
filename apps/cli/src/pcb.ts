@@ -7,7 +7,8 @@
  */
 
 import { benchEnvParts } from '@benchtop/parts';
-import { drc, type DrcViolation, fabricationFiles, fabricationZip, fileBase, parsePcb, PcbBoard, reconcilePcb, seedPcb } from '@benchtop/pcb';
+import type { ProjectDoc } from '@benchtop/core';
+import { drc, type DrcResult, type DrcViolation, fabricationFiles, fabricationZip, fileBase, parsePcb, PcbBoard, type PcbDoc, reconcilePcb, seedPcb } from '@benchtop/pcb';
 import { type CliIo, loadProject, parseJson, readText, UsageError } from './load.ts';
 
 export interface PcbOptions {
@@ -58,17 +59,26 @@ export function parsePcbArgs(argv: readonly string[]): PcbOptions {
 
 const where = (v: DrcViolation): string => `(${v.at.x.toFixed(2)}, ${v.at.y.toFixed(2)})`;
 
+/**
+ * A project's board: the layout given (parsed, then reconciled with the project) or one seeded
+ * from the bench, and its DRC result. Shared with the MCP server's PCB tools (BT70).
+ */
+export function projectPcb(doc: ProjectDoc, layout: { json: unknown; label: string } | undefined): { pcb: PcbDoc; board: PcbBoard; result: DrcResult } {
+  let pcb = seedPcb(doc, benchEnvParts);
+  if (layout !== undefined) {
+    const parsed = parsePcb(layout.json);
+    if (!parsed.ok) throw new UsageError(`${layout.label}: ${parsed.errors.slice(0, 5).map((e) => `${e.path || '/'} ${e.message}`).join('; ')}`);
+    pcb = reconcilePcb(parsed.doc, doc, benchEnvParts);
+  }
+  const board = new PcbBoard(doc, pcb, benchEnvParts);
+  return { pcb, board, result: drc(board) };
+}
+
 export function runPcb(options: PcbOptions, io: CliIo): PcbResult {
   try {
     const { doc } = loadProject(io, options.project);
-    let pcb = seedPcb(doc, benchEnvParts);
-    if (options.pcb !== undefined) {
-      const parsed = parsePcb(parseJson(readText(io, options.pcb, 'PCB layout'), options.pcb));
-      if (!parsed.ok) throw new UsageError(`${options.pcb}: ${parsed.errors.slice(0, 5).map((e) => `${e.path || '/'} ${e.message}`).join('; ')}`);
-      pcb = reconcilePcb(parsed.doc, doc, benchEnvParts);
-    }
-    const board = new PcbBoard(doc, pcb, benchEnvParts);
-    const result = drc(board);
+    const layout = options.pcb === undefined ? undefined : { json: parseJson(readText(io, options.pcb, 'PCB layout'), options.pcb), label: options.pcb };
+    const { pcb, board, result } = projectPcb(doc, layout);
     const errors = result.violations.filter((v) => v.severity === 'error');
     const warnings = result.violations.filter((v) => v.severity === 'warning');
     const lines = result.violations.map((v) => `${v.severity} ${v.code} ${where(v)}: ${v.message}`);
