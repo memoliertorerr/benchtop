@@ -517,6 +517,55 @@ export class SocBus implements XtensaBus {
     return this.flash[this.parts.mmu.translate(this.cpu, a, this.flash.length) + (a & 0xffff)];
   }
 
+  /**
+   * BT73 (the debugger): one byte as this CPU would load or fetch it, without side effects — no
+   * cache tags touched, no flash page armed, no Problem reported; peripheral registers, PSRAM
+   * and unmapped addresses read 0.
+   */
+  peek8(address: number): number {
+    const a = address >>> 0;
+    const p = a >>> 16;
+    const k = this.kind[p];
+    if (k === K_DRAM || k === K_DROM || k === K_IRAM || k === K_IROM) return this.bytes[this.base[p] + (a & 0xffff)];
+    if (k === K_FLASH_D || k === K_FLASH_I) return this.flash[this.base[p] + (a & 0xffff)];
+    const flash = (): number => {
+      const off = this.parts.mmu.translate(this.cpu, a, this.flash.length);
+      return off < 0 ? 0 : (this.flash[off + (a & 0xffff)] ?? 0);
+    };
+    if ((a >= 0x3f400000 && a < 0x3f800000) || (a >= 0x400c2000 && a < 0x40c00000)) return flash();
+    if (a >= 0x40000000 && a < 0x50000000) {
+      if (a < 0x40070000) {
+        if (a < 0x40008000 && this.parts.dport.bootRemap(this.cpu)) return (this.words[this.sram1Instruction(a - 0x40000000 + 0x400b0000)] >>> ((a & 3) * 8)) & 0xff;
+        return this.bytes[ROM0.offset + (a - ROM0.start)];
+      }
+      if (a < SRAM1_I_START) return this.bytes[SRAM0.offset + (a - SRAM0.start)];
+      if (a < SRAM1_I_START + SRAM1.size) return (this.words[this.sram1Instruction(a)] >>> ((a & 3) * 8)) & 0xff;
+      if (a >= RTC_FAST_I_START && a < RTC_FAST_I_START + RTC_FAST.size) return this.cpu === 0 ? this.bytes[RTC_FAST.offset + (a - RTC_FAST_I_START)] : 0;
+      return 0;
+    }
+    let d = a;
+    if (this.cpu === 1 && d >= APP_ROM_WINDOW_START && d < APP_ROM_WINDOW_END) d += APP_ROM_WINDOW_SHIFT;
+    if (d >= SRAM2.start && d < 0x40000000) return this.bytes[d < SRAM1.start ? SRAM2.offset + (d - SRAM2.start) : SRAM1.offset + (d - SRAM1.start)];
+    if (d >= ROM1.start && d < ROM1.start + ROM1.size) return this.bytes[ROM1.offset + (d - ROM1.start)];
+    if (d >= RTC_FAST.start && d < RTC_FAST.start + RTC_FAST.size) return this.cpu === 0 ? this.bytes[RTC_FAST.offset + (d - RTC_FAST.start)] : 0;
+    if (d >= RTC_SLOW.start && d < RTC_SLOW.start + RTC_SLOW.size) return this.bytes[RTC_SLOW.offset + (d - RTC_SLOW.start)];
+    return 0;
+  }
+
+  /** BT73: writes one byte of RAM (SRAM0–2, RTC FAST/SLOW) as the debugger does; false elsewhere. */
+  poke8(address: number, value: number): boolean {
+    const a = address >>> 0;
+    let o = -1;
+    if (a >= SRAM2.start && a < 0x40000000) o = a < SRAM1.start ? SRAM2.offset + (a - SRAM2.start) : SRAM1.offset + (a - SRAM1.start);
+    else if (a >= SRAM0.start && a < SRAM1_I_START) o = SRAM0.offset + (a - SRAM0.start);
+    else if (a >= RTC_FAST.start && a < RTC_FAST.start + RTC_FAST.size) o = RTC_FAST.offset + (a - RTC_FAST.start);
+    else if (a >= RTC_SLOW.start && a < RTC_SLOW.start + RTC_SLOW.size) o = RTC_SLOW.offset + (a - RTC_SLOW.start);
+    if (o < 0) return false;
+    this.bytes[o] = value & 0xff;
+    if (this.code[o >>> 12] !== 0) this.memory.codeWritten(o);
+    return true;
+  }
+
   /** An aligned word on the instruction bus (data load or fetch: `cause` on failure). */
   private instructionWord(a: number, cause: number): number {
     if (a < 0x40070000) {

@@ -144,16 +144,19 @@ function base64Bytes(text: string): Uint8Array {
 
 function storedFrom(ref: SketchRef, result: BridgeCompileResult): StoredFirmware | undefined {
   const name = ref.path.split(/[\\/]/).filter(Boolean).at(-1) ?? 'sketch';
+  // BT74: the ELF rides along for the debugger (symbols, source lines) whatever the image is.
+  const elf = result.artifacts.elf;
+  const debugElf = elf === undefined ? {} : { debugElf: base64Bytes(elf) };
   if (ref.fqbn.startsWith('esp32:')) {
     const bin = result.artifacts.bin;
-    return bin === undefined ? undefined : { name: `${name}.ino.bin`, format: 'esp32-bin', bytes: base64Bytes(bin) };
+    return bin === undefined ? undefined : { name: `${name}.ino.bin`, format: 'esp32-bin', bytes: base64Bytes(bin), ...debugElf };
   }
   if (ref.fqbn.startsWith('rp2040:')) {
     const uf2 = result.artifacts.uf2;
-    return uf2 === undefined ? undefined : { name: `${name}.ino.uf2`, format: 'uf2', bytes: base64Bytes(uf2) };
+    return uf2 === undefined ? undefined : { name: `${name}.ino.uf2`, format: 'uf2', bytes: base64Bytes(uf2), ...debugElf };
   }
   const hex = result.artifacts.hex;
-  return hex === undefined ? undefined : { name: `${name}.ino.hex`, format: 'hex', bytes: new TextEncoder().encode(hex) };
+  return hex === undefined ? undefined : { name: `${name}.ino.hex`, format: 'hex', bytes: new TextEncoder().encode(hex), ...debugElf };
 }
 
 function applyResult(board: string, path: string, result: BridgeCompileResult): void {

@@ -1,8 +1,10 @@
 /**
- * Debugging a board in a live session (BT70) — the MCUs with a debugger (AVR: Uno, Nano, Mega),
- * through BT24's `McuDebug`: `debug_registers`, `debug_memory`, `debug_breakpoints` (by address,
- * function or file:line — the last two need the firmware as an .elf) and `debug_step` (one
- * instruction or over a call). `sim_run` continues: it stops at a breakpoint and says where.
+ * Debugging a board in a live session (BT70; every board since BT74 — the Uno, Nano and Mega,
+ * the Pico's core 0, the Pico 2's hart 0, the ESP32's APP_CPU or whichever core stopped) through
+ * BT24's `McuDebug`: `debug_registers`, `debug_memory`, `debug_breakpoints` (by address, function
+ * or file:line — symbols come from the .elf, or an .elf or .syms.tsv beside a .hex/.uf2/.bin;
+ * lines need an ELF) and `debug_step` (one instruction or over a call). `sim_run` continues: it
+ * stops at a breakpoint and says where.
  */
 
 import { type McuDebug, type MemorySpace, resolveBreakpoint, stepOver } from '@benchtop/core';
@@ -30,7 +32,7 @@ function target(args: Record<string, unknown>, context: SimContext): { session: 
   const debug = session.bench.debugOf(board);
   if (debug === undefined) {
     const type = session.doc.parts.find((p) => p.id === board)?.type ?? '?';
-    throw new ToolError(`the MCU on "${board}" (${type}) has no debugger here — the AVR boards (Uno, Nano, Mega) do`);
+    throw new ToolError(`the MCU on "${board}" (${type}) has no debugger here`);
   }
   return { session, board, debug };
 }
@@ -44,7 +46,7 @@ function pcOf(debug: McuDebug): number {
 export const debugRegisters: Tool<SimContext> = {
   name: 'debug_registers',
   title: 'Read the CPU registers',
-  description: 'A board\'s CPU registers in an open session (AVR: R0–R31, SREG with its flags as ITHSVNZC, SP, PC) and where the PC is — function+offset and file:line when the firmware was loaded as an .elf.',
+  description: 'A board\'s CPU registers in an open session, named as GDB names them — AVR: R0–R31, SREG (flags as ITHSVNZC), SP, PC; Pico (Cortex-M0+ core 0): r0–r12, sp, lr, pc, xpsr; Pico 2 (RISC-V hart 0): zero, ra, sp, …, a0–a7, …, pc, mstatus, mepc, mcause; ESP32 (the APP_CPU, where loop() runs, or the core that stopped): pc, a0–a15 of the current window, sar, ps, windowbase, windowstart, lbeg, lend, lcount, cpu — and where the PC is (function+offset, and file:line with an ELF). A function\'s first argument: AVR R25:R24, Pico r0, Pico 2 a0, ESP32 a2 after its ENTRY.',
   inputSchema: { type: 'object', properties: { session: SESSION, board: BOARD }, required: ['session'], additionalProperties: false },
   annotations: { readOnlyHint: true, openWorldHint: false },
   run(args, context) {
@@ -69,7 +71,7 @@ export const debugRegisters: Tool<SimContext> = {
 export const debugMemory: Tool<SimContext> = {
   name: 'debug_memory',
   title: 'Read memory',
-  description: 'Reads a board\'s memory without side effects: "data" (AVR: registers, I/O and SRAM from 0x100), "flash" or "eeprom", at an address or a symbol (a global variable or function, from the .elf), up to 1024 bytes. Returns hex bytes and, for 1, 2 or 4 bytes, the little-endian value.',
+  description: 'Reads a board\'s memory without side effects: "data" (AVR: registers, I/O and SRAM from 0x100; the 32-bit boards: the CPU\'s whole address space — RAM at 0x20000000 on the Picos, 0x3FFB0000 on the ESP32 — with peripheral registers read as stored, or 0), "flash" (the chip from offset 0) or "eeprom" (AVR), at an address or a symbol (a global variable or function), up to 1024 bytes. Returns hex bytes and, for 1, 2 or 4 bytes, the little-endian value.',
   inputSchema: {
     type: 'object',
     properties: {

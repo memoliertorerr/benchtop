@@ -10,7 +10,7 @@ import type { MemorySpace } from '@benchtop/core';
 import { useEffect, useState } from 'preact/hooks';
 import { run } from '../../sim/controller.ts';
 import { sim, simLoaded, simRunning } from '../../sim/host.ts';
-import { describeLocation, formatSreg, resolveAddress } from './resolve.ts';
+import { describeLocation, flagsLine, memoryStart, registerRows, resolveAddress } from './resolve.ts';
 import {
   addBreakpoint,
   currentBoard,
@@ -27,34 +27,26 @@ import {
 const hex = (n: number, digits: number): string => n.toString(16).padStart(digits, '0');
 const REASONS = { breakpoint: 'breakpoint', step: 'step', pause: 'paused' } as const;
 
-function Registers({ registers }: { registers: Uint32Array }) {
+/** BT74: any board's registers, named and sized as its MCU reports them, and its flags. */
+function Registers({ registers, board }: { registers: Uint32Array; board: string }) {
+  const info = tablesOf(board);
+  const flags = flagsLine(info.kind, info.registers, registers);
   return (
     <div class="debug-registers" aria-label="Registers">
-      {Array.from({ length: 32 }, (_, i) => (
-        <span key={i} class="debug-reg">
-          <span class="debug-reg-name">R{i}</span>
-          {hex(registers[i], 2)}
+      {registerRows(info.registers, registers).map((r) => (
+        <span key={r.name} class={r.wide ? 'debug-reg wide' : 'debug-reg'}>
+          <span class="debug-reg-name">{r.name}</span>
+          {r.text}
         </span>
       ))}
-      <span class="debug-reg wide">
-        <span class="debug-reg-name">SREG</span>
-        {formatSreg(registers[32])}
-      </span>
-      <span class="debug-reg wide">
-        <span class="debug-reg-name">SP</span>
-        {hex(registers[33], 4)}
-      </span>
-      <span class="debug-reg wide">
-        <span class="debug-reg-name">PC</span>
-        {hex(registers[34], 4)}
-      </span>
+      {flags !== '' && <span class="debug-reg flags">{flags}</span>}
     </div>
   );
 }
 
 function Memory({ board, stopped }: { board: string; stopped: boolean }) {
   const [space, setSpace] = useState<MemorySpace>('data');
-  const [text, setText] = useState('0x100');
+  const [text, setText] = useState(memoryStart(tablesOf(board).kind));
   const [error, setError] = useState('');
   const tables = tablesOf(board);
   const address = resolveAddress(text, tables);
@@ -80,15 +72,15 @@ function Memory({ board, stopped }: { board: string; stopped: boolean }) {
     <div class="debug-memory">
       <div class="debug-row">
         <select class="tool-select" aria-label="Memory space" value={space} onChange={(e) => setSpace((e.target as HTMLSelectElement).value as MemorySpace)}>
-          <option value="data">data (SRAM, I/O)</option>
+          <option value="data">{tablesOf(board).kind.startsWith('atmega') ? 'data (SRAM, I/O)' : 'address space'}</option>
           <option value="flash">flash</option>
-          <option value="eeprom">EEPROM</option>
+          {tablesOf(board).kind.startsWith('atmega') && <option value="eeprom">EEPROM</option>}
         </select>
         <input
           class="debug-input"
           aria-label="Memory address"
           value={text}
-          placeholder="0x100 or a symbol"
+          placeholder={`${memoryStart(tablesOf(board).kind)} or a symbol`}
           onInput={(e) => setText((e.target as HTMLInputElement).value)}
         />
         {error !== '' && <span class="debug-error">{error}</span>}
@@ -145,7 +137,7 @@ export function Debugger() {
   const board = currentBoard.value;
   const boards = [...debugInfo.value.keys()];
   const running = simRunning.value;
-  if (!simLoaded.value || board === null) return <p class="muted panel-note">Load a project with an Uno to debug its firmware.</p>;
+  if (!simLoaded.value || board === null) return <p class="muted panel-note">Load a project with a board to debug its firmware.</p>;
   const tables = tablesOf(board);
   const stop = debugStops.value.get(board);
   const stopped = !running && stop !== undefined;
@@ -184,14 +176,14 @@ export function Debugger() {
       </div>
       {tables.error !== null && <p class="debug-error panel-note">Debug info: {tables.error}</p>}
       {tables.error === null && tables.symbols === null && (
-        <p class="muted panel-note">This firmware is a .hex: load the .elf for symbols and source lines (addresses still work).</p>
+        <p class="muted panel-note">No symbols for this firmware: compile it in the Code tab or with the bridge, or load its .elf, for functions and source lines (addresses still work).</p>
       )}
       <div class="debug-body">
         <div class="debug-column">
-          {stopped ? <Registers registers={stop.registers} /> : <p class="muted panel-note">Registers show while stopped.</p>}
+          {stopped ? <Registers registers={stop.registers} board={board} /> : <p class="muted panel-note">Registers show while stopped.</p>}
           <Breakpoints board={board} />
         </div>
-        <Memory board={board} stopped={stopped} />
+        <Memory key={board} board={board} stopped={stopped} />
       </div>
     </div>
   );

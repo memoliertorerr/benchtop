@@ -14,6 +14,9 @@ import { onDebug, onFrame, sim, simStatus } from '../../sim/host.ts';
 
 export interface BoardDebugInfo extends DebugTables {
   error: string | null;
+  /** BT74: the MCU (`Mcu.kind`) and its registers in debugger order. */
+  kind: string;
+  registers: readonly { name: string; bits: number }[];
 }
 
 export interface DebugStop {
@@ -50,7 +53,7 @@ export const currentBoard = computed(() => {
   return chosen !== null && boards.includes(chosen) ? chosen : (boards[0] ?? null);
 });
 
-const NO_TABLES: BoardDebugInfo = { symbols: null, lines: null, error: null };
+const NO_TABLES: BoardDebugInfo = { symbols: null, lines: null, error: null, kind: '', registers: [] };
 
 export function tablesOf(board: string | null): BoardDebugInfo {
   return (board !== null ? debugInfo.value.get(board) : undefined) ?? NO_TABLES;
@@ -121,6 +124,8 @@ onDebug((message) => {
         symbols: message.symbols === null ? null : new SymbolTable(message.symbols),
         lines: message.lines === null ? null : new LineTable(message.lines),
         error: message.error,
+        kind: message.kind,
+        registers: message.registers,
       });
       debugInfo.value = next;
       return;

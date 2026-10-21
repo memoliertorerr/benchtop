@@ -19,6 +19,8 @@ fixtures/firmware/esp32/<name>.bin|.partitions.bin  ESP32 app image and partitio
 fixtures/firmware/esp32/<name>.syms.tsv       `nm -S -n --defined-only` of the full ELF
                                               ("addr\tsize\ttype\tname"); the ELF itself (6 MB,
                                               mostly DWARF), .map and bootloader are never committed
+fixtures/firmware/pico*/debug-demo.syms.tsv   the same for the Pico and Pico 2 debug-demos only (the
+                                              debugger's tests; `SYMBOL_SKETCHES` in fixture-boards.ts)
 fixtures/firmware/pico/<name>.uf2             Raspberry Pi Pico firmware (arduino-pico 6.2.0; the
                                               ELF, 1.3 MB of mostly DWARF, isn't committed)
 fixtures/firmware/pico2/<name>.uf2            Raspberry Pi Pico 2 firmware for the RP2350's RISC-V

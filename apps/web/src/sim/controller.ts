@@ -40,6 +40,16 @@ function firmwareImages(doc: ProjectDoc): Record<string, FirmwareImage> {
   return images;
 }
 
+/** BT74: each board's compiler ELF, for the debugger, when its stored image isn't the ELF. */
+function debugElfs(doc: ProjectDoc): Record<string, Uint8Array> {
+  const elfs: Record<string, Uint8Array> = {};
+  for (const board of Object.keys(doc.firmware)) {
+    const elf = firmwareStore.get(board)?.debugElf;
+    if (elf !== undefined) elfs[board] = elf;
+  }
+  return elfs;
+}
+
 /** The same bench: the same parts and wires, and firmware refs equal but for inline sources. */
 export function sameBench(a: ProjectDoc, b: ProjectDoc): boolean {
   if (a === b) return true;
@@ -63,7 +73,7 @@ function load(): void {
   const doc = editor.doc.value;
   testRecording.value = false; // a new bench ends any recording
   liveViews.clear();
-  sim.load(doc, firmwareImages(doc));
+  sim.load(doc, firmwareImages(doc), debugElfs(doc));
   loadedDoc = doc;
   loadedFirmwareVersion = firmwareVersion;
 }
@@ -124,7 +134,7 @@ export function firmwareCompiled(board: string): boolean {
   const stored = firmwareStore.get(board);
   firmwareVersion++;
   if (current && stored !== undefined) {
-    sim.setFirmware(board, toImage(stored));
+    sim.setFirmware(board, toImage(stored), stored.debugElf);
     loadedFirmwareVersion = firmwareVersion;
     return true;
   }

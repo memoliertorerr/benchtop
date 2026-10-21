@@ -106,14 +106,15 @@ export function onAnySerial(listener: (board: string, bytes: Uint8Array, t: Nano
 
 /** Commands for the worker. The firmware bytes are copied, so the caller keeps its own. */
 export const sim = {
-  load(doc: ProjectDoc, firmware: Record<string, FirmwareImage>): void {
+  /** `debugElf`: boards' ELFs for the debugger when their images aren't ELFs (BT74). */
+  load(doc: ProjectDoc, firmware: Record<string, FirmwareImage>, debugElf: Record<string, Uint8Array> = {}): void {
     simLoaded.value = false;
     simRunning.value = false;
-    send({ type: 'load', doc, firmware });
+    send({ type: 'load', doc, firmware, debugElf });
   },
   /** Swaps one board's firmware on the loaded bench (load + reset of that board only). */
-  setFirmware(board: string, image: FirmwareImage): void {
-    send({ type: 'setFirmware', board, image });
+  setFirmware(board: string, image: FirmwareImage, debugElf?: Uint8Array): void {
+    send(debugElf === undefined ? { type: 'setFirmware', board, image } : { type: 'setFirmware', board, image, debugElf });
   },
   run(speed: number): void {
     send({ type: 'run', speed });

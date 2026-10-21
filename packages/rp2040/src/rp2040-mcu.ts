@@ -21,17 +21,21 @@
  * (micropython.ts).
  */
 
-import type { FirmwareImage, I2cController, Level, Mcu, McuPin, NetState, PinMode, Problem, RunResult, SpiController, UartPort } from '@benchtop/core';
+import type { Debuggable, FirmwareImage, I2cController, Level, Mcu, McuDebug, McuPin, NetState, PinMode, Problem, RunResult, SpiController, UartPort } from '@benchtop/core';
 import { describeFirmwareFormat, parseElf32, parseUf2, placeUf2, UF2_FAMILY } from '@benchtop/core';
 import { type GPIOPin, RP2040 } from 'rp2040js';
 import { I2cBridge, SpiBridge, UsbSerialBridge } from './bridges.ts';
 import { runRomCall } from './bootrom/handlers.ts';
 import { buildBootrom, ROM_SIZE } from './bootrom/layout.ts';
 import { Rp2040Clock } from './clock.ts';
+import { Rp2040Debug } from './debug.ts';
 import { CODE_MICROPYTHON_INSTALL, CODE_MICROPYTHON_MISSING, MICROPYTHON_MISSING_MESSAGE, MicroPythonInstaller, type MicroPythonSketch } from './micropython.ts';
 
 /** One PIO state machine (rp2040js exports the class only through its PIO block). */
 type PioMachine = RP2040['pio'][number]['machines'][number];
+
+/** A run that stopped before an instruction at a breakpoint (BT72). */
+const BREAKPOINT: RunResult = Object.freeze({ reason: 'breakpoint' });
 
 export const RP2040_CLOCK_HZ = 125_000_000;
 const NANOS_PER_CYCLE = 1e9 / RP2040_CLOCK_HZ;
@@ -211,7 +215,7 @@ export interface Rp2040McuOptions {
   micropython?: Uint8Array;
 }
 
-export class Rp2040Mcu implements Mcu {
+export class Rp2040Mcu implements Mcu, Debuggable {
   readonly kind = 'rp2040' as const;
   readonly clockHz = RP2040_CLOCK_HZ;
   readonly pins: ReadonlyMap<string, McuPin>;
@@ -369,6 +373,7 @@ export class Rp2040Mcu implements Mcu {
           else clock.tickTo(Math.min(clock.nextAt, targetNanos));
           continue;
         }
+        if (this.breakpointCount !== 0 && this.atBreakpoint()) return BREAKPOINT;
         const start = clock.nanos;
         const cycles = core.executeInstruction() + this.charged;
         this.charged = 0;
@@ -383,6 +388,69 @@ export class Rp2040Mcu implements Mcu {
       return this.halt('fault', error instanceof Error ? error.message : String(error));
     }
     return { reason: 'target' };
+  }
+
+  // ── Debugging (BT72): core 0 ───────────────────────────────────────────────────────────
+
+  /** Core 0's breakpoints (byte addresses, bit 0 clear). */
+  readonly breakpoints = new Set<number>();
+  /** The breakpoint the last run stopped at, which the next one executes unchecked (−1: none). */
+  private resumePc = -1;
+  private debugView: Rp2040Debug | null = null;
+
+  private get breakpointCount(): number {
+    return this.breakpoints.size;
+  }
+
+  /**
+   * Whether core 0 is about to execute an instruction at a breakpoint. A pending interrupt is
+   * taken first (as `executeInstruction` would), so a breakpoint on a handler's first
+   * instruction is seen.
+   */
+  private atBreakpoint(): boolean {
+    const core = this.rp.core;
+    if (core.interruptsUpdated && core.checkForInterrupts()) core.waiting = false;
+    const pc = (core.PC & ~1) >>> 0;
+    if (pc !== this.resumePc && this.breakpoints.has(pc)) {
+      this.resumePc = pc;
+      return true;
+    }
+    this.resumePc = -1;
+    return false;
+  }
+
+  /** BT72: core 0's debugger view. */
+  debug(): McuDebug {
+    this.debugView ??= new Rp2040Debug(this);
+    return this.debugView;
+  }
+
+  /** One instruction on core 0 (asleep: up to the next alarm), PIO and the clock kept in time. */
+  stepCore0(): RunResult {
+    if (this.haltReason !== null) return this.haltReason;
+    if (this.image === null) return { reason: 'halted', detail: 'no firmware loaded' };
+    const clock = this.clock;
+    const core = this.rp.core;
+    const pioOn = !this.rp.pio[0].stopped || !this.rp.pio[1].stopped;
+    this.resumePc = -1;
+    try {
+      if (core.waiting) {
+        if (pioOn) this.idlePio(clock.nextAt);
+        else clock.tickTo(clock.nextAt);
+        return { reason: 'target' };
+      }
+      const start = clock.nanos;
+      const cycles = core.executeInstruction() + this.charged;
+      this.charged = 0;
+      if (pioOn) {
+        this.pioFresh = 0;
+        this.pumpPio(cycles, false);
+      }
+      clock.tickTo(start + cycles * this.nanosPerCycle);
+      return this.haltReason ?? { reason: 'target' };
+    } catch (error) {
+      return this.halt('fault', error instanceof Error ? error.message : String(error));
+    }
   }
 
   /**

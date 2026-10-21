@@ -77,6 +77,11 @@ export class Periph {
     this.writeStored(offset, value, alias);
   }
 
+  /** BT71 (the debugger): the stored register, without a read's side effects or a report. */
+  peek(offset: number): number {
+    return this.regs[offset >>> 2];
+  }
+
   /** The stored register (reported when unmodelled). */
   protected readStored(offset: number): number {
     if (!this.quiet) this.host.unmodelled(this.name, this.base + offset, false);

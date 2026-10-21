@@ -31,8 +31,8 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findSection, parseElf32 } from '../packages/core/src/firmware/elf.ts';
-import { arduinoCliCandidates, findArduinoCli, findAvrTool, findXtensaTool, runArduinoCli } from './arduino-cli.ts';
-import { ADDR2LINE_ORACLES, FIXTURE_BOARDS, type Manifest, type ManifestOutput, sketchSourceSha256 } from './fixture-boards.ts';
+import { arduinoCliCandidates, findArduinoCli, findArmTool, findAvrTool, findRiscvTool, findXtensaTool, runArduinoCli } from './arduino-cli.ts';
+import { ADDR2LINE_ORACLES, FIXTURE_BOARDS, type Manifest, type ManifestOutput, sketchSourceSha256, symbolsTool } from './fixture-boards.ts';
 import { writeRiscvCorpora } from './riscv-corpus.ts';
 import { buildRiscvPrograms } from './riscv-programs.ts';
 import { writeCorpora } from './xtensa-corpus.ts';
@@ -150,8 +150,9 @@ async function main(): Promise<number> {
           copyFileSync(source, join(FIRMWARE, file));
         }
       }
-      if (board.symbols !== undefined) {
-        const text = symbolTable(board.symbols, join(outDir, `${sketch.name}.ino.elf`));
+      const nm = symbolsTool(sketch.board, sketch.name);
+      if (nm !== undefined) {
+        const text = symbolTable(nm, join(outDir, `${sketch.name}.ino.elf`));
         const file = `${sketch.board}/${sketch.name}.syms.tsv`;
         const bytes = Buffer.from(text, 'utf8');
         built.push({
@@ -252,8 +253,9 @@ function addr2lineOracle(elfPath: string): string {
 
 /** `nm -S -n --defined-only` of an ELF as "addr\tsize\ttype\tname" lines (size empty when nm has none). */
 function symbolTable(nmName: string, elfPath: string): string {
-  const nm = findXtensaTool(nmName) ?? findAvrTool(nmName);
-  if (nm === undefined) throw new Error(`${nmName} not found (set BENCHTOP_XTENSA_BIN to the toolchain's bin folder)`);
+  const riscv = nmName.startsWith('riscv32-unknown-elf-') ? findRiscvTool(nmName.slice('riscv32-unknown-elf-'.length))?.path : undefined;
+  const nm = findXtensaTool(nmName) ?? findAvrTool(nmName) ?? findArmTool(nmName) ?? riscv;
+  if (nm === undefined) throw new Error(`${nmName} not found (set BENCHTOP_XTENSA_BIN, BENCHTOP_ARM_BIN or BENCHTOP_RISCV_BIN to the toolchain's bin folder)`);
   const out = execFileSync(nm, ['-S', '-n', '--defined-only', elfPath], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   const rows: string[] = [];
   for (const line of out.split('\n')) {

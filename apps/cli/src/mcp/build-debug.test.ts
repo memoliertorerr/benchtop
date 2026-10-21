@@ -37,7 +37,9 @@ describe('debugging an AVR board in a session', () => {
     expect(counter.value).toBe(0); // the first loop, before counter++
     const pico = testServer();
     const { session: picoSession } = (await tool(pico, 'sim_open', { project: 'fixtures/projects/pico-blink.json', firmware: { pico: 'fixtures/firmware/pico/blink.uf2' } })).value as { session: string };
-    expect((await tool(pico, 'debug_registers', { session: picoSession })).text).toMatch(/has no debugger here/);
+    // BT72: the Pico has a debugger too (every board does by BT74)
+    const picoRegs = (await tool(pico, 'debug_registers', { session: picoSession })).value as { registers: Record<string, number> };
+    expect(Object.keys(picoRegs.registers)).toContain('xpsr');
   }, 60_000);
 });
 
@@ -98,4 +100,31 @@ describe('PCB tools', () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
+});
+
+describe('debugging every board through MCP (BT74)', () => {
+  // Each debug-demo with its committed symbols beside the firmware (.syms.tsv): a breakpoint on
+  // addSlow, its first argument = seedA, counter by symbol, a step.
+  const cases = [
+    { board: 'pico', project: 'fixtures/projects/pico-blink.json', firmware: 'fixtures/firmware/pico/debug-demo.uf2', arg: 'r0', stepFirst: false },
+    { board: 'pico', project: 'fixtures/projects/pico2-blink.json', firmware: 'fixtures/firmware/pico2/debug-demo.uf2', arg: 'a0', stepFirst: false },
+    { board: 'esp', project: 'fixtures/projects/esp32-serial.json', firmware: 'fixtures/firmware/esp32/debug-demo.bin', arg: 'a2', stepFirst: true },
+  ] as const;
+  for (const c of cases) {
+    it(`${c.firmware}: break on addSlow, ${c.arg} = 1234, counter by symbol, a step`, async () => {
+      const server = testServer();
+      const { session } = (await tool(server, 'sim_open', { project: c.project, firmware: { [c.board]: c.firmware } })).value as { session: string };
+      const set = (await tool(server, 'debug_breakpoints', { session, set: ['addSlow'] })).value as { breakpoints: { function?: string }[] };
+      expect(set.breakpoints).toEqual([expect.objectContaining({ function: 'addSlow' })]);
+      const hit = (await tool(server, 'sim_run', { session, duration: '3s' })).value as { stoppedBy: string; at: { function: string } };
+      expect(hit).toMatchObject({ stoppedBy: 'breakpoint', at: { function: 'addSlow' } });
+      if (c.stepFirst) await tool(server, 'debug_step', { session }); // ESP32: past ENTRY
+      const regs = (await tool(server, 'debug_registers', { session })).value as { registers: Record<string, number> };
+      expect(regs.registers[c.arg]).toBe(1234);
+      const counter = (await tool(server, 'debug_memory', { session, symbol: 'counter' })).value as { value: number };
+      expect(counter.value).toBe(0); // the first loop, before counter++
+      const stepped = (await tool(server, 'debug_step', { session, count: 2 })).value as { at: { function: string } };
+      expect(stepped.at.function).toMatch(/^addSlow\+0x/);
+    }, 60_000);
+  }
 });

@@ -1,7 +1,7 @@
 import { lineTableFromElf, parseElf32, resolveBreakpoint, SymbolTable } from '@benchtop/core';
 import { describe, expect, it } from 'vitest';
 import { readFixture, readFixtureText } from '../../../../../packages/core/src/firmware/fixtures.test-helper.ts';
-import { describeLocation, formatSreg, resolveAddress } from './resolve.ts';
+import { describeLocation, flagsLine, formatSreg, memoryStart, registerRows, resolveAddress } from './resolve.ts';
 
 const elf = parseElf32(readFixture('fixtures/firmware/uno/debug-demo.elf'));
 const tables = { symbols: SymbolTable.fromElf(elf), lines: lineTableFromElf(elf) ?? null };
@@ -29,5 +29,28 @@ describe('breakpoint specs', () => {
     expect(resolveAddress('counter', tables)).toBe(tables.symbols.lookup('counter')!.address);
     expect(resolveAddress('0x100', tables)).toBe(0x100);
     expect(resolveAddress('256', tables)).toBe(256);
+  });
+});
+
+describe('every board in the registers grid (BT74)', () => {
+  it('rows are as wide as each register', () => {
+    expect(registerRows([{ name: 'R0', bits: 8 }, { name: 'SP', bits: 16 }, { name: 'pc', bits: 32 }], Uint32Array.of(0x5, 0x8ff, 0x10003208))).toEqual([
+      { name: 'R0', text: '05', wide: false },
+      { name: 'SP', text: '08ff', wide: true },
+      { name: 'pc', text: '10003208', wide: true },
+    ]);
+  });
+
+  it('flags per MCU: SREG, xPSR, PS, mstatus', () => {
+    expect(flagsLine('atmega328p', [{ name: 'SREG' }], Uint32Array.of(0b10000011))).toBe('SREG I·····ZC');
+    expect(flagsLine('rp2040', [{ name: 'xpsr' }], Uint32Array.of(0x61000000))).toBe('xPSR ·ZC· thread');
+    expect(flagsLine('rp2040', [{ name: 'xpsr' }], Uint32Array.of(0x8100000f))).toBe('xPSR N··· exception 15');
+    expect(flagsLine('esp32', [{ name: 'ps' }, { name: 'cpu' }], Uint32Array.of(0x00060020, 1))).toBe('APP_CPU PS INTLEVEL=0 UM WOE CALLINC=2');
+    expect(flagsLine('rp2350', [{ name: 'mstatus' }], Uint32Array.of(0x1888))).toBe('mstatus MIE MPIE');
+    expect(flagsLine('unknown', [], new Uint32Array(0))).toBe('');
+  });
+
+  it('memory starts in each board\'s RAM', () => {
+    expect(['atmega328p', 'rp2040', 'rp2350', 'esp32'].map(memoryStart)).toEqual(['0x100', '0x20000000', '0x20000000', '0x3ffb0000']);
   });
 });

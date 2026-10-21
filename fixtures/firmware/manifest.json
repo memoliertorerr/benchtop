@@ -156,6 +156,39 @@
     },
     {
       "board": "esp32",
+      "name": "debug-demo",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/debug-demo.bin",
+      "sha256": "ae0d626389e7c61460dfc25f600240512539c3c8677fde5e748440a590d6927d",
+      "bytes": 262768,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "f9a2b271bf77169368f943b96cf8de41bcd3436ab28aae75fb1577286e7faeb9"
+    },
+    {
+      "board": "esp32",
+      "name": "debug-demo",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/debug-demo.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "f9a2b271bf77169368f943b96cf8de41bcd3436ab28aae75fb1577286e7faeb9"
+    },
+    {
+      "board": "esp32",
+      "name": "debug-demo",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/debug-demo.syms.tsv",
+      "sha256": "f644fa534c2d9d60c3d0cd55502c40f846224cff4f82c7693c15546580fe3da8",
+      "bytes": 116200,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "f9a2b271bf77169368f943b96cf8de41bcd3436ab28aae75fb1577286e7faeb9"
+    },
+    {
+      "board": "esp32",
       "name": "gpio-input",
       "fqbn": "esp32:esp32:esp32",
       "file": "esp32/gpio-input.bin",
@@ -1154,6 +1187,28 @@
     },
     {
       "board": "pico",
+      "name": "debug-demo",
+      "fqbn": "rp2040:rp2040:rpipico",
+      "file": "pico/debug-demo.syms.tsv",
+      "sha256": "a51dd9ead81ef6c5b7c29c7c2c83a6c3cf2ef1ba185b2384f96699d5a6ac95ef",
+      "bytes": 31537,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {},
+      "source": "504ff95e355202d14ae18857785fcec1b27a3534c3c519f259b0493841223b6b"
+    },
+    {
+      "board": "pico",
+      "name": "debug-demo",
+      "fqbn": "rp2040:rp2040:rpipico",
+      "file": "pico/debug-demo.uf2",
+      "sha256": "c157cf02f220f8375240bc238e086554f7e3b42d77a1236f26e2d689376373d4",
+      "bytes": 141824,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {},
+      "source": "504ff95e355202d14ae18857785fcec1b27a3534c3c519f259b0493841223b6b"
+    },
+    {
+      "board": "pico",
       "name": "float-math",
       "fqbn": "rp2040:rp2040:rpipico",
       "file": "pico/float-math.uf2",
@@ -1282,6 +1337,28 @@
       "core": "rp2040:rp2040@6.2.0",
       "libraries": {},
       "source": "6fcb84887d9726e9a29d154b431b97fd04310261c5314be1b077ad3b2b10443e"
+    },
+    {
+      "board": "pico2",
+      "name": "debug-demo",
+      "fqbn": "rp2040:rp2040:rpipico2:arch=riscv",
+      "file": "pico2/debug-demo.syms.tsv",
+      "sha256": "201bf5e1c254493853f3d287ab7a1a60f275c80c0e75c37ef2434d79409139bd",
+      "bytes": 28168,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {},
+      "source": "48f28c38a8bf5d28fe04745013540b18929c8f7f9927120e6d849e282ddfeacc"
+    },
+    {
+      "board": "pico2",
+      "name": "debug-demo",
+      "fqbn": "rp2040:rp2040:rpipico2:arch=riscv",
+      "file": "pico2/debug-demo.uf2",
+      "sha256": "0d5366d9531cebbe67034f36107914cbc64f2df18cae75b4b35bab80f7262792",
+      "bytes": 182784,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {},
+      "source": "48f28c38a8bf5d28fe04745013540b18929c8f7f9927120e6d849e282ddfeacc"
     },
     {
       "board": "pico2",

@@ -115,6 +115,10 @@ describe('inline sketch: Compile & Run (BT42)', () => {
     const ref = templateRef('rp2040:rp2040:rpipico');
     const stored = storedFromInline(ref, { ok: true, durationMs: 1, diagnostics: [], stdout: '', stderr: '', artifacts: { uf2: btoa('UF2\n'), elf: btoa('ELF') } });
     expect(stored).toMatchObject({ name: 'sketch.ino.uf2', format: 'uf2', bytes: Uint8Array.from([0x55, 0x46, 0x32, 0x0a]) });
+    // BT74: the ELF rides along for the debugger
+    expect(stored?.debugElf).toEqual(Uint8Array.from([0x45, 0x4c, 0x46]));
+    const avr = storedFromInline(templateRef('arduino:avr:uno'), { ok: true, durationMs: 1, diagnostics: [], stdout: '', stderr: '', artifacts: { hex: ':00000001FF\n' } });
+    expect(avr?.debugElf).toBeUndefined();
   });
 
   it('runs a MicroPython sketch without the bridge: stored as is, delivered to the board (BT63)', async () => {

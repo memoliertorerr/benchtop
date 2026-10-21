@@ -5,7 +5,8 @@
  * last call, new problems and the watched pins' measurements over the run.
  */
 
-import type { FirmwareImage, ProjectDoc, VisualState } from '@benchtop/core';
+import { type DebugTables, type FirmwareImage, lineTableFromElf, parseElf32, type ProjectDoc, SymbolTable, type VisualState } from '@benchtop/core';
+import { benchEnvParts } from '@benchtop/parts';
 import { cachedRoms, loadFirmware, projectFromJson } from '../../load.ts';
 import { parseScript, parseTime } from '../../run.ts';
 import { levelText, type Session, Sessions } from '../sessions.ts';
@@ -33,9 +34,46 @@ function compactVisual(visual: VisualState, full: boolean): Record<string, unkno
   return out;
 }
 
+/** Symbols from an nm listing (`.syms.tsv`); Arm Thumb functions lose bit 0. */
+export function nmTables(text: string, doc: ProjectDoc, board: string): DebugTables {
+  const type = doc.parts.find((p) => p.id === board)?.type ?? '';
+  return { symbols: SymbolTable.fromNm(text, benchEnvParts(type)?.board?.mcu === 'rp2040'), lines: null };
+}
+
+/**
+ * BT74: debug tables for a board whose firmware file isn't an ELF — the compiler's `.elf` beside
+ * it (compile_sketch writes `<name>.ino.elf` next to `<name>.ino.uf2`), else an nm listing
+ * (`.syms.tsv`, as the fixtures keep). Undefined when there's neither.
+ */
+function tablesBeside(context: SimContext, doc: ProjectDoc, board: string, path: string): DebugTables | undefined {
+  if (/\.(elf|py)$/i.test(path)) return undefined;
+  const base = path.replace(/\.(hex|uf2|bin)$/i, '');
+  const read = (p: string): Uint8Array | undefined => {
+    try {
+      return context.io.readFile(p);
+    } catch {
+      return undefined;
+    }
+  };
+  const elf = read(`${base}.elf`);
+  if (elf !== undefined) {
+    try {
+      const parsed = parseElf32(elf);
+      return { symbols: SymbolTable.fromElf(parsed), lines: lineTableFromElf(parsed) ?? null };
+    } catch {
+      // not an ELF we can read: fall through to a listing
+    }
+  }
+  for (const syms of [`${base}.syms.tsv`, `${base.replace(/\.ino$/, '')}.syms.tsv`]) {
+    const text = read(syms);
+    if (text !== undefined) return nmTables(new TextDecoder().decode(text), doc, board);
+  }
+  return undefined;
+}
+
 /** Opens a session on a parsed project and its firmware; the result sim_open and open_example share. */
-export function openSession(context: SimContext, label: string, doc: ProjectDoc, boards: string[], images: Record<string, FirmwareImage>, watch: readonly string[]): object {
-  const { session, closed } = context.sessions.add({ label, doc, boards, images, roms: cachedRoms(context.io), watch, serialChars: context.limits.serialChars });
+export function openSession(context: SimContext, label: string, doc: ProjectDoc, boards: string[], images: Record<string, FirmwareImage>, watch: readonly string[], tables: Record<string, DebugTables> = {}): object {
+  const { session, closed } = context.sessions.add({ label, doc, boards, images, roms: cachedRoms(context.io), watch, serialChars: context.limits.serialChars, tables });
   return {
     session: session.id,
     project: label,
@@ -66,8 +104,14 @@ export const simOpen: Tool<SimContext> = {
   run(args, context) {
     const { json, label } = projectJsonArg(args, context);
     const { doc, boards } = projectFromJson(withMicroPython(json, args.micropython));
-    const images = loadFirmware(context.io, doc, boards, (args.firmware ?? {}) as Record<string, string>);
-    return openSession(context, label, doc, boards, images, (args.watch ?? []) as string[]);
+    const firmware = (args.firmware ?? {}) as Record<string, string>;
+    const images = loadFirmware(context.io, doc, boards, firmware);
+    const tables: Record<string, DebugTables> = {};
+    for (const [board, path] of Object.entries(firmware)) {
+      const found = tablesBeside(context, doc, board, path);
+      if (found !== undefined) tables[board] = found;
+    }
+    return openSession(context, label, doc, boards, images, (args.watch ?? []) as string[], tables);
   },
 };
 

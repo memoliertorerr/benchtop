@@ -234,6 +234,25 @@ describe('SimSession', () => {
     expect(restarted?.times[0]).toBe(0);
   });
 
+  it('debugger info names the MCU and its registers; a .hex gets symbols from the ELF beside it (BT74)', () => {
+    const h = harness();
+    const of = <T extends FromSim['type']>(type: T) => h.messages.filter((m): m is Extract<FromSim, { type: T }> => m.type === type);
+    h.session.handle({ type: 'load', doc: project('debug-demo'), firmware: { uno: hex('debug-demo') }, debugElf: { uno: readFixture('fixtures/firmware/uno/debug-demo.elf') } });
+    const [info] = of('debugInfo');
+    expect(info).toMatchObject({ board: 'uno', kind: 'atmega328p', error: null });
+    expect(info.registers.slice(32).map((r) => r.name)).toEqual(['SREG', 'SP', 'PC']);
+    expect(new SymbolTable(info.symbols!).lookup('addSlow')).toBeDefined();
+    h.session.handle({ type: 'debugSetBreakpoints', board: 'uno', specs: ['addSlow'] });
+    h.session.handle({ type: 'run', speed: 1 });
+    h.advance(100);
+    expect(of('debugStopped').at(-1)).toMatchObject({ board: 'uno', reason: 'breakpoint' });
+    // A Pico: its own registers and kind, no symbols from a .uf2 alone
+    h.session.handle({ type: 'load', doc: project('pico-blink'), firmware: { pico: { format: 'uf2', bytes: readFixture('fixtures/firmware/pico/blink.uf2') } } });
+    const pico = of('debugInfo').find((m) => m.board === 'pico')!;
+    expect(pico).toMatchObject({ kind: 'rp2040', symbols: null });
+    expect(pico.registers.map((r) => r.name)).toContain('xpsr');
+  });
+
   it('debugger: info once per firmware, breakpoint stops, step, step over, memory, pause', () => {
     const h = harness();
     const of = <T extends FromSim['type']>(type: T) => h.messages.filter((m): m is Extract<FromSim, { type: T }> => m.type === type);

@@ -152,7 +152,7 @@ export class SimSession {
         this.post({ type: 'ready', protocol: PROTOCOL_VERSION });
         return;
       case 'load':
-        this.load(message.doc, message.firmware);
+        this.load(message.doc, message.firmware, message.debugElf ?? {});
         return;
       case 'setFirmware': {
         const bench = this.requireBench();
@@ -160,7 +160,7 @@ export class SimSession {
         bench.attachFirmware(message.board, message.image);
         this.serial.get(message.board)?.splice(0); // unflushed output of the old firmware
         this.cycleMarks.delete(message.board);
-        this.postDebugInfo(message.board, message.image);
+        this.postDebugInfo(message.board, message.image, message.debugElf);
         this.applyBreakpoints(message.board);
         this.postFrame();
         if (!this.running) this.postDebugStopped(message.board, 'pause');
@@ -277,7 +277,7 @@ export class SimSession {
     }
   }
 
-  private load(doc: unknown, firmware: Record<string, FirmwareImage>): void {
+  private load(doc: unknown, firmware: Record<string, FirmwareImage>, debugElf: Record<string, Uint8Array>): void {
     this.running = false;
     this.stepOver = null; // its breakpoint lived in the old bench's MCU
     this.pacer.setSpeed(this.speed);
@@ -320,7 +320,7 @@ export class SimSession {
     this.postProblems(false);
     this.postFrame();
     for (const board of this.env.mcus.keys()) {
-      this.postDebugInfo(board, firmware[board]);
+      this.postDebugInfo(board, firmware[board], debugElf[board]);
       this.applyBreakpoints(board);
       this.postDebugStopped(board, 'pause');
     }
@@ -429,15 +429,17 @@ export class SimSession {
    * Parses a board's symbols and lines once per firmware and posts copies to the UI (the
    * session keeps its own tables to resolve breakpoints against).
    */
-  private postDebugInfo(board: string, image: FirmwareImage | undefined): void {
-    const key = firmwareKey(image);
+  private postDebugInfo(board: string, image: FirmwareImage | undefined, debugElf?: Uint8Array): void {
+    // BT74: the tables come from the image when it is an ELF, else from the ELF it was built from.
+    const elfBytes = image?.format === 'elf' ? image.bytes : debugElf;
+    const key = `${firmwareKey(image)}:${debugElf === undefined || image?.format === 'elf' ? '' : firmwareKey({ format: 'elf', bytes: debugElf })}`;
     if (this.debugTables.get(board)?.key === key) return;
     let symbols: SymbolTable | null = null;
     let lines: LineTable | null = null;
     let error: string | null = null;
-    if (image?.format === 'elf') {
+    if (elfBytes !== undefined) {
       try {
-        const elf = parseElf32(image.bytes);
+        const elf = parseElf32(elfBytes);
         symbols = SymbolTable.fromElf(elf);
         lines = lineTableFromElf(elf) ?? null;
       } catch (e) {
@@ -469,7 +471,9 @@ export class SimSession {
         seqEnd: copy(d.seqEnd),
       };
     }
-    this.deps.post({ type: 'debugInfo', board, symbols: symbolData, lines: lineData, error }, transfer);
+    const kind = this.env.mcus.get(board)?.kind ?? '';
+    const registers = (this.bench?.debugOf(board)?.registers() ?? []).map((r) => ({ name: r.name, bits: r.bits }));
+    this.deps.post({ type: 'debugInfo', board, symbols: symbolData, lines: lineData, error, kind, registers }, transfer);
   }
 
   private postDebugStopped(board: string, reason: DebugStopReason): void {

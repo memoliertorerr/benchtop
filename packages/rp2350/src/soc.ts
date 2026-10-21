@@ -204,7 +204,10 @@ export class Rp2350Soc implements PeriphHost, SioHost {
     // h3.unblock reaches both harts — on the RP2350 the sender's own next h3.block falls through too.
     for (const hart of this.harts) hart.unblockHook = () => this.unblockAll();
     this.clock.onEarlier = (at) => {
-      if (this.active >= 0 && at < this.sliceEnd) this.harts[this.active].requestStop();
+      if (this.active >= 0 && at < this.sliceEnd) {
+        this.harts[this.active].requestStop();
+        this.cut = true;
+      }
     };
 
     const add = <T extends Periph>(periph: T): T => {
@@ -490,6 +493,8 @@ export class Rp2350Soc implements PeriphHost, SioHost {
   /** Power-on reset: peripherals, harts, SRAM; flash keeps its contents. Then direct boot. */
   reset(): void {
     this.clock.clear();
+    this.resumePc = -1;
+    this.atBreakpoint = false;
     this.createRpjs();
     for (const periph of this.blocks.values()) periph.reset();
     this.sio.reset();
@@ -557,7 +562,104 @@ export class Rp2350Soc implements PeriphHost, SioHost {
     return Math.floor((this.now() * REFERENCE_HZ) / 1e9);
   }
 
-  /** Runs until `targetNanos`; returns a halt message or null. */
+  // ── Debugging (BT71): hart 0 ───────────────────────────────────────────────────────────
+
+  /** Hart 0's breakpoints (byte addresses). While there are any, hart 0 runs checked. */
+  readonly breakpoints = new Set<number>();
+  /** The breakpoint hart 0 stopped at, which its next run executes unchecked (−1: none). */
+  private resumePc = -1;
+  /** The last run stopped at a breakpoint (the Mcu reads and clears it). */
+  atBreakpoint = false;
+  /** An alarm earlier than the slice's end arrived while a hart ran (onEarlier). */
+  private cut = false;
+
+  /**
+   * Hart 0 up to `cycles` more, one instruction at a time, stopping before an instruction at a
+   * breakpoint (true). Asleep in WFI it sleeps as usual; an interrupt it takes stops right after
+   * the entry (`stopOnTrap`), so a breakpoint on a handler's first instruction is seen.
+   */
+  private runChecked(cycles: number): boolean {
+    const hart = this.harts[0];
+    const end = hart.cycles + cycles;
+    hart.stopOnTrap = true;
+    this.cut = false;
+    try {
+      while (hart.cycles < end && hart.halt === HALT.RUNNING && !this.cut) {
+        const pc = hart.pc >>> 0;
+        if (pc !== this.resumePc && this.breakpoints.has(pc)) {
+          this.resumePc = pc;
+          return true;
+        }
+        this.resumePc = -1;
+        hart.run(hart.waiting ? end - hart.cycles : 1);
+      }
+      return false;
+    } finally {
+      hart.stopOnTrap = false;
+    }
+  }
+
+  /**
+   * One instruction on hart 0 (or, asleep, one cycle; an interrupt entry counts as the step),
+   * then the rest of the SoC catches up to it.
+   */
+  stepHart0(): string | null {
+    const hart = this.harts[0];
+    if (this.bootError !== null) return this.bootError;
+    if (!this.running[0] || hart.halt !== HALT.RUNNING) return 'hart 0 is halted';
+    this.resumePc = -1;
+    hart.stopOnTrap = true;
+    this.active = 0;
+    try {
+      hart.run(1);
+    } finally {
+      hart.stopOnTrap = false;
+      this.active = -1;
+    }
+    const halt = this.runUntilNanos(this.hartNanos(0));
+    this.atBreakpoint = false;
+    return halt;
+  }
+
+  /** Hart 0's time, ns (ahead of the SoC's clock after a step or a breakpoint). */
+  get hart0Nanos(): number {
+    return this.hartNanos(0);
+  }
+
+  /** One byte as the bus would read it, without side effects: memory, else a block's stored register, else 0. */
+  peek(addr: number): number {
+    addr >>>= 0;
+    try {
+      switch (addr >>> 28) {
+        case 0x0:
+        case 0x1:
+        case 0x2:
+          return this.read(0, addr, 1);
+        case 0x4:
+        case 0x5: {
+          if ((addr >= BOOTRAM_BASE && addr < BOOTRAM_BASE + BOOTRAM_SIZE) || (addr >= DPRAM_BASE && addr < DPRAM_BASE + DPRAM_SIZE)) return this.read(0, addr, 1);
+          const block = this.blocks.get(addr >>> 14);
+          return block === undefined ? 0 : (block.peek(addr & 0xffc) >>> ((addr & 3) * 8)) & 0xff;
+        }
+        default:
+          return 0;
+      }
+    } catch {
+      return 0;
+    }
+  }
+
+  /** Writes one byte of RAM (SRAM, the XIP cache as SRAM, BOOTRAM); false elsewhere. */
+  poke(addr: number, value: number): boolean {
+    addr >>>= 0;
+    const ram = (addr >= SRAM_BASE && addr < SRAM_TOP) || (addr >= XIP_SRAM_BASE && addr < XIP_SRAM_BASE + XIP_SRAM_SIZE) || (addr >= BOOTRAM_BASE && addr < BOOTRAM_BASE + BOOTRAM_SIZE);
+    if (!ram) return false;
+    this.write(0, addr, value & 0xff, 1);
+    this.invalidate(addr, 1);
+    return true;
+  }
+
+  /** Runs until `targetNanos`; returns a halt message or null (`atBreakpoint` says whether hart 0 stopped at one). */
   runUntilNanos(targetNanos: number): string | null {
     if (this.bootError !== null) return this.bootError;
     const clock = this.clock;
@@ -572,7 +674,19 @@ export class Rp2350Soc implements PeriphHost, SioHost {
         if (behind > 0) {
           this.active = h;
           this.sliceEnd = end;
-          hart.run(Math.max(1, Math.ceil(behind / this.nanosPerCycle)));
+          const cycles = Math.max(1, Math.ceil(behind / this.nanosPerCycle));
+          if (h === 0 && this.breakpoints.size > 0) {
+            if (this.runChecked(cycles)) {
+              // Stopped before the breakpoint's instruction: the SoC catches up to hart 0.
+              this.sliceEnd = Infinity;
+              this.active = -1;
+              const until = Math.max(clock.nanos, Math.min(this.hartNanos(0), targetNanos));
+              if (this.pioOn()) this.pumpPio(sliceStart, until);
+              clock.tickTo(until);
+              this.atBreakpoint = true;
+              return null;
+            }
+          } else hart.run(cycles);
           this.sliceEnd = Infinity;
           if (hart.halt !== HALT.RUNNING) return `hart ${h}: ${hart.haltReason || (hart.halt === HALT.BREAK ? 'EBREAK' : 'halted')} at 0x${(hart.pc >>> 0).toString(16)}`;
         }

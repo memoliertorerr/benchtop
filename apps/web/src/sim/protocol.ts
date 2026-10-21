@@ -18,18 +18,19 @@ import type {
   VisualState,
 } from '@benchtop/core';
 
-export const PROTOCOL_VERSION = 10;
+export const PROTOCOL_VERSION = 11;
 
 export type ToSim =
   | { type: 'hello'; protocol: number }
   /** Builds a new bench from `doc` (paused at t = 0) and loads firmware per board part id. */
-  | { type: 'load'; doc: ProjectDoc; firmware: Record<string, FirmwareImage> }
+  /** `debugElf` (BT74): a board's ELF for the debugger's symbols and lines when its image isn't one (a .hex, .uf2 or .bin built from it). */
+  | { type: 'load'; doc: ProjectDoc; firmware: Record<string, FirmwareImage>; debugElf?: Record<string, Uint8Array> }
   /**
    * New firmware for one board of the loaded bench (a fresh compile): loads it and resets that
    * board's MCU only; its clock restarts at the current bench time, other parts keep their state
    * and a running bench keeps running.
    */
-  | { type: 'setFirmware'; board: string; image: FirmwareImage }
+  | { type: 'setFirmware'; board: string; image: FirmwareImage; debugElf?: Uint8Array }
   /** Runs in real time × `speed` (Infinity = as fast as possible). */
   | { type: 'run'; speed: number }
   | { type: 'pause' }
@@ -133,7 +134,16 @@ export type FromSim =
    * .hex, which has neither; `error` when the ELF's debug info didn't parse). Typed arrays are
    * transferred.
    */
-  | { type: 'debugInfo'; board: string; symbols: SymbolTableData | null; lines: LineTableData | null; error: string | null }
+  | {
+      type: 'debugInfo';
+      board: string;
+      symbols: SymbolTableData | null;
+      lines: LineTableData | null;
+      error: string | null;
+      /** BT74: the MCU (`Mcu.kind`) and its registers in debugger order (names, widths). */
+      kind: string;
+      registers: { name: string; bits: number }[];
+    }
   /** A debuggable board stopped: where, and its registers (debugger order). */
   | { type: 'debugStopped'; board: string; reason: DebugStopReason; pc: number; registers: Uint32Array }
   /** Bytes for a debugReadMemory (shorter than asked at the end of a space; empty past it). */

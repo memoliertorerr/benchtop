@@ -56,6 +56,8 @@ export interface SessionInit {
   watch: readonly string[];
   /** Serial characters kept per board between reads (the newest). */
   serialChars: number;
+  /** BT74: debug tables for boards whose image isn't an ELF (from an .elf or .syms.tsv beside it). */
+  tables?: Readonly<Record<string, DebugTables>>;
 }
 
 export class Session {
@@ -93,6 +95,7 @@ export class Session {
       this.bench.onSerial(board, (bytes) => this.append(board, decoder.decode(bytes, { stream: true })));
     }
     for (const key of init.watch) this.addWatch(key);
+    for (const [board, tables] of Object.entries(init.tables ?? {})) this.tables.set(board, tables);
     for (const [board, image] of Object.entries(init.images)) {
       if (image.format !== 'elf') continue;
       try {

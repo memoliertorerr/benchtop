@@ -36,6 +36,8 @@ export interface FixtureBoard {
    * mostly DWARF).
    */
   symbols?: string;
+  /** BT71: the nm that writes `<name>.syms.tsv` for this board's `SYMBOL_SKETCHES` only (the debugger's tests). */
+  debugSymbols?: string;
 }
 
 export const FIXTURE_BOARDS: Readonly<Record<string, FixtureBoard>> = {
@@ -73,19 +75,30 @@ export const FIXTURE_BOARDS: Readonly<Record<string, FixtureBoard>> = {
   pico: {
     fqbn: 'rp2040:rp2040:rpipico',
     outputs: [{ from: 'uf2', ext: 'uf2' }],
+    debugSymbols: 'arm-none-eabi-nm',
   },
   // BT65: the Raspberry Pi Pico 2's RP2350 on its RISC-V cores (arduino-pico 6.2.0, arch=riscv).
   pico2: {
     fqbn: 'rp2040:rp2040:rpipico2:arch=riscv',
     outputs: [{ from: 'uf2', ext: 'uf2' }],
+    debugSymbols: 'riscv32-unknown-elf-nm',
   },
 };
+
+/** BT71: sketches on boards with `debugSymbols` that get a `.syms.tsv` (the debugger's fixtures). */
+export const SYMBOL_SKETCHES: readonly string[] = ['pico/debug-demo', 'pico2/debug-demo'];
+
+/** The nm that writes a sketch's `.syms.tsv`, or undefined when it gets none. */
+export function symbolsTool(board: string, name: string): string | undefined {
+  const def = FIXTURE_BOARDS[board];
+  return def?.symbols ?? (SYMBOL_SKETCHES.includes(`${board}/${name}`) ? def?.debugSymbols : undefined);
+}
 
 /** Every committed output of one sketch, as paths under fixtures/firmware/. */
 export function sketchOutputs(board: string, name: string): string[] {
   const def = FIXTURE_BOARDS[board];
   if (def === undefined) return [];
-  return [...def.outputs.map((o) => `${board}/${name}.${o.ext}`), ...(def.symbols === undefined ? [] : [`${board}/${name}.syms.tsv`])];
+  return [...def.outputs.map((o) => `${board}/${name}.${o.ext}`), ...(symbolsTool(board, name) === undefined ? [] : [`${board}/${name}.syms.tsv`])];
 }
 
 /**

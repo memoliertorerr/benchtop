@@ -7,13 +7,13 @@
  */
 
 import { join } from 'node:path';
-import type { FirmwareImage } from '@benchtop/core';
+import type { DebugTables, FirmwareImage, ProjectDoc } from '@benchtop/core';
 import { parseJson, projectFromJson, readText } from '../../load.ts';
 import type { CliIo } from '../../load.ts';
 import type { SuiteIo } from '../../suite.ts';
 import type { ResourceProvider } from '../server.ts';
 import { type Tool, ToolError } from '../server.ts';
-import { openSession, type SimContext } from './sim.ts';
+import { nmTables, openSession, type SimContext } from './sim.ts';
 
 export type ExampleBoard = { firmware: string; sketch: string } | { micropython: string };
 
@@ -79,6 +79,21 @@ export class ExampleLibrary {
     return images;
   }
 
+  /** BT74: symbols for boards whose committed firmware has a `.syms.tsv` beside it (every ESP32 fixture). */
+  tables(entry: ExampleEntry, doc: ProjectDoc): Record<string, DebugTables> {
+    const out: Record<string, DebugTables> = {};
+    for (const [board, files] of Object.entries(entry.boards)) {
+      if ('micropython' in files) continue;
+      try {
+        const text = readText(this.io, join(this.repo, 'fixtures/firmware', files.firmware.replace(/\.(hex|uf2|bin)$/, '.syms.tsv')), 'symbols');
+        out[board] = nmTables(text, doc, board);
+      } catch {
+        // no listing: addresses only
+      }
+    }
+    return out;
+  }
+
   /** The sketch source of a board's firmware (its main file), for the assistant to read. */
   sketch(entry: ExampleEntry, board: string): { files: Record<string, string> } | undefined {
     const files = entry.boards[board];
@@ -141,7 +156,7 @@ export const openExample: Tool<ExamplesContext> = {
   run(args, context) {
     const entry = context.examples.get(args.id as string);
     const { doc, boards } = projectFromJson(context.examples.projectJson(entry));
-    const opened = openSession(context, `example ${entry.id}`, doc, boards, context.examples.images(entry), (args.watch ?? []) as string[]);
+    const opened = openSession(context, `example ${entry.id}`, doc, boards, context.examples.images(entry), (args.watch ?? []) as string[], context.examples.tables(entry, doc));
     const sketches = Object.fromEntries(boards.map((b) => [b, context.examples.sketch(entry, b)?.files ?? {}]));
     return { ...opened, example: card(entry), sketches };
   },

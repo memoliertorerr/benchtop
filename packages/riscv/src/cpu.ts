@@ -222,6 +222,12 @@ export class RiscvCore {
   unblockHook: (() => void) | null = null;
   /** An h3.unblock arrived since this hart's last h3.block. */
   unblocked = false;
+  /**
+   * BT71 (a debugger's single steps): leave `run` right after entering an interrupt, before the
+   * handler's first instruction, so a breakpoint there is seen. Read only when an interrupt is
+   * taken, never in the instruction loop.
+   */
+  stopOnTrap = false;
   /** Asleep in h3.block (not WFI): an unblock wakes it. */
   private blocked = false;
   readonly bus: RiscvBus;
@@ -1076,6 +1082,10 @@ export class RiscvCore {
           this.trap((INTERRUPT_BIT | irq) >>> 0, 0);
           break;
         }
+      }
+      if (this.stopOnTrap) {
+        this.stopRequested = true;
+        return false;
       }
       return true;
     }

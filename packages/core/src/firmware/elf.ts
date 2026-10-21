@@ -9,6 +9,8 @@
 export const EM_AVR = 83;
 /** e_machine for Tensilica Xtensa (ESP32). */
 export const EM_XTENSA = 94;
+/** BT72: 32-bit Arm (the RP2040's Cortex-M0+; Thumb function symbols carry bit 0). */
+export const EM_ARM = 40;
 /** p_type of a loadable segment. */
 export const PT_LOAD = 1;
 /** sh_type of a section that occupies no file space (.bss). */

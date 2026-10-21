@@ -1,0 +1,29 @@
+// debug-demo — tests assert (BT73, the CPU debugger on the ESP32; loop() runs on the APP_CPU):
+// - addSlow is noinline and extern "C" (so its symbol is plain `addSlow`): a breakpoint on it
+//   stops with its first argument a = seedA in a2 once its ENTRY has run (1234 on the first call, then 1235, …).
+// - counter (a uint16_t global) in DRAM equals what the sketch last printed.
+// UART0 prints "a=<seedA> counter=<counter>" each loop, every 100 ms.
+volatile int seedA = 1234, seedB = 4321;
+volatile uint16_t counter;
+volatile int result;
+
+extern "C" __attribute__((noinline)) int addSlow(int a, int b) {
+  int sum = 0;
+  for (int i = 0; i < 8; i++) sum += (a ^ i) + (b >> i);
+  return sum;
+}
+
+void setup() {
+  Serial.begin(115200);
+}
+
+void loop() {
+  result = addSlow(seedA, seedB);
+  counter++; // DEBUG_MARK
+  Serial.print("a=");
+  Serial.print(seedA);
+  Serial.print(" counter=");
+  Serial.println(counter);
+  seedA++;
+  delay(100);
+}

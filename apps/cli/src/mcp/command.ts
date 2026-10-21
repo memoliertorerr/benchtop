@@ -55,7 +55,7 @@ function instructions(sandbox: Sandbox, limits: McpLimits): string {
     'Benchtop simulates Arduino Uno/Nano/Mega, ESP32 and Raspberry Pi Pico/Pico 2 circuits running real compiled firmware (or inline MicroPython on the Picos), headless.',
     'A project is a JSON document of placed parts and wires; list_parts and describe_part show the part types, their pins and props; validate_project checks one.',
     'run_simulation runs a project with firmware, timed inputs and assertions (pin levels, frequency and duty, serial text, LEDs, displays) and reports what happened; run_tests runs *.bench.json specs.',
-    'For step-by-step work open a live session (sim_open, or open_example on a gallery example from list_examples) and drive it with sim_run, sim_input, sim_serial and sim_state; debug_* tools debug AVR firmware in a session (registers, memory, breakpoints, steps).',
+    'For step-by-step work open a live session (sim_open, or open_example on a gallery example from list_examples) and drive it with sim_run, sim_input, sim_serial and sim_state; debug_* tools debug any board\'s firmware in a session (registers, memory, breakpoints, steps).',
     'compile_sketch builds an Arduino sketch with the local arduino-cli; pcb_check and pcb_export check a project\'s PCB and write its fabrication files. Files are written only under .benchtop/ in the root.',
     `Paths are relative to the root folder ${sandbox.root} and must stay inside it. A call may simulate at most ${formatNs(limits.maxSimNs)} and spend ${limits.maxWallMs / 1000} s of wall time.`,
   ].join(' ');

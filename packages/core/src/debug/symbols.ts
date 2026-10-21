@@ -7,7 +7,7 @@
  * (`myFunc` → `_Z6myFuncv`).
  */
 
-import { EM_AVR, type Elf32 } from '../firmware/elf.ts';
+import { EM_ARM, EM_AVR, type Elf32 } from '../firmware/elf.ts';
 import type { MemorySpace } from '../contracts/debug.ts';
 
 export const SYMBOL_FUNC = 0;
@@ -63,15 +63,20 @@ export class SymbolTable {
     this.funcs.sort((a, b) => data.address[a] - data.address[b]);
   }
 
-  /** FUNC and OBJECT symbols with a defined section. AVR data-space objects sit at 0x800000+. */
+  /**
+   * FUNC and OBJECT symbols with a defined section. AVR data-space objects sit at 0x800000+; on
+   * 32-bit cores (BT71) code and data share one address space, the debugger's `data`, and an Arm
+   * Thumb function's address loses its bit 0.
+   */
   static fromElf(elf: Elf32): SymbolTable {
     const entries: SymbolEntry[] = [];
     const avr = elf.machine === EM_AVR;
+    const thumb = elf.machine === EM_ARM;
     for (const symbol of elf.symbols) {
       if (symbol.name === '' || symbol.shndx === 0 || symbol.shndx >= 0xff00) continue;
       if (symbol.type !== 'FUNC' && symbol.type !== 'OBJECT') continue;
-      let space: MemorySpace = 'flash';
-      let address = symbol.value;
+      let space: MemorySpace = avr ? 'flash' : 'data';
+      let address = thumb && symbol.type === 'FUNC' ? symbol.value & ~1 : symbol.value;
       if (avr && symbol.value >= 0x810000 && symbol.value < 0x820000) {
         space = 'eeprom';
         address = symbol.value - 0x810000;
@@ -80,6 +85,27 @@ export class SymbolTable {
         address = symbol.value - 0x800000;
       }
       entries.push({ name: symbol.name, address, size: symbol.size, kind: symbol.type === 'FUNC' ? 'func' : 'object', space });
+    }
+    return SymbolTable.fromEntries(entries);
+  }
+
+  /**
+   * BT71: an `nm -S -n --defined-only` listing as the fixtures keep it (`.syms.tsv`: address,
+   * size, type, name — sizes may be empty), for firmware whose ELF isn't at hand. Text symbols
+   * (T, t, W, w) are functions, data and BSS ones (D, d, B, b, R, r, G, g, S, s, V, v) objects,
+   * all in the 32-bit cores' one `data` space; `thumb` clears an Arm function's bit 0.
+   */
+  static fromNm(text: string, thumb = false): SymbolTable {
+    const entries: SymbolEntry[] = [];
+    for (const line of text.split(/\r?\n/)) {
+      if (line === '' || line.startsWith('#')) continue;
+      const [addr, size, type, name] = line.split('\t');
+      if (name === undefined || type === undefined || type.length !== 1 || name === '') continue;
+      const func = 'TtWw'.includes(type);
+      if (!func && !'DdBbRrGgSsVv'.includes(type)) continue;
+      const address = Number.parseInt(addr, 16);
+      if (!Number.isFinite(address)) continue;
+      entries.push({ name, address: func && thumb ? address & ~1 : address, size: size === '' || size === undefined ? 0 : Number.parseInt(size, 16), kind: func ? 'func' : 'object', space: 'data' });
     }
     return SymbolTable.fromEntries(entries);
   }

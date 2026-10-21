@@ -113,16 +113,19 @@ function base64Bytes(text: string): Uint8Array {
 /** The firmware a successful compile produced, tagged with its source; undefined when none. */
 export function storedFromInline(ref: InlineRef, result: BridgeCompileResult): StoredFirmware | undefined {
   const source = sourceHash(ref);
+  // BT74: the ELF rides along for the debugger (symbols, source lines) whatever the image is.
+  const elf = result.artifacts.elf;
+  const debugElf = elf === undefined ? {} : { debugElf: base64Bytes(elf) };
   if (ref.fqbn.startsWith('esp32:')) {
     const bin = result.artifacts.bin;
-    return bin === undefined ? undefined : { name: `${ref.main}.bin`, format: 'esp32-bin', bytes: base64Bytes(bin), source };
+    return bin === undefined ? undefined : { name: `${ref.main}.bin`, format: 'esp32-bin', bytes: base64Bytes(bin), source, ...debugElf };
   }
   if (ref.fqbn.startsWith('rp2040:')) {
     const uf2 = result.artifacts.uf2;
-    return uf2 === undefined ? undefined : { name: `${ref.main}.uf2`, format: 'uf2', bytes: base64Bytes(uf2), source };
+    return uf2 === undefined ? undefined : { name: `${ref.main}.uf2`, format: 'uf2', bytes: base64Bytes(uf2), source, ...debugElf };
   }
   const hex = result.artifacts.hex;
-  return hex === undefined ? undefined : { name: `${ref.main}.hex`, format: 'hex', bytes: new TextEncoder().encode(hex), source };
+  return hex === undefined ? undefined : { name: `${ref.main}.hex`, format: 'hex', bytes: new TextEncoder().encode(hex), source, ...debugElf };
 }
 
 export interface InlineCompileDeps {

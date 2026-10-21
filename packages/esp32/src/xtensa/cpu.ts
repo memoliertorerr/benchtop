@@ -184,6 +184,9 @@ export interface XtensaCoreOptions {
   prid?: number;
 }
 
+/** No breakpoints (shared, never written). */
+const NO_BREAKPOINTS: ReadonlySet<number> = new Set<number>();
+
 export class XtensaCore {
   /** The physical address registers. */
   readonly ar = new Uint32Array(64);
@@ -247,6 +250,16 @@ export class XtensaCore {
   exceptionHook: ((cause: number, pc: number, vaddr: number) => void) | null = null;
   /** A deliverable interrupt may be pending: checked before each instruction. */
   irqCheck = false;
+  /**
+   * BT73 (the debugger): addresses to stop before. While non-empty, `run` uses a checked copy of
+   * its loop (chosen per run, never tested per instruction in the others); the adapter owns the
+   * set and hands it to every core it builds.
+   */
+  breakpoints: ReadonlySet<number> = NO_BREAKPOINTS;
+  /** The last run stopped before an instruction at a breakpoint (cleared by the next run). */
+  atBreakpoint = false;
+  /** The breakpoint the core stopped at, which the next run executes unchecked (−1: none). */
+  resumePc = -1;
   readonly bus: XtensaBus;
   /** The predecoded instruction cache (BT37; icache.ts). */
   readonly icache = new ICache();
@@ -381,10 +394,12 @@ export class XtensaCore {
     const before = this.instructions;
     const end = this.cycles + max;
     this.stopRequested = false;
+    this.atBreakpoint = false;
     while (this.halt === HALT.RUNNING && this.cycles < end && !this.stopRequested) {
       this.stopAt = Math.min(end, this.nextTimerAt);
       try {
-        if (this.instructionHook !== null) this.innerHooked();
+        if (this.breakpoints.size !== 0) this.innerChecked();
+        else if (this.instructionHook !== null) this.innerHooked();
         else if (this.predecode && this.codeBus !== null) this.innerCached(this.codeBus);
         else this.inner();
       } catch (error) {
@@ -482,6 +497,32 @@ export class XtensaCore {
   }
 
   /** inner() with instructionHook called per instruction (debug runs only). */
+  /**
+   * BT73: the loop with a breakpoint check before each instruction — after any interrupt entry,
+   * so a handler's first instruction can stop too.
+   */
+  private innerChecked(): void {
+    const bus = this.bus;
+    const breakpoints = this.breakpoints;
+    while (this.cycles < this.stopAt) {
+      if (this.irqCheck && this.takeInterrupt()) continue;
+      if (this.waiting) {
+        this.slept += this.stopAt - this.cycles;
+        this.cycles = this.stopAt;
+        return;
+      }
+      const pc = this.pc;
+      if (pc !== this.resumePc && breakpoints.has(pc)) {
+        this.resumePc = pc;
+        this.atBreakpoint = true;
+        this.requestStop();
+        return;
+      }
+      this.resumePc = -1;
+      this.stepWord(pc, bus.fetch(pc));
+    }
+  }
+
   private innerHooked(): void {
     const bus = this.bus;
     while (this.cycles < this.stopAt) {

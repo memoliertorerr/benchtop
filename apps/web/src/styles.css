@@ -1194,6 +1194,12 @@ wokwi-ks2e-m-dc5[data-contacts='no'] {
   grid-column: span 2;
 }
 
+/* BT74: the status flags line under the grid (SREG, xPSR, PS, mstatus). */
+.debug-reg.flags {
+  grid-column: 1 / -1;
+  color: var(--text-muted);
+}
+
 .debug-reg-name {
   display: inline-block;
   min-width: 3.2em;

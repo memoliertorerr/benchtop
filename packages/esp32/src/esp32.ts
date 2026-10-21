@@ -28,7 +28,8 @@
  *   `BenchEnv.createMcu`. `soc` is there for tests and debugging.
  */
 
-import type { BoardSpec, FirmwareImage, I2cController, I2cDevice, Level, Mcu, McuPin, NetState, PinMode, Problem, RunResult, SpiController, SpiDevice, UartPort } from '@benchtop/core';
+import type { BoardSpec, Debuggable, FirmwareImage, I2cController, I2cDevice, Level, Mcu, McuDebug, McuPin, NetState, PinMode, Problem, RunResult, SpiController, SpiDevice, UartPort } from '@benchtop/core';
+import { Esp32Debug } from './debug/debug.ts';
 import { describeFirmwareFormat } from '@benchtop/core';
 import { directBoot } from './boot/direct-boot.ts';
 import { ROM_ELF_NAME, ROM_ELF_SHA256, ROM_RELEASE } from './boot/rom-manifest.ts';
@@ -242,7 +243,7 @@ class Esp32Uart implements UartPort {
   }
 }
 
-export class Esp32Mcu implements Mcu {
+export class Esp32Mcu implements Mcu, Debuggable {
   readonly kind = 'esp32' as const;
   readonly clockHz = REF_HZ;
   readonly pins: ReadonlyMap<string, McuPin>;
@@ -261,6 +262,9 @@ export class Esp32Mcu implements Mcu {
   private readonly seenLevel = new Uint8Array(40);
   private readonly seenVolts = new Float64Array(40).fill(Number.NaN);
   private readonly floatingReported = new Uint8Array(40);
+  /** BT73: breakpoints (either core stops at them), handed to every SoC built (they outlive resets). */
+  private readonly breakpoints = new Set<number>();
+  private debugView: Esp32Debug | null = null;
 
   constructor(options: Esp32McuOptions = {}) {
     this.rom = romFrom(options.rom);
@@ -354,8 +358,17 @@ export class Esp32Mcu implements Mcu {
     return index === 2 ? this.spis[0] : index === 3 ? this.spis[1] : undefined;
   }
 
+  /** BT73: the debugger view — the APP_CPU (where loop() runs), or the core that stopped last. */
+  debug(): McuDebug {
+    this.debugView ??= new Esp32Debug(() => this.soc, this.breakpoints);
+    return this.debugView;
+  }
+
   private buildSoc(): Esp32Soc {
     const soc = new Esp32Soc();
+    // The field initializers run before the constructor's buildSoc: the set exists here.
+    soc.cores[0].breakpoints = this.breakpoints;
+    soc.cores[1].breakpoints = this.breakpoints;
     soc.onUart = (port, byte) => this.uarts[port]?.emit(byte);
     soc.problems.listener = (problem) => this.problemListener?.(problem);
     soc.pads.onPin = (g) => this.pinChanged(g);

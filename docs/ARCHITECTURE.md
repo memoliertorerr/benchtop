@@ -893,6 +893,26 @@ sequence, files matched by basename or trailing path.
   loop off the histogram, the register it polls off the unknown-register list, and the IDF
   function behind it; model the bit it waits for.
 
+  **Debugger (`debug/debug.ts`).** `Esp32Mcu.debug()` is an `McuDebug` over one core at a
+  time: the APP_CPU — Arduino-ESP32 runs `setup()`/`loop()` there (CONFIG_ARDUINO_RUNNING_CORE
+  1) —, or the core that stopped at a breakpoint last (`Esp32Soc.debugCpu`; the last register,
+  `cpu`, tells which). Registers pc, a0–a15 of the current window (a function's first argument
+  is in a2 once its ENTRY has run), sar, ps, windowbase, windowstart, lbeg, lend, lcount. Memory
+  `data` goes through that core's `SocBus.peek8`: the page table's memory and flash pages, the
+  MMU for unarmed flash pages, the instruction-bus views (ROM, SRAM0, SRAM1's inverted alias,
+  RTC FAST) — no cache tags touched, no flash page armed, no Problem; peripherals, PSRAM and
+  unmapped addresses read 0. Writes (`poke8`) reach SRAM and RTC memory and drop predecoded code
+  there. Breakpoints are the adapter's set, handed to both cores of every SoC it builds (they
+  survive resets); while it is non-empty a core runs `innerChecked` — chosen per `run`, so the
+  predecoded loop never tests anything per instruction —, which takes a pending interrupt
+  first, then stops before a PC on a breakpoint (`atBreakpoint`, `resumePc` as on the other
+  cores). The SoC reports `breakpoint` with its time at the stopped core's. `stepCore` runs one
+  instruction on the debugger's core and lets the rest catch up to its time rounded down
+  (`runUntil` rounds up, which would run the stepped core again); a peripheral access that must
+  wait for the other core (BUS_YIELD) retries after it caught up. `instructionAt`: 2 or 3 bytes,
+  calls are CALL0/4/8/12 and CALLX0/4/8/12. Symbols come from the fixtures' `.syms.tsv`
+  (`SymbolTable.fromNm`).
+
   **Measured before the timer and flash cache models (Apple M1, Node 24):** serial-hello prints `hello from esp32\r\n`
   after a full dual-core boot; 2.0 s simulated take ≈ 1.1 s wall for 7.4 M instructions
   (≈ 6.8 MIPS — the cores spend most of the 2 s in WAITI after `setup()`). `app_main` is
@@ -1258,6 +1278,19 @@ sequence, files matched by basename or trailing path.
   whose rectangles are DMA fills into SPI0 in 16-bit frames paced by its TX DREQ, draws exactly
   spi-tft's picture.
 
+  **Debugger.** `Rp2040Mcu.debug()` (`debug.ts`) is core 0's `McuDebug`: r0–r12, sp,
+  lr, pc, xpsr from rp2040js's core. Memory `data` reads our bootrom, flash (every XIP alias),
+  SRAM and the USB DPRAM from their arrays — peripheral registers read 0, since rp2040js has no
+  side-effect-free path into them —; writes reach SRAM and DPRAM; `flash` is the chip from
+  offset 0. The adapter's run loop calls `executeInstruction` itself, so breakpoints are a check
+  before it, made only while a breakpoint exists: a pending interrupt is taken first (as
+  `executeInstruction` would) so a handler's first instruction can stop, then a PC on a
+  breakpoint returns `breakpoint`, and the next run executes it unchecked. `stepCore0` executes
+  one instruction with PIO and the clock moved as in a run (asleep: up to the next alarm).
+  `instructionAt`: 32-bit Thumb-2 when the first halfword's top five bits are 0b11101–0b11111;
+  calls are BL and BLX. Symbols from nm listings drop Thumb's bit 0 (`SymbolTable.fromNm(text,
+  true)`; `fromElf` does it for Arm ELFs).
+
   **MicroPython.** A `{ format: 'micropython', files, main }` image runs on the stock
   MicroPython 1.29.0 UF2 (`micropython-manifest.ts`, fetched by `npm run fetch:micropython`
   after you approve the download, into `.cache/micropython`, size and SHA-256 pinned, never committed;
@@ -1512,6 +1545,23 @@ sequence, files matched by basename or trailing path.
   `pico2-micropython.test.ts` puts it on benches: the ADC from a pot, the neopixel module on a
   strip.
 
+  **Debugger.** `Rp2350Mcu.debug()` (`debug.ts`) is hart 0's `McuDebug` — the hart
+  `setup()`/`loop()` run on: x0–x31 by ABI name (zero, ra, sp, …, t6), pc, then mstatus, mepc,
+  mcause read-only. Memory `data` is hart 0's address space read without side effects
+  (`Rp2350Soc.peek`: ROM, flash, SRAM, the XIP cache, BOOTRAM and DPRAM from their arrays; a
+  register block's stored value — `Periph.peek`, never its `read`; anything else 0); writes reach
+  RAM only (and drop predecoded code there). `flash` is the chip's bytes from offset 0. With a
+  breakpoint set, the SoC runs hart 0 one instruction at a time (`runChecked`, entered only
+  then): before an instruction at a breakpoint it stops, catches the clock and PIO up to hart 0
+  and reports `breakpoint`; the next run executes that instruction unchecked. Asleep in WFI the
+  hart sleeps as usual; an interrupt it takes stops right after the entry (the core's
+  `stopOnTrap`, read only when an interrupt is taken), so a breakpoint on a handler's first
+  instruction is seen. `step` runs one instruction on hart 0 and lets the SoC catch up;
+  `instructionAt` decodes the size (2/4) and calls (JAL/JALR, compressed too, linking ra or t0).
+  Without a bootrom the view is empty and never stops (`NoSocDebug`). Symbols for UF2 firmware
+  come from nm listings (`SymbolTable.fromNm`; the fixtures keep `debug-demo.syms.tsv`), and on
+  32-bit cores every symbol lives in the one `data` space.
+
   **MicroPython.** A `{ format: 'micropython' }` image runs on the stock
   RPI_PICO2-RISCV 1.29.0 UF2 (fetched with the Pico's; `createRp2350Mcu({ rom, micropython })`,
   `rp2350McuFactory(…, { rom, micropython })`), installed exactly as on the Pico: the Pico's
@@ -1528,7 +1578,8 @@ sequence, files matched by basename or trailing path.
 ## Worker protocol
 
 `apps/web/src/sim/protocol.ts` defines `ToSim` (UI → worker) and `FromSim` (worker → UI)
-messages, versioned by `PROTOCOL_VERSION` (10). UI → worker: `hello`, `load` (a project plus
+messages, versioned by `PROTOCOL_VERSION` (11: the debug ELF beside a load's images and the MCU
+kind and register names in `debugInfo`). UI → worker: `hello`, `load` (a project plus
 firmware images per board), `setFirmware` (one board's new image on the loaded bench: that
 MCU loads and resets, its clock restarts at the current bench time, everything else carries
 on), `run` (speed; Infinity = max), `pause`, `reset`, `step` (ns),
@@ -1880,8 +1931,18 @@ data/flash/EEPROM from an address or symbol, and the breakpoint list. Step over 
 max speed until it returns, then restores the chosen speed; a user breakpoint inside it stops
 there. Every pause, step, reset and load while paused posts `debugStopped`, so the tab always
 shows where each board is. No source text: the compile bridge serves no sketch source (a
-known limitation), so the location names file:line only. A .hex has no symbols: addresses
-still work.
+known limitation), so the location names file:line only.
+
+Every board: `debugInfo` carries the MCU's kind and its registers in debugger order, so
+the grid is built from them (each as wide as the register) with the architecture's status line
+under it (`resolve.ts` `flagsLine`: the AVR's SREG as ITHSVNZC, the RP2040's xPSR as NZCV and
+its exception number, the ESP32's PS fields and which CPU, the RP2350's mstatus MIE/MPIE), and
+the memory view starts in the board's RAM (`memoryStart`: 0x100, 0x20000000, 0x3FFB0000). A
+compile through the bridge keeps the ELF it was built from beside the image it runs (the .hex,
+.uf2 or .bin: `StoredFirmware.debugElf`, saved with it), and `load`/`setFirmware` send it to the
+worker, which reads the symbols and lines from it — so a compiled sketch has functions and
+file:line on every board. A dropped .hex, .uf2 or .bin has no symbols: addresses still work. The
+GDB stub stays the AVR's.
 
 ## Headless runner
 
@@ -2060,7 +2121,10 @@ Model Context Protocol on stdio — one more front end over the headless runner,
   (card, project document, sketches) come from `fixtures/examples.json` in the Benchtop
   repository — the files it names are read by id from that fixed list, never from a client's
   path, so they stay readable whatever `--root` is.
-- Debugging (`tools/debug.ts`) on boards whose MCU is debuggable (AVR): `debug_registers`
+- Debugging (`tools/debug.ts`) on every board (each MCU's `McuDebug`; symbols
+  from the .elf, or from an `.elf` or `.syms.tsv` beside a .hex/.uf2/.bin — `compile_sketch`
+  writes the .elf beside its image, the fixtures keep the listings; gallery examples load theirs):
+  `debug_registers`
   (with SREG's flags and where the PC is — function+offset and file:line from the session's
   tables, built from the board's .elf when it was given one), `debug_memory` (data, flash or
   EEPROM by address or symbol, ≤ 1024 bytes, side-effect free), `debug_breakpoints` (set,

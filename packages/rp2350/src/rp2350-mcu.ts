@@ -24,7 +24,7 @@
  *   filesystem and writes the sketch again.
  */
 
-import type { FirmwareImage, I2cController, Level, Mcu, McuPin, NetState, PinMode, Problem, RunResult, SpiController, UartPort } from '@benchtop/core';
+import type { Debuggable, FirmwareImage, I2cController, Level, Mcu, McuDebug, McuPin, NetState, PinMode, Problem, RunResult, SpiController, UartPort } from '@benchtop/core';
 import {
   CODE_MICROPYTHON_INSTALL,
   CODE_MICROPYTHON_MISSING,
@@ -38,6 +38,7 @@ import {
 import { describeFirmwareFormat, parseElf32, parseUf2, UF2_FAMILY } from '@benchtop/core';
 import { FUNC_NULL, FUNC_UART, FUNC_UART_AUX, PAD_IE, PAD_ISO, PAD_PDE, PAD_PUE, type PinDrive } from './periph/gpio.ts';
 import type { Uart } from './periph/uart.ts';
+import { NoSocDebug, Rp2350Debug } from './debug.ts';
 import { ROM_IMAGE, ROM_RELEASE } from './rom-manifest.ts';
 import { FLASH_SIZE, REFERENCE_HZ, Rp2350Soc } from './soc.ts';
 
@@ -186,7 +187,7 @@ class Rp2350Uart implements UartPort {
   }
 }
 
-export class Rp2350Mcu implements Mcu {
+export class Rp2350Mcu implements Mcu, Debuggable {
   readonly kind = 'rp2350' as const;
   readonly clockHz = RP2350_CLOCK_HZ;
   readonly pins: ReadonlyMap<string, McuPin>;
@@ -302,10 +303,22 @@ export class Rp2350Mcu implements Mcu {
     if (this.micropythonMissing) return { reason: 'halted', detail: MICROPYTHON_MISSING_MESSAGE };
     this.usb?.flush();
     const halt = soc.runUntilNanos((targetCycles * 1e9) / RP2350_CLOCK_HZ);
+    if (halt === null && soc.atBreakpoint) {
+      soc.atBreakpoint = false;
+      return { reason: 'breakpoint' };
+    }
     if (halt === null) return { reason: 'target' };
     if (soc.bootError !== null) return { reason: 'halted', detail: halt };
     this.problem('error', 'rp2350-fault', halt);
     return { reason: 'fault', detail: halt };
+  }
+
+  private debugView: McuDebug | null = null;
+
+  /** BT71: hart 0's debugger view (without a bootrom there is no SoC: a view that sees nothing). */
+  debug(): McuDebug {
+    this.debugView ??= this.soc === null ? new NoSocDebug() : new Rp2350Debug(this.soc);
+    return this.debugView;
   }
 
   uart(index: number): UartPort | undefined {

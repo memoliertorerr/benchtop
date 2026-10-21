@@ -18,6 +18,8 @@ export interface StoredFirmware {
   bytes: Uint8Array;
   /** For an inline sketch's build (BT42): the source it was compiled from (`sourceHash`). */
   source?: string;
+  /** BT74: the ELF the compiler built it from (.hex, .uf2 or .bin builds), for the debugger's symbols and lines. */
+  debugElf?: Uint8Array;
 }
 
 /** The firmware format a file name implies, or undefined. */
@@ -123,7 +125,9 @@ export const firmwareStore = {
     if (keys === undefined || values === undefined) return;
     keys.forEach((key, i) => {
       const value = values[i] as StoredFirmware | undefined;
-      if (typeof key === 'string' && value !== undefined && value.bytes instanceof Uint8Array) memory.set(key, value);
+      if (typeof key !== 'string' || value === undefined || !(value.bytes instanceof Uint8Array)) return;
+      if (value.debugElf !== undefined && !(value.debugElf instanceof Uint8Array)) delete value.debugElf;
+      memory.set(key, value);
     });
   },
 };

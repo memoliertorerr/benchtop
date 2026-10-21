@@ -367,7 +367,10 @@ export class Esp32Soc implements SocParts, SocContext, ResetSink {
     while (this.time < end && !this.stopped) {
       this.events.fireDue(this.time);
       if (this.stopped) break;
-      if (this.skipIdle && this.asleep(0) && this.asleep(1) && this.skipAhead(end)) continue;
+      if (this.skipIdle && this.asleep(0) && this.asleep(1) && this.skipAhead(end)) {
+        if (this.breakpointStop) return this.stopAtBreakpoint(end);
+        continue;
+      }
       const sliceEnd = Math.min(this.time + this.sliceCycles, end, this.events.next);
       // The core behind in time runs (PRO on a tie) until the slice end or a peripheral yield.
       for (;;) {
@@ -377,12 +380,65 @@ export class Esp32Soc implements SocParts, SocContext, ResetSink {
         }
         if (cpu < 0 || this.stopped) break;
         this.runCore(cpu, sliceEnd);
+        if (this.breakpointStop) return this.stopAtBreakpoint(end);
       }
       for (let cpu = 0; cpu < 2; cpu++) if (!this.canRun(cpu) && this.coreTime[cpu] < sliceEnd) this.coreTime[cpu] = sliceEnd;
       this.time = sliceEnd;
     }
     if (!this.stopped) this.events.fireDue(this.time);
     return this.stopped ? { reason: 'fault', detail: this.stopReason } : { reason: 'target' };
+  }
+
+  /** BT73: a core stopped before a breakpoint in the run now ending (reported once). */
+  private breakpointStop = false;
+  /**
+   * BT73: the core the debugger shows — the one that stopped at a breakpoint last, else the
+   * APP_CPU, where Arduino-ESP32 runs `setup()`/`loop()` (CONFIG_ARDUINO_RUNNING_CORE 1).
+   */
+  debugCpu = 1;
+
+  /** The bench sees the SoC at the stopped core's time (the other core catches up on the next run). */
+  private stopAtBreakpoint(end: number): RunResult {
+    this.breakpointStop = false;
+    this.time = Math.max(this.time, Math.min(this.coreTime[this.debugCpu], end));
+    return { reason: 'breakpoint' };
+  }
+
+  /**
+   * BT73: one instruction on the debugger's core (at a breakpoint too), then the rest of the SoC
+   * catches up to it. A peripheral access that must wait for the other core (BUS_YIELD) lets it
+   * catch up first and tries again.
+   */
+  stepCore(cpu: number = this.debugCpu): RunResult {
+    if (this.stopped) return { reason: 'fault', detail: this.stopReason };
+    if (!this.canRun(cpu)) return { reason: 'target' };
+    const core = this.cores[cpu];
+    for (let attempt = 0; attempt < 4; attempt++) {
+      core.resumePc = core.pc;
+      this.active = cpu;
+      this.activeCycles = core.cycles;
+      const executed = core.run(1);
+      this.coreTime[cpu] += (core.cycles - this.activeCycles) * this.cost;
+      this.active = -1;
+      if (this.appResetPending) {
+        this.appResetPending = false;
+        this.restartApp();
+      }
+      if (core.halt !== HALT.RUNNING) {
+        this.stopped = true;
+        this.stopReason = `${cpu === 0 ? 'PRO' : 'APP'}_CPU at 0x${core.pc.toString(16)}: ${core.haltReason}`;
+        return { reason: 'fault', detail: this.stopReason };
+      }
+      // Up to the stepped core's time, rounded down: runUntil rounds its target up, which would
+      // leave this core a fraction of a cycle behind and run it one more instruction.
+      const to = Math.floor(this.coreTime[cpu]);
+      const caughtUp = to > this.time ? this.runUntil(to) : { reason: 'target' as const };
+      if (caughtUp.reason === 'fault') return caughtUp;
+      if (executed > 0 || core.waiting) break;
+    }
+    this.breakpointStop = false;
+    this.debugCpu = cpu;
+    return { reason: 'target' };
   }
 
   /** Runs for `seconds` of simulated time. */
@@ -427,6 +483,11 @@ export class Esp32Soc implements SocParts, SocContext, ResetSink {
       if (this.appResetPending) {
         this.appResetPending = false;
         this.restartApp();
+      }
+      if (core.atBreakpoint) {
+        this.breakpointStop = true;
+        this.debugCpu = cpu;
+        break;
       }
     }
     if (core.halt !== HALT.RUNNING && !this.stopped) {
