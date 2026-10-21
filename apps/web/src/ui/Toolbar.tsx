@@ -14,6 +14,15 @@ import { muted, toggleMute } from './audio.ts';
 import { galleryOpen } from './ExamplesGallery.tsx';
 import { ChipIcon, PauseIcon, PlayIcon, ProbeIcon, RecordIcon, ResetIcon, SpeakerIcon, SpeakerOffIcon, StopIcon } from './icons.tsx';
 import { probeMode } from './logic/probes.ts';
+import { resetPcb, viewMode } from '../pcb/mode.ts';
+
+/** The PCB file actions (BT59) live in the PCB chunk. */
+const pcbActions = () => import('../pcb/actions.ts');
+
+/** A `.pcb.json` (format 1 with an outline and footprints) rather than a project. */
+function isPcbDocument(json: unknown): boolean {
+  return typeof json === 'object' && json !== null && (json as { format?: unknown }).format === 1 && Array.isArray((json as { outline?: unknown }).outline) && Array.isArray((json as { footprints?: unknown }).footprints);
+}
 
 const fileStem = (name: string): string => name.replace(/[^\w.-]+/g, '-') || 'benchtop';
 
@@ -78,6 +87,12 @@ function ExportMenu() {
         <button type="button" role="menuitem" onClick={pick(() => void copyShareLink())}>
           Copy share link
         </button>
+        <button type="button" role="menuitem" onClick={pick(() => void pcbActions().then((m) => m.exportFabricationZip()))} title="Gerbers, drill file, BOM and KiCad netlist + footprints, in one ZIP">
+          PCB fabrication files (.zip)
+        </button>
+        <button type="button" role="menuitem" onClick={pick(() => void pcbActions().then((m) => m.exportPcbLayout()))}>
+          PCB layout (.pcb.json)
+        </button>
       </div>
     </details>
   );
@@ -101,6 +116,10 @@ async function importProject(file: File): Promise<void> {
   } catch {
     json = undefined;
   }
+  if (isPcbDocument(json)) {
+    void pcbActions().then((m) => m.openPcbDocument(json, file.name));
+    return;
+  }
   if (isWokwiDiagram(json)) {
     const result = importWokwiDiagram(json, file.name.replace(/\.json$/i, '').replace(/^diagram$/i, 'Imported diagram'));
     importNotes.value = result.warnings;
@@ -109,6 +128,7 @@ async function importProject(file: File): Promise<void> {
       return;
     }
     editor.replaceDoc(result.doc);
+    resetPcb();
     frameDoc(result.doc);
     const n = result.warnings.length;
     editorMessage.value = `Imported ${file.name} from Wokwi${n === 0 ? '' : ` — ${n} note${n === 1 ? '' : 's'} in Problems`}. Drop the firmware on the board and press Run.`;
@@ -117,6 +137,7 @@ async function importProject(file: File): Promise<void> {
   const result = parseProjectText(text);
   if (result.ok) {
     editor.replaceDoc(result.doc);
+    resetPcb();
     importNotes.value = [];
     frameDoc(result.doc);
     editorMessage.value = `Opened ${file.name}.`;
@@ -204,19 +225,28 @@ export function Toolbar() {
           <span>Probe</span>
         </button>
       </div>
+      <div class="toolbar-group view-switch" role="group" aria-label="View">
+        <button type="button" class={`tool-button${viewMode.value === 'bench' ? ' active' : ''}`} aria-pressed={viewMode.value === 'bench'} onClick={() => (viewMode.value = 'bench')} title="The bench: parts, breadboards, wires, simulation">
+          Bench
+        </button>
+        <button type="button" class={`tool-button${viewMode.value === 'pcb' ? ' active' : ''}`} aria-pressed={viewMode.value === 'pcb'} onClick={() => (viewMode.value = 'pcb')} title="The bench's circuit as a PCB: lay it out, route it, export it">
+          PCB
+        </button>
+      </div>
       <div class="toolbar-group" role="group" aria-label="Project">
         <button
           type="button"
           class="tool-button"
           onClick={() => {
             editor.replaceDoc(emptyProject('Untitled'));
+            resetPcb();
             importNotes.value = [];
           }}
           title="New empty bench (undoable)"
         >
           New
         </button>
-        <button type="button" class="tool-button" onClick={() => fileInput.current?.click()} title="Open a Benchtop project, or import a Wokwi diagram.json">
+        <button type="button" class="tool-button" onClick={() => fileInput.current?.click()} title="Open a Benchtop project or PCB layout, or import a Wokwi diagram.json">
           Open…
         </button>
         <ExportMenu />

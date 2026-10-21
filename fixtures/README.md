@@ -21,6 +21,12 @@ fixtures/firmware/esp32/<name>.syms.tsv       `nm -S -n --defined-only` of the f
                                               mostly DWARF), .map and bootloader are never committed
 fixtures/xtensa/<name>.S → <name>.bin, .lst   Xtensa test programs (harness.inc: conventions)
 fixtures/xtensa/corpus/                       objdump decode corpora for the decoder tests (manifest.json)
+fixtures/pcb/<name>.pcb.json                  PCB layouts laid out by hand on a fixture project
+                                              (blink: fixtures/projects/blink-led.json on an Uno
+                                              shield); golden/ holds their exports (Gerbers,
+                                              drill, BOM, KiCad netlist and footprints), which the
+                                              export tests compare byte for byte
+                                              (UPDATE_GOLDEN=1 rewrites them)
 fixtures/.build/                              arduino-cli and toolchain build folders (git-ignored)
 ```
 

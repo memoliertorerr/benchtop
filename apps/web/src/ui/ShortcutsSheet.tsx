@@ -1,9 +1,9 @@
 /** The `?` sheet (BT40): every shortcut and gesture from editor/shortcuts.ts, by group. */
 
 import { useEffect, useRef } from 'preact/hooks';
-import { SHORTCUTS, shortcutsOpen } from '../editor/shortcuts.ts';
+import { PCB_SHORTCUTS, SHORTCUTS, shortcutsOpen } from '../editor/shortcuts.ts';
 
-const GROUPS = ['Editing', 'Wiring', 'View', 'Help'] as const;
+const GROUPS = ['Editing', 'Wiring', 'View', 'PCB', 'Help'] as const;
 const MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 
 export function ShortcutsSheet() {
@@ -29,7 +29,7 @@ export function ShortcutsSheet() {
           <section key={group} class="sheet-group">
             <h3>{group}</h3>
             <dl>
-              {SHORTCUTS.filter((s) => s.group === group).map((s) => (
+              {[...SHORTCUTS, ...PCB_SHORTCUTS].filter((s) => s.group === group).map((s) => (
                 <div key={`${s.keys.other} ${s.label}`} class="sheet-row">
                   <dt>
                     <kbd>{MAC ? s.keys.mac : s.keys.other}</kbd>

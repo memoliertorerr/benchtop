@@ -10,12 +10,17 @@
  *     summary, writes the reports asked for, and exits like `run` (2 if a spec couldn't run).
  *   gdb [--port 3333] [--speed realtime|max] [--board <id>] <project.json> --firmware <board>=<file.elf>
  *     A GDB remote stub on 127.0.0.1 for one board; runs until interrupted (Ctrl-C).
+ *   pcb <project.json> [--pcb layout.pcb.json] --out <folder> [--zip] [--drc]
+ *     BT58: the project's PCB (the layout given, else one seeded from the bench) checked by DRC
+ *     and exported — Gerbers, drill, BOM, KiCad netlist + footprints, the layout — into the
+ *     folder (or one ZIP). Exits 0, 1 with --drc when DRC finds an error, 2 on a usage error.
  */
 
-import { writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { parseGdbArgs, startGdbServer } from './gdb.ts';
 import { nodeIo } from './node-io.ts';
+import { parsePcbArgs, runPcb } from './pcb.ts';
 import { junitXml, markdownReport } from './reports.ts';
 import { parseRunArgs, type RunReport, runHeadless, summaryLine, UsageError } from './run.ts';
 import { discoverSpecs, parseTestArgs, runSuite, specLine, suiteLine } from './suite.ts';
@@ -26,6 +31,7 @@ const USAGE = `usage: benchtop run <project.json> --firmware <board>=<file.hex|.
          [--report <out.json>]
        benchtop gdb [--port 3333] [--speed realtime|max] [--board <id>] <project.json>
          --firmware <board>=<file.elf>
+       benchtop pcb <project.json> [--pcb <layout.pcb.json>] --out <folder> [--zip] [--drc]
   assertions: serial contains "<text>" by <time>   ·   serial matches /<regex>/ by <time>
     pin <part>:<pin> is <0|1|z|x> at <time>
     pin <part>:<pin> frequency is <hz> ±<pct>% between <time> and <time>
@@ -33,6 +39,8 @@ const USAGE = `usage: benchtop run <project.json> --firmware <board>=<file.hex|.
     led <part> is <lit|dark> at <time>   ·   servo <part> angle is <deg> ±<deg> at <time>
     lcd <part> row <n> is "<text>" at <time>   ·   pixel <part>[<i>] is #rrggbb at <time>
     digits <part> show "<text>" at <time>
+    env <gas|temperature|humidity|light|sound> at <part> is <v> ±<tol> at <time> (or > < >= <=)
+  steps: { "at", "part", "input" } · { "at", "part", "set": { <channel>: <value> } } · { "at", "serial", "board"? }
   times: <number><ns|us|ms|s>, e.g. 500ms, 2s`;
 
 const io = nodeIo;
@@ -76,9 +84,29 @@ async function test(argv: readonly string[]): Promise<number> {
   return report.exitCode;
 }
 
+function pcb(argv: readonly string[]): number {
+  let options: ReturnType<typeof parsePcbArgs>;
+  try {
+    options = parsePcbArgs(argv);
+  } catch (error) {
+    console.error(`error — ${error instanceof Error ? error.message : String(error)}\n${USAGE}`);
+    return 2;
+  }
+  const result = runPcb(options, io);
+  for (const line of result.lines) (result.exitCode === 2 ? console.error : console.info)(line);
+  for (const file of result.files) {
+    const path = resolve(process.cwd(), options.out, file.name);
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, file.data);
+  }
+  if (result.files.length > 0) console.info(`wrote ${result.files.length} file${result.files.length === 1 ? '' : 's'} to ${options.out}`);
+  return result.exitCode;
+}
+
 function main(argv: readonly string[]): number | Promise<number> {
   const [command, ...rest] = argv;
   if (command === 'gdb') return gdb(rest);
+  if (command === 'pcb') return pcb(rest);
   if (command === 'test') return test(rest);
   if (command !== 'run') {
     console.error(command === undefined || command === '--help' || command === '-h' ? USAGE : `unknown command "${command}"\n${USAGE}`);

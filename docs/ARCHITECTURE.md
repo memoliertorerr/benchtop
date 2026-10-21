@@ -34,6 +34,7 @@ simulation core has no DOM, the same code runs headless in Node for tests and CI
 | `@benchtop/avr` | the Uno `Mcu`: ATmega328P peripherals via avr8js, Uno pin map, Intel HEX and ELF loading | know about parts or the UI |
 | `@benchtop/esp32` | the ESP32 `Mcu` (`createEsp32Mcu`, `esp32McuFactory`): Xtensa LX6 core, SoC (memory map, peripherals, two cores, pins), direct boot, boot debugging | know about parts or the UI |
 | `@benchtop/parts` | the part catalog: pin layouts, internal buses (breadboards), metadata, behavior models | touch DOM — views live in `apps/web` |
+| `@benchtop/pcb` | the PCB document, footprints, nets from the bench, ratsnest, DRC, fabrication exports | touch DOM; run simulation |
 | `@benchtop/web` | the editor, part views, the worker host and the worker entry | run CPU emulation on the UI thread |
 | `@benchtop/bridge` | the local compile bridge: runs arduino-cli for the browser (Node, zero dependencies) | listen beyond loopback; write outside its temp build folders |
 | `@benchtop/cli` | the headless runner: a project and firmware files, scripted inputs, assertions, a JSON report (Node) | import anything from `apps/web` |
@@ -1601,6 +1602,113 @@ simulated slices, paced in real time unless `--speed max`, yielding with `setImm
 between slices, so a 0x03 is answered within milliseconds (1.3 ms in the test). No avr-gdb
 exists on the dev machine; a scripted RSP client over `node:net` is the test. Watchpoints,
 target descriptions and multi-MCU threads aren't supported.
+
+## PCB
+
+`@benchtop/pcb` (`packages/pcb/src/`, DOM-free, on core and parts) lays a bench project out as a
+two-layer through-hole board. The bench project stays the circuit's one truth: a PCB document
+(`doc.ts`, `*.pcb.json`, `format: 1`) holds only what a person draws — the outline, where each
+footprint sits (`{ part, ref, x, y, rotation }`, the origin at the part's centre), traces (`{ id,
+layer: 'F' | 'B', width, points }`), vias (`{ id, x, y, drill, diameter }`) and the rules — and
+footprints, pads and nets are always derived from the project and the catalog, so the two can't
+disagree. `parsePcb` treats documents as untrusted, as `parseProject` does (types, ranges,
+unique ids and refs, size limits: 2,000 footprints, 20,000 traces of ≤ 1,000 points, 20,000
+vias; errors with JSON Pointer paths).
+
+- **Footprints** (`footprints.ts`): a part reaches a PCB as what it plugs into, so its footprint
+  is its own pins (the drawings are at real size) with every run of pins about 0.1″ apart —
+  along a row or a column — snapped to an exact 2.54 mm pitch from its first pin (the drawings'
+  2.52/2.64 mm rounding wouldn't fit a header); 1.7 mm pads on 1.0 mm holes, pad 1 square, the
+  part's outline as silkscreen. The Uno and the Mega are shields (their headers, the 0.16″ step
+  kept from the drawing), the Nano and the DevKit their two rows. Standard footprints for the
+  basic components: a 10.16 mm axial resistor, a 5 mm LED (pad 1 = cathode), a 5 mm RGB LED in a
+  row, a 6 mm pushbutton (6.5 × 4.5 mm). Pins a part shorts inside (a board's GND pins, a
+  button's two legs per side) share a pad number, as KiCad numbers them, and count as connected.
+  Off the board: breadboards, the IR remote, the environment parts, anything without pins.
+  References by type (R, D, SW, RV, BZ, LS, MK, K, M, J, DS for displays, A for boards, else
+  U); values: a resistor's ohms (4.7k), an LED's colour, else the part's title.
+- **Nets** (`board.ts`, `PcbBoard`): the bench's own `buildNetlist` (contacts included), so
+  breadboard strips and jumper wires become nets and nothing else does. A net is named after a
+  board pin on it — supplies first (GND, 5V, 3V3), numbered pins as D13 — else KiCad's
+  `Net-(R1-Pad2)` after its first pad; names are unique (`GND_1` for a second board's separate
+  ground).
+- **Seeding and reconciling** (`seed.ts`): `seedPcb` puts every footprint where its part sits
+  on the bench (centre, rotation), references numbered per prefix in part-id order (r2 before
+  r10), and an outline 3 mm around the courtyards on whole millimetres; `reconcilePcb` follows
+  an edited bench — gone parts' footprints dropped, new ones stacked right of the outline,
+  references, positions, traces and the outline kept.
+- **Connectivity and ratsnest** (`connectivity.ts`, `ratsnest.ts`): copper items — pads and
+  vias on both layers, each trace segment on its own — as capsules (a segment swept by a
+  radius) and rectangles (square pads); items whose copper touches on a shared layer join an
+  island (union-find; broad phase by sweeping bounding boxes sorted by their left edges). The
+  ratsnest is, per net, a minimum spanning tree over its islands (Prim), each line between the
+  closest pads of the islands it joins.
+- **DRC** (`drc.ts`): errors for copper of different nets on a shared layer closer than the
+  clearance (a floating trace counts as its own net), copper joining two nets (a short), a
+  trace below the minimum width, a via's drill or annular ring below the minimum, copper nearer
+  the edge than the edge clearance or outside the outline, a footprint outside the board, no
+  outline, and unrouted nets (with the number of missing connections); a warning for
+  overlapping courtyards. Each names its items in a fixed order and a point to look at; at most
+  50 per code are listed (the last says how many more). Default rules (a hobby fab's 2-layer
+  limits with room to spare): clearance 0.2 mm, width 0.25 mm (new traces 0.4), drill 0.3 mm,
+  annular ring 0.15 mm, 0.5 mm to the edge, vias 0.4/0.8 mm. Measured: 500 footprints and 5,000
+  segments in ≈ 16–28 ms.
+- **Exports** (`export/`): Gerber RS-274X (`gerber.ts`) — F.Cu, B.Cu, F.Mask, B.Mask,
+  F.Silkscreen, Edge.Cuts, with X2 file attributes (file function, polarity), `%FSLAX46Y46*%` mm
+  (10⁻⁶ mm units), linear interpolation, y negated (the bench's y grows down); pads flash their
+  aperture (C circle, R rectangle, O obround), vias flash circles and are tented (not in the
+  mask), traces, silkscreen and the outline draw with round apertures; mask openings are the
+  pads grown 0.05 mm per side (negative polarity, as KiCad writes them); the silkscreen carries
+  each footprint's outline and its reference in our own stroke font (`font.ts`, 1 mm capitals).
+  Excellon (`excellon.ts`): every plated hole, tools by diameter, metric decimal coordinates.
+  BOM (`bom.ts`): CSV per RFC 4180, a row per part type and value. KiCad (`kicad.ts`): the
+  netlist s-expression `(export (version "E") …)` with footprints in a `Benchtop` library, and
+  that library as `Benchtop.pretty/<name>.kicad_mod` (KiCad 6+ syntax) for every footprint used,
+  so an import finds each footprint with the pad numbers the netlist uses. A bus's pads (a
+  board's GNDs) are one node. `fab.ts` names the files after the board (KiCad's suffixes, which
+  fabs recognize: `-F_Cu.gtl`, `-B_Cu.gbl`, `-F_Mask.gts`, `-B_Mask.gbs`, `-F_Silkscreen.gto`,
+  `-Edge_Cuts.gm1`, `-PTH.drl`, `-bom.csv`, `.net`, plus the layout `.pcb.json`) and `zip.ts`
+  bundles them (stored, CRC-32, fixed timestamps: byte-identical runs). Everything is
+  deterministic text, checked against golden files of a hand-routed fixture board
+  (`fixtures/pcb/blink.pcb.json`), and read back by our own Gerber/Excellon readers in the tests
+  (`export/gerber.test-helper.ts`: every pad, via and trace is copper where the board has it, a
+  1 mm grid elsewhere is not, mask openings, the closed outline, the holes).
+- **CLI** (`apps/cli/src/pcb.ts`): `npm run bench -- pcb <project.json> [--pcb
+  layout.pcb.json] --out <folder> [--zip] [--drc]` — the given layout reconciled with the
+  project, or a seeded one; DRC findings and a summary on the terminal; the files into the
+  folder (or one ZIP); exit 1 with `--drc` when DRC finds an error, 2 on a usage error.
+- **The PCB view** (`apps/web/src/pcb/`): **Bench | PCB** in the toolbar puts the PCB view
+  (`PcbView.tsx`) over the bench in the same grid area; the bench stays mounted underneath (its
+  views keep receiving frames) and ignores keys while the PCB is shown. One SVG under the same
+  camera math as the bench (`editor/camera.ts`: wheel pans, ⌘/Ctrl + wheel zooms): the board,
+  the back then the front copper (the active layer on top and brighter), pads with their holes,
+  vias, the silkscreen (`footprintSilk` from @benchtop/pcb, so the view and the Gerber agree),
+  the ratsnest, red rings at DRC findings, and the route being drawn. Select tool: click or drag
+  footprints (25 mil snapping, Alt free), click traces and vias; R rotates, Delete removes
+  traces and vias (footprints follow the bench). Trace tool (X; `route.ts`, DOM-free): click a
+  pad, click bends — each reached straight then at 45° — V (or L) ends the piece at a via and
+  goes on on the other layer, a click on a pad (or a double-click) finishes; Backspace drops the
+  last point. Handlers read the route through a ref set synchronously, not the last render's
+  value (a fast key after a click used to act on the stale route — found in the browser).
+  State (`store.ts`, DOM-free): the PCB document as a signal, the selection (`fp:`/`tr:`/`via:`
+  keys), tool, layer and width, commands with 200-step undo, and `sync(project)` — seeded the
+  first time, reconciled after bench edits, reseeded for another project; autosaved to
+  localStorage (`benchtop:pcb:v1`, `{ project, doc }`) 500 ms after an edit and on page hide,
+  restored through `parsePcb`. The PCB code is a chunk of its own, loaded the first time PCB is
+  chosen (`ui/lazy.tsx`'s `lazyComponent` for the view, its Inspector and the DRC rows; the
+  toolbar's PCB actions by dynamic import): the main bundle stays 317 KB (it was 364 KB with the
+  PCB in it). `mode.ts` is what loads eagerly — `viewMode`, `pcbFocus`, the DRC count for the
+  Problems badge and `resetPcb()` (drops the autosave; New, Open and examples call it).
+  `app-pcb.ts` holds the app's store and the PcbBoard
+  and its ratsnest + DRC as computed signals the view, the Inspector (`PcbInspector.tsx`: a
+  footprint, a trace's width, or the board's size, Fit outline and its rules) and the Problems
+  tab share — DRC rows lead the Problems list while the PCB is shown, and a click centres the
+  view on the spot. Files (`actions.ts`): Export ▾ → PCB fabrication files (the ZIP) or the
+  layout (`.pcb.json`); Open… recognizes a layout (format 1 with an outline and footprints) and
+  opens it for the bench on screen. New, Open and an example reset the PCB; the Blink example
+  brings its own (`fixtures/pcb/blink.pcb.json`, manifest field `pcb`). Shortcuts: X, L, V and
+  double-click in `PCB_SHORTCUTS` (editor/shortcuts.ts; the `?` sheet's PCB group and the
+  README list them; a test checks the view handles each).
 
 ## Compile bridge
 

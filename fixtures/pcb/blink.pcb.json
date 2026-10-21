@@ -1,0 +1,31 @@
+{
+  "format": 1,
+  "name": "blink",
+  "outline": [
+    { "x": -1, "y": -1 },
+    { "x": 73, "y": -1 },
+    { "x": 73, "y": 54 },
+    { "x": -1, "y": 54 }
+  ],
+  "footprints": [
+    { "part": "uno", "ref": "A1", "x": 36.29, "y": 26.67, "rotation": 0 },
+    { "part": "led1", "ref": "D1", "x": 58, "y": 20, "rotation": 0 },
+    { "part": "r1", "ref": "R1", "x": 45, "y": 20, "rotation": 0 }
+  ],
+  "traces": [
+    { "id": "t1", "layer": "F", "width": 0.4, "points": [{ "x": 33.18, "y": 2.38 }, { "x": 33.18, "y": 20 }, { "x": 39.92, "y": 20 }] },
+    { "id": "t2", "layer": "F", "width": 0.4, "points": [{ "x": 50.08, "y": 20 }, { "x": 50.08, "y": 24 }, { "x": 59.27, "y": 24 }, { "x": 59.27, "y": 20 }] },
+    { "id": "t3", "layer": "B", "width": 0.6, "points": [{ "x": 56.73, "y": 20 }, { "x": 56.73, "y": 10 }, { "x": 30.64, "y": 10 }, { "x": 30.64, "y": 2.38 }] }
+  ],
+  "vias": [],
+  "rules": {
+    "clearance": 0.2,
+    "minWidth": 0.25,
+    "minDrill": 0.3,
+    "minAnnular": 0.15,
+    "edgeClearance": 0.5,
+    "traceWidth": 0.4,
+    "viaDrill": 0.4,
+    "viaDiameter": 0.8
+  }
+}

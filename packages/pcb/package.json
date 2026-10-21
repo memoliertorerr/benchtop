@@ -1,0 +1,15 @@
+{
+  "name": "@benchtop/pcb",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Light PCB design from a bench project: footprints, nets, layout document, ratsnest, DRC and fabrication exports. DOM-free.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@benchtop/core": "0.0.0",
+    "@benchtop/parts": "0.0.0"
+  }
+}

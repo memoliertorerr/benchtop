@@ -2,12 +2,13 @@
   "name": "@benchtop/cli",
   "version": "0.0.0",
   "private": true,
-  "description": "Headless runner: runs a project and its firmware at max speed with scripted inputs and assertions, for CI. Runs under Node type stripping.",
+  "description": "Headless runner: runs a project and its firmware at max speed with scripted inputs and assertions, for CI; exports a project's PCB. Runs under Node type stripping.",
   "type": "module",
   "dependencies": {
     "@benchtop/avr": "0.0.0",
     "@benchtop/core": "0.0.0",
     "@benchtop/esp32": "0.0.0",
-    "@benchtop/parts": "0.0.0"
+    "@benchtop/parts": "0.0.0",
+    "@benchtop/pcb": "0.0.0"
   }
 }

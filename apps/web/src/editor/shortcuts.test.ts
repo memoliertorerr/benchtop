@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { matchShortcut, SHORTCUTS, type ShortcutId } from './shortcuts.ts';
+import { matchPcbShortcut, matchShortcut, PCB_SHORTCUTS, SHORTCUTS, type ShortcutId } from './shortcuts.ts';
 
 const key = (k: string, mods: Partial<Record<'metaKey' | 'ctrlKey' | 'shiftKey' | 'altKey', boolean>> = {}) => ({
   key: k,
@@ -55,6 +55,19 @@ describe('shortcut table', () => {
 
   it("is what the README's shortcut table lists", () => {
     const readme = readFileSync(new URL('../../../../README.md', import.meta.url), 'utf8');
-    for (const s of SHORTCUTS) expect(readme).toContain(`| ${s.keys.mac} | ${s.keys.other} | ${s.label} |`);
+    for (const s of [...SHORTCUTS, ...PCB_SHORTCUTS]) expect(readme).toContain(`| ${s.keys.mac} | ${s.keys.other} | ${s.label} |`);
+  });
+
+  it('BT59: the PCB view handles its own keys and the shared ones it uses', () => {
+    expect(matchPcbShortcut(key('x'))).toBe('pcb-route');
+    expect(matchPcbShortcut(key('L', { shiftKey: true }))).toBe('pcb-layer');
+    expect(matchPcbShortcut(key('v'))).toBe('pcb-via');
+    expect(matchPcbShortcut(key('v', { metaKey: true }))).toBeUndefined(); // paste
+    const view = readFileSync(new URL('../pcb/PcbView.tsx', import.meta.url), 'utf8');
+    for (const s of PCB_SHORTCUTS) if (s.id !== undefined) expect(view).toContain(`case '${s.id}':`);
+    for (const id of ['escape', 'delete', 'undo', 'redo', 'rotate', 'fit', 'help']) expect(view).toContain(`case '${id}':`);
+    // The bench ignores keys while the PCB is shown.
+    const canvas = readFileSync(new URL('./Canvas.tsx', import.meta.url), 'utf8');
+    expect(canvas).toContain("viewMode.peek() === 'pcb'");
   });
 });

@@ -60,6 +60,22 @@ export const SHORTCUTS: readonly Shortcut[] = [
   { id: 'help', group: 'Help', keys: { mac: '?', other: '?' }, label: 'Show this sheet', match: (e) => e.key === '?' },
 ];
 
+/** BT59: keys only the PCB view handles (besides the shared ones above it also handles). */
+export type PcbShortcutId = 'pcb-route' | 'pcb-layer' | 'pcb-via';
+
+export const PCB_SHORTCUTS: readonly (Omit<Shortcut, 'id' | 'group'> & { id?: PcbShortcutId; group: 'PCB' })[] = [
+  { id: 'pcb-route', group: 'PCB', keys: { mac: 'X', other: 'X' }, label: 'PCB: the trace tool (click a pad, click bends, click a pad to finish)', match: (e) => plain(e) && e.key.toLowerCase() === 'x' },
+  { id: 'pcb-layer', group: 'PCB', keys: { mac: 'L', other: 'L' }, label: 'PCB: switch the active copper layer (front / back)', match: (e) => plain(e) && e.key.toLowerCase() === 'l' },
+  { id: 'pcb-via', group: 'PCB', keys: { mac: 'V', other: 'V' }, label: 'PCB: while routing, a via here and continue on the other layer', match: (e) => plain(e) && e.key.toLowerCase() === 'v' },
+  { group: 'PCB', keys: { mac: 'Double-click', other: 'Double-click' }, label: 'PCB: end a trace where it is' },
+];
+
+/** The PCB-only shortcut a keydown is, if any. */
+export function matchPcbShortcut(event: Pick<KeyboardEvent, 'key' | 'metaKey' | 'ctrlKey' | 'shiftKey' | 'altKey'>): PcbShortcutId | undefined {
+  for (const s of PCB_SHORTCUTS) if (s.id !== undefined && s.match?.(event) === true) return s.id;
+  return undefined;
+}
+
 /** The handled shortcut a keydown is, if any (first match wins: redo before undo is not needed — they exclude each other). */
 export function matchShortcut(event: Pick<KeyboardEvent, 'key' | 'metaKey' | 'ctrlKey' | 'shiftKey' | 'altKey'>): ShortcutId | undefined {
   for (const s of SHORTCUTS) if (s.id !== undefined && s.match?.(event) === true) return s.id;

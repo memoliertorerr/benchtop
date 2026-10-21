@@ -141,6 +141,12 @@ Press **?** in the app for this list.
 | Space + drag | Space + drag | Pan the bench |
 | F | F | Fit the whole circuit in view |
 | ? | ? | Show this sheet |
+| X | X | PCB: the trace tool (click a pad, click bends, click a pad to finish) |
+| L | L | PCB: switch the active copper layer (front / back) |
+| V | V | PCB: while routing, a via here and continue on the other layer |
+| Double-click | Double-click | PCB: end a trace where it is |
+
+In the PCB view, undo, delete, rotate, Esc, F and the pan and zoom gestures work as on the bench.
 
 ### The ESP32 ROM (not included)
 
@@ -222,6 +228,26 @@ boards) `npm run fetch:esp32-rom -- --yes`:
 - if: always()
   run: cat summary.md >> "$GITHUB_STEP_SUMMARY"
 ```
+
+### From breadboard to PCB
+
+The circuit on the bench can become a two-layer through-hole board: **PCB** in the toolbar
+shows it (and **Bench** goes back). Breadboards and jumper wires
+turn into nets; boards become their headers (an Uno or a Mega as a shield, a Nano or an ESP32
+DevKit as two rows); modules become the header rows they plug into; resistors, LEDs and buttons
+get standard footprints. Lay the parts out, draw traces on the front and back with vias between
+them, and the design rule check flags clearances, shorts, thin traces, small drills, copper too
+near the edge and connections still missing (listed in the Problems tab; a click shows the
+spot). **Export ▾ → PCB fabrication files** downloads what a PCB fab asks for — Gerber
+RS-274X (copper, solder mask, silkscreen, outline), an Excellon drill file and a BOM — plus a
+KiCad netlist with a matching footprint library, to carry on in KiCad.
+
+```bash
+npm run bench -- pcb fixtures/projects/blink-led.json --pcb fixtures/pcb/blink.pcb.json --out fab --drc
+```
+
+writes the files into `fab/` (or one ZIP with `--zip`); without `--pcb` it seeds a layout from
+the bench. With `--drc` it exits 1 when the check finds an error.
 
 ## How it's built
 

@@ -1,0 +1,4 @@
+Reference,Value,Footprint,Quantity,Part
+A1,Arduino Uno,Benchtop:arduino-uno,1,Arduino Uno
+D1,LED red,Benchtop:LED_D5.0mm,1,LED
+R1,220,Benchtop:R_Axial_P10.16mm,1,Resistor

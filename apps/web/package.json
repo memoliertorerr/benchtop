@@ -14,6 +14,7 @@
     "@benchtop/core": "0.0.0",
     "@benchtop/esp32": "0.0.0",
     "@benchtop/parts": "0.0.0",
+    "@benchtop/pcb": "0.0.0",
     "@preact/signals": "2.11.2",
     "@wokwi/elements": "1.9.2",
     "preact": "10.29.8"

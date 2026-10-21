@@ -28,6 +28,7 @@ import { type Camera, DEFAULT_CAMERA, fitRect, pan, type Point, PX_PER_MM, scale
 import { GRID_MM, partBounds, pinWorld, snapPart, snapValue } from './geometry.ts';
 import { hitPin, type PinSpot, pinSpots } from './pins.ts';
 import type { EditorStore } from './store.ts';
+import { viewMode } from '../pcb/mode.ts';
 import { EnvironmentLayer } from './EnvironmentLayer.tsx';
 import { WireLayer } from './Wires.tsx';
 import { frameDoc } from './frame.ts';
@@ -167,7 +168,7 @@ export function Canvas({ store }: { store: EditorStore }) {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (isTyping(event.target)) return;
+      if (isTyping(event.target) || viewMode.peek() === 'pcb') return;
       const draft = drawing.value;
       switch (matchShortcut(event)) {
         case 'pan':

@@ -8,7 +8,13 @@ import { WIRE_COLORS, WIRE_SHADES } from '../editor/wiring.ts';
 import { PartControls } from './PartControls.tsx';
 
 /** Edits the selected part's props, by the type of each default value. */
+import { viewMode } from '../pcb/mode.ts';
+import { lazyComponent } from './lazy.tsx';
+
+const PcbInspector = lazyComponent(() => import('../pcb/PcbInspector.tsx').then((m) => m.PcbInspector));
+
 export function Inspector() {
+  if (viewMode.value === 'pcb') return <PcbInspector />;
   const doc = editor.doc.value;
   const selection = editor.selection.value;
   const wireId = editor.selectedWire.value;

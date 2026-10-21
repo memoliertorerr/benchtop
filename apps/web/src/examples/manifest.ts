@@ -32,6 +32,8 @@ export interface Example {
   project: string;
   /** Board part id → its firmware and sketch. */
   boards: Readonly<Record<string, ExampleBoard>>;
+  /** BT59: fixtures/pcb/<pcb>.pcb.json, a PCB laid out for this example (opens with it). */
+  pcb?: string;
 }
 
 const ex = (id: string, title: string, category: Category, project: string, boards: Record<string, ExampleBoard>, description: string): Example => ({
@@ -50,7 +52,7 @@ const mega = (name: string): Record<string, ExampleBoard> => ({ mega: { firmware
 const esp = (name: string): Record<string, ExampleBoard> => ({ esp: { firmware: `esp32/${name}.bin`, sketch: `esp32/${name}` } });
 
 export const EXAMPLES: readonly Example[] = [
-  ex('blink', 'Blink', 'Basics', 'blink-led', uno('blink'), 'The classic: an LED on D13 (through 220 Ω on a breadboard) blinks once a second.'),
+  { ...ex('blink', 'Blink', 'Basics', 'blink-led', uno('blink'), 'The classic: an LED on D13 (through 220 Ω on a breadboard) blinks once a second. It has a PCB too: an Uno shield — switch to PCB in the toolbar.'), pcb: 'blink' },
   ex('button', 'Button', 'Basics', 'button-pullup', uno('button-pullup'), 'A pushbutton from D2 to GND with the internal pull-up lights the LED on D13 while held.'),
   ex('fade', 'Fade', 'Basics', 'pwm-fade', uno('pwm-fade'), 'analogWrite on D9 ramps an LED up and down with PWM.'),
   ex('traffic-light', 'Traffic light', 'Basics', 'traffic-light', uno('traffic-light'), 'Red, red + yellow, green, yellow — a traffic light on D10, D9 and D8, cycling every 2 s.'),
@@ -165,6 +167,15 @@ const SKETCHES = import.meta.glob(
 const ROOT = '../../../../fixtures/';
 
 /** The example's project document (unparsed). */
+const PCBS = import.meta.glob('../../../../fixtures/pcb/blink.pcb.json', { query: '?raw', import: 'default' }) as Record<string, () => Promise<string>>;
+
+/** An example's PCB layout as text (BT59), or undefined when it has none. */
+export function loadPcb(example: Example): Promise<string> | undefined {
+  if (example.pcb === undefined) return undefined;
+  const load = PCBS[`${ROOT}pcb/${example.pcb}.pcb.json`];
+  return load === undefined ? Promise.reject(new Error(`no PCB ${example.pcb}`)) : load();
+}
+
 export function loadProject(example: Example): Promise<unknown> {
   const load = PROJECTS[`${ROOT}projects/${example.project}.json`];
   if (load === undefined) return Promise.reject(new Error(`no project ${example.project}`));

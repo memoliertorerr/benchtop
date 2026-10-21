@@ -14,7 +14,8 @@ import { importNotes } from '../editor/import-notes.ts';
 import { sourceHash } from '../editor/inline-compile.ts';
 import { fqbnOf } from '../editor/sketch-actions.ts';
 import { firmwareChanged } from '../sim/controller.ts';
-import { EXAMPLES, loadFirmware, loadProject, loadSketch } from './manifest.ts';
+import { resetPcb } from '../pcb/mode.ts';
+import { EXAMPLES, loadFirmware, loadPcb, loadProject, loadSketch } from './manifest.ts';
 
 const formatOf = (path: string): FirmwareFormat => (path.endsWith('.hex') ? 'hex' : path.endsWith('.elf') ? 'elf' : 'esp32-bin');
 
@@ -42,8 +43,16 @@ export async function openExample(id: string): Promise<void> {
     }
     const doc: ProjectDoc = { ...parsed.doc, name: example.title, firmware: { ...parsed.doc.firmware, ...firmware } };
     await Promise.all(stored.map(([board, f]) => firmwareStore.put(board, f)));
+    const pcbText = await loadPcb(example);
     editor.replaceDoc(doc);
     importNotes.value = [];
+    // BT59: the example's own PCB, if it has one; else the next PCB view seeds one.
+    resetPcb();
+    if (pcbText !== undefined) {
+      const [{ parsePcb }, { pcbEditor }] = await Promise.all([import('@benchtop/pcb'), import('../pcb/app-pcb.ts')]);
+      const pcb = parsePcb(JSON.parse(pcbText));
+      if (pcb.ok) pcbEditor.load(pcb.doc, editor.doc.peek());
+    }
     firmwareChanged();
     frameDoc(doc);
     openedExample.value = { id: example.id, title: example.title, doc: editor.doc.peek() };

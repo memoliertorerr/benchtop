@@ -12,6 +12,8 @@ import { probes } from './logic/probes.ts';
 import { showParts } from './problem-actions.ts';
 import { SerialMonitor } from './SerialMonitor.tsx';
 import { CodePanel } from './code/CodePanel.tsx';
+import { drcViolations, viewMode } from '../pcb/mode.ts';
+import { lazyComponent } from './lazy.tsx';
 import { SerialPlotter } from './plotter/SerialPlotter.tsx';
 
 const TABS = ['Serial', 'Plotter', 'Code', 'Problems', 'Logic analyzer', 'Debugger'] as const;
@@ -34,14 +36,19 @@ function copyLocation(text: string): void {
   navigator.clipboard?.writeText(text).then(done, () => (editorMessage.value = text)) ?? (editorMessage.value = text);
 }
 
+/** BT59: the PCB's design rule check rows (pcb/DrcRows.tsx), loaded with the PCB view's chunk. */
+const DrcRows = lazyComponent(() => import('../pcb/DrcRows.tsx').then((m) => m.DrcRows));
+
 function ProblemsList() {
   const problems = simProblems.value;
   const compile = allCompileRows.value;
   const notes = importNotes.value;
   const mic = micNotes.value;
-  if (problems.length === 0 && compile.length === 0 && notes.length === 0 && mic.length === 0) return <p class="muted panel-note">No problems. (They appear once the bench has run.)</p>;
+  const pcbShown = viewMode.value === 'pcb';
+  if (!pcbShown && problems.length === 0 && compile.length === 0 && notes.length === 0 && mic.length === 0) return <p class="muted panel-note">No problems. (They appear once the bench has run.)</p>;
   return (
     <ul class="problems">
+      {pcbShown && <DrcRows />}
       {mic.map((note, i) => (
         <li key={`mic:${i}`} class="problem warning">
           <span aria-hidden="true">{ICONS.warning}</span>
@@ -91,7 +98,8 @@ function ProblemsList() {
 
 export function BottomPanel() {
   const [tab, setTab] = useState<Tab>('Serial');
-  const count = simProblems.value.length + allCompileRows.value.length + importNotes.value.length + micNotes.value.length;
+  const drcCount = viewMode.value === 'pcb' ? drcViolations.value : 0;
+  const count = simProblems.value.length + allCompileRows.value.length + importNotes.value.length + micNotes.value.length + drcCount;
   return (
     <section class="bottom-panel" aria-label="Output">
       <div class="tabs" role="tablist">
