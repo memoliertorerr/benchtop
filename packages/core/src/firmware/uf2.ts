@@ -1,5 +1,6 @@
 /**
- * UF2 (USB Flashing Format) files, the RP2040's and RP2350's native firmware image (BT60):
+ * UF2 (USB Flashing Format) files, the RP2040's and RP2350's native firmware image (BT60; in
+ * @benchtop/core since BT65, which both chips' adapters use):
  * 512-byte blocks, each carrying up to 476 payload bytes for one target address (RP2040
  * datasheet §2.8.4.2 "UF2 Format Details"; the format's own specification). Untrusted input:
  * every field is checked, and anything that doesn't fit throws Uf2Error with a reason.

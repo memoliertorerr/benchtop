@@ -21,22 +21,20 @@
  * (micropython.ts).
  */
 
-import type { FirmwareImage, I2cController, I2cDevice, Level, Mcu, McuPin, NetState, PinMode, Problem, RunResult, SpiController, SpiDevice, UartPort } from '@benchtop/core';
-import { describeFirmwareFormat, parseElf32 } from '@benchtop/core';
-import { type GPIOPin, I2CMode, RP2040, USBCDC } from 'rp2040js';
+import type { FirmwareImage, I2cController, Level, Mcu, McuPin, NetState, PinMode, Problem, RunResult, SpiController, UartPort } from '@benchtop/core';
+import { describeFirmwareFormat, parseElf32, parseUf2, placeUf2, UF2_FAMILY } from '@benchtop/core';
+import { type GPIOPin, RP2040 } from 'rp2040js';
+import { I2cBridge, SpiBridge, UsbSerialBridge } from './bridges.ts';
 import { runRomCall } from './bootrom/handlers.ts';
 import { buildBootrom, ROM_SIZE } from './bootrom/layout.ts';
 import { Rp2040Clock } from './clock.ts';
 import { CODE_MICROPYTHON_INSTALL, CODE_MICROPYTHON_MISSING, MICROPYTHON_MISSING_MESSAGE, MicroPythonInstaller, type MicroPythonSketch } from './micropython.ts';
-import { parseUf2, placeUf2, UF2_FAMILY } from './uf2.ts';
 
 /** One PIO state machine (rp2040js exports the class only through its PIO block). */
 type PioMachine = RP2040['pio'][number]['machines'][number];
 
 export const RP2040_CLOCK_HZ = 125_000_000;
 const NANOS_PER_CYCLE = 1e9 / RP2040_CLOCK_HZ;
-/** How often a MicroPython install's timeouts and REPL pokes are checked (simulated ns). */
-const INSTALL_TICK_NANOS = 50_000_000;
 const FLASH_BASE = 0x10000000;
 const FLASH_SIZE = 16 * 1024 * 1024;
 const SRAM_BASE = 0x20000000;
@@ -52,7 +50,6 @@ const TEMPERATURE_VOLTS = 0.706;
 // GPIO functions (datasheet §2.19.2).
 const F_SPI = 1;
 const F_UART = 2;
-const F_I2C = 3;
 const F_PWM = 4;
 const F_SIO = 5;
 const F_PIO0 = 6;
@@ -201,227 +198,8 @@ class Rp2040Uart implements UartPort {
   }
 }
 
-/**
- * USB serial (arduino-pico's `Serial`, MicroPython's REPL): rp2040js's CDC host as UART 0.
- * rp2040js's host answers every OUT endpoint the device arms at once, with an empty packet when
- * it has nothing to send — TinyUSB re-arms, and the USB interrupt fires every few microseconds
- * (an idle MicroPython REPL never slept). A real host sends OUT data only when it has some: arms
- * are held here until bytes are queued.
- */
-class Rp2040UsbSerial implements UartPort {
-  private readonly mcu: Rp2040Mcu;
-  readonly listeners: ((byte: number) => void)[] = [];
-  private cdc: USBCDC | null = null;
-  private connected = false;
-  private readonly pending: number[] = [];
-  /** Per endpoint: the byte count of an OUT arm held while the host had nothing to send (−1: none). */
-  private readonly heldReads = new Int32Array(16).fill(-1);
-  private hostRead: ((endpoint: number, size: number) => void) | undefined;
-  /**
-   * BT63: while a MicroPython sketch is being put on the board, the installer owns the line —
-   * the device's output goes to it, and bytes the bench sends wait in `held` until main.py runs.
-   */
-  installer: MicroPythonInstaller | null = null;
-  private readonly held: number[] = [];
-  constructor(mcu: Rp2040Mcu) {
-    this.mcu = mcu;
-  }
 
-  wire(installer: MicroPythonInstaller | null): void {
-    const usb = this.mcu.rp.usbCtrl;
-    const cdc = new USBCDC(usb);
-    this.cdc = cdc;
-    this.connected = false;
-    this.pending.length = 0;
-    this.held.length = 0;
-    this.heldReads.fill(-1);
-    this.installer = installer;
-    const clock = this.mcu.clock;
-    const ticker = clock.createAlarm(() => {
-      const active = this.installer;
-      if (active === null || !active.active) return;
-      active.tick(clock.nanos / 1e6);
-      this.release();
-      if (active.active) ticker.schedule(INSTALL_TICK_NANOS);
-    });
-    const hostRead = usb.onEndpointRead;
-    this.hostRead = hostRead;
-    usb.onEndpointRead = (endpoint, size) => {
-      if (cdc.txFIFO.empty) this.heldReads[endpoint & 15] = size;
-      else hostRead?.(endpoint, size);
-    };
-    cdc.onDeviceConnected = () => {
-      this.connected = true;
-      this.flush();
-      if (this.installer !== null) ticker.schedule(0);
-    };
-    cdc.onSerialData = (buffer) => {
-      for (const byte of buffer) {
-        if (this.installer?.output(byte, clock.nanos / 1e6) === true) continue;
-        for (const listener of this.listeners) listener(byte);
-      }
-      this.release();
-    };
-  }
 
-  /** Bytes from the installer (the raw REPL conversation). */
-  send(bytes: readonly number[]): void {
-    for (const b of bytes) this.pending.push(b);
-    this.flush();
-  }
-
-  /** Once the installer is done, the bench's held bytes go to the device. */
-  private release(): void {
-    if (this.installer === null || this.installer.active) return;
-    this.installer = null;
-    this.send(this.held.splice(0));
-  }
-
-  onTransmit(listener: (byte: number) => void): void {
-    this.listeners.push(listener);
-  }
-
-  receive(bytes: Uint8Array): void {
-    if (this.installer !== null) {
-      for (const b of bytes) this.held.push(b);
-      return;
-    }
-    for (const b of bytes) this.pending.push(b);
-    this.flush();
-  }
-
-  /** Moves pending bytes into the CDC host's FIFO while it has room (the firmware drains it). */
-  flush(): void {
-    const cdc = this.cdc;
-    if (cdc === null || !this.connected) return;
-    while (this.pending.length > 0 && !cdc.txFIFO.full) cdc.sendSerialByte(this.pending.shift() as number);
-    if (cdc.txFIFO.empty) return;
-    for (let endpoint = 0; endpoint < 16; endpoint++) {
-      const size = this.heldReads[endpoint];
-      if (size < 0) continue;
-      this.heldReads[endpoint] = -1;
-      this.hostRead?.(endpoint, size);
-    }
-  }
-
-  pins(): { tx?: string; rx?: string } {
-    return {};
-  }
-
-  baud(): number | undefined {
-    return undefined;
-  }
-}
-
-class Rp2040I2c implements I2cController {
-  private readonly mcu: Rp2040Mcu;
-  readonly index: number;
-  private readonly devices: I2cDevice[] = [];
-  private current: I2cDevice | null = null;
-  constructor(mcu: Rp2040Mcu, index: number) {
-    this.mcu = mcu;
-    this.index = index;
-  }
-
-  wire(): void {
-    const i2c = this.mcu.rp.i2c[this.index];
-    this.current = null;
-    i2c.onStart = () => {
-      this.current = null;
-      i2c.completeStart();
-    };
-    i2c.onConnect = (address, mode) => {
-      const device = this.devices.find((d) => d.address === address);
-      this.current = device ?? null;
-      i2c.completeConnect(device !== undefined && device.start(mode === I2CMode.Read));
-    };
-    i2c.onWriteByte = (value) => {
-      i2c.completeWrite(this.current !== null && this.current.write(value));
-    };
-    i2c.onReadByte = (ack) => {
-      i2c.completeRead(this.current === null ? 0xff : this.current.read(ack) & 0xff);
-    };
-    i2c.onStop = () => {
-      this.current?.stop();
-      this.current = null;
-      i2c.completeStop();
-    };
-  }
-
-  pins(): { sda: string; scl: string } {
-    const gpio = this.mcu.rp.gpio;
-    let sda = '';
-    let scl = '';
-    for (let n = 0; n < 30; n++) {
-      if (gpio[n].functionSelect !== F_I2C || ((n >> 1) & 1) !== this.index) continue;
-      if ((n & 1) === 0) sda ||= `GPIO${n}`;
-      else scl ||= `GPIO${n}`;
-    }
-    // Before the firmware routes them: arduino-pico's Wire (GP4/GP5) and Wire1 (GP26/GP27).
-    if (sda === '' && scl === '') return this.index === 0 ? { sda: 'GPIO4', scl: 'GPIO5' } : { sda: 'GPIO26', scl: 'GPIO27' };
-    return { sda, scl };
-  }
-
-  attach(device: I2cDevice): void {
-    if (!this.devices.includes(device)) this.devices.push(device);
-  }
-
-  detach(device: I2cDevice): void {
-    const i = this.devices.indexOf(device);
-    if (i >= 0) this.devices.splice(i, 1);
-  }
-}
-
-class Rp2040Spi implements SpiController {
-  private readonly mcu: Rp2040Mcu;
-  readonly index: number;
-  private readonly devices: { device: SpiDevice; selected: () => boolean }[] = [];
-  constructor(mcu: Rp2040Mcu, index: number) {
-    this.mcu = mcu;
-    this.index = index;
-  }
-
-  wire(): void {
-    const spi = this.mcu.rp.spi[this.index];
-    // A frame of up to 16 bits (SSPCR0.DSS) reaches the byte-wide devices MSB first: one byte
-    // for ≤ 8 bits, two above.
-    spi.onTransmit = (value) => {
-      const wide = spi.dataBits > 8;
-      let rx = wide ? 0xffff : 0xff;
-      for (const { device, selected } of this.devices) {
-        if (!selected()) continue;
-        rx = wide ? ((device.transfer((value >> 8) & 0xff) & 0xff) << 8) | (device.transfer(value & 0xff) & 0xff) : device.transfer(value & 0xff) & 0xff;
-      }
-      spi.completeTransmit(rx);
-    };
-  }
-
-  pins(): { sck: string; mosi: string; miso: string } {
-    const gpio = this.mcu.rp.gpio;
-    let sck = '';
-    let mosi = '';
-    let miso = '';
-    for (let n = 0; n < 30; n++) {
-      if (gpio[n].functionSelect !== F_SPI || ((n >> 3) & 1) !== this.index) continue;
-      const role = n & 3; // RX, CSn, SCK, TX
-      if (role === 0) miso ||= `GPIO${n}`;
-      else if (role === 2) sck ||= `GPIO${n}`;
-      else if (role === 3) mosi ||= `GPIO${n}`;
-    }
-    // Before the firmware routes them: arduino-pico's SPI (GP16–19) and SPI1 (GP12–15).
-    if (sck === '' && mosi === '' && miso === '') return this.index === 0 ? { sck: 'GPIO18', mosi: 'GPIO19', miso: 'GPIO16' } : { sck: 'GPIO14', mosi: 'GPIO15', miso: 'GPIO12' };
-    return { sck, mosi, miso };
-  }
-
-  attach(device: SpiDevice, selected: () => boolean): void {
-    if (!this.devices.some((d) => d.device === device)) this.devices.push({ device, selected });
-  }
-
-  detach(device: SpiDevice): void {
-    const i = this.devices.findIndex((d) => d.device === device);
-    if (i >= 0) this.devices.splice(i, 1);
-  }
-}
 
 export interface Rp2040McuOptions {
   /** Problems the chip reports (unimplemented registers, a reset into BOOTSEL, a fault). */
@@ -442,10 +220,10 @@ export class Rp2040Mcu implements Mcu {
   clock: Rp2040Clock;
   onProblem: ((problem: Problem) => void) | null;
   private readonly pinList: Rp2040Pin[] = [];
-  private readonly usb: Rp2040UsbSerial;
+  private readonly usb: UsbSerialBridge;
   private readonly uarts: Rp2040Uart[];
-  private readonly i2cs: Rp2040I2c[];
-  private readonly spis: Rp2040Spi[];
+  private readonly i2cs: I2cBridge[];
+  private readonly spis: SpiBridge[];
   private image: LoadedImage | null = null;
   /** BT63: the interpreter UF2, and the MicroPython sketch it runs (null: native firmware). */
   private readonly micropython: Uint8Array | undefined;
@@ -477,10 +255,11 @@ export class Rp2040Mcu implements Mcu {
       pins.set(pin.id, pin);
     }
     this.pins = pins;
-    this.usb = new Rp2040UsbSerial(this);
+    this.usb = new UsbSerialBridge(() => this.rp.usbCtrl, () => this.clock);
     this.uarts = [new Rp2040Uart(this, 0), new Rp2040Uart(this, 1)];
-    this.i2cs = [new Rp2040I2c(this, 0), new Rp2040I2c(this, 1)];
-    this.spis = [new Rp2040Spi(this, 0), new Rp2040Spi(this, 1)];
+    const gpio = { count: 30, funcsel: (n: number) => this.rp.gpio[n].functionSelect };
+    this.i2cs = [new I2cBridge(0, () => this.rp.i2c[0], gpio), new I2cBridge(1, () => this.rp.i2c[1], gpio)];
+    this.spis = [new SpiBridge(0, () => this.rp.spi[0], gpio), new SpiBridge(1, () => this.rp.spi[1], gpio)];
     this.clock = new Rp2040Clock();
     this.rp = this.newChip();
   }

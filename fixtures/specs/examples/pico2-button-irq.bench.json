@@ -1,0 +1,41 @@
+{
+  "name": "example: pico2-button-irq",
+  "project": "../../projects/pico2-button-irq.json",
+  "firmware": {
+    "pico": "../../firmware/pico2/button-irq.uf2"
+  },
+  "steps": [
+    {
+      "at": "500ms",
+      "part": "btn1",
+      "input": {
+        "kind": "press"
+      }
+    },
+    {
+      "at": "600ms",
+      "part": "btn1",
+      "input": {
+        "kind": "release"
+      }
+    },
+    {
+      "at": "1s",
+      "part": "btn1",
+      "input": {
+        "kind": "press"
+      }
+    },
+    {
+      "at": "1100ms",
+      "part": "btn1",
+      "input": {
+        "kind": "release"
+      }
+    }
+  ],
+  "expect": [
+    "serial contains \"presses=1\" by 700ms",
+    "serial contains \"presses=2\" by 1200ms"
+  ]
+}

@@ -39,6 +39,14 @@ in the Code tab and press Run — nothing compiles; the stock MicroPython 1.29 f
 files over USB serial the way an IDE puts them there, and `machine.Pin`, `ADC`, `PWM`, `I2C`,
 `SPI`, `neopixel` and the REPL work (see "MicroPython" below). Core 1 is the next step.
 
+**Raspberry Pi Pico 2** (RP2350, its RISC-V side): a RISC-V core written for Benchtop (the
+Hazard3's RV32IMAC with its extensions) runs both harts through the chip's real bootrom, which
+boots the `.uf2` the Arduino-Pico core builds for `rp2040:rp2040:rpipico2:arch=riscv` — GPIO,
+PWM, the ADC, UART0/UART1, USB serial (`Serial`), I2C (`Wire`), SPI, pin interrupts, PIO
+(NeoPixels work) and flash writes (`EEPROM`). It has the Pico's footprint and
+pinout, and runs **MicroPython** like the Pico (on the stock RISC-V build; `_thread` runs on the
+second core). The bootrom isn't part of this repository: see "RP2350 bootrom" below.
+
 **ESP32 DevKit V1** — an Xtensa LX6 dual-core emulator written in TypeScript for this project,
 running the real `.bin` image Arduino-ESP32 2.0.17 builds, on Espressif's real mask ROM:
 
@@ -114,7 +122,8 @@ servo knob, a keypad lock, a stepper, an A4988 stepper driver, a relay; Sound: b
 a microphone pitch meter, a VU meter; Environment: a gas alarm with an extractor fan, a PIR
 hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, a PWM fader, NeoPixel, a
 rainbow ring, an OLED clock, a color TFT, the DAC, the microphone, an I2C scan; Raspberry Pi Pico:
-blink, a potentiometer, PWM steps, an OLED, a color TFT; Mega: an LED chaser, four
+blink, a potentiometer, PWM steps, an OLED, a color TFT; Raspberry Pi Pico 2: the same, NeoPixels
+through PIO, a button interrupt and MicroPython blink; Mega: an LED chaser, four
 serial ports, a 16-input analog scanner; Two boards: an Uno ↔ ESP32
 chat and relay).
 
@@ -173,6 +182,20 @@ against two pinned SHA-256 hashes and keeps it in `.cache/esp32-rom`, which git 
 Without it, ESP32 boards report "ESP32 ROM not installed" in the Problems panel. The development
 server serves the cached ROM to the simulation worker; it is never bundled into a build.
 
+### RP2350 bootrom (not included)
+
+The Pico 2 boots through the RP2350's own bootrom. Fetch it once:
+
+```bash
+npm run fetch:rp2350-rom
+```
+
+It downloads release A4 of Raspberry Pi's
+[pico-bootrom-rp2350](https://github.com/raspberrypi/pico-bootrom-rp2350) (BSD-3-Clause,
+≈ 110 KB), checks its pinned sizes and SHA-256 hashes and keeps it in `.cache/rp2350-rom`, which
+git ignores. Without it, a Pico 2 reports "RP2350 bootrom not installed". Like the ESP32 ROM,
+the development server serves it to the simulation worker, and it is never bundled.
+
 ### MicroPython (not included)
 
 MicroPython sketches run on the stock MicroPython firmware for the Pico, which isn't part of
@@ -184,7 +207,7 @@ npm run fetch:micropython
 
 It downloads the v1.29.0 UF2s for the Pico and the Pico 2 from micropython.org (≈ 1.5 MB),
 checks their pinned sizes and SHA-256 hashes and keeps them in `.cache/micropython`, which git
-ignores. Without it, a Pico running MicroPython reports "MicroPython not installed". Every Run
+ignores. Without it, a Pico or Pico 2 running MicroPython reports "MicroPython not installed". Every Run
 (and every reset) starts the board with an empty filesystem and writes your files again, so
 `main.py` runs with the serial monitor attached; type into the serial monitor to use the REPL
 when it ends. You can also drop a `.py` file on a Pico, or run one headless:
@@ -331,6 +354,8 @@ backed by tests (for example, ESP32 blink toggles every 500.000 ms of simulated 
   the pin positions the part catalog copies from them.
 - [esp-rom-elfs](https://github.com/espressif/esp-rom-elfs) (Apache-2.0) — Espressif's ESP32
   ROM, which you download yourself (above).
+- [pico-bootrom-rp2350](https://github.com/raspberrypi/pico-bootrom-rp2350) (BSD-3-Clause) —
+  the RP2350's bootrom the Pico 2 boots through, which you download yourself (above).
 - [MicroPython](https://micropython.org) (MIT) — the stock Pico firmware MicroPython sketches
   run on, which you download yourself (above).
 

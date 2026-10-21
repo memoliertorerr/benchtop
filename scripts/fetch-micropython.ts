@@ -16,7 +16,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { MICROPYTHON_BUILDS, MICROPYTHON_CACHE_DIR, MICROPYTHON_VERSION, type MicroPythonBuild } from '../packages/rp2040/src/micropython-manifest.ts';
-import { parseUf2 } from '../packages/rp2040/src/uf2.ts';
+import { parseUf2 } from '../packages/core/src/firmware/uf2.ts';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const CACHE = join(ROOT, MICROPYTHON_CACHE_DIR);

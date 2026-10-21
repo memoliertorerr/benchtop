@@ -1,0 +1,11 @@
+{
+  "name": "example: pico2-micropython-blink",
+  "project": "../../projects/pico2-blink.json",
+  "firmware": {
+    "pico": "../../micropython/blink/main.py"
+  },
+  "expect": [
+    "serial contains \"blink 3\" by 1500ms",
+    "serial matches /^blink 0\\r?$/m by 600ms"
+  ]
+}

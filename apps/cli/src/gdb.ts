@@ -12,7 +12,7 @@
 import { createServer, type Socket } from 'node:net';
 import { type GdbControl, GdbSession } from '@benchtop/avr';
 import { NS_PER_MS, RealtimePacer } from '@benchtop/core';
-import { buildBench, type CliIo, loadFirmware, loadProject, UsageError } from './load.ts';
+import { buildBench, cachedRoms, type CliIo, loadFirmware, loadProject, UsageError } from './load.ts';
 
 export interface GdbServerOptions {
   project: string;
@@ -39,7 +39,7 @@ const SLICE_NS = NS_PER_MS;
 export async function startGdbServer(options: GdbServerOptions): Promise<GdbServer> {
   const { doc, boards } = loadProject(options.io, options.project);
   const images = loadFirmware(options.io, doc, boards, options.firmware);
-  const { bench } = buildBench(doc, images, options.io.esp32Rom?.(), options.io.micropython?.());
+  const { bench } = buildBench(doc, images, cachedRoms(options.io));
   const board = options.board ?? boards.find((b) => bench.debugOf(b) !== undefined);
   if (board === undefined || !boards.includes(board)) throw new UsageError(options.board === undefined ? 'no board with a debugger in the project' : `no board "${options.board}"`);
   const debug = bench.debugOf(board);

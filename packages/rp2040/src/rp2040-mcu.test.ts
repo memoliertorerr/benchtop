@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readFixture } from '../../core/src/firmware/fixtures.test-helper.ts';
-import { buildUf2, UF2_FAMILY } from './uf2.ts';
+import { buildUf2, UF2_FAMILY } from '@benchtop/core';
 import { createRp2040Mcu, RP2040_CLOCK_HZ } from './rp2040-mcu.ts';
 import { bootPico, edgeTimes, runMs } from './rp2040.test-helper.ts';
 

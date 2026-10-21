@@ -8,10 +8,10 @@ import { createRp2040Mcu } from './rp2040-mcu.ts';
 
 export * from './bootrom/float.ts';
 export * from './bootrom/layout.ts';
+export * from './bridges.ts';
 export * from './micropython.ts';
 export * from './micropython-manifest.ts';
 export * from './rp2040-mcu.ts';
-export * from './uf2.ts';
 
 /**
  * The bench's MCU factory for RP2040 boards: one Problem per code on the board part, the first

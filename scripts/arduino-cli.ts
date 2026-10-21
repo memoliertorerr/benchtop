@@ -78,6 +78,26 @@ export function findArmTool(name: string, env: NodeJS.ProcessEnv = process.env, 
   return dirs.map((dir) => join(dir, name)).find((path) => existsSync(path) && statSync(path).isFile());
 }
 
+/**
+ * A RISC-V toolchain program (BT64): `$BENCHTOP_RISCV_BIN/<prefix><name>` (prefix
+ * `$BENCHTOP_RISCV_PREFIX`, default `riscv32-unknown-elf-`), else the arduino-pico core's
+ * pqt-gcc-riscv (the newest version folder). Its binutils (2.43) know the RP2350's extensions
+ * (Zba, Zbb, Zbs, Zbkb, Zcb, Zcmp); the esp32 core's older riscv32-esp-elf binutils don't, so
+ * they aren't used. Returns the path and its prefix.
+ */
+export function findRiscvTool(name: string, env: NodeJS.ProcessEnv = process.env, home = homedir()): { path: string; prefix: string } | undefined {
+  const dataDir = env.ARDUINO_DIRECTORIES_DATA || (process.platform === 'darwin' ? join(home, 'Library', 'Arduino15') : join(home, '.arduino15'));
+  const candidates: { dir: string; prefix: string }[] = [];
+  if (env.BENCHTOP_RISCV_BIN) candidates.push({ dir: env.BENCHTOP_RISCV_BIN, prefix: env.BENCHTOP_RISCV_PREFIX ?? 'riscv32-unknown-elf-' });
+  const tools = join(dataDir, 'packages', 'rp2040', 'tools', 'pqt-gcc-riscv');
+  if (existsSync(tools)) for (const version of readdirSync(tools).sort().reverse()) candidates.push({ dir: join(tools, version, 'bin'), prefix: 'riscv32-unknown-elf-' });
+  for (const { dir, prefix } of candidates) {
+    const path = join(dir, `${prefix}${name}`);
+    if (existsSync(path) && statSync(path).isFile()) return { path, prefix };
+  }
+  return undefined;
+}
+
 export interface CliResult {
   /** Exit code; null when killed (timeout). */
   code: number | null;

@@ -9,7 +9,8 @@
 import { existsSync, realpathSync, statSync } from 'node:fs';
 import { basename, isAbsolute, join, sep } from 'node:path';
 
-export const FQBN_ALLOWLIST: readonly string[] = ['arduino:avr:uno', 'arduino:avr:nano', 'arduino:avr:mega', 'esp32:esp32:esp32', 'rp2040:rp2040:rpipico'];
+/** The Pico 2 builds for its RISC-V cores only (BT66: the simulator has no Arm cores). */
+export const FQBN_ALLOWLIST: readonly string[] = ['arduino:avr:uno', 'arduino:avr:nano', 'arduino:avr:mega', 'esp32:esp32:esp32', 'rp2040:rp2040:rpipico', 'rp2040:rp2040:rpipico2:arch=riscv'];
 /** The Vite dev server's origins (npm run dev). */
 export const DEV_ORIGINS: readonly string[] = ['http://localhost:5173', 'http://127.0.0.1:5173'];
 export const MAX_BODY_BYTES = 64 * 1024;

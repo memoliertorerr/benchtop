@@ -1,0 +1,59 @@
+{
+  "format": 1,
+  "name": "pico2-button-irq",
+  "parts": [
+    {
+      "id": "pico",
+      "type": "raspberry-pi-pico-2",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "btn1",
+      "type": "pushbutton",
+      "x": -30,
+      "y": 40,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "btn1",
+        "pin": "1.l"
+      },
+      "to": {
+        "part": "pico",
+        "pin": "GP14"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "btn1",
+        "pin": "2.l"
+      },
+      "to": {
+        "part": "pico",
+        "pin": "GND.4"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "pico": {
+      "kind": "file",
+      "name": "button-irq.uf2",
+      "format": "uf2"
+    }
+  }
+}

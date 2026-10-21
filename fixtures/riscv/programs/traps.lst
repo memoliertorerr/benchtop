@@ -1,0 +1,435 @@
+
+traps.elf:     file format elf32-littleriscv
+
+
+Disassembly of section .text:
+
+80000000 <_start>:
+80000000:	80040137          	lui	sp,0x80040
+80000004:	80020237          	lui	tp,0x80020
+80000008:	00000297          	auipc	t0,0x0
+8000000c:	3ac28293          	addi	t0,t0,940 # 800003b4 <handler>
+80000010:	30529073          	csrw	mtvec,t0
+
+80000014 <t_ecall>:
+80000014:	00000073          	ecall
+
+80000018 <t_ebreak>:
+80000018:	00100073          	ebreak
+
+8000001c <t_cebreak>:
+8000001c:	9002                	ebreak
+
+8000001e <t_unimp>:
+8000001e:	c0001073          	unimp
+
+80000022 <t_cunimp>:
+	...
+
+80000024 <t_sret>:
+80000024:	10200073          	sret
+
+80000028 <t_ro>:
+80000028:	f1129073          	csrw	mvendorid,t0
+
+8000002c <t_nocsr>:
+8000002c:	7c0022f3          	csrr	t0,0x7c0
+80000030:	80030537          	lui	a0,0x80030
+
+80000034 <t_lmis>:
+80000034:	00152283          	lw	t0,1(a0) # 80030001 <BUF+0x1>
+
+80000038 <t_hmis>:
+80000038:	00351283          	lh	t0,3(a0)
+
+8000003c <t_smis>:
+8000003c:	00552123          	sw	t0,2(a0)
+
+80000040 <t_shmis>:
+80000040:	005510a3          	sh	t0,1(a0)
+80000044:	00250593          	addi	a1,a0,2
+
+80000048 <t_amomis>:
+80000048:	0065a2af          	amoadd.w	t0,t1,(a1)
+
+8000004c <t_lrmis>:
+8000004c:	1005a2af          	lr.w	t0,(a1)
+
+80000050 <t_lfault>:
+80000050:	00002283          	lw	t0,0(zero) # 0 <MMIO-0x10000000>
+80000054:	00400613          	li	a2,4
+
+80000058 <t_sfault>:
+80000058:	00562023          	sw	t0,0(a2)
+
+8000005c <t_amofault>:
+8000005c:	086622af          	amoswap.w	t0,t1,(a2)
+
+80000060 <t_lrfault>:
+80000060:	100622af          	lr.w	t0,(a2)
+80000064:	10000693          	li	a3,256
+
+80000068 <t_ffault>:
+80000068:	000680e7          	jalr	a3
+8000006c:	30601073          	csrw	mcounteren,zero
+80000070:	00000297          	auipc	t0,0x0
+80000074:	01a28293          	addi	t0,t0,26 # 8000008a <t_uecall>
+80000078:	34129073          	csrw	mepc,t0
+8000007c:	6289                	lui	t0,0x2
+8000007e:	80028293          	addi	t0,t0,-2048 # 1800 <MMIO-0xfffe800>
+80000082:	3002b073          	csrc	mstatus,t0
+80000086:	30200073          	mret
+
+8000008a <t_uecall>:
+8000008a:	00000073          	ecall
+8000008e:	300022f3          	csrr	t0,mstatus
+80000092:	00522023          	sw	t0,0(tp) # 80020000 <OUT>
+80000096:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000098:	00000297          	auipc	t0,0x0
+8000009c:	02228293          	addi	t0,t0,34 # 800000ba <t_umstatus>
+800000a0:	34129073          	csrw	mepc,t0
+800000a4:	6289                	lui	t0,0x2
+800000a6:	80028293          	addi	t0,t0,-2048 # 1800 <MMIO-0xfffe800>
+800000aa:	3002b073          	csrc	mstatus,t0
+800000ae:	002002b7          	lui	t0,0x200
+800000b2:	3002a073          	csrs	mstatus,t0
+800000b6:	30200073          	mret
+
+800000ba <t_umstatus>:
+800000ba:	300022f3          	csrr	t0,mstatus
+
+800000be <t_ucycle>:
+800000be:	c00022f3          	rdcycle	t0
+
+800000c2 <t_uwfi>:
+800000c2:	10500073          	wfi
+
+800000c6 <t_umret>:
+800000c6:	30200073          	mret
+
+800000ca <t_uecall2>:
+800000ca:	00000073          	ecall
+800000ce:	002002b7          	lui	t0,0x200
+800000d2:	3002b073          	csrc	mstatus,t0
+800000d6:	4295                	li	t0,5
+800000d8:	30629073          	csrw	mcounteren,t0
+800000dc:	00000297          	auipc	t0,0x0
+800000e0:	01a28293          	addi	t0,t0,26 # 800000f6 <user3>
+800000e4:	34129073          	csrw	mepc,t0
+800000e8:	6289                	lui	t0,0x2
+800000ea:	80028293          	addi	t0,t0,-2048 # 1800 <MMIO-0xfffe800>
+800000ee:	3002b073          	csrc	mstatus,t0
+800000f2:	30200073          	mret
+
+800000f6 <user3>:
+800000f6:	c00022f3          	rdcycle	t0
+800000fa:	c02022f3          	rdinstret	t0
+800000fe:	6299                	lui	t0,0x6
+80000100:	02b5                	addi	t0,t0,13 # 600d <MMIO-0xfff9ff3>
+80000102:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+80000106:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+
+80000108 <t_uecall3>:
+80000108:	00000073          	ecall
+8000010c:	b0202973          	csrr	s2,minstret
+80000110:	00000013          	nop
+80000114:	00000013          	nop
+80000118:	00000013          	nop
+8000011c:	00000013          	nop
+80000120:	00000013          	nop
+80000124:	00000013          	nop
+80000128:	00000013          	nop
+8000012c:	00000013          	nop
+80000130:	00000013          	nop
+80000134:	00000013          	nop
+80000138:	b02029f3          	csrr	s3,minstret
+8000013c:	412982b3          	sub	t0,s3,s2
+80000140:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+80000144:	00420213          	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000148:	b0002973          	csrr	s2,mcycle
+8000014c:	00000013          	nop
+80000150:	00000013          	nop
+80000154:	00000013          	nop
+80000158:	00000013          	nop
+8000015c:	00000013          	nop
+80000160:	00000013          	nop
+80000164:	00000013          	nop
+80000168:	00000013          	nop
+8000016c:	00000013          	nop
+80000170:	00000013          	nop
+80000174:	b00029f3          	csrr	s3,mcycle
+80000178:	412982b3          	sub	t0,s3,s2
+8000017c:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+80000180:	00420213          	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000184:	06400293          	li	t0,100
+80000188:	b0229073          	csrw	minstret,t0
+8000018c:	b0202373          	csrr	t1,minstret
+80000190:	00622023          	sw	t1,0(tp) # 0 <MMIO-0x10000000>
+80000194:	00420213          	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000198:	3e800293          	li	t0,1000
+8000019c:	b0029073          	csrw	mcycle,t0
+800001a0:	b0002373          	csrr	t1,mcycle
+800001a4:	00622023          	sw	t1,0(tp) # 0 <MMIO-0x10000000>
+800001a8:	00420213          	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800001ac:	00700293          	li	t0,7
+800001b0:	b8229073          	csrw	minstreth,t0
+800001b4:	b8202373          	csrr	t1,minstreth
+800001b8:	00622023          	sw	t1,0(tp) # 0 <MMIO-0x10000000>
+800001bc:	00420213          	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800001c0:	3202d073          	csrwi	mcountinhibit,5
+800001c4:	b0202973          	csrr	s2,minstret
+800001c8:	b0002a73          	csrr	s4,mcycle
+800001cc:	00000013          	nop
+800001d0:	00000013          	nop
+800001d4:	b02029f3          	csrr	s3,minstret
+800001d8:	b0002af3          	csrr	s5,mcycle
+800001dc:	32005073          	csrwi	mcountinhibit,0
+800001e0:	412982b3          	sub	t0,s3,s2
+800001e4:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+800001e8:	00420213          	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800001ec:	414a82b3          	sub	t0,s5,s4
+800001f0:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+800001f4:	00420213          	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800001f8:	6299                	lui	t0,0x6
+800001fa:	a5a28293          	addi	t0,t0,-1446 # 5a5a <MMIO-0xfffa5a6>
+800001fe:	34029073          	csrw	mscratch,t0
+80000202:	34002373          	csrr	t1,mscratch
+80000206:	00622023          	sw	t1,0(tp) # 0 <MMIO-0x10000000>
+8000020a:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+8000020c:	30102373          	csrr	t1,misa
+80000210:	00622023          	sw	t1,0(tp) # 0 <MMIO-0x10000000>
+80000214:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000216:	f1402373          	csrr	t1,mhartid
+8000021a:	00622023          	sw	t1,0(tp) # 0 <MMIO-0x10000000>
+8000021e:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000220:	800002b7          	lui	t0,0x80000
+80000224:	0285                	addi	t0,t0,1 # 80000001 <_start+0x1>
+80000226:	34129073          	csrw	mepc,t0
+8000022a:	34102373          	csrr	t1,mepc
+8000022e:	00622023          	sw	t1,0(tp) # 0 <MMIO-0x10000000>
+80000232:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000234:	800002b7          	lui	t0,0x80000
+80000238:	028d                	addi	t0,t0,3 # 80000003 <_start+0x3>
+8000023a:	30529073          	csrw	mtvec,t0
+8000023e:	30502373          	csrr	t1,mtvec
+80000242:	00622023          	sw	t1,0(tp) # 0 <MMIO-0x10000000>
+80000246:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000248:	00000297          	auipc	t0,0x0
+8000024c:	16c28293          	addi	t0,t0,364 # 800003b4 <handler>
+80000250:	30529073          	csrw	mtvec,t0
+80000254:	52fd                	li	t0,-1
+80000256:	30429073          	csrw	mie,t0
+8000025a:	30402373          	csrr	t1,mie
+8000025e:	00622023          	sw	t1,0(tp) # 0 <MMIO-0x10000000>
+80000262:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000264:	30401073          	csrw	mie,zero
+80000268:	34402373          	csrr	t1,mip
+8000026c:	00622023          	sw	t1,0(tp) # 0 <MMIO-0x10000000>
+80000270:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000272:	52fd                	li	t0,-1
+80000274:	3b029073          	csrw	pmpaddr0,t0
+80000278:	3b002373          	csrr	t1,pmpaddr0
+8000027c:	00622023          	sw	t1,0(tp) # 0 <MMIO-0x10000000>
+80000280:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000282:	1f1f22b7          	lui	t0,0x1f1f2
+80000286:	f1f28293          	addi	t0,t0,-225 # 1f1f1f1f <MMIO+0xf1f1f1f>
+8000028a:	3a029073          	csrw	pmpcfg0,t0
+8000028e:	3a002373          	csrr	t1,pmpcfg0
+80000292:	00622023          	sw	t1,0(tp) # 0 <MMIO-0x10000000>
+80000296:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000298:	020202b7          	lui	t0,0x2020
+8000029c:	20228293          	addi	t0,t0,514 # 2020202 <MMIO-0xdfdfdfe>
+800002a0:	3a029073          	csrw	pmpcfg0,t0
+800002a4:	3a002373          	csrr	t1,pmpcfg0
+800002a8:	00622023          	sw	t1,0(tp) # 0 <MMIO-0x10000000>
+800002ac:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800002ae:	08100293          	li	t0,129
+800002b2:	3a029073          	csrw	pmpcfg0,t0
+800002b6:	6285                	lui	t0,0x1
+800002b8:	23428293          	addi	t0,t0,564 # 1234 <MMIO-0xfffedcc>
+800002bc:	3b029073          	csrw	pmpaddr0,t0
+800002c0:	3b002373          	csrr	t1,pmpaddr0
+800002c4:	00622023          	sw	t1,0(tp) # 0 <MMIO-0x10000000>
+800002c8:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800002ca:	3a001073          	csrw	pmpcfg0,zero
+800002ce:	3a002373          	csrr	t1,pmpcfg0
+800002d2:	00622023          	sw	t1,0(tp) # 0 <MMIO-0x10000000>
+800002d6:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800002d8:	bc002373          	csrr	t1,0xbc0
+800002dc:	00622023          	sw	t1,0(tp) # 0 <MMIO-0x10000000>
+800002e0:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800002e2:	07700293          	li	t0,119
+800002e6:	bc029073          	csrw	0xbc0,t0
+800002ea:	bc002373          	csrr	t1,0xbc0
+800002ee:	00622023          	sw	t1,0(tp) # 0 <MMIO-0x10000000>
+800002f2:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800002f4:	00000297          	auipc	t0,0x0
+800002f8:	14c28293          	addi	t0,t0,332 # 80000440 <vectors>
+800002fc:	0012e293          	ori	t0,t0,1
+80000300:	30529073          	csrw	mtvec,t0
+80000304:	6285                	lui	t0,0x1
+80000306:	88828293          	addi	t0,t0,-1912 # 888 <MMIO-0xffff778>
+8000030a:	30429073          	csrw	mie,t0
+8000030e:	30046073          	csrsi	mstatus,8
+80000312:	08000293          	li	t0,128
+80000316:	10000fb7          	lui	t6,0x10000
+8000031a:	005fa423          	sw	t0,8(t6) # 10000008 <MMIO+0x8>
+
+8000031e <t_after_mti>:
+8000031e:	6285                	lui	t0,0x1
+80000320:	11128293          	addi	t0,t0,273 # 1111 <MMIO-0xfffeeef>
+80000324:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+80000328:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+8000032a:	6285                	lui	t0,0x1
+8000032c:	80828293          	addi	t0,t0,-2040 # 808 <MMIO-0xffff7f8>
+80000330:	10000fb7          	lui	t6,0x10000
+80000334:	005fa423          	sw	t0,8(t6) # 10000008 <MMIO+0x8>
+
+80000338 <t_after_mei>:
+80000338:	6289                	lui	t0,0x2
+8000033a:	22228293          	addi	t0,t0,546 # 2222 <MMIO-0xfffddde>
+8000033e:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+80000342:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000344:	30047073          	csrci	mstatus,8
+80000348:	08000293          	li	t0,128
+8000034c:	10000fb7          	lui	t6,0x10000
+80000350:	005fa423          	sw	t0,8(t6) # 10000008 <MMIO+0x8>
+80000354:	628d                	lui	t0,0x3
+80000356:	33328293          	addi	t0,t0,819 # 3333 <MMIO-0xfffcccd>
+8000035a:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+8000035e:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000360:	344022f3          	csrr	t0,mip
+80000364:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+80000368:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+8000036a:	10000fb7          	lui	t6,0x10000
+8000036e:	000fa423          	sw	zero,8(t6) # 10000008 <MMIO+0x8>
+
+80000372 <t_wfi>:
+80000372:	10500073          	wfi
+80000376:	6291                	lui	t0,0x4
+80000378:	44428293          	addi	t0,t0,1092 # 4444 <MMIO-0xfffbbbc>
+8000037c:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+80000380:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000382:	344022f3          	csrr	t0,mip
+80000386:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+8000038a:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+8000038c:	10000fb7          	lui	t6,0x10000
+80000390:	000fa423          	sw	zero,8(t6) # 10000008 <MMIO+0x8>
+80000394:	30046073          	csrsi	mstatus,8
+
+80000398 <t_wfi2>:
+80000398:	10500073          	wfi
+
+8000039c <t_after_wfi2>:
+8000039c:	6295                	lui	t0,0x5
+8000039e:	55528293          	addi	t0,t0,1365 # 5555 <MMIO-0xfffaaab>
+800003a2:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+800003a6:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800003a8:	10000fb7          	lui	t6,0x10000
+800003ac:	4f01                	li	t5,0
+800003ae:	01efa223          	sw	t5,4(t6) # 10000004 <MMIO+0x4>
+800003b2:	a001                	j	800003b2 <t_after_wfi2+0x16>
+
+800003b4 <handler>:
+800003b4:	342022f3          	csrr	t0,mcause
+800003b8:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+800003bc:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800003be:	341022f3          	csrr	t0,mepc
+800003c2:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+800003c6:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800003c8:	343022f3          	csrr	t0,mtval
+800003cc:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+800003d0:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800003d2:	342022f3          	csrr	t0,mcause
+800003d6:	4305                	li	t1,1
+800003d8:	02628463          	beq	t0,t1,80000400 <fetch_fault>
+800003dc:	4321                	li	t1,8
+800003de:	02628563          	beq	t0,t1,80000408 <from_user>
+800003e2:	341022f3          	csrr	t0,mepc
+800003e6:	0002d303          	lhu	t1,0(t0)
+800003ea:	00337313          	andi	t1,t1,3
+800003ee:	438d                	li	t2,3
+800003f0:	0289                	addi	t0,t0,2
+800003f2:	00731363          	bne	t1,t2,800003f8 <handler+0x44>
+800003f6:	0289                	addi	t0,t0,2
+800003f8:	34129073          	csrw	mepc,t0
+800003fc:	30200073          	mret
+
+80000400 <fetch_fault>:
+80000400:	34109073          	csrw	mepc,ra
+80000404:	30200073          	mret
+
+80000408 <from_user>:
+80000408:	341022f3          	csrr	t0,mepc
+8000040c:	0291                	addi	t0,t0,4
+8000040e:	34129073          	csrw	mepc,t0
+80000412:	6289                	lui	t0,0x2
+80000414:	80028293          	addi	t0,t0,-2048 # 1800 <MMIO-0xfffe800>
+80000418:	3002a073          	csrs	mstatus,t0
+8000041c:	30200073          	mret
+80000420:	00000013          	nop
+80000424:	00000013          	nop
+80000428:	00000013          	nop
+8000042c:	00000013          	nop
+80000430:	00000013          	nop
+80000434:	00000013          	nop
+80000438:	00000013          	nop
+8000043c:	00000013          	nop
+
+80000440 <vectors>:
+80000440:	f75ff06f          	j	800003b4 <handler>
+80000444:	f71ff06f          	j	800003b4 <handler>
+80000448:	f6dff06f          	j	800003b4 <handler>
+8000044c:	0240006f          	j	80000470 <irq_msi>
+80000450:	f65ff06f          	j	800003b4 <handler>
+80000454:	f61ff06f          	j	800003b4 <handler>
+80000458:	f5dff06f          	j	800003b4 <handler>
+8000045c:	03e0006f          	j	8000049a <irq_mti>
+80000460:	f55ff06f          	j	800003b4 <handler>
+80000464:	f51ff06f          	j	800003b4 <handler>
+80000468:	f4dff06f          	j	800003b4 <handler>
+8000046c:	05a0006f          	j	800004c6 <irq_mei>
+
+80000470 <irq_msi>:
+80000470:	342022f3          	csrr	t0,mcause
+80000474:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+80000478:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+8000047a:	341022f3          	csrr	t0,mepc
+8000047e:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+80000482:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000484:	344022f3          	csrr	t0,mip
+80000488:	535d                	li	t1,-9
+8000048a:	0062f2b3          	and	t0,t0,t1
+8000048e:	10000fb7          	lui	t6,0x10000
+80000492:	005fa423          	sw	t0,8(t6) # 10000008 <MMIO+0x8>
+80000496:	30200073          	mret
+
+8000049a <irq_mti>:
+8000049a:	342022f3          	csrr	t0,mcause
+8000049e:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+800004a2:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800004a4:	341022f3          	csrr	t0,mepc
+800004a8:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+800004ac:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800004ae:	344022f3          	csrr	t0,mip
+800004b2:	f7f00313          	li	t1,-129
+800004b6:	0062f2b3          	and	t0,t0,t1
+800004ba:	10000fb7          	lui	t6,0x10000
+800004be:	005fa423          	sw	t0,8(t6) # 10000008 <MMIO+0x8>
+800004c2:	30200073          	mret
+
+800004c6 <irq_mei>:
+800004c6:	342022f3          	csrr	t0,mcause
+800004ca:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+800004ce:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800004d0:	341022f3          	csrr	t0,mepc
+800004d4:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+800004d8:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800004da:	344022f3          	csrr	t0,mip
+800004de:	737d                	lui	t1,0xfffff
+800004e0:	7ff30313          	addi	t1,t1,2047 # fffff7ff <STACK_TOP+0x7ffbf7ff>
+800004e4:	0062f2b3          	and	t0,t0,t1
+800004e8:	10000fb7          	lui	t6,0x10000
+800004ec:	005fa423          	sw	t0,8(t6) # 10000008 <MMIO+0x8>
+800004f0:	30200073          	mret
+	...

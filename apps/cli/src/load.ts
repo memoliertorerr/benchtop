@@ -8,6 +8,7 @@
 import { avrMcuFactory } from '@benchtop/avr';
 import { esp32McuFactory } from '@benchtop/esp32';
 import { rp2040McuFactory } from '@benchtop/rp2040';
+import { rp2350McuFactory } from '@benchtop/rp2350';
 import { assembleBench, type Bench, type BenchEnv, type FirmwareImage, isMicroPythonFqbn, type Mcu, type ProjectDoc, validateProject } from '@benchtop/core';
 import { analogSpecFor, benchEnvParts, envSpecFor } from '@benchtop/parts';
 
@@ -27,6 +28,23 @@ export interface CliIo {
   esp32Rom?(): Uint8Array | undefined;
   /** The stock MicroPython UF2 for the Pico (BT63), if cached; MicroPython sketches report it missing otherwise. */
   micropython?(): Uint8Array | undefined;
+  /** The RP2350 bootrom (BT66), if cached; Pico 2 boards report it missing otherwise. */
+  rp2350Rom?(): Uint8Array | undefined;
+  /** The stock MicroPython UF2 for the Pico 2's RISC-V cores (BT67), if cached. */
+  micropythonPico2?(): Uint8Array | undefined;
+}
+
+/** The downloaded files boards need, each undefined when not cached (the board then says so). */
+export interface BenchRoms {
+  esp32Rom?: Uint8Array | undefined;
+  micropython?: Uint8Array | undefined;
+  rp2350Rom?: Uint8Array | undefined;
+  micropythonPico2?: Uint8Array | undefined;
+}
+
+/** Everything a CliIo has cached. */
+export function cachedRoms(io: CliIo): BenchRoms {
+  return { esp32Rom: io.esp32Rom?.(), micropython: io.micropython?.(), rp2350Rom: io.rp2350Rom?.(), micropythonPico2: io.micropythonPico2?.() };
 }
 
 export function readText(io: CliIo, path: string, what: string): string {
@@ -102,13 +120,13 @@ export function loadFirmware(io: CliIo, doc: ProjectDoc, boards: readonly string
 }
 
 /** The bench, reset, with the MCUs it created (for the simulated clock rate). */
-export function buildBench(doc: ProjectDoc, images: Readonly<Record<string, FirmwareImage>>, esp32Rom?: Uint8Array, micropython?: Uint8Array): { bench: Bench; mcus: Mcu[] } {
+export function buildBench(doc: ProjectDoc, images: Readonly<Record<string, FirmwareImage>>, roms: BenchRoms = {}): { bench: Bench; mcus: Mcu[] } {
   const mcus: Mcu[] = [];
-  const esp32 = esp32McuFactory(esp32Rom);
+  const esp32 = esp32McuFactory(roms.esp32Rom);
   const env: BenchEnv = {
     part: benchEnvParts,
     createMcu(board, partId, report) {
-      const mcu = avrMcuFactory(board) ?? esp32(board, partId, report) ?? rp2040McuFactory(board, partId, report, micropython);
+      const mcu = avrMcuFactory(board) ?? esp32(board, partId, report) ?? rp2040McuFactory(board, partId, report, roms.micropython) ?? rp2350McuFactory(board, partId, report, { rom: roms.rp2350Rom, micropython: roms.micropythonPico2 });
       if (mcu !== undefined) mcus.push(mcu);
       return mcu;
     },

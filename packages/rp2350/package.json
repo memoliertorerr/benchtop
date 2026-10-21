@@ -1,0 +1,17 @@
+{
+  "name": "@benchtop/rp2350",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Raspberry Pi RP2350 (RISC-V side) SoC on Benchtop's Hazard3 core, running the real bootrom's API. DOM-free.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@benchtop/core": "0.0.0",
+    "@benchtop/riscv": "0.0.0",
+    "@benchtop/rp2040": "0.0.0",
+    "rp2040js": "1.4.0"
+  }
+}

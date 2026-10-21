@@ -1,0 +1,14 @@
+{
+  "name": "@benchtop/riscv",
+  "version": "0.0.0",
+  "private": true,
+  "description": "RISC-V RV32 core (Hazard3 profile): decoder, objdump-exact disassembler, CPU with machine and user modes. DOM-free.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@benchtop/core": "0.0.0"
+  }
+}

@@ -15,6 +15,7 @@ describe('part catalog', () => {
         'arduino-mega',
         'esp32-devkit-v1',
         'raspberry-pi-pico',
+        'raspberry-pi-pico-2',
         'breadboard',
         'breadboard-half',
         'breadboard-mini',

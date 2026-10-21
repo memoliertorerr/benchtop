@@ -1,7 +1,8 @@
 import { createReadStream, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
-import { MICROPYTHON_CACHE_DIR, MICROPYTHON_PICO } from '../../packages/rp2040/src/micropython-manifest.ts';
+import { MICROPYTHON_BUILDS, MICROPYTHON_CACHE_DIR } from '../../packages/rp2040/src/micropython-manifest.ts';
+import { ROM_CACHE_DIR, ROM_IMAGE } from '../../packages/rp2350/src/rom-manifest.ts';
 import { type BundleEntry, precacheScript, shellFiles } from './src/offline/shell.ts';
 
 // Cross-origin isolation lets the simulation worker share memory with the UI thread
@@ -45,15 +46,42 @@ function esp32Rom(): Plugin {
  * the ESP32 ROM, never part of the build; a missing file is a 404 MicroPython sketches report.
  */
 function micropython(): Plugin {
-  const file = resolve(repoRoot, MICROPYTHON_CACHE_DIR, MICROPYTHON_PICO.name);
   return {
     name: 'benchtop-micropython',
     apply: 'serve',
     configureServer(server) {
-      server.middlewares.use(`/micropython/${MICROPYTHON_PICO.name}`, (_req, res) => {
+      // the Pico's and (BT67) the Pico 2's UF2s, by their pinned names only
+      for (const build of MICROPYTHON_BUILDS) {
+        const file = resolve(repoRoot, MICROPYTHON_CACHE_DIR, build.name);
+        server.middlewares.use(`/micropython/${build.name}`, (_req, res) => {
+          if (!existsSync(file)) {
+            res.statusCode = 404;
+            res.end('MicroPython not installed: run npm run fetch:micropython');
+            return;
+          }
+          res.setHeader('Content-Type', 'application/octet-stream');
+          res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+          createReadStream(file).pipe(res);
+        });
+      }
+    },
+  };
+}
+
+/**
+ * Dev only (BT66): the worker fetches the RP2350 bootrom from /rp2350-rom/, served from the
+ * git-ignored .cache/rp2350-rom that `npm run fetch:rp2350-rom` fills; never part of the build.
+ */
+function rp2350Rom(): Plugin {
+  const file = resolve(repoRoot, ROM_CACHE_DIR, ROM_IMAGE.name);
+  return {
+    name: 'benchtop-rp2350-rom',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use(`/rp2350-rom/${ROM_IMAGE.name}`, (_req, res) => {
         if (!existsSync(file)) {
           res.statusCode = 404;
-          res.end('MicroPython not installed: run npm run fetch:micropython');
+          res.end('RP2350 bootrom not installed: run npm run fetch:rp2350-rom');
           return;
         }
         res.setHeader('Content-Type', 'application/octet-stream');
@@ -84,7 +112,7 @@ export default defineConfig({
   oxc: {
     jsx: { runtime: 'automatic', importSource: 'preact' },
   },
-  plugins: [esp32Rom(), micropython(), appShell()],
+  plugins: [esp32Rom(), micropython(), rp2350Rom(), appShell()],
   worker: { format: 'es' },
   build: { target: 'es2023' },
   server: {

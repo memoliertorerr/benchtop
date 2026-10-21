@@ -18,6 +18,9 @@
  * doesn't use.
  *
  * Model: `led` follows GP25 through TP5 (brightness 0..1, so PWM dims it).
+ *
+ * The Raspberry Pi Pico 2 (BT66, `raspberry-pi-pico-2`) has the same footprint, pinout, TP5/LED
+ * and supplies around an RP2350A: the same definition with its own type, title and MCU.
  */
 
 import { type PartContext, type PinDef, type PinRole, Strength } from '@benchtop/core';
@@ -62,28 +65,36 @@ pins.push({ name: 'TP5', x: 5.05, y: 3.2, role: 'digital' });
 const pinMap: Record<string, string> = { TP5: 'GPIO25' };
 for (const name of PICO_PINOUT) if (/^GP\d+$/.test(name)) pinMap[name] = `GPIO${name.slice(2)}`;
 
-export const raspberryPiPico = definePart({
-  type: 'raspberry-pi-pico',
-  title: 'Raspberry Pi Pico',
-  category: 'boards',
-  size: { w: PICO_WIDTH, h: PICO_HEIGHT },
-  pins,
-  buses: [['GND.1', 'GND.2', 'GND.3', 'GND.4', 'GND.5', 'GND.6', 'GND.7', 'AGND']],
-  defaults: { usbPowered: true },
-  board: { mcu: 'rp2040', pinMap },
-  createModel(ctx: PartContext, props: { usbPowered: boolean }) {
-    if (props.usbPowered !== false) {
-      ctx.pin('VBUS').driveVolts(5, Strength.supply);
-      ctx.pin('VSYS').driveVolts(5, Strength.supply);
-    }
-    const led = new DutyChannel(ctx);
-    ctx.pin('TP5').onChange((state) => led.set(state.level === 1 && state.strength >= Strength.weak));
-    return {
-      visual: () => ({ led: led.brightness }),
-      reset() {
-        led.reset();
-        ctx.invalidate();
-      },
-    };
-  },
-});
+/** A Pico-footprint board around `mcu`. */
+function pico(type: string, title: string, mcu: 'rp2040' | 'rp2350') {
+  return definePart({
+    type,
+    title,
+    category: 'boards',
+    size: { w: PICO_WIDTH, h: PICO_HEIGHT },
+    pins,
+    buses: [['GND.1', 'GND.2', 'GND.3', 'GND.4', 'GND.5', 'GND.6', 'GND.7', 'AGND']],
+    defaults: { usbPowered: true },
+    board: { mcu, pinMap },
+    createModel: picoModel,
+  });
+}
+
+function picoModel(ctx: PartContext, props: { usbPowered: boolean }) {
+  if (props.usbPowered !== false) {
+    ctx.pin('VBUS').driveVolts(5, Strength.supply);
+    ctx.pin('VSYS').driveVolts(5, Strength.supply);
+  }
+  const led = new DutyChannel(ctx);
+  ctx.pin('TP5').onChange((state) => led.set(state.level === 1 && state.strength >= Strength.weak));
+  return {
+    visual: () => ({ led: led.brightness }),
+    reset() {
+      led.reset();
+      ctx.invalidate();
+    },
+  };
+}
+
+export const raspberryPiPico = pico('raspberry-pi-pico', 'Raspberry Pi Pico', 'rp2040');
+export const raspberryPiPico2 = pico('raspberry-pi-pico-2', 'Raspberry Pi Pico 2', 'rp2350');

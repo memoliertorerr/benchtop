@@ -35,6 +35,8 @@ simulation core has no DOM, the same code runs headless in Node for tests and CI
 | `@benchtop/esp32` | the ESP32 `Mcu` (`createEsp32Mcu`, `esp32McuFactory`): Xtensa LX6 core, SoC (memory map, peripherals, two cores, pins), direct boot, boot debugging | know about parts or the UI |
 | `@benchtop/parts` | the part catalog: pin layouts, internal buses (breadboards), metadata, behavior models | touch DOM — views live in `apps/web` |
 | `@benchtop/rp2040` | the RP2040 `Mcu` (`createRp2040Mcu`, `rp2040McuFactory`) over rp2040js: the clean-room bootrom, UF2/ELF loading, pins, UARTs, USB serial, I2C/SPI controllers | know about parts or the UI |
+| `@benchtop/riscv` | the RISC-V RV32 core (Hazard3 profile: the RP2350's): decoder, objdump-exact disassembler, predecode cache, machine and user modes, the CSR hook a SoC plugs into | know about a SoC, parts or the UI |
+| `@benchtop/rp2350` | the RP2350 SoC (RISC-V side) on `@benchtop/riscv` with the real bootrom: memory map, Xh3irq, peripherals, QMI and flash, the `Mcu` (`createRp2350Mcu`, `rp2350McuFactory`) | know about parts or the UI |
 | `@benchtop/pcb` | the PCB document, footprints, nets from the bench, ratsnest, DRC, fabrication exports | touch DOM; run simulation |
 | `@benchtop/web` | the editor, part views, the worker host and the worker entry | run CPU emulation on the UI thread |
 | `@benchtop/bridge` | the local compile bridge: runs arduino-cli for the browser (Node, zero dependencies) | listen beyond loopback; write outside its temp build folders |
@@ -1179,8 +1181,10 @@ sequence, files matched by basename or trailing path.
   them; the SDK's runtime init programs what it needs. Flash keeps what the firmware programmed
   across `reset()`.
 
-  **Firmware.** UF2 (`uf2.ts`: 512-byte blocks, magics, payload sizes, block numbers and totals,
-  the family ID 0xE48BFF56; blocks flagged "not main flash" are skipped; every block must lie in
+  **Firmware.** UF2 (`@benchtop/core`'s `firmware/uf2.ts`, shared with the RP2350:
+  512-byte blocks, magics, payload sizes, block numbers and totals — sequences may follow one
+  another, as picotool's RP2350-E10 block does, each block keeping its family —, the family ID
+  0xE48BFF56; blocks flagged "not main flash" are skipped; every block must lie in
   flash 0x10000000–0x10FFFFFF or RAM 0x20000000–0x20041FFF) or ELF (PT_LOAD segments at their
   physical addresses).
 
@@ -1198,7 +1202,9 @@ sequence, files matched by basename or trailing path.
   UARTs 1 and 2 are UART0 and UART1: `pins()` from the GPIO function select, `baud()` from the
   divisors, received bytes paced at 10 bits each. I2C and SPI controllers 0 and 1 implement the
   bus contracts (rp2040js's I2C callbacks completed at once; SPI transfers to the selected
-  devices), with arduino-pico's default pins before the firmware routes them. rp2040js's
+  devices), with arduino-pico's default pins before the firmware routes them — that glue, and
+  USB serial's, is `bridges.ts` (`I2cBridge`, `SpiBridge`, `UsbSerialBridge`), which the RP2350
+  adapter uses too. rp2040js's
   warnings about registers it doesn't model become one `info` Problem (`rp2040-unimplemented`).
 
   Two rp2040js gaps the adapter covers: the inter-core FIFO (SIO 0x50–0x58), which it doesn't
@@ -1256,7 +1262,8 @@ sequence, files matched by basename or trailing path.
   MicroPython 1.29.0 UF2 (`micropython-manifest.ts`, fetched by `npm run fetch:micropython`
   after you approve the download, into `.cache/micropython`, size and SHA-256 pinned, never committed;
   `createRp2040Mcu({ micropython })`, `rp2040McuFactory(…, micropython)`; without it the board
-  reports `micropython-missing` and halts). Every load and reset starts the interpreter's image
+  reports `micropython-missing` and halts). The Pico 2 runs the same way on the RPI_PICO2-RISCV
+  UF2 (see the RP2350 section). Every load and reset starts the interpreter's image
   with an empty flash filesystem and puts the sketch on the board as an IDE does, over USB
   serial (`micropython.ts`, `MicroPythonInstaller`): CR until the friendly REPL's `>>> `,
   Ctrl-A into the raw REPL, per file part (≤ 2 KB, in `f.write` calls of ≤ 256 characters, as
@@ -1271,6 +1278,252 @@ sequence, files matched by basename or trailing path.
   (`Pin("LED")` is GP25), `ADC.read_u16`, PWM, I2C, SPI, `time.sleep_ms` (an exact 250 ms
   period), `neopixel` (its bitstream's timing decodes cleanly), tracebacks and the REPL.
   Measured: MicroPython blink (asleep in `sleep_ms` between toggles) ≈ 25–45× real time.
+
+- **RISC-V core** — `@benchtop/riscv`, our own RV32 interpreter in TypeScript for the
+  Raspberry Pi Pico 2's Hazard3 cores (the RP2350 SoC around it is below), written so the
+  ESP32-C3 can reuse it. DOM-free, no SoC knowledge.
+
+  **ISA and decoding.** `isa.ts` numbers what executes (`OP`: 114 ops; a compressed
+  instruction executes as its base op — c.addi as ADDI, c.mv as ADD, c.zext.b as ANDI 0xff)
+  separately from what prints (`NAME`, the compressed and Zcb spellings), and a `RiscvProfile`
+  says which extensions decode: `RV32IMAC` (base: RV32I, M, A, C, Zicsr, Zifencei) or
+  `HAZARD3` (plus Zba, Zbb, Zbs, Zbkb, Zcb, Zcmp, Xh3bextm and user mode). `decode(word,
+  profile, out)` fills a caller-owned `Int32Array` descriptor (op, length, rd, rs1, rs2,
+  immediate, spelling, aux: CSR number, AMO aq/rl, fence sets, Zcmp rlist, bextm width) with
+  no allocation. RV32C's HINT encodings (c.addi rd,0; c.li/c.mv/c.add/c.lui on x0; c.slli
+  with shamt 0 → c.slli64) decode and execute as no-ops; its custom points (shamt[5] set),
+  F/D's compressed loads and stores and the reserved encodings are invalid. Where the specs
+  leave room the decoder follows objdump: FENCE only with fm 0 (or the one FENCE.TSO word)
+  and rd = rs1 = 0, FENCE.I and the system instructions as exact words, a word with the
+  ≥ 80-bit length prefix stepped as one invalid halfword.
+
+  **Disassembler.** `disassemble(word, pc, profile, aliases)` prints exactly what GNU objdump
+  prints in its `-M no-aliases` form and in its default form (li, mv, not, neg, seqz/snez,
+  sltz/sgtz, beqz…bgtz, j, jal, jr, ret, jalr rs, csrr/csrw/csrs/csrc and their immediate
+  forms, rdcycle & co., nop, unimp, zext.b, fence, fence.tso; compressed and Zcb instructions
+  under their base names, except the HINTs on x0, which keep their c. spelling; undecodable
+  words as `.insn 2, 0x0004` / `.insn 4, 0x…`), with objdump's CSR names. The oracle is the
+  arduino-pico core's RISC-V toolchain (binutils 2.43.1): `disasm.test.ts` compares every row
+  of four corpora in `fixtures/riscv/corpus/` (scripts/riscv-corpus.ts, assembled for the
+  Hazard3 ISA so objdump decodes the extensions: every 16-bit word; 17,546 chosen 32-bit words
+  — random per opcode and funct3, every funct7 of the register-register opcodes, every fence
+  set, alias probes —; `csrrs`/`csrrwi` on all 4,096 CSR numbers; and the 14,612 instructions
+  of real code: newlib's printf, strtod, qsort and libgcc's soft-float, with our C built using
+  Zb* and Zcb) in both forms. Tolerated and counted: what objdump doesn't know (Xh3bextm,
+  cm.mvsa01/cm.mva01s — a spec-derived table checks them) and what it decodes that an RV32
+  core without supervisor mode must reject (RV64 shift amounts ≥ 32, Zcmp's reserved register
+  lists 0–3, c.addi16sp with 0, sfence.vma). A second test proves the HAZARD3 profile changes
+  nothing that decodes without it. (Cross-check: the test programs assembled from the specs'
+  encoding tables by hand-written macros came out byte-identical to binutils 2.43's own
+  assembly of the same instructions.)
+
+  **Core.** `RiscvCore` holds x0–x31 in an `Int32Array`, the PC, the privilege mode and the
+  machine CSRs, and reaches memory only through `RiscvBus` (read/write 8/16/32 little-endian,
+  `fetch16`; a bus refuses with `RiscvBusError` — the core raises the access fault of the
+  access's kind, instruction/load/store-AMO — or postpones with `RISCV_BUS_YIELD`). The run
+  loop (`interpret`) works like the Xtensa core's: locals for PC, cycles and the code page; one
+  field test per instruction (`attention`: a deliverable interrupt, WFI, a stop request, or
+  dropped code pages); one switch with literal case labels (`case-labels.test.ts`) over packed
+  two-word entries — from the predecode cache (`icache.ts`: 4 KB pages, two ints per halfword
+  slot, filled lazily, only for pages the bus's `codePage` accepts; a bus that accepts writable
+  pages calls `invalidateCode` on stores, FENCE.I drops everything) or decoded through
+  `fetch16` (`predecode = false`, refused pages). Misaligned loads and stores (and AMOs, LR/SC)
+  trap; LR/SC keep a one-address reservation that traps and mret clear. Zcmp's push/pop store
+  s11 … s0, ra downward from sp − 4 and adjust sp after, so a fault midway re-executes cleanly.
+  Timing is flat: one cycle per instruction, one per trap entry (not an instruction), WFI sleeps
+  to the end of the run unless an enabled interrupt is pending. bench-loop.S (a bitwise CRC-32):
+  ≈ 36 simulated MIPS predecoded and ≈ 15 without the cache in plain Node (Apple M1).
+
+  **Privileged model.** Machine and user modes (no supervisor). mstatus (MIE, MPIE, MPP with
+  only M/U legal, MPRV, TW), misa (from the profile), mie/mip (MSI 3, MTI 7, MEI 11; mip is
+  the SoC's lines: `setInterruptLine`), mtvec (direct, or vectored: interrupts at base + 4 ×
+  cause), mepc (bit 0 clear), mcause, mtval (fault address, illegal instruction bits, the
+  EBREAK's PC; `writeMtval: false` keeps it 0), mscratch, mcounteren (gates cycle/instret in U),
+  mcountinhibit, mcycle/minstret as 64-bit counts (a write is what the next instruction reads),
+  read-only zero hpm counters, mvendorid/marchid/mimpid/mhartid from options. Traps take
+  MEI > MSI > MTI; ecall from U is cause 8, from M 11; mret in U, sret, dret, U-mode WFI with
+  TW, privileged or read-only CSR writes and unknown CSRs are illegal instructions. PMP:
+  pmpcfg0–3 and pmpaddr0–15 hold their WARL values (R = 0/W = 1 cleared, 30-bit addresses, lock
+  bits and the locked-TOR rule honored) but nothing is enforced yet. **The SoC seam:**
+  `csrHook` (`readCsr`/`writeCsr`) answers every CSR the core doesn't implement — Hazard3's
+  Xh3irq and msleep, the ESP32-C3's interrupt-matrix CSRs later — after the core's own
+  privilege and read-only checks; its optional `accessCsr(csr, kind, operand, writes)`
+  takes a whole CSR instruction, for CSRs whose value read depends on the same instruction's
+  operand (Hazard3's indexed arrays). The SoC drives MEIP/MTIP/MSIP with `setInterruptLine`.
+  `ebreakHook` turns EBREAK into a halt (the test machine's exit), `trapHook` reports every
+  trap, `mretHook` every MRET. Xh3power (profile flag `xh3power`): `h3.block`
+  (`slt x0, x0, x0`) sleeps like WFI unless an unblock is latched, `h3.unblock`
+  (`slt x0, x0, x1`) calls `unblockHook`, and the SoC's `unblock()` wakes a blocked hart or
+  latches for its next block — the SDK's `__wfe`/`__sev` on RISC-V, so a sketch in `delay()`
+  sleeps instead of spinning.
+
+  **Tests.** Hand-written programs in `fixtures/riscv/programs/` (scripts/riscv-programs.ts:
+  the arduino-pico toolchain's `as` for the Hazard3 ISA, linked at 0x80000000; h3.bextm and
+  cm.mvsa01/cm.mva01s through the spec-derived `.insn` macros of `harness.inc`; committed
+  `.bin` + `.lst`) run
+  on a bare machine (256 KB RAM, a console/exit/interrupt-lines MMIO page): alu.S and
+  bitmanip.S over 400 operand pairs against BigInt references written from the specs'
+  definitions, memory.S (every width, sign, offset), branches.S, atomics.S (every AMO, LR/SC),
+  compressed.S (RVC and Zcb), zcmp.S, traps.S (every exception cause, user mode, counters,
+  CSRs, PMP storage, the hook, vectored interrupts and their priority, WFI with and without
+  MIE), each with and without the predecode cache where it matters.
+
+  **What the ESP32-C3 would add** (not planned yet; reviewed against the RP2350 work).
+  The core carries over as it is: decoder, disassembler, predecode cache, traps, the CSR hook.
+  Beyond it:
+  - **Profile.** A `RiscvProfile` from the C3's technical reference manual. It is RV32IMC, so
+    the profile needs a switch for A, which is always on today; none of Hazard3's extensions.
+  - **ROM.** Its mask ROM ELF from the same esp-rom-elfs release the ESP32 uses (an
+    `esp32c3_rev*_rom.elf`), fetched by the same script with its own pinned hashes, and booted
+    the way the ESP32's is (`packages/esp32/src/boot/`: the app image and partition table
+    parsers, the ROM's RAM data unpacked, a direct boot).
+  - **Memory map.** The C3's: 384 KB ROM, 400 KB SRAM seen through both the instruction and the
+    data bus at different addresses, the flash and its MMU/cache (like the ESP32's, with a
+    different page table), RTC fast memory, and the peripherals at 0x60000000.
+  - **Interrupts.** The interrupt matrix maps 62 sources onto 31 CPU interrupt lines, with a
+    priority and a threshold per line. It plugs into the core through `RiscvCsrHook` and the
+    mip lines, as Xh3irq does on the RP2350. Its CSRs and mtvec's vectored mode are already in
+    the core.
+  - **Console.** The USB-serial-JTAG controller: the Arduino core's `Serial` on boards without
+    a USB-UART chip. Its endpoint FIFOs are much simpler than the RP2350's USB controller, so a
+    byte-level model like the ESP32's UART fits better than rp2040js's USB host.
+  - **Peripherals.** Much of the ESP32's peripheral code (UART, LEDC, RMT, I2C, SPI, GPIO
+    matrix, timers, watchdogs) should carry over with register-map changes. The SoC shape
+    (time base, slices, WAITI-style idle — WFI here) follows `packages/esp32/src/soc/soc.ts`
+    more than the RP2350's.
+
+- **RP2350, RISC-V side** — `@benchtop/rp2350`: the Raspberry Pi Pico 2's chip on two
+  `@benchtop/riscv` harts with the Hazard3 profile, with the **real bootrom**: release A4 of
+  pico-bootrom-rp2350 (BSD-3), fetched by `npm run fetch:rp2350-rom` into `.cache/rp2350-rom`
+  after a human approves (sizes and SHA-256 pinned in `rom-manifest.ts`, which equal GitHub's
+  published digests; never committed). `createRp2350Mcu({ rom })` / `rp2350McuFactory` give the
+  bench an `Mcu` of kind `'rp2350'`; without the ROM it reports `rp2350-rom-missing` and halts.
+
+  **Boot.** Both harts start at the bootrom's RISC-V entry (0x7dfc) and the bootrom boots the
+  flash image as on the chip — most of its boot path is Arm code its RISC-V half runs through
+  varmulet, its Armv6-M emulator in RISC-V assembly, so a boot is ≈ 15 ms of simulated time and
+  a few hundred thousand of our instructions. It leaves BOOTRAM as the chip has it after boot
+  (the 16-byte native XIP setup stub at its start with the read mode and clock divider its
+  flash scan settled on — EBh quad, divider 3 —, which the SDK copies and calls after a flash
+  operation), QMI in that mode, and core 1 in its wait for a launch: the SDK's
+  `multicore_launch_core1` talks to the bootrom's own code. PSM's FRCE_OFF.proc1 holds core 1
+  in reset and restarts it in the bootrom. Before booting, `boot.ts` finds the image the
+  bootrom will enter, as its flash scan does (the first PICOBIN block loop in the first 4 KB
+  with an EXE IMAGE_TYPE; ENTRY_POINT, else flash start and the top of SRAM): an image this SoC
+  can't run halts with the reason instead (no image: "BOOTSEL"; an Arm or RP2040 image; a
+  LOAD_MAP). arduino-pico's images start with its OTA loader, which then enters the sketch at
+  0x10003000. What the bootrom needed from the models: ROM writes ignored (varmulet's PUSH ends
+  with a dummy write-back to address 0), USB's DPRAM as plain RAM (it keeps varmulet's state
+  there), OTP ARCHSEL_STATUS reading 3 — the cores are RISC-V, else it reboots to switch
+  architectures —, the QSPI lines idle high in SIO's GPIO_HI_IN (CSn low is BOOTSEL pressed),
+  BOOTRAM's boot locks, and QMI's direct mode.
+
+  **Memory and bus** (`soc.ts`). ROM 32 KB; XIP flash 4 MB at 0x10000000 (through the cached
+  and uncached aliases; CS1, PSRAM, has no device), the XIP cache as SRAM at 0x13ffc000; SRAM
+  520 KB; BOOTRAM 1 KB and USB DPRAM 4 KB as RAM; APB/AHB blocks of 4 KB registers with the
+  XOR/SET/CLR aliases (narrow writes replicated across the word); SIO per hart; anything else
+  a bus error. Registers nobody models read their pico-sdk reset values
+  (`periph/reg-defaults.generated.ts`, from the headers by
+  `scripts/gen-rp2350-reg-defaults.ts`) and are reported once each (`rp2350-unimplemented`,
+  info); blocks that only need to keep what is written (ACCESSCTRL, QMI's M0/M1, TICKS, …)
+  stay quiet. SRAM, XIP-cache and flash pages are predecodable; writes into them, and flash
+  programming, drop the predecoded code.
+
+  **Time.** Simulated nanoseconds with alarms (`clock.ts`); a hart's instruction is one clk_sys
+  cycle, and clk_sys follows the clock tree — the ROSC (≈ 11 MHz) at boot, then XOSC × PLL
+  (150 MHz once the SDK set it up); `cycles` count a 150 MHz reference. The run loop runs the
+  harts in slices (≤ 20 µs) up to the next alarm, an alarm scheduled earlier than the slice's
+  end stopping the hart at its next instruction.
+
+  **Peripherals** (`periph/`). Xh3irq per hart (`xh3irq.ts`, the arrays, meinext, meicontext's
+  priority stack and clearts, force bits cleared by a meinext read); SIO (GPIO, the 4-word
+  FIFOs, spinlocks, doorbells, RISCV_SOFTIRQ, MTIME at the 1 µs tick or clk_sys with
+  MTIMECMP per core); TIMER0/1 (µs counter, alarms on the low word, IRQs 0–7); RESETS; CLOCKS
+  with XOSC, ROSC and the PLLs; PSM; IO_BANK0 (function select, overrides, edge/level
+  interrupts per core on IRQ 21) and PADS_BANK0 (reset isolated, ISO cleared by the SDK);
+  UART0/1 (PL011, paced at the programmed baud, FIFOs, IFLS levels, receive timeout); QMI's
+  direct mode on a W25Q32-class flash chip (`flash-chip.ts`: IDs, status, reads with EBh
+  continuous mode, page program, erases — finished at once; a 16-bit TX entry shifts its low
+  byte first); BOOTRAM's locks and write-once registers; OTP's registers (rows read 0,
+  unprogrammed); SYSINFO (A4 silicon, the QFN60 package, an ASIC).
+
+  **More peripherals.** PWM (`pwm.ts`): 12 free-running slices (the gated and
+  edge-counting divider modes are reported), each kept as the time its count was 0, with the
+  next output edge or wrap scheduled as an alarm — outputs change at their exact times and a
+  steady slice costs a few events a period; a wrap sets INTR (IRQs 8 and 9); GPIO n is slice
+  (n >> 1) & 7, channel A on even pins. The ADC (`adc.ts`): 12 bits of 3.3 V on GPIO26–29, the
+  temperature sensor at 0.706 V, 2 µs a conversion, START_MANY with round robin, the 4-entry
+  FIFO and its IRQ (35). SPI0/1 (`spi.ts`): a PL022 in master mode whose frames reach the bench
+  at once, the reply waiting in the RX FIFO (transfers take no simulated time). I2C0/1, PIO0–2
+  and the USB controller are rp2040js's classes (`rpjs.ts`), whose register maps the RP2350
+  shares (checked register by register in the pico-sdk headers): `rpjsHost` is the slice of
+  rp2040js's `RP2040` object they touch — the SoC's clock and alarms, interrupts (the RP2040's
+  USB IRQ 5 is the RP2350's 14), clk_sys/clk_peri, the DPRAM, pin inputs, warnings as
+  `rp2350-unimplemented` —, and `RpjsBlock` puts each on the bus with its atomic aliases, every
+  write through `writeUint32Atomic` (it records the raw value USB's write-1-to-clear registers
+  clear with). Writes to the DPRAM tell the controller (`DPRAMUpdated`), as rp2040js's own bus
+  does. PIO v1's RXF_PUTGET and GPIOBASE sit where the RP2040 has INTR…IRQ1_INTS, which moved up
+  by 0x44: the block remaps them; GPIOBASE 16 is reported, and v1's new instruction encodings
+  aren't decoded. No DMA yet (DREQs go nowhere). IO_BANK0 asks the SoC (`peripheralDrive`) for a
+  PWM, PIO or SPI pin's level and output enable; I2C pins are open drain and released (the bus
+  travels at byte level).
+
+  **PIO in time** (`soc.ts`). While a state machine runs, the harts run in 2 µs slices and the
+  PIO blocks step in time order between them, as the RP2040's do. arduino-pico starts a
+  `ccount` program with every sketch, a `jmp x--` to itself at full speed: a state machine in
+  such a counting loop (a JMP X--/Y-- to itself with no delay, side-set or forced instruction)
+  is fast-forwarded to the end of the slice and doesn't hold the harts to short slices — a
+  2.6 s blink took 21 s of wall time without that, 145 ms with it. Between hart slices the time
+  is the clock's own, so a PIO-driven pin changes at the time the PIO set it.
+
+  **Pins and UARTs** (`rp2350-mcu.ts`). `GPIO0`–`GPIO29` (the RP2350A): SIO outputs are
+  `output`, a UART TX pin and PWM, PIO and SPI outputs `peripheral` (UART bytes travel at
+  byte level, the TX pin idles high), GPIO26–29 with
+  input disabled and function NULL `analog`, else inputs with the pad's pulls; inputs through
+  a Schmitt trigger (≥ 2.0 V high, ≤ 0.8 V low) that software sees while the pad's input is
+  enabled. UART ports 1 and 2 are UART0/UART1 (`pins()` from the function select, aux pins
+  included; `baud()` from the divisors and clk_peri); port 0 is USB serial (rp2040js's
+  CDC host on the controller, as on the Pico). GPIO26–29's voltages feed ADC channels 0–3 —
+  also an analog net's (a pot's wiper), which has volts and no digital level. I2C and SPI
+  controllers 0 and 1 implement the bus contracts through the Pico's bridges.
+
+  **The Pico 2 board.** `raspberry-pi-pico-2` in packages/parts is the Pico's definition
+  — footprint, pins, power, the LED on GPIO25 through TP5 — with MCU `rp2350`; its view is the
+  Pico's with the RP2350's label. The bridge compiles for it with
+  `rp2040:rp2040:rpipico2:arch=riscv`, the only Pico 2 FQBN it accepts (no Arm cores here). The
+  worker fetches the bootrom from `/rp2350-rom/bootrom-combined.bin` (the dev server serves the
+  cache, as for the ESP32 ROM) and the CLI reads it from `.cache/rp2350-rom`; the gallery has a
+  Raspberry Pi Pico 2 category (blink, potentiometer, PWM steps, OLED, TFT, NeoPixel, a button
+  interrupt), each with a spec.
+
+  **Tests** (packages/rp2350; the ROM from the cache — the tests fail with the fetch command
+  without it): Xh3irq's semantics; QMI's direct mode on the flash chip as the bootrom drives it;
+  the image scan on fixtures and hand-made blocks; and on `fixtures/sketches/pico2/` (built for
+  `rp2040:rp2040:rpipico2:arch=riscv`, arduino-pico 6.2.0): serial-hello's lines on UART0 and
+  UART1 at 115200 ±1 % with clk_sys at 150 MHz, blink's 500 ms ±1 %, eeprom's
+  `EEPROM.commit()` — erase and program through the bootrom's flash functions, under varmulet —
+  surviving a reset, and mips: a busy loop whose sum matches the host's, reported at ≈ 100
+  MIPS (≈ 70 % of real time at 150 MHz; a sketch sleeping in `delay()` runs ≈ 20–30× faster than
+  real time). `packages/parts/src/integration/pico2-circuits.test.ts` runs the Pico's
+  sketches rebuilt for the Pico 2 on full benches: USB serial, the ADC from a potentiometer, PWM
+  into an LED, Wire to the SSD1306, SPI to the ILI9341, a pin interrupt, NeoPixels through PIO.
+  `packages/rp2350/src/micropython.test.ts` runs MicroPython: print, a traceback and the
+  REPL, blink at 250 ms ±1 % across a reset, `_thread` on core 1, the missing-interpreter halt.
+  `pico2-micropython.test.ts` puts it on benches: the ADC from a pot, the neopixel module on a
+  strip.
+
+  **MicroPython.** A `{ format: 'micropython' }` image runs on the stock
+  RPI_PICO2-RISCV 1.29.0 UF2 (fetched with the Pico's; `createRp2350Mcu({ rom, micropython })`,
+  `rp2350McuFactory(…, { rom, micropython })`), installed exactly as on the Pico: the Pico's
+  `MicroPythonInstaller` on the same `UsbSerialBridge`, both from `@benchtop/rp2040`'s public
+  API (an ESP32 MicroPython would move the installer to `@benchtop/core`). Every reset rewrites
+  the interpreter's image and boots it through the bootrom with an empty filesystem. The
+  interpreter needed one more register: IO_QSPI's SS STATUS (OUTTOPAD is the flash's chip
+  select, high while QMI is idle), which pico-sdk's flash code polls before it changes QMI's
+  timing (`IoQspi` in `gpio.ts`; without it MicroPython hung in that loop). `_thread` runs its
+  function on core 1, launched through the bootrom: unlike on the Pico, core 1 code runs.
+  `machine.ADC`, `Pin`, `time.sleep_ms` and `neopixel` (`machine.bitstream`, timed by the cycle
+  counter) work as on the Pico.
 
 ## Worker protocol
 
@@ -1303,11 +1556,13 @@ simulated time per tick), posts serial bytes once per board per tick, and posts 
 traffic to the board part as input `serial-tx`/`serial-rx`, which the Uno's model shows on its
 TX/RX LEDs. Errors become `error` messages and pause the run. `worker.ts` adapts it to the
 worker scope, scheduling ticks through a MessageChannel (nested setTimeout clamps to 4 ms);
-`env.ts` is the BenchEnv (catalog + the AVR and ESP32 factories) and records each MCU to
-measure MHz. The worker fetches the ESP32 ROM once at startup from `/esp32-rom/esp32_rev0_rom.elf`
+`env.ts` is the BenchEnv (catalog + the AVR, ESP32, RP2040 and RP2350 factories, given the
+downloaded files as `BenchRoms`) and records each MCU to measure MHz. The worker fetches the
+ESP32 ROM once at startup from `/esp32-rom/esp32_rev0_rom.elf`
 — served in development by a Vite plugin straight from `.cache/esp32-rom`, never copied
 into the build — and holds incoming messages until that fetch settles, so a project restored at
-startup sees the ROM; without it ESP32 boards report `esp32-rom-missing` and don't run.
+startup sees the ROM; without it ESP32 boards report `esp32-rom-missing` and don't run. The
+RP2350 bootrom comes the same way from `/rp2350-rom/` (`rp2350-rom-missing`).
 `host.ts` is the UI client: commands, signals (`simStatus`, `simLoaded`, `simRunning`,
 `simTime`, `simStats`, `simProblems`, `simError`) and listeners — `onVisuals` (part states, for
 the views and the buzzers' audio), `onFrame` (time, stats, probes), `onSerial` — that reach the
@@ -1421,15 +1676,16 @@ become part input. The serial monitor (`ui/SerialMonitor.tsx`) keeps the newest 
 board (`ui/serial-buffer.ts`: lines split across chunks, UTF-8 streamed, simulated-time stamps)
 and appends DOM nodes rather than re-rendering; autoscroll pauses while you read further up.
 Examples: **Examples…** opens a gallery (`ui/ExamplesGallery.tsx`, a
-modal dialog) of the entries in `examples/manifest.ts` — 69 circuits in ten categories (Basics,
-Displays, Sensors, Motors, Sound, Environment, ESP32, Raspberry Pi Pico, Mega, Two boards;
-Environment has four: a gas alarm whose fan clears the room, a PIR hallway light, a parking
-sensor with a car driving in, a thermostat; the Pico has nine: blink, a potentiometer, PWM
-steps, an OLED, a color TFT, NeoPixels through PIO, a PIO square wave, and MicroPython blink
-and NeoPixel, whose firmware is the sketch itself). Each names a committed fixture project and,
+modal dialog) of the entries in `examples/manifest.ts` — 77 circuits in eleven categories (Basics,
+Displays, Sensors, Motors, Sound, Environment, ESP32, Raspberry Pi Pico, Raspberry Pi Pico 2, Mega,
+Two boards; Environment has four: a gas alarm whose fan clears the room, a PIR hallway light, a
+parking sensor with a car driving in, a thermostat; the Pico has nine: blink, a potentiometer,
+PWM steps, an OLED, a color TFT, NeoPixels through PIO, a PIO square wave, and MicroPython blink
+and NeoPixel, whose firmware is the sketch itself; the Pico 2 has eight: the Pico's first five,
+NeoPixels through PIO, a button interrupt and MicroPython blink). Each names a committed fixture project and,
 per board, the firmware its tests run and the sketch folder it was built from; the files load
 through `import.meta.glob` patterns that list exactly the examples' files (projects, sketches and
-.hex as text, ESP32 .bin and Pico .uf2 as `?url` assets fetched on open), so nothing loads until asked and
+.hex as text, ESP32 .bin and Pico and Pico 2 .uf2 as `?url` assets fetched on open), so nothing loads until asked and
 nothing else is bundled. Opening one puts each board's sketch in the document as its inline
 sketch and stores the precompiled firmware tagged with that sketch's source hash — so it
 runs without the bridge, and the Code tab knows the build is current; **Reset example** (Code
@@ -1558,7 +1814,7 @@ Compile says to start it with `npm run bridge`. The document's autosave keeps th
 reloads, and Export / Open carry it. The CLI refuses an inline board without `--firmware`.
 
 **MicroPython.** On boards MicroPython runs on (`editor/fqbn.ts` `micropythonFqbnOf`:
-the RP2040 → `micropython:rp2:pico`), the Inspector's **Language** switch (Arduino C++ /
+the RP2040 → `micropython:rp2:pico`, the RP2350 → `micropython:rp2:pico2`), the Inspector's **Language** switch (Arduino C++ /
 MicroPython) replaces the board's sketch with the other language's template (undoable; a
 started sketch asks first). A MicroPython sketch's files are .py modules (+ adds one), colored
 by `tokenizePython` (keywords, builtins and MicroPython's hardware names, `#` comments, strings
@@ -1566,8 +1822,8 @@ with prefixes and triple quotes, numbers, decorators) and indented four spaces (
 level after a `:`). **Run** (⌘/Ctrl-Enter) skips the bridge: `compileInline` stores the sketch
 itself as the board's firmware (format `micropython`, the UTF-8 JSON `{ files, main }`, tagged
 with its source hash) and delivers it like a build. A dropped `.py` becomes the board's main.py.
-The worker gets the interpreter UF2 from the dev server's `/micropython/` (like the ESP32 ROM;
-never bundled). The CLI runs an inline MicroPython sketch with no `--firmware`, and takes
+The worker gets the interpreter UF2s (the Pico's and the Pico 2's) from the dev server's
+`/micropython/` (like the ESP32 ROM; never bundled). The CLI runs an inline MicroPython sketch with no `--firmware`, and takes
 `--firmware pico=<file>.py` as a one-file sketch.
 
 ### Logic analyzer

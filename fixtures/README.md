@@ -21,10 +21,18 @@ fixtures/firmware/esp32/<name>.syms.tsv       `nm -S -n --defined-only` of the f
                                               mostly DWARF), .map and bootloader are never committed
 fixtures/firmware/pico/<name>.uf2             Raspberry Pi Pico firmware (arduino-pico 6.2.0; the
                                               ELF, 1.3 MB of mostly DWARF, isn't committed)
+fixtures/firmware/pico2/<name>.uf2            Raspberry Pi Pico 2 firmware for the RP2350's RISC-V
+                                              cores (arduino-pico 6.2.0, arch=riscv; the Pico's
+                                              analog-read, pwm-fade, i2c-oled, spi-tft, button-irq
+                                              and neopixel rebuilt for it)
 fixtures/rp2040/<name>.c, .ld → .elf, .lst    freestanding RP2040 test programs (romcalls: every bootrom
                                               function through the lookup tables)
 fixtures/xtensa/<name>.S → <name>.bin, .lst   Xtensa test programs (harness.inc: conventions)
 fixtures/xtensa/corpus/                       objdump decode corpora for the decoder tests (manifest.json)
+fixtures/riscv/programs/<name>.S → .bin, .lst RISC-V test programs (harness.inc: conventions)
+fixtures/riscv/corpus/                        objdump disassembly corpora for the RISC-V decoder
+                                              tests (manifest.json); ../corpus-text.c is the
+                                              real-code corpus's source
 fixtures/pcb/<name>.pcb.json                  PCB layouts laid out by hand on a fixture project
                                               (blink: fixtures/projects/blink-led.json on an Uno
                                               shield); golden/ holds their exports (Gerbers,
@@ -44,6 +52,8 @@ npm run fixtures -- --only pico/blink    # one Pico sketch
 npm run fixtures -- --only rp2040/romcalls # one RP2040 test program
 npm run fixtures -- --only xtensa/smoke  # one Xtensa test program
 npm run fixtures -- --only xtensa/corpus # the decode corpora (needs serial-hello built first)
+npm run fixtures -- --only riscv/traps   # one RISC-V test program
+npm run fixtures -- --only riscv/corpus  # the RISC-V disassembly corpora
 ```
 
 `scripts/build-fixtures.ts` finds `arduino-cli` in `$BENCHTOP_ARDUINO_CLI`, then on `PATH`,
@@ -65,7 +75,8 @@ a sketch builds in ~15 s and keeps only its UF2). A Pico sketch with its own PIO
 (`neopixel`, `pio-square`) commits the `.pio` source beside the `<name>.pio.h` that
 arduino-pico's `pioasm` 2.3.0 made from it (`~/Library/Arduino15/packages/rp2040/tools/pqt-pioasm/*/pioasm
 <name>.pio <name>.pio.h`): arduino-cli doesn't run pioasm, so rerun it by hand when a .pio
-changes.
+changes. `pico2` → `rp2040:rp2040:rpipico2:arch=riscv` (the same core, the RP2350's
+RISC-V cores; ~27 s a sketch).
 
 ## RP2040 test programs
 
@@ -104,6 +115,29 @@ one 24-bit word per (op0, op1, op2, r), and serial-hello's IRAM code (its .flash
 fit the 1.5 MB budget). Each is a `<name>.tsv.gz` ("address, bytes in memory order, mnemonic,
 operands") plus raw bytes; `manifest.json` says how the bytes are laid out. Words are decoded in
 labelled slots, because objdump restarts decoding at every symbol.
+
+## RISC-V test programs and disassembly corpora
+
+A full `npm run fixtures` also builds every `fixtures/riscv/programs/<name>.S` with the
+arduino-pico core's RISC-V toolchain (`scripts/arduino-cli.ts` `findRiscvTool`:
+`$BENCHTOP_RISCV_BIN` with `$BENCHTOP_RISCV_PREFIX`, else `pqt-gcc-riscv` under
+`~/Library/Arduino15/packages/rp2040/tools`; binutils 2.43): `as` for the Hazard3 ISA
+(`RISCV_MARCH` in scripts/riscv-corpus.ts), `ld -Ttext=0x80000000 --no-relax -e _start`,
+`objcopy -O binary`, `objdump -d`; only the .S, .bin and .lst are committed. `harness.inc`
+holds the conventions (code at 0x80000000, inputs at 0x80010000, outputs at 0x80020000 through
+`OUTPUT`, the stack below 0x80040000, an MMIO page for console, exit and interrupt lines) and
+`.insn` macros, from the specs' encoding tables, for what that assembler doesn't know
+(Hazard3's h3.bextm/h3.bextmi, Zcmp's cm.mvsa01/cm.mva01s).
+
+`scripts/riscv-corpus.ts` writes `fixtures/riscv/corpus/`: what that objdump prints, in its
+`-M no-aliases` and default forms, for every 16-bit word (narrow16), 17,546 chosen 32-bit words
+(wide32: random per 32-bit opcode and funct3, every funct7 of the register-register opcodes,
+fences, system words, alias probes), `csrrs`/`csrrwi` on all 4,096 CSR numbers (csr), and the
+.text of `corpus-text.c` built with Zb*/Zcb at -Os and linked with newlib and libgcc (text).
+Words are emitted with `.insn` (a `.half`/`.word` would get a data mapping symbol, which
+objdump dumps as data). Rows are "bytes[/length],
+mnemonic, operands[, alias mnemonic, alias operands]" (gzipped TSV; a row's address is its
+corpus's base plus the sizes before it); `manifest.json` records the objdump and the bases.
 
 ## Test specs
 

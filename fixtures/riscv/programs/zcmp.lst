@@ -1,0 +1,156 @@
+
+zcmp.elf:     file format elf32-littleriscv
+
+
+Disassembly of section .text:
+
+80000000 <_start>:
+80000000:	80040137          	lui	sp,0x80040
+80000004:	80020237          	lui	tp,0x80020
+80000008:	10000413          	li	s0,256
+8000000c:	10100493          	li	s1,257
+80000010:	10200913          	li	s2,258
+80000014:	10300993          	li	s3,259
+80000018:	10400a13          	li	s4,260
+8000001c:	10500a93          	li	s5,261
+80000020:	10600b13          	li	s6,262
+80000024:	10700b93          	li	s7,263
+80000028:	10800c13          	li	s8,264
+8000002c:	10900c93          	li	s9,265
+80000030:	10a00d13          	li	s10,266
+80000034:	10b00d93          	li	s11,267
+80000038:	1ff00093          	li	ra,511
+8000003c:	888a                	mv	a7,sp
+8000003e:	b8f2                	cm.push	{ra,s0-s11},-64
+80000040:	411102b3          	sub	t0,sp,a7
+80000044:	00522023          	sw	t0,0(tp) # 80020000 <OUT>
+80000048:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+8000004a:	880a                	mv	a6,sp
+8000004c:	47c1                	li	a5,16
+8000004e:	00082283          	lw	t0,0(a6)
+80000052:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+80000056:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000058:	0811                	addi	a6,a6,4
+8000005a:	17fd                	addi	a5,a5,-1
+8000005c:	fbed                	bnez	a5,8000004e <_start+0x4e>
+8000005e:	4401                	li	s0,0
+80000060:	4481                	li	s1,0
+80000062:	4901                	li	s2,0
+80000064:	4981                	li	s3,0
+80000066:	4a01                	li	s4,0
+80000068:	4a81                	li	s5,0
+8000006a:	4b01                	li	s6,0
+8000006c:	4b81                	li	s7,0
+8000006e:	4c01                	li	s8,0
+80000070:	4c81                	li	s9,0
+80000072:	4d01                	li	s10,0
+80000074:	4d81                	li	s11,0
+80000076:	4081                	li	ra,0
+80000078:	baf2                	cm.pop	{ra,s0-s11},64
+8000007a:	411102b3          	sub	t0,sp,a7
+8000007e:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+80000082:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000084:	00122023          	sw	ra,0(tp) # 0 <MMIO-0x10000000>
+80000088:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+8000008a:	00822023          	sw	s0,0(tp) # 0 <MMIO-0x10000000>
+8000008e:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000090:	00922023          	sw	s1,0(tp) # 0 <MMIO-0x10000000>
+80000094:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000096:	01222023          	sw	s2,0(tp) # 0 <MMIO-0x10000000>
+8000009a:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+8000009c:	01322023          	sw	s3,0(tp) # 0 <MMIO-0x10000000>
+800000a0:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800000a2:	01422023          	sw	s4,0(tp) # 0 <MMIO-0x10000000>
+800000a6:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800000a8:	01522023          	sw	s5,0(tp) # 0 <MMIO-0x10000000>
+800000ac:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800000ae:	01622023          	sw	s6,0(tp) # 0 <MMIO-0x10000000>
+800000b2:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800000b4:	01722023          	sw	s7,0(tp) # 0 <MMIO-0x10000000>
+800000b8:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800000ba:	01822023          	sw	s8,0(tp) # 0 <MMIO-0x10000000>
+800000be:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800000c0:	01922023          	sw	s9,0(tp) # 0 <MMIO-0x10000000>
+800000c4:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800000c6:	01a22023          	sw	s10,0(tp) # 0 <MMIO-0x10000000>
+800000ca:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800000cc:	01b22023          	sw	s11,0(tp) # 0 <MMIO-0x10000000>
+800000d0:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800000d2:	20000413          	li	s0,512
+800000d6:	2ff00093          	li	ra,767
+800000da:	888a                	mv	a7,sp
+800000dc:	b85a                	cm.push	{ra,s0},-48
+800000de:	411102b3          	sub	t0,sp,a7
+800000e2:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+800000e6:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800000e8:	52b2                	lw	t0,44(sp)
+800000ea:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+800000ee:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800000f0:	52a2                	lw	t0,40(sp)
+800000f2:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+800000f6:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800000f8:	4401                	li	s0,0
+800000fa:	4081                	li	ra,0
+800000fc:	ba5a                	cm.pop	{ra,s0},48
+800000fe:	00822023          	sw	s0,0(tp) # 0 <MMIO-0x10000000>
+80000102:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000104:	00122023          	sw	ra,0(tp) # 0 <MMIO-0x10000000>
+80000108:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+8000010a:	411102b3          	sub	t0,sp,a7
+8000010e:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+80000112:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000114:	30000413          	li	s0,768
+80000118:	30100493          	li	s1,769
+8000011c:	00000097          	auipc	ra,0x0
+80000120:	078080e7          	jalr	120(ra) # 80000194 <popret_function>
+80000124:	00a22023          	sw	a0,0(tp) # 0 <MMIO-0x10000000>
+80000128:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+8000012a:	00822023          	sw	s0,0(tp) # 0 <MMIO-0x10000000>
+8000012e:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000130:	00922023          	sw	s1,0(tp) # 0 <MMIO-0x10000000>
+80000134:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000136:	00000097          	auipc	ra,0x0
+8000013a:	06a080e7          	jalr	106(ra) # 800001a0 <popretz_function>
+8000013e:	00a22023          	sw	a0,0(tp) # 0 <MMIO-0x10000000>
+80000142:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000144:	80040337          	lui	t1,0x80040
+80000148:	406102b3          	sub	t0,sp,t1
+8000014c:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+80000150:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000152:	4515                	li	a0,5
+80000154:	4599                	li	a1,6
+80000156:	ad2e                	.insn	2, 0xad2e
+80000158:	01222023          	sw	s2,0(tp) # 0 <MMIO-0x10000000>
+8000015c:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+8000015e:	01322023          	sw	s3,0(tp) # 0 <MMIO-0x10000000>
+80000162:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000164:	4a1d                	li	s4,7
+80000166:	4aa1                	li	s5,8
+80000168:	ae76                	.insn	2, 0xae76
+8000016a:	00a22023          	sw	a0,0(tp) # 0 <MMIO-0x10000000>
+8000016e:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000170:	00b22023          	sw	a1,0(tp) # 0 <MMIO-0x10000000>
+80000174:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000176:	4425                	li	s0,9
+80000178:	44a9                	li	s1,10
+8000017a:	ace2                	.insn	2, 0xace2
+8000017c:	00a22023          	sw	a0,0(tp) # 0 <MMIO-0x10000000>
+80000180:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000182:	00b22023          	sw	a1,0(tp) # 0 <MMIO-0x10000000>
+80000186:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000188:	10000fb7          	lui	t6,0x10000
+8000018c:	4f01                	li	t5,0
+8000018e:	01efa223          	sw	t5,4(t6) # 10000004 <MMIO+0x4>
+80000192:	a001                	j	80000192 <_start+0x192>
+
+80000194 <popret_function>:
+80000194:	b862                	cm.push	{ra,s0-s1},-16
+80000196:	4405                	li	s0,1
+80000198:	4489                	li	s1,2
+8000019a:	04d00513          	li	a0,77
+8000019e:	be62                	cm.popret	{ra,s0-s1},16
+
+800001a0 <popretz_function>:
+800001a0:	b846                	cm.push	{ra},-32
+800001a2:	03700513          	li	a0,55
+800001a6:	bc46                	cm.popretz	{ra},32

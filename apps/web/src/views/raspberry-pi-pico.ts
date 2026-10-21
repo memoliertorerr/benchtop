@@ -4,7 +4,8 @@
  * 21 × 51 mm PCB with castellated pads at the part's pin positions (each labelled with its
  * pinout name, as the back silkscreen is), the micro-USB connector at the top, the green LED
  * (lit by GP25's brightness) and the BOOTSEL button beside it, the RP2040, the flash chip, the
- * crystal and the three SWD pads at the bottom.
+ * crystal and the three SWD pads at the bottom. The Pico 2 (BT66) is the same board with an
+ * RP2350 and its own name and year.
  */
 
 import type { PartDefinition, VisualState } from '@benchtop/core';
@@ -56,14 +57,15 @@ function draw(def: PartDefinition): { svg: SVGSVGElement; led: SVGRectElement; g
     svg.append(el('rect', { x: 4.5 + i * 1.25, y: 16.2, width: 0.45, height: 0.6, fill: '#b8b9bb' }));
   }
   svg.append(el('rect', { x: 12.6, y: 12.6, width: 3.2, height: 2.5, rx: 0.3, fill: '#c3c5c8', stroke: '#8e9399', 'stroke-width': 0.15 }));
-  // The RP2040 (7 × 7 mm QFN).
+  // The RP2040 (7 × 7 mm QFN) or the RP2350A (7 × 7 mm QFN-60).
+  const rp2350 = def.board?.mcu === 'rp2350';
   svg.append(el('rect', { x: w / 2 - 3.5, y: 22, width: 7, height: 7, rx: 0.3, fill: '#202124', stroke: '#0e0f10', 'stroke-width': 0.15 }));
-  svg.append(text(w / 2, 24.8, 'RP2040', 1.1, 'middle', '#c9cbcf'));
-  svg.append(text(w / 2, 26.6, 'RP2-B2', 0.8, 'middle', '#8e9095'));
+  svg.append(text(w / 2, 24.8, rp2350 ? 'RP2350' : 'RP2040', 1.1, 'middle', '#c9cbcf'));
+  svg.append(text(w / 2, 26.6, rp2350 ? 'RP2350A' : 'RP2-B2', 0.8, 'middle', '#8e9095'));
   svg.append(el('circle', { cx: w / 2 - 2.7, cy: 22.8, r: 0.25, fill: '#55575c' }));
   // Board name and the SWD pads at the bottom edge.
-  svg.append(text(w / 2, 35.5, 'Raspberry Pi Pico', 1.0, 'middle'));
-  svg.append(text(w / 2, 37.1, '© 2020', 0.75, 'middle'));
+  svg.append(text(w / 2, 35.5, def.title, 1.0, 'middle'));
+  svg.append(text(w / 2, 37.1, rp2350 ? '© 2024' : '© 2020', 0.75, 'middle'));
   for (const [i, label] of ['SWCLK', 'GND', 'SWDIO'].entries()) {
     const x = w / 2 - 2.54 + i * 2.54;
     svg.append(el('circle', { cx: x, cy: h - 1.6, r: 0.75, fill: '#d9b44a', stroke: '#a8862b', 'stroke-width': 0.15 }));

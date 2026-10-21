@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { buildUf2, parseUf2, placeUf2, UF2_FAMILY, Uf2Error } from './uf2.ts';
-import { picoFirmware } from './rp2040.test-helper.ts';
+import { readFixture } from './fixtures.test-helper.ts';
+
+const picoFirmware = (name: string): Uint8Array => readFixture(`fixtures/firmware/pico/${name}.uf2`);
 
 describe('UF2', () => {
   it('parses a fixture: RP2040 family, 256-byte payloads, contiguous flash from 0x10000000', () => {

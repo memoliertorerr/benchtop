@@ -13,12 +13,12 @@
 import type { ProjectDoc } from '@benchtop/core';
 import { CATALOG } from '@benchtop/parts';
 
-export const CATEGORIES = ['Basics', 'Displays', 'Sensors', 'Motors', 'Sound', 'Environment', 'ESP32', 'Raspberry Pi Pico', 'Mega', 'Two boards'] as const;
+export const CATEGORIES = ['Basics', 'Displays', 'Sensors', 'Motors', 'Sound', 'Environment', 'ESP32', 'Raspberry Pi Pico', 'Raspberry Pi Pico 2', 'Mega', 'Two boards'] as const;
 export type Category = (typeof CATEGORIES)[number];
 
 export type ExampleBoard =
   | {
-      /** Under fixtures/firmware/: uno/<name>.hex, nano/<name>.hex, mega/<name>.hex, esp32/<name>.bin or pico/<name>.uf2. */
+      /** Under fixtures/firmware/: uno/<name>.hex, nano/<name>.hex, mega/<name>.hex, esp32/<name>.bin, pico/<name>.uf2 or pico2/<name>.uf2. */
       firmware: string;
       /** Under fixtures/sketches/: <board folder>/<name>, the firmware's source. */
       sketch: string;
@@ -32,7 +32,7 @@ export type ExampleBoard =
 export function boardBadge(board: ExampleBoard): { label: string; kind: string } {
   if ('micropython' in board) return { label: 'MicroPython', kind: 'micropython' };
   const folder = board.firmware.split('/')[0];
-  const label: Record<string, string> = { uno: 'Uno', nano: 'Nano', mega: 'Mega', esp32: 'ESP32', pico: 'Pico' };
+  const label: Record<string, string> = { uno: 'Uno', nano: 'Nano', mega: 'Mega', esp32: 'ESP32', pico: 'Pico', pico2: 'Pico 2' };
   return { label: label[folder] ?? folder, kind: folder };
 }
 
@@ -65,6 +65,8 @@ const mega = (name: string): Record<string, ExampleBoard> => ({ mega: { firmware
 const esp = (name: string): Record<string, ExampleBoard> => ({ esp: { firmware: `esp32/${name}.bin`, sketch: `esp32/${name}` } });
 /** One Raspberry Pi Pico (part id `pico`) running fixtures' pico/<name>. */
 const pico = (name: string): Record<string, ExampleBoard> => ({ pico: { firmware: `pico/${name}.uf2`, sketch: `pico/${name}` } });
+/** BT66: one Raspberry Pi Pico 2 (part id `pico`) running fixtures' pico2/<name> on its RISC-V cores. */
+const pico2 = (name: string): Record<string, ExampleBoard> => ({ pico: { firmware: `pico2/${name}.uf2`, sketch: `pico2/${name}` } });
 
 export const EXAMPLES: readonly Example[] = [
   { ...ex('blink', 'Blink', 'Basics', 'blink-led', uno('blink'), 'The classic: an LED on D13 (through 220 Ω on a breadboard) blinks once a second. It has a PCB too: an Uno shield — switch to PCB in the toolbar.'), pcb: 'blink' },
@@ -139,6 +141,14 @@ export const EXAMPLES: readonly Example[] = [
   ex('pico-micropython-blink', 'MicroPython blink', 'Raspberry Pi Pico', 'pico-blink', { pico: { micropython: 'blink' } }, 'MicroPython on the Pico: main.py toggles the LED every 250 ms and prints the count. Edit it in the Code tab and press Run — nothing to compile.'),
   ex('pico-micropython-neopixel', 'MicroPython NeoPixel', 'Raspberry Pi Pico', 'pico-neopixel', { pico: { micropython: 'neopixel' } }, "MicroPython's neopixel module drives the WS2812 strip on GP2: pixel 0 steps red, green, blue every half second."),
   ex('pico-pio-square', 'Pico PIO square wave', 'Raspberry Pi Pico', 'pico-pio-square', pico('pio-square'), 'A two-instruction PIO program toggles GP3 at exactly 10 kHz while the CPU sleeps: probe GP3 with the Probe tool.'),
+  ex('pico2-blink', 'Pico 2 blink', 'Raspberry Pi Pico 2', 'pico2-blink', pico2('blink'), "The Raspberry Pi Pico 2 on its own: the RP2350's RISC-V cores boot through the real bootrom and blink the onboard LED (GP25) every half second."),
+  ex('pico2-potentiometer', 'Pico 2 potentiometer', 'Raspberry Pi Pico 2', 'pico2-analog-read', pico2('analog-read'), 'analogRead of a potentiometer on GP26 (ADC0) at 12 bits, printed ten times a second on USB serial — turn the knob.'),
+  ex('pico2-fade', 'Pico 2 PWM steps', 'Raspberry Pi Pico 2', 'pico2-pwm-fade', pico2('pwm-fade'), 'analogWrite on GP15 at 1 kHz: an LED steps through 0, 25, 50, 75 and 100 % duty, 200 ms each.'),
+  ex('pico2-oled', 'Pico 2 OLED', 'Raspberry Pi Pico 2', 'pico2-i2c-oled', pico2('i2c-oled'), 'Adafruit SSD1306 over Wire on GP4 (SDA) and GP5 (SCL): a box, "PICO" and a seconds counter.'),
+  ex('pico2-tft', 'Pico 2 color TFT', 'Raspberry Pi Pico 2', 'pico2-spi-tft', pico2('spi-tft'), 'The ILI9341 picture over SPI0 (SCK GP18, MOSI GP19), with CS on GP17 and D/C on GP20, then a digit counter.'),
+  ex('pico2-neopixel', 'Pico 2 NeoPixel', 'Raspberry Pi Pico 2', 'pico2-neopixel', pico2('neopixel'), "Eight WS2812 pixels on GP2 driven by the RP2350's PIO: pixel 0 steps red, green, blue every half second."),
+  ex('pico2-micropython-blink', 'Pico 2 MicroPython blink', 'Raspberry Pi Pico 2', 'pico2-blink', { pico: { micropython: 'blink' } }, "MicroPython on the Pico 2's RISC-V cores: main.py toggles the LED every 250 ms and prints the count. Edit it in the Code tab and press Run — nothing to compile."),
+  ex('pico2-button-irq', 'Pico 2 button interrupt', 'Raspberry Pi Pico 2', 'pico2-button-irq', pico2('button-irq'), 'A pushbutton on GP14 with the internal pull-up; attachInterrupt counts presses and prints them on USB serial — press it.'),
   ex('mega-chaser', 'Mega LED chaser', 'Mega', 'mega-chaser', mega('chaser'), 'Ten LEDs on the Mega’s odd pins D23–D41 light one after another, there and back — one shared resistor, since one LED is lit at a time.'),
   ex('mega-serial-ports', 'Mega serial ports', 'Mega', 'mega-serial-ports', mega('serial-ports'), 'The Mega has four UARTs: Serial1–3 are each wired back to themselves (TX→RX), and Serial reports what every port heard.'),
   ex('mega-analog', 'Mega analog scanner', 'Mega', 'mega-analog', mega('analog-hi'), 'All 16 analog inputs read ten times a second; four potentiometers on A0, A5, A8 and A15 — turn them, or watch the Plotter.'),
@@ -162,9 +172,9 @@ export const EXAMPLES: readonly Example[] = [
 
 // The examples' files, by repo-relative path. Literal patterns (the bundler needs them):
 // projects and sketches as text, AVR firmware (Uno, Nano, Mega) as text, ESP32 images and Pico
-// UF2s as asset URLs.
+// and Pico 2 UF2s as asset URLs.
 const PROJECTS = import.meta.glob(
-  '../../../../fixtures/projects/{blink-led,button-pullup,pwm-fade,traffic-light,simon,debug-demo,analog-pot,logic-demo,lcd-4bit,lcd-i2c,lcd-thermometer,ssd1306-adafruit,oled-clock,seven-seg-mux,bargraph,neopixel,dht22,hcsr04,distance-meter,ds1307,mpu6050,keypad,encoder,servo-sweep,servo-knob,keypad-lock,stepper-28byj48,relay,buzzer,speaker-melody,pcm-playback,mic-level,vu-meter,esp32-blink,esp32-serial,esp32-button,esp32-pwm-fader,esp32-neopixel,esp32-rainbow-ring,esp32-oled-clock,esp32-dac-sine,esp32-mic-level,esp32-i2c,uart-chat,uno-esp32-uart-divider,nano-analog,mega-chaser,mega-serial-ports,mega-analog,tft-demo,esp32-tft-demo,ir-remote,scale,flame-alarm,gas-meter,a4988-stepper,env-gas-fan,env-pir-hallway,env-parking,env-thermostat,pico-blink,pico-analog-read,pico-pwm-fade,pico-i2c-oled,pico-spi-tft,pico-neopixel,pico-pio-square}.json',
+  '../../../../fixtures/projects/{blink-led,button-pullup,pwm-fade,traffic-light,simon,debug-demo,analog-pot,logic-demo,lcd-4bit,lcd-i2c,lcd-thermometer,ssd1306-adafruit,oled-clock,seven-seg-mux,bargraph,neopixel,dht22,hcsr04,distance-meter,ds1307,mpu6050,keypad,encoder,servo-sweep,servo-knob,keypad-lock,stepper-28byj48,relay,buzzer,speaker-melody,pcm-playback,mic-level,vu-meter,esp32-blink,esp32-serial,esp32-button,esp32-pwm-fader,esp32-neopixel,esp32-rainbow-ring,esp32-oled-clock,esp32-dac-sine,esp32-mic-level,esp32-i2c,uart-chat,uno-esp32-uart-divider,nano-analog,mega-chaser,mega-serial-ports,mega-analog,tft-demo,esp32-tft-demo,ir-remote,scale,flame-alarm,gas-meter,a4988-stepper,env-gas-fan,env-pir-hallway,env-parking,env-thermostat,pico-blink,pico-analog-read,pico-pwm-fade,pico-i2c-oled,pico-spi-tft,pico-neopixel,pico-pio-square,pico2-blink,pico2-analog-read,pico2-pwm-fade,pico2-i2c-oled,pico2-spi-tft,pico2-neopixel,pico2-button-irq}.json',
   { import: 'default' },
 ) as Record<string, () => Promise<unknown>>;
 const HEX = import.meta.glob(
@@ -179,6 +189,7 @@ const BIN = import.meta.glob(
   [
     '../../../../fixtures/firmware/esp32/{blink,serial-hello,gpio-input,pwm-fader,neopixel,rainbow-ring,oled-clock,dac-sine,mic-level,i2c-scan,uart-chat,uart-relay,tft-demo}.bin',
     '../../../../fixtures/firmware/pico/{blink,analog-read,pwm-fade,i2c-oled,spi-tft,neopixel,pio-square}.uf2',
+    '../../../../fixtures/firmware/pico2/{blink,analog-read,pwm-fade,i2c-oled,spi-tft,neopixel,button-irq}.uf2',
   ],
   { query: '?url', import: 'default' },
 ) as Record<string, () => Promise<string>>;
@@ -189,6 +200,7 @@ const SKETCHES = import.meta.glob(
     '../../../../fixtures/sketches/mega/{chaser,serial-ports,analog-hi}/*.{ino,h,hpp,c,cpp}',
     '../../../../fixtures/sketches/esp32/{blink,serial-hello,gpio-input,pwm-fader,neopixel,rainbow-ring,oled-clock,dac-sine,mic-level,i2c-scan,uart-chat,uart-relay,tft-demo}/*.{ino,h,hpp,c,cpp}',
     '../../../../fixtures/sketches/pico/{blink,analog-read,pwm-fade,i2c-oled,spi-tft,neopixel,pio-square}/*.{ino,h,hpp,c,cpp}',
+    '../../../../fixtures/sketches/pico2/{blink,analog-read,pwm-fade,i2c-oled,spi-tft,neopixel,button-irq}/*.{ino,h,hpp,c,cpp}',
   ],
   { query: '?raw', import: 'default' },
 ) as Record<string, () => Promise<string>>;

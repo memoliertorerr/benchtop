@@ -12,6 +12,7 @@ const QUIET = [
   'packages/esp32/src/boot/blink.test.ts', // skip-ahead speedup ≥ 1.5×
   'packages/core/src/env/runtime-perf.test.ts', // BT54 the environment's cost per simulated second
   'packages/pcb/src/drc-perf.test.ts', // BT57 DRC on a dense board
+  'apps/web/src/ui/plotter/parse.test.ts', // BT44 1,000 plotter lines in under 2 ms
 ];
 
 export default defineConfig({

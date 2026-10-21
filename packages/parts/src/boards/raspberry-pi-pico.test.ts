@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PICO_PINOUT, raspberryPiPico } from './raspberry-pi-pico.ts';
+import { PICO_PINOUT, raspberryPiPico, raspberryPiPico2 } from './raspberry-pi-pico.ts';
 
 // BT61: the Pico's pin table against its datasheet (pinout and mechanical drawing).
 
@@ -46,5 +46,18 @@ describe('Raspberry Pi Pico board part', () => {
     expect(pin('3V3').volts).toBe(3.3);
     expect(raspberryPiPico.defaults).toEqual({ usbPowered: true });
     expect(raspberryPiPico.buses?.[0]).toHaveLength(8);
+  });
+});
+
+describe('Raspberry Pi Pico 2 board part (BT66)', () => {
+  it('is the Pico with an RP2350: the same footprint, pins, pin map, power and LED', () => {
+    expect(raspberryPiPico2.type).toBe('raspberry-pi-pico-2');
+    expect(raspberryPiPico2.title).toBe('Raspberry Pi Pico 2');
+    expect(raspberryPiPico2.board?.mcu).toBe('rp2350');
+    expect(raspberryPiPico2.size).toEqual(raspberryPiPico.size);
+    expect(raspberryPiPico2.pins).toEqual(raspberryPiPico.pins);
+    expect(raspberryPiPico2.board?.pinMap).toEqual(raspberryPiPico.board?.pinMap);
+    expect(raspberryPiPico2.defaults).toEqual(raspberryPiPico.defaults);
+    expect(raspberryPiPico2.buses).toEqual(raspberryPiPico.buses);
   });
 });

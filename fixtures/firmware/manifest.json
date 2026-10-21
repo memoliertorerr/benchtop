@@ -1251,6 +1251,126 @@
       "source": "b4c39dd2e714f6b087374478aaa7d956a85d4c7f10ac1b868d054490cf2f22a6"
     },
     {
+      "board": "pico2",
+      "name": "analog-read",
+      "fqbn": "rp2040:rp2040:rpipico2:arch=riscv",
+      "file": "pico2/analog-read.uf2",
+      "sha256": "fa5b6289451d95bcc9ba3563bb02c478e67f46aa2971547ef3138d080b4d527b",
+      "bytes": 183296,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {},
+      "source": "cad3bde298ec2fcb72a990bbdc9deb87003275bc7a5791574e56652fafed684d"
+    },
+    {
+      "board": "pico2",
+      "name": "blink",
+      "fqbn": "rp2040:rp2040:rpipico2:arch=riscv",
+      "file": "pico2/blink.uf2",
+      "sha256": "fecb84be8422be7e2f7bd48861e3ab2745afdf3666ee9dd92671208361c6e4e5",
+      "bytes": 182784,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {},
+      "source": "ae6d5f545323ef96be3d2ffee171d99c204280fec85163bde87bcf1ede541cb3"
+    },
+    {
+      "board": "pico2",
+      "name": "button-irq",
+      "fqbn": "rp2040:rp2040:rpipico2:arch=riscv",
+      "file": "pico2/button-irq.uf2",
+      "sha256": "23a8412ba5dee43e7f746f796d5a5e44429004b7932d2c1688005dcd32ea0e93",
+      "bytes": 186368,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {},
+      "source": "6fcb84887d9726e9a29d154b431b97fd04310261c5314be1b077ad3b2b10443e"
+    },
+    {
+      "board": "pico2",
+      "name": "eeprom",
+      "fqbn": "rp2040:rp2040:rpipico2:arch=riscv",
+      "file": "pico2/eeprom.uf2",
+      "sha256": "c5020b37d14c1228c45dbe0e6c8bc7805ae2565b867a2cf0bcc0765aa0827dd5",
+      "bytes": 189952,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {
+        "EEPROM": "1.0"
+      },
+      "source": "dbb0552acac946fdefe3af3dd78a2069a4ef19570418c1b4bbae7762ced538c6"
+    },
+    {
+      "board": "pico2",
+      "name": "i2c-oled",
+      "fqbn": "rp2040:rp2040:rpipico2:arch=riscv",
+      "file": "pico2/i2c-oled.uf2",
+      "sha256": "36f10f00fd5b49642f2292e95c528ad3683a63ce96ed2549df1169c677d02f19",
+      "bytes": 217600,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "1.0",
+        "Wire": "1.0"
+      },
+      "source": "ab962689ff15b594c95705ceeba421ca720ba4d43f196709e24eb33630afffaf"
+    },
+    {
+      "board": "pico2",
+      "name": "mips",
+      "fqbn": "rp2040:rp2040:rpipico2:arch=riscv",
+      "file": "pico2/mips.uf2",
+      "sha256": "57e535fc77db6c3080039c88f69b75f3dc5177793745ce335a5ef95dbb893d3e",
+      "bytes": 187904,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {},
+      "source": "c6740379e29b0a9880869bf431153c253b6d841eb4a2c78371465a6f8b5d67af"
+    },
+    {
+      "board": "pico2",
+      "name": "neopixel",
+      "fqbn": "rp2040:rp2040:rpipico2:arch=riscv",
+      "file": "pico2/neopixel.uf2",
+      "sha256": "92e977e2ea78f60eec5829d3443a4b6e02cc522f49d2f94eabf6b1377ec651ae",
+      "bytes": 186880,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {},
+      "source": "59281d67e4190b05387c7e09f1a55f86546ecfbd8cf0b6f2ac132ea2ee63f2c4"
+    },
+    {
+      "board": "pico2",
+      "name": "pwm-fade",
+      "fqbn": "rp2040:rp2040:rpipico2:arch=riscv",
+      "file": "pico2/pwm-fade.uf2",
+      "sha256": "4320c1042a52d00c0bc1e3b6296b2110e7e9a90682aadbbcd79d1c5bf400d3b3",
+      "bytes": 187904,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {},
+      "source": "8e5b85fdce6958ca3965e56e261204e81b72d282eff1650b3870145344b3faa3"
+    },
+    {
+      "board": "pico2",
+      "name": "serial-hello",
+      "fqbn": "rp2040:rp2040:rpipico2:arch=riscv",
+      "file": "pico2/serial-hello.uf2",
+      "sha256": "ab24d1342d1360bc6017aa60a97346deaec949085b821f5ade45507c0b4c327b",
+      "bytes": 188928,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {},
+      "source": "198d3096b9ea6ae2ae43a3ad24f3a5873147992db8f7c00c497b4ff0edd6563c"
+    },
+    {
+      "board": "pico2",
+      "name": "spi-tft",
+      "fqbn": "rp2040:rp2040:rpipico2:arch=riscv",
+      "file": "pico2/spi-tft.uf2",
+      "sha256": "5a600487ede0d71d8c50222957a5ac7351de1610195282043ed157fbdfda3955",
+      "bytes": 193536,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {
+        "SPI": "1.0"
+      },
+      "source": "c82fe5eef294b246a1272fe165be60e3abdd09260534f03137d4324f0fa618ef"
+    },
+    {
       "board": "uno",
       "name": "a4988-stepper",
       "fqbn": "arduino:avr:uno",

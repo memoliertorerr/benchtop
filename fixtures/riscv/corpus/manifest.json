@@ -1,0 +1,25 @@
+{
+  "objdump": "GNU objdump (GNU Binutils) 2.43.1",
+  "corpora": {
+    "narrow16": {
+      "file": "narrow16.tsv.gz",
+      "rows": 49152,
+      "base": "0x20000000"
+    },
+    "wide32": {
+      "file": "wide32.tsv.gz",
+      "rows": 17546,
+      "base": "0x20000000"
+    },
+    "csr": {
+      "file": "csr.tsv.gz",
+      "rows": 8192,
+      "base": "0x20000000"
+    },
+    "text": {
+      "file": "text.tsv.gz",
+      "rows": 14612,
+      "base": "0x42000000"
+    }
+  }
+}

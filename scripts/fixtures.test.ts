@@ -118,3 +118,35 @@ describe('RP2040 test programs', () => {
     }
   });
 });
+
+describe('RISC-V test programs and decode corpora', () => {
+  const RISCV = join(ROOT, 'fixtures', 'riscv');
+
+  it('every fixtures/riscv/programs/*.S has its committed .bin and .lst; the listing starts at 0x80000000', () => {
+    const dir = join(RISCV, 'programs');
+    const programs = readdirSync(dir).filter((f) => f.endsWith('.S'));
+    expect(programs).toContain('traps.S');
+    for (const source of programs) {
+      const name = source.slice(0, -2);
+      expect(existsSync(join(dir, `${name}.bin`)), name).toBe(true);
+      const listing = readFileSync(join(dir, `${name}.lst`), 'utf8');
+      expect(listing, name).toMatch(/^80000000 <_start>:$/m);
+      expect(listing, name).not.toMatch(/\/Users\//); // no machine paths
+    }
+  });
+
+  it('the corpora match their manifest and stay within 1 MB', () => {
+    const corpus = join(RISCV, 'corpus');
+    const manifest = JSON.parse(readFileSync(join(corpus, 'manifest.json'), 'utf8')) as { objdump: string; corpora: Record<string, { file: string; rows: number; base: string }> };
+    expect(Object.keys(manifest.corpora)).toEqual(['narrow16', 'wide32', 'csr', 'text']);
+    let total = statSync(join(corpus, 'manifest.json')).size;
+    for (const [name, c] of Object.entries(manifest.corpora)) {
+      const rows = gunzipSync(readFileSync(join(corpus, c.file))).toString('utf8').split('\n').filter((l) => l !== '');
+      expect(rows.length, name).toBe(c.rows);
+      for (const row of rows.slice(0, 50)) expect(row, name).toMatch(/^([0-9a-f]{4}|[0-9a-f]{8})(\/\d)?\t\S+(\t.*)?$/);
+      total += statSync(join(corpus, c.file)).size;
+    }
+    expect(manifest.corpora.narrow16.rows).toBe(49152);
+    expect(total).toBeLessThanOrEqual(1024 * 1024);
+  });
+});

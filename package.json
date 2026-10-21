@@ -22,6 +22,7 @@
     "fixtures": "node scripts/build-fixtures.ts",
     "fetch:esp32-rom": "node scripts/fetch-esp32-rom.ts",
     "fetch:micropython": "node scripts/fetch-micropython.ts",
+    "fetch:rp2350-rom": "node scripts/fetch-rp2350-rom.ts",
     "screenshots": "node scripts/screenshots.ts",
     "typecheck": "tsc -p tsconfig.json && tsc -p apps/web/tsconfig.json && tsc -p apps/bridge/tsconfig.json && tsc -p apps/cli/tsconfig.json && tsc -p tsconfig.node.json",
     "test": "vitest run",

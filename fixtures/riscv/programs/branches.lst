@@ -1,0 +1,128 @@
+
+branches.elf:     file format elf32-littleriscv
+
+
+Disassembly of section .text:
+
+80000000 <_start>:
+80000000:	80040137          	lui	sp,0x80040
+80000004:	80020237          	lui	tp,0x80020
+80000008:	80010437          	lui	s0,0x80010
+8000000c:	4004                	lw	s1,0(s0)
+8000000e:	0411                	addi	s0,s0,4 # 80010004 <IN+0x4>
+
+80000010 <pair>:
+80000010:	cca5                	beqz	s1,80000088 <jumps>
+80000012:	4008                	lw	a0,0(s0)
+80000014:	404c                	lw	a1,4(s0)
+80000016:	0421                	addi	s0,s0,8
+80000018:	4285                	li	t0,1
+8000001a:	00b50363          	beq	a0,a1,80000020 <pair+0x10>
+8000001e:	4281                	li	t0,0
+80000020:	00522023          	sw	t0,0(tp) # 80020000 <OUT>
+80000024:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000026:	4285                	li	t0,1
+80000028:	00b51363          	bne	a0,a1,8000002e <pair+0x1e>
+8000002c:	4281                	li	t0,0
+8000002e:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+80000032:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000034:	4285                	li	t0,1
+80000036:	00b54363          	blt	a0,a1,8000003c <pair+0x2c>
+8000003a:	4281                	li	t0,0
+8000003c:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+80000040:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000042:	4285                	li	t0,1
+80000044:	00b55363          	bge	a0,a1,8000004a <pair+0x3a>
+80000048:	4281                	li	t0,0
+8000004a:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+8000004e:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000050:	4285                	li	t0,1
+80000052:	00b56363          	bltu	a0,a1,80000058 <pair+0x48>
+80000056:	4281                	li	t0,0
+80000058:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+8000005c:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+8000005e:	4285                	li	t0,1
+80000060:	00b57363          	bgeu	a0,a1,80000066 <pair+0x56>
+80000064:	4281                	li	t0,0
+80000066:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+8000006a:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+8000006c:	4285                	li	t0,1
+8000006e:	c111                	beqz	a0,80000072 <pair+0x62>
+80000070:	4281                	li	t0,0
+80000072:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+80000076:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000078:	4285                	li	t0,1
+8000007a:	e111                	bnez	a0,8000007e <pair+0x6e>
+8000007c:	4281                	li	t0,0
+8000007e:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+80000082:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000084:	14fd                	addi	s1,s1,-1
+80000086:	b769                	j	80000010 <pair>
+
+80000088 <jumps>:
+80000088:	08c000ef          	jal	80000114 <jal_target>
+
+8000008c <jal_return>:
+8000008c:	00000317          	auipc	t1,0x0
+80000090:	00030313          	mv	t1,t1
+80000094:	406082b3          	sub	t0,ra,t1
+80000098:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+8000009c:	00420213          	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800000a0:	00000317          	auipc	t1,0x0
+800000a4:	07730313          	addi	t1,t1,119 # 80000117 <jalr_target+0x1>
+800000a8:	000300e7          	jalr	t1
+
+800000ac <jalr_return>:
+800000ac:	00000317          	auipc	t1,0x0
+800000b0:	00030313          	mv	t1,t1
+800000b4:	406082b3          	sub	t0,ra,t1
+800000b8:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+800000bc:	00420213          	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800000c0:	01322023          	sw	s3,0(tp) # 0 <MMIO-0x10000000>
+800000c4:	00420213          	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800000c8:	2889                	jal	8000011a <cjal_target>
+
+800000ca <cjal_return>:
+800000ca:	00000317          	auipc	t1,0x0
+800000ce:	00030313          	mv	t1,t1
+800000d2:	406082b3          	sub	t0,ra,t1
+800000d6:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+800000da:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800000dc:	00000797          	auipc	a5,0x0
+800000e0:	04078793          	addi	a5,a5,64 # 8000011c <cjr_target>
+800000e4:	8782                	jr	a5
+
+800000e6 <cjr_back>:
+800000e6:	01322023          	sw	s3,0(tp) # 0 <MMIO-0x10000000>
+800000ea:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+800000ec:	00000797          	auipc	a5,0x0
+800000f0:	03478793          	addi	a5,a5,52 # 80000120 <cjalr_target>
+800000f4:	9782                	jalr	a5
+
+800000f6 <cjalr_return>:
+800000f6:	00000317          	auipc	t1,0x0
+800000fa:	00030313          	mv	t1,t1
+800000fe:	406082b3          	sub	t0,ra,t1
+80000102:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+80000106:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000108:	10000fb7          	lui	t6,0x10000
+8000010c:	4f01                	li	t5,0
+8000010e:	01efa223          	sw	t5,4(t6) # 10000004 <MMIO+0x4>
+80000112:	a001                	j	80000112 <cjalr_return+0x1c>
+
+80000114 <jal_target>:
+80000114:	8082                	ret
+
+80000116 <jalr_target>:
+80000116:	4985                	li	s3,1
+80000118:	8082                	ret
+
+8000011a <cjal_target>:
+8000011a:	8082                	ret
+
+8000011c <cjr_target>:
+8000011c:	4985                	li	s3,1
+8000011e:	b7e1                	j	800000e6 <cjr_back>
+
+80000120 <cjalr_target>:
+80000120:	8082                	ret

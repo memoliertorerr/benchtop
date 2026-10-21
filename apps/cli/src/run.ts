@@ -31,7 +31,7 @@
 
 import { type Bench, MAX_PROBES, type Mcu, type NetState, type PartInput, type Problem, type ProjectDoc, type VisualState } from '@benchtop/core';
 import { envSpecFor, sevenSegmentText } from '@benchtop/parts';
-import { buildBench, type CliIo, loadFirmware, loadProject, parseJson, projectFromJson, readText, resolvePin, UsageError } from './load.ts';
+import { buildBench, cachedRoms, type CliIo, loadFirmware, loadProject, parseJson, projectFromJson, readText, resolvePin, UsageError } from './load.ts';
 
 export { UsageError } from './load.ts';
 
@@ -529,7 +529,7 @@ export function runHeadless(options: RunOptions, io: RunIo): RunReport {
     }
 
     const images = loadFirmware(io, doc, boards, options.firmware);
-    const built = buildBench(doc, images, io.esp32Rom?.(), io.micropython?.());
+    const built = buildBench(doc, images, cachedRoms(io));
     const bench = built.bench;
     mcus.push(...built.mcus);
 

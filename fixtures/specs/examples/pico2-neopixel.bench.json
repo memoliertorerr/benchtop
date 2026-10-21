@@ -1,0 +1,12 @@
+{
+  "name": "example: pico2-neopixel",
+  "project": "../../projects/pico2-neopixel.json",
+  "firmware": {
+    "pico": "../../firmware/pico2/neopixel.uf2"
+  },
+  "expect": [
+    "serial contains \"shown 1\" by 800ms",
+    "pixel strip[0] is #00ff00 at 800ms",
+    "pixel strip[2] is #0000ff at 800ms"
+  ]
+}

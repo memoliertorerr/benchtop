@@ -74,6 +74,11 @@ export const FIXTURE_BOARDS: Readonly<Record<string, FixtureBoard>> = {
     fqbn: 'rp2040:rp2040:rpipico',
     outputs: [{ from: 'uf2', ext: 'uf2' }],
   },
+  // BT65: the Raspberry Pi Pico 2's RP2350 on its RISC-V cores (arduino-pico 6.2.0, arch=riscv).
+  pico2: {
+    fqbn: 'rp2040:rp2040:rpipico2:arch=riscv',
+    outputs: [{ from: 'uf2', ext: 'uf2' }],
+  },
 };
 
 /** Every committed output of one sketch, as paths under fixtures/firmware/. */

@@ -19,7 +19,9 @@
  * A full run (no --only) then builds the Xtensa test programs (scripts/xtensa-programs.ts) and
  * the decode corpora (scripts/xtensa-corpus.ts, which reads serial-hello's ELF from its build
  * folder); `--only xtensa/<name>` or `--only xtensa/corpus` builds just those. Likewise the
- * RP2040 test programs (BT60: scripts/rp2040-programs.ts, `--only rp2040/<name>`).
+ * RP2040 test programs (BT60: scripts/rp2040-programs.ts, `--only rp2040/<name>`), and the
+ * RISC-V test programs and corpora (BT64: scripts/riscv-programs.ts and riscv-corpus.ts, with
+ * the local RISC-V toolchain): `--only riscv/<name>` or `--only riscv/corpus`.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -31,6 +33,8 @@ import { fileURLToPath } from 'node:url';
 import { findSection, parseElf32 } from '../packages/core/src/firmware/elf.ts';
 import { arduinoCliCandidates, findArduinoCli, findAvrTool, findXtensaTool, runArduinoCli } from './arduino-cli.ts';
 import { ADDR2LINE_ORACLES, FIXTURE_BOARDS, type Manifest, type ManifestOutput, sketchSourceSha256 } from './fixture-boards.ts';
+import { writeRiscvCorpora } from './riscv-corpus.ts';
+import { buildRiscvPrograms } from './riscv-programs.ts';
 import { writeCorpora } from './xtensa-corpus.ts';
 import { buildPrograms } from './xtensa-programs.ts';
 import { buildRp2040Programs } from './rp2040-programs.ts';
@@ -55,7 +59,7 @@ async function main(): Promise<number> {
   const known = new Set(['--check', '--only', ...(only === undefined ? [] : [only])]);
   const unknown = args.filter((a) => !known.has(a));
   if (unknown.length > 0 || (onlyIndex >= 0 && only === undefined)) {
-    console.error(`usage: node scripts/build-fixtures.ts [--only <board>/<name> | --only xtensa/<name> | --only xtensa/corpus | --only rp2040/<name>] [--check]`);
+    console.error(`usage: node scripts/build-fixtures.ts [--only <board>/<name> | --only xtensa/<name> | --only xtensa/corpus | --only rp2040/<name> | --only riscv/<name> | --only riscv/corpus] [--check]`);
     return 1;
   }
 
@@ -67,6 +71,12 @@ async function main(): Promise<number> {
   }
   // RP2040 test programs (BT60): the arduino-pico core's Arm toolchain only.
   if (only?.startsWith('rp2040/')) return buildRp2040Programs(check, only.slice('rp2040/'.length)) === 0 ? 0 : 1;
+  // RISC-V test programs and decode corpora (BT64): the local RISC-V toolchain only.
+  if (only?.startsWith('riscv/')) {
+    const target = only.slice('riscv/'.length);
+    const mismatches = target === 'corpus' ? writeRiscvCorpora(check) : buildRiscvPrograms(check, target);
+    return mismatches === 0 ? 0 : 1;
+  }
 
   const cli = findArduinoCli();
   if (cli === undefined) {
@@ -191,7 +201,7 @@ async function main(): Promise<number> {
       if (!same) mismatches++;
       console.info(`${same ? 'same   ' : 'CHANGED'} ${output.sha256}  ${output.file}`);
     }
-    if (only === undefined) mismatches += buildPrograms(true) + writeCorpora(true) + buildRp2040Programs(true);
+    if (only === undefined) mismatches += buildPrograms(true) + writeCorpora(true) + buildRp2040Programs(true) + buildRiscvPrograms(true) + writeRiscvCorpora(true);
     console.info(mismatches === 0 ? 'check: every output is byte-identical to the manifest' : `check: ${mismatches} output(s) differ`);
     return mismatches === 0 ? 0 : 1;
   }
@@ -207,6 +217,8 @@ async function main(): Promise<number> {
     buildPrograms(false);
     writeCorpora(false);
     buildRp2040Programs(false);
+    buildRiscvPrograms(false);
+    writeRiscvCorpora(false);
   }
   console.info(`wrote ${MANIFEST.slice(ROOT.length + 1)}; fixtures/firmware is ${formatBytes(dirSize(FIRMWARE))}`);
   return 0;

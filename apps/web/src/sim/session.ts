@@ -76,6 +76,10 @@ export interface SimSessionDeps {
   esp32Rom?(): Uint8Array | undefined;
   /** The Pico's stock MicroPython UF2 (BT63); undefined: MicroPython sketches report it missing. */
   micropython?(): Uint8Array | undefined;
+  /** The RP2350 bootrom (BT66); undefined: Pico 2 boards report it missing. */
+  rp2350Rom?(): Uint8Array | undefined;
+  /** The Pico 2's (RISC-V) MicroPython UF2 (BT67). */
+  micropythonPico2?(): Uint8Array | undefined;
   /**
    * The UI can read shared memory (the worker is cross-origin isolated): visual state goes
    * through a frame ring (BT40) instead of `frame` messages.
@@ -283,7 +287,7 @@ export class SimSession {
     this.latest.clear();
     this.serial.clear();
     this.cycleMarks.clear();
-    this.env = createBenchEnv(this.deps.esp32Rom?.(), this.deps.micropython?.());
+    this.env = createBenchEnv({ esp32Rom: this.deps.esp32Rom?.(), micropython: this.deps.micropython?.(), rp2350Rom: this.deps.rp2350Rom?.(), micropythonPico2: this.deps.micropythonPico2?.() });
     // assembleBench resets the bench, which invalidates every part: the first frame carries
     // every view's state and nothing keeps showing what a previous bench left on screen.
     const project = validateProject(doc);
