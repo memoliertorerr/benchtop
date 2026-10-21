@@ -14,6 +14,7 @@ import { arduinoMega } from './boards/arduino-mega.ts';
 import { arduinoNano } from './boards/arduino-nano.ts';
 import { arduinoUno } from './boards/arduino-uno.ts';
 import { esp32DevkitV1 } from './boards/esp32-devkit-v1.ts';
+import { raspberryPiPico } from './boards/raspberry-pi-pico.ts';
 import { buzzer } from './actuators/buzzer.ts';
 import { neopixelMatrix, neopixelRing, neopixelStrip } from './actuators/neopixel.ts';
 import { relayKs2e } from './actuators/relay.ts';
@@ -53,6 +54,7 @@ const ALL: readonly PartDefinition[] = [
   arduinoNano,
   arduinoMega,
   esp32DevkitV1,
+  raspberryPiPico,
   ...breadboards,
   resistor,
   led,

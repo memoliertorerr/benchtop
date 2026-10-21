@@ -2,7 +2,8 @@
   "arduinoCli": "1.5.1",
   "cores": {
     "arduino:avr": "1.8.7",
-    "esp32:esp32": "2.0.17"
+    "esp32:esp32": "2.0.17",
+    "rp2040:rp2040": "6.2.0"
   },
   "libraries": {
     "Adafruit BusIO": "1.17.4",
@@ -1117,6 +1118,137 @@
       "core": "arduino:avr@1.8.7",
       "libraries": {},
       "source": "aa774f7a336c04708b821c31470a5fa2c4265020cb21cf904de63d3a4756c747"
+    },
+    {
+      "board": "pico",
+      "name": "analog-read",
+      "fqbn": "rp2040:rp2040:rpipico",
+      "file": "pico/analog-read.uf2",
+      "sha256": "fd429693e7bc9a928507fd4dcebbcd495ec1de002f216c4d3e3ad5ebdf5c7a6e",
+      "bytes": 142848,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {},
+      "source": "d9d169cc3a95df96b1f956078484d917e742de01f725f6f88d36c51647f1994d"
+    },
+    {
+      "board": "pico",
+      "name": "blink",
+      "fqbn": "rp2040:rp2040:rpipico",
+      "file": "pico/blink.uf2",
+      "sha256": "a405c7196ac123fbe3137bc9b60f97b0d805de3f5e1c1b000f772d511d19ac2d",
+      "bytes": 142336,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {},
+      "source": "f329c2fc05fc65e0007e47c7c448873f7543a831aad94a5ceb483872eea6b004"
+    },
+    {
+      "board": "pico",
+      "name": "button-irq",
+      "fqbn": "rp2040:rp2040:rpipico",
+      "file": "pico/button-irq.uf2",
+      "sha256": "edd8748e4fc20cb014b6155e332820789e3ed285b52bcc4ffcdc1366d63ba90b",
+      "bytes": 144384,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {},
+      "source": "0a476bfb00e153248f361ccb8894544b7813630c777f288ecd476d40cb831f3f"
+    },
+    {
+      "board": "pico",
+      "name": "float-math",
+      "fqbn": "rp2040:rp2040:rpipico",
+      "file": "pico/float-math.uf2",
+      "sha256": "48a3b1f121fca95223c6654a704b5a48cd071154153a9d89f1ada7df448cf5ae",
+      "bytes": 155136,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {},
+      "source": "21c9c999f53fb2bef2a200df9b2d89ab82e8884f9f7eed3b3add10af5420d3a0"
+    },
+    {
+      "board": "pico",
+      "name": "i2c-oled",
+      "fqbn": "rp2040:rp2040:rpipico",
+      "file": "pico/i2c-oled.uf2",
+      "sha256": "97735ed2bd0f051e2a204d0f190de72aa2fdaee3cda7a58f0d9f70d6dc78385e",
+      "bytes": 174080,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "1.0",
+        "Wire": "1.0"
+      },
+      "source": "1fb03864be3bc713c4032e05d9d1e5dcbb52cf26e6d92b9cdc405fe209265055"
+    },
+    {
+      "board": "pico",
+      "name": "neopixel",
+      "fqbn": "rp2040:rp2040:rpipico",
+      "file": "pico/neopixel.uf2",
+      "sha256": "a3639248540a69688b595bb33fb2e5451a6f98e05680179f3c2b0f9e05d3304f",
+      "bytes": 144384,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {},
+      "source": "0b180f4aad1950b33e4cde75e995a43f5ee19837d3f2968ca081a1f45077db7f"
+    },
+    {
+      "board": "pico",
+      "name": "pio-square",
+      "fqbn": "rp2040:rp2040:rpipico",
+      "file": "pico/pio-square.uf2",
+      "sha256": "fa16b11acedca95140a3e5757ca78a0c1d48cf92802fa6e00cb7911e5ad0f872",
+      "bytes": 143360,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {},
+      "source": "5192d3420c28a0f8f393be08658dc0f812a8263183e12c8cea7f69b277f505b1"
+    },
+    {
+      "board": "pico",
+      "name": "pwm-fade",
+      "fqbn": "rp2040:rp2040:rpipico",
+      "file": "pico/pwm-fade.uf2",
+      "sha256": "826eef75f1b2e104a372bca523311cfafb2b17bb3dca65988d294f3873a5ae51",
+      "bytes": 143360,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {},
+      "source": "91f39a076f1c8902d01407206bac8e775ab38ff42b47851d98d0c9232d86aa14"
+    },
+    {
+      "board": "pico",
+      "name": "serial-hello",
+      "fqbn": "rp2040:rp2040:rpipico",
+      "file": "pico/serial-hello.uf2",
+      "sha256": "2ffdde6417fc56c1ed86b8010d72c709f01acced569d03435be42416dbdf7af7",
+      "bytes": 147456,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {},
+      "source": "ab608b3f367f921bcd6a87af6fe1de565001874263385a7b087aaa5440c9246e"
+    },
+    {
+      "board": "pico",
+      "name": "spi-tft-dma",
+      "fqbn": "rp2040:rp2040:rpipico",
+      "file": "pico/spi-tft-dma.uf2",
+      "sha256": "37d1035d4f3b7b26f998416275b5980a1d26513d52446ab16086933ee8483a7f",
+      "bytes": 153088,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {
+        "SPI": "1.0"
+      },
+      "source": "01306002671b3dfbca17290b8ec5600f6112d4aefeec742fbc9dc4400a0b68b4"
+    },
+    {
+      "board": "pico",
+      "name": "spi-tft",
+      "fqbn": "rp2040:rp2040:rpipico",
+      "file": "pico/spi-tft.uf2",
+      "sha256": "a05e6467c77bf9a2feb35a70d7e6c0269ee6fe6b20775ff322a5510ef168cef7",
+      "bytes": 152064,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {
+        "SPI": "1.0"
+      },
+      "source": "b4c39dd2e714f6b087374478aaa7d956a85d4c7f10ac1b868d054490cf2f22a6"
     },
     {
       "board": "uno",

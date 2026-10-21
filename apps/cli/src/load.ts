@@ -7,7 +7,8 @@
 
 import { avrMcuFactory } from '@benchtop/avr';
 import { esp32McuFactory } from '@benchtop/esp32';
-import { assembleBench, type Bench, type BenchEnv, type FirmwareImage, type Mcu, type ProjectDoc, validateProject } from '@benchtop/core';
+import { rp2040McuFactory } from '@benchtop/rp2040';
+import { assembleBench, type Bench, type BenchEnv, type FirmwareImage, isMicroPythonFqbn, type Mcu, type ProjectDoc, validateProject } from '@benchtop/core';
 import { analogSpecFor, benchEnvParts, envSpecFor } from '@benchtop/parts';
 
 export class UsageError extends Error {
@@ -24,6 +25,8 @@ export interface CliIo {
   now(): number;
   /** The ESP32 ROM ELF (BT34), if this machine has it; ESP32 boards report it missing otherwise. */
   esp32Rom?(): Uint8Array | undefined;
+  /** The stock MicroPython UF2 for the Pico (BT63), if cached; MicroPython sketches report it missing otherwise. */
+  micropython?(): Uint8Array | undefined;
 }
 
 export function readText(io: CliIo, path: string, what: string): string {
@@ -54,13 +57,18 @@ export function projectFromJson(json: unknown): { doc: ProjectDoc; boards: strin
   return { doc, boards };
 }
 
-/** The firmware image a file's extension says it is. */
+/**
+ * The firmware image a file's extension says it is. A `.py` (BT63) is a one-file MicroPython
+ * sketch: it runs as main.py on the board's stock interpreter.
+ */
 function firmwareImage(path: string, bytes: Uint8Array): FirmwareImage {
   const lower = path.toLowerCase();
   if (lower.endsWith('.hex')) return { format: 'hex', text: new TextDecoder().decode(bytes) };
   if (lower.endsWith('.elf')) return { format: 'elf', bytes };
   if (lower.endsWith('.bin')) return { format: 'esp32-bin', app: bytes };
-  throw new UsageError(`${path}: firmware must be .hex, .elf or .bin`);
+  if (lower.endsWith('.uf2')) return { format: 'uf2', bytes };
+  if (lower.endsWith('.py')) return { format: 'micropython', files: { 'main.py': new TextDecoder().decode(bytes) }, main: 'main.py' };
+  throw new UsageError(`${path}: firmware must be .hex, .elf, .bin, .uf2 or a MicroPython .py`);
 }
 
 /**
@@ -83,6 +91,10 @@ export function loadFirmware(io: CliIo, doc: ProjectDoc, boards: readonly string
   for (const [board, ref] of Object.entries(doc.firmware)) {
     if (images[board] !== undefined) continue;
     if (ref.kind === 'sketch') throw new UsageError(`board "${board}" names sketch ${ref.path}: compile it and pass --firmware ${board}=<file>`);
+    if (ref.kind === 'inline' && isMicroPythonFqbn(ref.fqbn)) {
+      images[board] = { format: 'micropython', files: ref.files, main: ref.main }; // nothing to compile
+      continue;
+    }
     if (ref.kind === 'inline') throw new UsageError(`board "${board}" holds its sketch (${ref.main}) in the project: compile it in the app or with arduino-cli and pass --firmware ${board}=<file>`);
     throw new UsageError(`board "${board}" names the dropped file ${ref.name}: pass --firmware ${board}=<path>`);
   }
@@ -90,13 +102,13 @@ export function loadFirmware(io: CliIo, doc: ProjectDoc, boards: readonly string
 }
 
 /** The bench, reset, with the MCUs it created (for the simulated clock rate). */
-export function buildBench(doc: ProjectDoc, images: Readonly<Record<string, FirmwareImage>>, esp32Rom?: Uint8Array): { bench: Bench; mcus: Mcu[] } {
+export function buildBench(doc: ProjectDoc, images: Readonly<Record<string, FirmwareImage>>, esp32Rom?: Uint8Array, micropython?: Uint8Array): { bench: Bench; mcus: Mcu[] } {
   const mcus: Mcu[] = [];
   const esp32 = esp32McuFactory(esp32Rom);
   const env: BenchEnv = {
     part: benchEnvParts,
     createMcu(board, partId, report) {
-      const mcu = avrMcuFactory(board) ?? esp32(board, partId, report);
+      const mcu = avrMcuFactory(board) ?? esp32(board, partId, report) ?? rp2040McuFactory(board, partId, report, micropython);
       if (mcu !== undefined) mcus.push(mcu);
       return mcu;
     },

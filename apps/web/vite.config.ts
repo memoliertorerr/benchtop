@@ -1,6 +1,7 @@
 import { createReadStream, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
+import { MICROPYTHON_CACHE_DIR, MICROPYTHON_PICO } from '../../packages/rp2040/src/micropython-manifest.ts';
 import { type BundleEntry, precacheScript, shellFiles } from './src/offline/shell.ts';
 
 // Cross-origin isolation lets the simulation worker share memory with the UI thread
@@ -39,6 +40,31 @@ function esp32Rom(): Plugin {
 }
 
 /**
+ * Dev only (BT63): the worker fetches the Pico's stock MicroPython UF2 from /micropython/,
+ * served from the git-ignored .cache/micropython that `npm run fetch:micropython` fills — like
+ * the ESP32 ROM, never part of the build; a missing file is a 404 MicroPython sketches report.
+ */
+function micropython(): Plugin {
+  const file = resolve(repoRoot, MICROPYTHON_CACHE_DIR, MICROPYTHON_PICO.name);
+  return {
+    name: 'benchtop-micropython',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use(`/micropython/${MICROPYTHON_PICO.name}`, (_req, res) => {
+        if (!existsSync(file)) {
+          res.statusCode = 404;
+          res.end('MicroPython not installed: run npm run fetch:micropython');
+          return;
+        }
+        res.setHeader('Content-Type', 'application/octet-stream');
+        res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+        createReadStream(file).pipe(res);
+      });
+    },
+  };
+}
+
+/**
  * Build only (BT40): writes /sw-precache.js, the app shell the service worker (public/sw.js)
  * precaches — computed from the final bundle, so it runs after Vite emits the worker.
  */
@@ -58,7 +84,7 @@ export default defineConfig({
   oxc: {
     jsx: { runtime: 'automatic', importSource: 'preact' },
   },
-  plugins: [esp32Rom(), appShell()],
+  plugins: [esp32Rom(), micropython(), appShell()],
   worker: { format: 'es' },
   build: { target: 'es2023' },
   server: {

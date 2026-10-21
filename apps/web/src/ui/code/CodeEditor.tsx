@@ -11,8 +11,8 @@
  */
 
 import { useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { type Edit, find, indent, lineOf, newline } from './edit-ops.ts';
-import { highlight } from './tokenize.ts';
+import { type Edit, find, INDENT, indent, lineOf, newline, PY_INDENT } from './edit-ops.ts';
+import { type CodeLanguage, highlight } from './tokenize.ts';
 
 /** px per line and the text's top padding — kept in step with the CSS (.code-scroll). */
 const LINE = 18;
@@ -34,9 +34,11 @@ export interface CodeEditorProps {
   reveal?: { line: number; nonce: number } | undefined;
   /** Names the textarea for assistive tech (the file name). */
   label: string;
+  /** BT63: how the text is colored and indented (default Arduino C++). */
+  language?: CodeLanguage;
 }
 
-export function CodeEditor({ text, onText, onSave, onCompile, marks, reveal, label }: CodeEditorProps) {
+export function CodeEditor({ text, onText, onSave, onCompile, marks, reveal, label, language = 'cpp' }: CodeEditorProps) {
   const area = useRef<HTMLTextAreaElement>(null);
   const pre = useRef<HTMLPreElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
@@ -47,10 +49,10 @@ export function CodeEditor({ text, onText, onSave, onCompile, marks, reveal, lab
 
   // The highlighted copy is written as HTML directly: no virtual DOM for thousands of spans.
   useLayoutEffect(() => {
-    if (pre.current !== null) pre.current.innerHTML = highlight(text);
+    if (pre.current !== null) pre.current.innerHTML = highlight(text, language);
     const el = area.current;
     if (el !== null && el.value !== text) el.value = text; // a file switch, an undo of the document
-  }, [text]);
+  }, [text, language]);
 
   const lines = useMemo(() => text.split('\n').length, [text]);
   const numbers = useMemo(() => Array.from({ length: lines }, (_, i) => String(i + 1)).join('\n'), [lines]);
@@ -104,13 +106,13 @@ export function CodeEditor({ text, onText, onSave, onCompile, marks, reveal, lab
     const mod = event.metaKey || event.ctrlKey;
     if (event.key === 'Tab' && !mod && !event.altKey) {
       event.preventDefault();
-      apply(indent(el.value, el.selectionStart, el.selectionEnd, event.shiftKey));
+      apply(indent(el.value, el.selectionStart, el.selectionEnd, event.shiftKey, language === 'python' ? PY_INDENT : INDENT));
     } else if (event.key === 'Enter' && mod) {
       event.preventDefault();
       onCompile();
     } else if (event.key === 'Enter' && !event.shiftKey && !event.altKey) {
       event.preventDefault();
-      apply(newline(el.value, el.selectionStart, el.selectionEnd));
+      apply(newline(el.value, el.selectionStart, el.selectionEnd, language === 'python'));
     } else if (mod && event.key.toLowerCase() === 's') {
       event.preventDefault();
       onSave();

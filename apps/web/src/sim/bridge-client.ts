@@ -24,8 +24,8 @@ export interface BridgeCompileResult {
   diagnostics: BridgeDiagnostic[];
   stdout: string;
   stderr: string;
-  /** hex is text; elf, bin and partitions are base64. */
-  artifacts: { hex?: string; elf?: string; bin?: string; partitions?: string };
+  /** hex is text; elf, bin, partitions and uf2 are base64. */
+  artifacts: { hex?: string; elf?: string; bin?: string; partitions?: string; uf2?: string };
   error?: string;
 }
 

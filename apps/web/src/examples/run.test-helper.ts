@@ -1,18 +1,20 @@
 /**
- * Runs a gallery example in Node (BT43): its project and every board's committed firmware, on
+ * Runs a gallery example in Node (BT43): its project and every board's committed firmware (or,
+ * BT63, its MicroPython sketch on the cached stock UF2), on
  * the worker's bench environment with the analog layer, as the app opens it. A check drives the
  * run — `runTo`, inputs, serial — and reads what happened: serial text per board, each part's
  * latest visual state and its history, pin states.
  */
 
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { assembleBench, type Bench, type FirmwareImage, NS_PER_MS, type PartInput, parseProject, type VisualState } from '@benchtop/core';
 import { analogSpecFor, applyTftUpdate, envSpecFor, sevenSegmentText as decodeSevenSegment, TFT_PACKED, TFT_WIDTH, unpackPixel } from '@benchtop/parts';
 import { REPO_ROOT } from '../../../../packages/core/src/firmware/fixtures.test-helper.ts';
 import { loadCachedRom } from '../../../../packages/esp32/src/test-support/rom.test-helper.ts';
+import { cachedMicroPython } from '../../../../packages/rp2040/src/micropython.test-helper.ts';
 import { createBenchEnv } from '../sim/env.ts';
-import type { Example } from './manifest.ts';
+import type { Example, ExampleBoard } from './manifest.ts';
 
 export interface ExampleRun {
   bench: Bench;
@@ -33,9 +35,17 @@ export interface ExampleRun {
   listen(part: string, hz: number, ms: number): void;
 }
 
-function image(firmware: string): FirmwareImage {
+function image(board: ExampleBoard): FirmwareImage {
+  if ('micropython' in board) {
+    // BT63: the sketch folder's .py files, main.py runs.
+    const dir = join(REPO_ROOT, 'fixtures', 'micropython', board.micropython);
+    const files = Object.fromEntries(readdirSync(dir).filter((n) => n.endsWith('.py')).map((n) => [n, readFileSync(join(dir, n), 'utf8')]));
+    return { format: 'micropython', files, main: 'main.py' };
+  }
+  const firmware = board.firmware;
   const path = join(REPO_ROOT, 'fixtures', 'firmware', firmware);
   if (firmware.endsWith('.hex')) return { format: 'hex', text: readFileSync(path, 'utf8') };
+  if (firmware.endsWith('.uf2')) return { format: 'uf2', bytes: new Uint8Array(readFileSync(path)) };
   return { format: 'esp32-bin', app: new Uint8Array(readFileSync(path)), partitions: new Uint8Array(readFileSync(path.replace(/\.bin$/, '.partitions.bin'))) };
 }
 
@@ -43,9 +53,11 @@ export function runExample(example: Example): ExampleRun {
   const parsed = parseProject(JSON.parse(readFileSync(join(REPO_ROOT, 'fixtures', 'projects', `${example.project}.json`), 'utf8')));
   if (!parsed.ok) throw new Error(`${example.id}: ${JSON.stringify(parsed.errors[0])}`);
   const images: Record<string, FirmwareImage> = {};
-  for (const [board, files] of Object.entries(example.boards)) images[board] = image(files.firmware);
-  const rom = Object.values(example.boards).some((b) => b.firmware.startsWith('esp32/')) ? loadCachedRom() : undefined;
-  const bench = assembleBench(parsed.doc, createBenchEnv(rom), images, { analogSpecFor, envSpecFor });
+  for (const [board, files] of Object.entries(example.boards)) images[board] = image(files);
+  const boards = Object.values(example.boards);
+  const rom = boards.some((b) => 'firmware' in b && b.firmware.startsWith('esp32/')) ? loadCachedRom() : undefined;
+  const micropython = boards.some((b) => 'micropython' in b) ? cachedMicroPython() : undefined;
+  const bench = assembleBench(parsed.doc, createBenchEnv(rom, micropython), images, { analogSpecFor, envSpecFor });
   const text: Record<string, string> = {};
   for (const board of Object.keys(example.boards)) {
     text[board] = '';

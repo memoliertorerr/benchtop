@@ -1,0 +1,846 @@
+/**
+ * The RP2040 `Mcu` (BT60) over rp2040js 1.4.0 (MIT, Wokwi): its Cortex-M0+ core 0 and
+ * peripherals, with Benchtop's own bootrom (bootrom/), time base (clock.ts), pins, UARTs, USB
+ * serial, I2C and SPI on the bench contracts. Core 1 isn't simulated (Later).
+ *
+ * Time: `cycles` count a 125 MHz reference clock (8 ns each) whatever clk_sys the firmware
+ * programs; an instruction takes rp2040js's cycle count at clk_sys. While the core waits
+ * (WFI/WFE) the loop skips to the next alarm, or to the target.
+ *
+ * Boot (what our bootrom leaves, in place of the real boot sequence): reset runs the ROM's reset
+ * stub, which boots directly — for a flash image, VTOR = 0x10000100 (the vector table after the
+ * 256-byte second stage, which isn't run: rp2040js serves XIP reads without an SSI setup) and SP
+ * and PC from that table; for a RAM-only UF2, PC = its lowest address and SP = 0x20042000 (the
+ * datasheet's §2.8.4.2: a RAM binary is entered at its start). Clocks are as rp2040js resets
+ * them (clk_sys 125 MHz); the SDK's runtime init programs them anyway.
+ *
+ * Firmware: UF2 (family RP2040; flash 0x10000000–0x10FFFFFF, RAM 0x20000000–0x20041FFF) or ELF
+ * (PT_LOAD segments at their physical addresses in flash or RAM). Flash keeps what the firmware
+ * programs across resets, as on the board. A MicroPython sketch (BT63) runs on the stock
+ * interpreter UF2 the options carry, put on the board over USB serial at every reset
+ * (micropython.ts).
+ */
+
+import type { FirmwareImage, I2cController, I2cDevice, Level, Mcu, McuPin, NetState, PinMode, Problem, RunResult, SpiController, SpiDevice, UartPort } from '@benchtop/core';
+import { describeFirmwareFormat, parseElf32 } from '@benchtop/core';
+import { type GPIOPin, I2CMode, RP2040, USBCDC } from 'rp2040js';
+import { runRomCall } from './bootrom/handlers.ts';
+import { buildBootrom, ROM_SIZE } from './bootrom/layout.ts';
+import { Rp2040Clock } from './clock.ts';
+import { CODE_MICROPYTHON_INSTALL, CODE_MICROPYTHON_MISSING, MICROPYTHON_MISSING_MESSAGE, MicroPythonInstaller, type MicroPythonSketch } from './micropython.ts';
+import { parseUf2, placeUf2, UF2_FAMILY } from './uf2.ts';
+
+/** One PIO state machine (rp2040js exports the class only through its PIO block). */
+type PioMachine = RP2040['pio'][number]['machines'][number];
+
+export const RP2040_CLOCK_HZ = 125_000_000;
+const NANOS_PER_CYCLE = 1e9 / RP2040_CLOCK_HZ;
+/** How often a MicroPython install's timeouts and REPL pokes are checked (simulated ns). */
+const INSTALL_TICK_NANOS = 50_000_000;
+const FLASH_BASE = 0x10000000;
+const FLASH_SIZE = 16 * 1024 * 1024;
+const SRAM_BASE = 0x20000000;
+const SRAM_SIZE = 264 * 1024;
+const BOOT_STACK = 0x20042000;
+/** GPIO input thresholds at IOVDD 3.3 V (datasheet §5.5.3: VIH ≥ 2.0 V, VIL ≤ 0.8 V); between them the level holds. */
+const VIH = 2.0;
+const VIL = 0.8;
+const ADC_VREF = 3.3;
+/** The temperature sensor's ADC input at 27 °C (datasheet §4.9.5: 0.706 V). */
+const TEMPERATURE_VOLTS = 0.706;
+
+// GPIO functions (datasheet §2.19.2).
+const F_SPI = 1;
+const F_UART = 2;
+const F_I2C = 3;
+const F_PWM = 4;
+const F_SIO = 5;
+const F_PIO0 = 6;
+const F_PIO1 = 7;
+const F_NULL = 0x1f;
+
+const bootrom = buildBootrom();
+
+/** The loaded image: what goes into flash and RAM, and where execution starts. */
+interface LoadedImage {
+  flash: { address: number; data: Uint8Array }[];
+  sram: { address: number; data: Uint8Array }[];
+  /** Flash binary: undefined (vector table at 0x10000100); RAM binary: its lowest address. */
+  ramEntry: number | undefined;
+}
+
+class Rp2040Pin implements McuPin {
+  readonly id: string;
+  readonly index: number;
+  private readonly mcu: Rp2040Mcu;
+  readonly listeners: (() => void)[] = [];
+  /** The last level applied (the Schmitt trigger's state). */
+  inputLevel = false;
+  volts = 0;
+  constructor(mcu: Rp2040Mcu, index: number) {
+    this.mcu = mcu;
+    this.index = index;
+    this.id = `GPIO${index}`;
+  }
+
+  private get gpio(): GPIOPin {
+    return this.mcu.rp.gpio[this.index];
+  }
+
+  mode(): PinMode {
+    const g = this.gpio;
+    const fn = g.functionSelect;
+    if (fn === F_SIO || fn === F_PWM || fn === F_PIO0 || fn === F_PIO1) {
+      if (g.outputEnable) return fn === F_SIO ? 'output' : 'peripheral';
+    } else if (fn === F_UART) {
+      const role = this.index & 3; // TX, RX, CTS, RTS
+      if (role === 0 || role === 3) return 'peripheral';
+    } else if (fn === F_SPI) {
+      if ((this.index & 3) !== 0) return 'peripheral'; // CSn, SCK, TX drive; RX listens
+    } else if (fn === F_NULL && this.index >= 26 && !g.inputEnable) return 'analog';
+    if (g.pullupEnabled && g.pulldownEnabled) return 'input';
+    if (g.pullupEnabled) return 'input-pullup';
+    if (g.pulldownEnabled) return 'input-pulldown';
+    return 'input';
+  }
+
+  outputLevel(): Level {
+    const g = this.gpio;
+    const fn = g.functionSelect;
+    if (fn === F_UART) return 1; // TX/RTS idle high (bytes travel at byte level)
+    if (fn === F_SPI) return (this.index & 3) === 1 ? 1 : 0; // CSn high, SCK/TX low between bytes
+    return g.outputValue ? 1 : 0;
+  }
+
+  setInput(state: NetState): void {
+    this.volts = state.volts;
+    let level = this.inputLevel;
+    if (state.level === null) level = false;
+    else if (state.volts >= VIH) level = true;
+    else if (state.volts <= VIL) level = false;
+    this.inputLevel = level;
+    this.apply();
+  }
+
+  /** Pushes the input level and, on GPIO26–29, the ADC input to the current chip. */
+  apply(): void {
+    this.gpio.setInputValue(this.inputLevel);
+    if (this.index >= 26) {
+      const code = Math.round((Math.max(0, Math.min(ADC_VREF, this.volts)) / ADC_VREF) * 4095);
+      this.mcu.rp.adc.channelValues[this.index - 26] = code;
+    }
+  }
+
+  onOutputChange(listener: () => void): void {
+    this.listeners.push(listener);
+  }
+
+  fire(): void {
+    for (const listener of this.listeners) listener();
+  }
+}
+
+/** UART0/UART1 as a bench UartPort; bytes the bench sends reach RX at the configured baud. */
+class Rp2040Uart implements UartPort {
+  private readonly mcu: Rp2040Mcu;
+  readonly index: number;
+  readonly listeners: ((byte: number) => void)[] = [];
+  private readonly queue: number[] = [];
+  private alarm: { schedule(n: number): void; cancel(): void } | null = null;
+  constructor(mcu: Rp2040Mcu, index: number) {
+    this.mcu = mcu;
+    this.index = index;
+  }
+
+  /** Wires the current chip's UART (after every reset). */
+  wire(): void {
+    const uart = this.mcu.rp.uart[this.index];
+    uart.onByte = (byte) => {
+      for (const listener of this.listeners) listener(byte);
+    };
+    this.queue.length = 0;
+    this.alarm = this.mcu.clock.createAlarm(() => this.deliver());
+  }
+
+  onTransmit(listener: (byte: number) => void): void {
+    this.listeners.push(listener);
+  }
+
+  receive(bytes: Uint8Array): void {
+    const idle = this.queue.length === 0;
+    for (const b of bytes) this.queue.push(b);
+    if (idle && this.queue.length > 0) this.alarm?.schedule(this.byteNanos());
+  }
+
+  private byteNanos(): number {
+    const baud = this.mcu.rp.uart[this.index].baudRate;
+    return baud > 0 && Number.isFinite(baud) ? 10e9 / baud : 86_806; // 10 bits; 115200 when unset
+  }
+
+  private deliver(): void {
+    const byte = this.queue.shift();
+    if (byte === undefined) return;
+    this.mcu.rp.uart[this.index].feedByte(byte);
+    if (this.queue.length > 0) this.alarm?.schedule(this.byteNanos());
+  }
+
+  pins(): { tx?: string; rx?: string } {
+    const result: { tx?: string; rx?: string } = {};
+    const gpio = this.mcu.rp.gpio;
+    for (let n = 0; n < 30; n++) {
+      if (gpio[n].functionSelect !== F_UART || (((n + 4) >> 3) & 1) !== this.index) continue;
+      if ((n & 3) === 0) result.tx ??= `GPIO${n}`;
+      else if ((n & 3) === 1) result.rx ??= `GPIO${n}`;
+    }
+    return result;
+  }
+
+  baud(): number | undefined {
+    const uart = this.mcu.rp.uart[this.index];
+    return uart.enabled ? Math.round(uart.baudRate) : undefined;
+  }
+}
+
+/**
+ * USB serial (arduino-pico's `Serial`, MicroPython's REPL): rp2040js's CDC host as UART 0.
+ * rp2040js's host answers every OUT endpoint the device arms at once, with an empty packet when
+ * it has nothing to send — TinyUSB re-arms, and the USB interrupt fires every few microseconds
+ * (an idle MicroPython REPL never slept). A real host sends OUT data only when it has some: arms
+ * are held here until bytes are queued.
+ */
+class Rp2040UsbSerial implements UartPort {
+  private readonly mcu: Rp2040Mcu;
+  readonly listeners: ((byte: number) => void)[] = [];
+  private cdc: USBCDC | null = null;
+  private connected = false;
+  private readonly pending: number[] = [];
+  /** Per endpoint: the byte count of an OUT arm held while the host had nothing to send (−1: none). */
+  private readonly heldReads = new Int32Array(16).fill(-1);
+  private hostRead: ((endpoint: number, size: number) => void) | undefined;
+  /**
+   * BT63: while a MicroPython sketch is being put on the board, the installer owns the line —
+   * the device's output goes to it, and bytes the bench sends wait in `held` until main.py runs.
+   */
+  installer: MicroPythonInstaller | null = null;
+  private readonly held: number[] = [];
+  constructor(mcu: Rp2040Mcu) {
+    this.mcu = mcu;
+  }
+
+  wire(installer: MicroPythonInstaller | null): void {
+    const usb = this.mcu.rp.usbCtrl;
+    const cdc = new USBCDC(usb);
+    this.cdc = cdc;
+    this.connected = false;
+    this.pending.length = 0;
+    this.held.length = 0;
+    this.heldReads.fill(-1);
+    this.installer = installer;
+    const clock = this.mcu.clock;
+    const ticker = clock.createAlarm(() => {
+      const active = this.installer;
+      if (active === null || !active.active) return;
+      active.tick(clock.nanos / 1e6);
+      this.release();
+      if (active.active) ticker.schedule(INSTALL_TICK_NANOS);
+    });
+    const hostRead = usb.onEndpointRead;
+    this.hostRead = hostRead;
+    usb.onEndpointRead = (endpoint, size) => {
+      if (cdc.txFIFO.empty) this.heldReads[endpoint & 15] = size;
+      else hostRead?.(endpoint, size);
+    };
+    cdc.onDeviceConnected = () => {
+      this.connected = true;
+      this.flush();
+      if (this.installer !== null) ticker.schedule(0);
+    };
+    cdc.onSerialData = (buffer) => {
+      for (const byte of buffer) {
+        if (this.installer?.output(byte, clock.nanos / 1e6) === true) continue;
+        for (const listener of this.listeners) listener(byte);
+      }
+      this.release();
+    };
+  }
+
+  /** Bytes from the installer (the raw REPL conversation). */
+  send(bytes: readonly number[]): void {
+    for (const b of bytes) this.pending.push(b);
+    this.flush();
+  }
+
+  /** Once the installer is done, the bench's held bytes go to the device. */
+  private release(): void {
+    if (this.installer === null || this.installer.active) return;
+    this.installer = null;
+    this.send(this.held.splice(0));
+  }
+
+  onTransmit(listener: (byte: number) => void): void {
+    this.listeners.push(listener);
+  }
+
+  receive(bytes: Uint8Array): void {
+    if (this.installer !== null) {
+      for (const b of bytes) this.held.push(b);
+      return;
+    }
+    for (const b of bytes) this.pending.push(b);
+    this.flush();
+  }
+
+  /** Moves pending bytes into the CDC host's FIFO while it has room (the firmware drains it). */
+  flush(): void {
+    const cdc = this.cdc;
+    if (cdc === null || !this.connected) return;
+    while (this.pending.length > 0 && !cdc.txFIFO.full) cdc.sendSerialByte(this.pending.shift() as number);
+    if (cdc.txFIFO.empty) return;
+    for (let endpoint = 0; endpoint < 16; endpoint++) {
+      const size = this.heldReads[endpoint];
+      if (size < 0) continue;
+      this.heldReads[endpoint] = -1;
+      this.hostRead?.(endpoint, size);
+    }
+  }
+
+  pins(): { tx?: string; rx?: string } {
+    return {};
+  }
+
+  baud(): number | undefined {
+    return undefined;
+  }
+}
+
+class Rp2040I2c implements I2cController {
+  private readonly mcu: Rp2040Mcu;
+  readonly index: number;
+  private readonly devices: I2cDevice[] = [];
+  private current: I2cDevice | null = null;
+  constructor(mcu: Rp2040Mcu, index: number) {
+    this.mcu = mcu;
+    this.index = index;
+  }
+
+  wire(): void {
+    const i2c = this.mcu.rp.i2c[this.index];
+    this.current = null;
+    i2c.onStart = () => {
+      this.current = null;
+      i2c.completeStart();
+    };
+    i2c.onConnect = (address, mode) => {
+      const device = this.devices.find((d) => d.address === address);
+      this.current = device ?? null;
+      i2c.completeConnect(device !== undefined && device.start(mode === I2CMode.Read));
+    };
+    i2c.onWriteByte = (value) => {
+      i2c.completeWrite(this.current !== null && this.current.write(value));
+    };
+    i2c.onReadByte = (ack) => {
+      i2c.completeRead(this.current === null ? 0xff : this.current.read(ack) & 0xff);
+    };
+    i2c.onStop = () => {
+      this.current?.stop();
+      this.current = null;
+      i2c.completeStop();
+    };
+  }
+
+  pins(): { sda: string; scl: string } {
+    const gpio = this.mcu.rp.gpio;
+    let sda = '';
+    let scl = '';
+    for (let n = 0; n < 30; n++) {
+      if (gpio[n].functionSelect !== F_I2C || ((n >> 1) & 1) !== this.index) continue;
+      if ((n & 1) === 0) sda ||= `GPIO${n}`;
+      else scl ||= `GPIO${n}`;
+    }
+    // Before the firmware routes them: arduino-pico's Wire (GP4/GP5) and Wire1 (GP26/GP27).
+    if (sda === '' && scl === '') return this.index === 0 ? { sda: 'GPIO4', scl: 'GPIO5' } : { sda: 'GPIO26', scl: 'GPIO27' };
+    return { sda, scl };
+  }
+
+  attach(device: I2cDevice): void {
+    if (!this.devices.includes(device)) this.devices.push(device);
+  }
+
+  detach(device: I2cDevice): void {
+    const i = this.devices.indexOf(device);
+    if (i >= 0) this.devices.splice(i, 1);
+  }
+}
+
+class Rp2040Spi implements SpiController {
+  private readonly mcu: Rp2040Mcu;
+  readonly index: number;
+  private readonly devices: { device: SpiDevice; selected: () => boolean }[] = [];
+  constructor(mcu: Rp2040Mcu, index: number) {
+    this.mcu = mcu;
+    this.index = index;
+  }
+
+  wire(): void {
+    const spi = this.mcu.rp.spi[this.index];
+    // A frame of up to 16 bits (SSPCR0.DSS) reaches the byte-wide devices MSB first: one byte
+    // for ≤ 8 bits, two above.
+    spi.onTransmit = (value) => {
+      const wide = spi.dataBits > 8;
+      let rx = wide ? 0xffff : 0xff;
+      for (const { device, selected } of this.devices) {
+        if (!selected()) continue;
+        rx = wide ? ((device.transfer((value >> 8) & 0xff) & 0xff) << 8) | (device.transfer(value & 0xff) & 0xff) : device.transfer(value & 0xff) & 0xff;
+      }
+      spi.completeTransmit(rx);
+    };
+  }
+
+  pins(): { sck: string; mosi: string; miso: string } {
+    const gpio = this.mcu.rp.gpio;
+    let sck = '';
+    let mosi = '';
+    let miso = '';
+    for (let n = 0; n < 30; n++) {
+      if (gpio[n].functionSelect !== F_SPI || ((n >> 3) & 1) !== this.index) continue;
+      const role = n & 3; // RX, CSn, SCK, TX
+      if (role === 0) miso ||= `GPIO${n}`;
+      else if (role === 2) sck ||= `GPIO${n}`;
+      else if (role === 3) mosi ||= `GPIO${n}`;
+    }
+    // Before the firmware routes them: arduino-pico's SPI (GP16–19) and SPI1 (GP12–15).
+    if (sck === '' && mosi === '' && miso === '') return this.index === 0 ? { sck: 'GPIO18', mosi: 'GPIO19', miso: 'GPIO16' } : { sck: 'GPIO14', mosi: 'GPIO15', miso: 'GPIO12' };
+    return { sck, mosi, miso };
+  }
+
+  attach(device: SpiDevice, selected: () => boolean): void {
+    if (!this.devices.some((d) => d.device === device)) this.devices.push({ device, selected });
+  }
+
+  detach(device: SpiDevice): void {
+    const i = this.devices.findIndex((d) => d.device === device);
+    if (i >= 0) this.devices.splice(i, 1);
+  }
+}
+
+export interface Rp2040McuOptions {
+  /** Problems the chip reports (unimplemented registers, a reset into BOOTSEL, a fault). */
+  onProblem?: (problem: Problem) => void;
+  /**
+   * BT63: the stock MicroPython UF2 (micropython-manifest.ts' MICROPYTHON_PICO), which runs a
+   * `{ format: 'micropython' }` sketch. Without it such a sketch reports `micropython-missing`.
+   */
+  micropython?: Uint8Array;
+}
+
+export class Rp2040Mcu implements Mcu {
+  readonly kind = 'rp2040' as const;
+  readonly clockHz = RP2040_CLOCK_HZ;
+  readonly pins: ReadonlyMap<string, McuPin>;
+  /** The current chip (a new one after every reset). */
+  rp: RP2040;
+  clock: Rp2040Clock;
+  onProblem: ((problem: Problem) => void) | null;
+  private readonly pinList: Rp2040Pin[] = [];
+  private readonly usb: Rp2040UsbSerial;
+  private readonly uarts: Rp2040Uart[];
+  private readonly i2cs: Rp2040I2c[];
+  private readonly spis: Rp2040Spi[];
+  private image: LoadedImage | null = null;
+  /** BT63: the interpreter UF2, and the MicroPython sketch it runs (null: native firmware). */
+  private readonly micropython: Uint8Array | undefined;
+  private sketch: MicroPythonSketch | null = null;
+  /** Flash as the firmware left it: survives resets. */
+  private flash = new Uint8Array(FLASH_SIZE).fill(0xff);
+  private nanosPerCycle = 1e9 / 125e6;
+  /** Extra cycles the current ROM call charged. */
+  private charged = 0;
+  private haltReason: RunResult | null = null;
+  /** Per PIO state machine (PIO0 SM0–3, PIO1 SM0–3): clk_sys cycles until its next step. */
+  private readonly pioWait = new Float64Array(8);
+  /** The current chip's eight state machines, in pioWait's order. */
+  private pioMachines: PioMachine[] = [];
+  /**
+   * Bit per state machine: it stepped (so checked what it waits on) since the core last ran,
+   * the bench last called runUntil and the last alarm (`pioEpoch`, the clock's `fired` then).
+   */
+  private pioFresh = 0;
+  private pioEpoch = -1;
+
+  constructor(options: Rp2040McuOptions = {}) {
+    this.onProblem = options.onProblem ?? null;
+    this.micropython = options.micropython;
+    const pins = new Map<string, McuPin>();
+    for (let n = 0; n < 30; n++) {
+      const pin = new Rp2040Pin(this, n);
+      this.pinList.push(pin);
+      pins.set(pin.id, pin);
+    }
+    this.pins = pins;
+    this.usb = new Rp2040UsbSerial(this);
+    this.uarts = [new Rp2040Uart(this, 0), new Rp2040Uart(this, 1)];
+    this.i2cs = [new Rp2040I2c(this, 0), new Rp2040I2c(this, 1)];
+    this.spis = [new Rp2040Spi(this, 0), new Rp2040Spi(this, 1)];
+    this.clock = new Rp2040Clock();
+    this.rp = this.newChip();
+  }
+
+  get cycles(): number {
+    return Math.floor(this.clock.nanos / NANOS_PER_CYCLE);
+  }
+
+  load(image: FirmwareImage): void {
+    if (image.format === 'micropython') {
+      this.sketch = image;
+      this.image = this.micropython === undefined ? null : loadImage({ format: 'uf2', bytes: this.micropython });
+    } else {
+      this.sketch = null;
+      this.image = loadImage(image);
+    }
+    this.flashImage();
+    this.reset();
+  }
+
+  /**
+   * Hardware reset. A MicroPython sketch starts from the interpreter's image with an empty
+   * filesystem each time and is written again over USB serial (micropython.ts), so main.py runs
+   * with the serial monitor attached, as an IDE's Run does.
+   */
+  reset(): void {
+    if (this.sketch !== null) this.flashImage();
+    this.clock = new Rp2040Clock();
+    this.haltReason = null;
+    this.charged = 0;
+    this.rp = this.newChip();
+    for (const pin of this.pinList) pin.apply();
+    if (this.sketch !== null && this.image === null) {
+      this.problem('error', CODE_MICROPYTHON_MISSING, MICROPYTHON_MISSING_MESSAGE);
+      this.haltReason = { reason: 'halted', detail: MICROPYTHON_MISSING_MESSAGE };
+    }
+  }
+
+  /** Flash as the image leaves it (erased elsewhere). */
+  private flashImage(): void {
+    this.flash.fill(0xff);
+    for (const { address, data } of this.image?.flash ?? []) this.flash.set(data, address - FLASH_BASE);
+  }
+
+  /** A fresh chip: our bootrom, the persistent flash, RAM contents of a RAM image, every hook wired. */
+  private newChip(): RP2040 {
+    const rp = new RP2040(this.clock);
+    rp.logger = {
+      debug: () => {},
+      info: () => {},
+      // rp2040js reports registers it doesn't model (QSPI pads, XIP control, the voltage
+      // regulator, some USB ones): information, not a fault of the circuit.
+      warn: (component, message) => this.problem('info', 'rp2040-unimplemented', `${component}: ${message}`),
+      error: (component, message) => this.problem('info', 'rp2040-unimplemented', `${component}: ${message}`),
+    };
+    rp.loadBootrom(bootrom.image); // resets the core (PC at our reset stub) and erases flash: put ours back
+    if (this.flash !== undefined) rp.flash.set(this.flash);
+    this.flash = rp.flash;
+    for (const { address, data } of this.image?.sram ?? []) rp.sram.set(data, address - SRAM_BASE);
+    rp.adc.channelValues[4] = Math.round((TEMPERATURE_VOLTS / ADC_VREF) * 4095);
+    core1Bootrom(rp, (entry) => this.problem('warning', 'rp2040-core1', `the firmware launched core 1 (entry 0x${entry.toString(16)}), which Benchtop doesn't simulate yet: that code doesn't run`));
+    // rp2040js runs PIO from setTimeout, apart from simulated time: the run loop steps it instead.
+    for (const pio of rp.pio) pio.run = () => {};
+    this.pioWait.fill(0);
+    this.pioMachines = rp.pio.flatMap((pio) => pio.machines);
+    this.pioFresh = 0;
+    this.pioEpoch = -1;
+    rp.onBreak = (code) => this.onBreak(code);
+    this.nanosPerCycle = 1e9 / rp.clkSys;
+    rp.addClockListener((clkSys) => {
+      this.nanosPerCycle = 1e9 / clkSys;
+    });
+    this.rp = rp;
+    for (const pin of this.pinList) {
+      const p = pin;
+      rp.gpio[p.index].addListener(() => p.fire());
+    }
+    const sketch = this.sketch;
+    this.usb.wire(
+      sketch === null || this.image === null
+        ? null
+        : new MicroPythonInstaller(sketch, {
+            send: (bytes) => this.usb.send(bytes),
+            fail: (message) => this.problem('error', CODE_MICROPYTHON_INSTALL, message),
+          }),
+    );
+    for (const uart of this.uarts) uart.wire();
+    for (const i2c of this.i2cs) i2c.wire();
+    for (const spi of this.spis) spi.wire();
+    return rp;
+  }
+
+  runUntil(targetCycles: number): RunResult {
+    if (this.haltReason !== null) return this.haltReason;
+    if (this.image === null) return { reason: 'halted', detail: 'no firmware loaded' };
+    const clock = this.clock;
+    const core = this.rp.core;
+    const [pio0, pio1] = this.rp.pio;
+    const targetNanos = targetCycles * NANOS_PER_CYCLE;
+    this.usb.flush();
+    this.pioFresh = 0; // the bench may have changed an input a machine waits on
+    try {
+      while (clock.nanos < targetNanos) {
+        const pioOn = !pio0.stopped || !pio1.stopped;
+        if (core.waiting) {
+          if (pioOn) this.idlePio(targetNanos);
+          else clock.tickTo(Math.min(clock.nextAt, targetNanos));
+          continue;
+        }
+        const start = clock.nanos;
+        const cycles = core.executeInstruction() + this.charged;
+        this.charged = 0;
+        if (pioOn) {
+          this.pioFresh = 0;
+          this.pumpPio(cycles, false);
+        }
+        clock.tickTo(start + cycles * this.nanosPerCycle);
+        if (this.haltReason !== null) return this.haltReason;
+      }
+    } catch (error) {
+      return this.halt('fault', error instanceof Error ? error.message : String(error));
+    }
+    return { reason: 'target' };
+  }
+
+  /**
+   * Runs the PIO state machines through the next `cycles` of clk_sys: each executes its next
+   * instruction once its wait (the instruction's cycles, delay included, × its clock divider)
+   * has passed, all of them in time order with the clock moved to each step, so their pin
+   * changes reach the bench at their own times — inside a long CPU instruction too (an
+   * exception entry, a ROM call's charged cycles). With `untilWake` (the core sleeping) it stops
+   * early once the core wakes or an alarm comes due inside the span. Returns the cycles covered.
+   */
+  private pumpPio(cycles: number, untilWake: boolean): number {
+    const clock = this.clock;
+    const wait = this.pioWait;
+    const machines = this.pioMachines;
+    const start = clock.nanos;
+    const npc = this.nanosPerCycle;
+    const end = start + cycles * npc;
+    let span = cycles;
+    for (;;) {
+      let next = -1;
+      for (let i = 0; i < 8; i++) {
+        if (!machines[i].enabled) wait[i] = 0; // steps as soon as it is enabled
+        else if (wait[i] <= span && (next < 0 || wait[i] < wait[next])) next = i;
+      }
+      if (next < 0) break;
+      const at = wait[next];
+      clock.tickTo(start + at * npc);
+      const machine = machines[next];
+      const before = machine.cycles;
+      machine.step();
+      const divider = machine.clockDivInt === 0 ? 65536 : machine.clockDivInt + machine.clockDivFrac / 256;
+      wait[next] = at + Math.max(1, machine.cycles - before) * divider;
+      this.rp.pio[next >> 2].checkChangedPins();
+      if (clock.fired !== this.pioEpoch) {
+        this.pioEpoch = clock.fired;
+        this.pioFresh = 0;
+      }
+      this.pioFresh |= 1 << next;
+      if (untilWake && (!this.rp.core.waiting || clock.nextAt < end || (machine.waiting && this.pioIdle()))) {
+        span = at;
+        break;
+      }
+    }
+    for (let i = 0; i < 8; i++) if (machines[i].enabled) wait[i] -= span;
+    return span;
+  }
+
+  /** Every running state machine is stalled and has checked its condition since anything could have changed it. */
+  private pioIdle(): boolean {
+    if (this.clock.fired !== this.pioEpoch) return false;
+    for (let i = 0; i < 8; i++) {
+      const machine = this.pioMachines[i];
+      if (machine.enabled && (!machine.waiting || (this.pioFresh & (1 << i)) === 0)) return false;
+    }
+    return true;
+  }
+
+  /**
+   * While the core sleeps and PIO runs: PIO steps up to the next alarm (or the target). Once
+   * every running machine is stalled (waiting on a FIFO, a pin or an IRQ) and has looked at its
+   * condition since the core last ran, nothing changes before that alarm: skip to it.
+   */
+  private idlePio(targetNanos: number): void {
+    const clock = this.clock;
+    const limit = Math.min(clock.nextAt, targetNanos);
+    const span = (limit - clock.nanos) / this.nanosPerCycle;
+    if (this.pioIdle()) {
+      clock.tickTo(limit);
+      for (let i = 0; i < 8; i++) this.pioWait[i] = Math.max(0, this.pioWait[i] - span);
+      return;
+    }
+    if (this.pumpPio(span, true) === span) clock.tickTo(limit);
+  }
+
+  uart(index: number): UartPort | undefined {
+    if (index === 0) return this.usb;
+    return this.uarts[index - 1];
+  }
+
+  i2c(index: number): I2cController | undefined {
+    return this.i2cs[index];
+  }
+
+  spi(index: number): SpiController | undefined {
+    return this.spis[index];
+  }
+
+  private halt(reason: 'fault' | 'halted', detail: string): RunResult {
+    this.haltReason = { reason, detail };
+    if (reason === 'fault') this.problem('error', 'rp2040-fault', detail);
+    return this.haltReason;
+  }
+
+  private problem(severity: Problem['severity'], code: string, message: string): void {
+    this.onProblem?.({ severity, code, message, parts: [] });
+  }
+
+  /** A BKPT: a ROM call inside the bootrom, else a breakpoint with no debugger attached. */
+  private onBreak(code: number): void {
+    const core = this.rp.core;
+    const pc = (core.PC - 2) >>> 0;
+    if (pc < ROM_SIZE && code !== 0) {
+      const handled = runRomCall(code, {
+        rp2040: this.rp,
+        charge: (cycles) => {
+          this.charged += Math.max(0, cycles);
+        },
+        boot: () => this.boot(),
+        fault: (message) => {
+          this.halt('fault', message);
+        },
+        usbBoot: () => {
+          this.problem('warning', 'rp2040-usb-boot', 'the firmware rebooted into BOOTSEL (USB boot) mode: the board waits for a UF2 there');
+          this.halt('halted', 'rebooted into BOOTSEL mode');
+        },
+      });
+      if (handled) return;
+    }
+    this.halt('fault', `BKPT #${code} at 0x${pc.toString(16).padStart(8, '0')} with no debugger attached (on the board: a HardFault)`);
+  }
+
+  /** The ROM's reset handler: direct boot of the loaded image. */
+  private boot(): void {
+    const rp = this.rp;
+    const core = rp.core;
+    const ramEntry = this.image?.ramEntry;
+    if (ramEntry !== undefined) {
+      core.SP = BOOT_STACK;
+      core.PC = ramEntry & ~1;
+      return;
+    }
+    const table = FLASH_BASE + 0x100;
+    const sp = rp.readUint32(table);
+    const pc = rp.readUint32(table + 4);
+    const inSram = (a: number): boolean => a > SRAM_BASE && a <= SRAM_BASE + SRAM_SIZE;
+    const inCode = (a: number): boolean => (a >= FLASH_BASE && a < FLASH_BASE + FLASH_SIZE) || (a >= SRAM_BASE && a < SRAM_BASE + SRAM_SIZE);
+    if (!inSram(sp) || (pc & 1) === 0 || !inCode(pc & ~1)) {
+      this.halt('halted', 'no program in flash: the board stays in BOOTSEL mode');
+      return;
+    }
+    core.VTOR = table;
+    core.SP = sp;
+    core.PC = pc & ~1;
+  }
+}
+
+// SIO's inter-core FIFO (datasheet §2.3.1.7): FIFO_ST, FIFO_WR, FIFO_RD.
+const FIFO_ST = 0x50;
+const FIFO_WR = 0x54;
+const FIFO_RD = 0x58;
+/** FIFO_ST.VLD: core 0's RX FIFO holds data; RDY: its TX FIFO has room. */
+const FIFO_ST_VLD = 0x1;
+const FIFO_ST_RDY = 0x2;
+/** The PSM's FRCE_OFF register and its core 1 bit (datasheet §2.13). */
+const PSM_BASE = 0x40010000;
+const PSM_FRCE_OFF = 0x04;
+const PSM_PROC1 = 1 << 16;
+/** Core 1's FIFO is 8 words deep. */
+const FIFO_DEPTH = 8;
+
+/**
+ * Core 1 isn't simulated, and rp2040js doesn't model the FIFO between the cores (it logs every
+ * access to the console). Seen from core 0 here, core 1 sits in its bootrom's wait-for-launch
+ * loop (datasheet §2.8.2): released from reset (the PSM's FRCE_OFF.proc1 cleared, as the SDK's
+ * `multicore_reset_core1` does — MicroPython on every soft reboot) it pushes a 0; it echoes each
+ * word of a launch sequence (0, 0, 1, vector table, stack pointer, entry), so
+ * `multicore_launch_core1` returns — but the code launched doesn't run: `onLaunch` reports it.
+ */
+function core1Bootrom(rp: RP2040, onLaunch: (entry: number) => void): void {
+  const sio = rp.sio;
+  const read = sio.readUint32.bind(sio);
+  const write = sio.writeUint32.bind(sio);
+  const toCore0: number[] = [];
+  const sequence: number[] = [];
+  const push = (value: number): void => {
+    if (toCore0.length < FIFO_DEPTH) toCore0.push(value >>> 0);
+    rp.core.eventRegistered = true; // core 1 signals with SEV
+  };
+  sio.readUint32 = (offset: number) => {
+    if (offset === FIFO_ST) return FIFO_ST_RDY | (toCore0.length > 0 ? FIFO_ST_VLD : 0);
+    if (offset === FIFO_RD) return toCore0.shift() ?? 0;
+    return read(offset);
+  };
+  sio.writeUint32 = (offset: number, value: number) => {
+    if (offset === FIFO_WR) {
+      // The bootrom's launch protocol: a 0 restarts it; each word is echoed.
+      if (value === 0) sequence.length = 0;
+      else sequence.push(value >>> 0);
+      push(value);
+      if (sequence.length === 4 && sequence[0] === 1) {
+        onLaunch(sequence[3]);
+        sequence.length = 0;
+      }
+      return;
+    }
+    if (offset !== FIFO_ST) write(offset, value);
+  };
+  const psm = rp.findPeripheral(PSM_BASE);
+  const psmRead = psm.readUint32.bind(psm);
+  const psmWrite = psm.writeUint32.bind(psm);
+  psm.writeUint32 = (offset: number, value: number) => {
+    const wasOff = offset === PSM_FRCE_OFF && (psmRead(PSM_FRCE_OFF) & PSM_PROC1) !== 0;
+    psmWrite(offset, value);
+    if (wasOff && (psmRead(PSM_FRCE_OFF) & PSM_PROC1) === 0) {
+      toCore0.length = 0; // core 1's bootrom drains its FIFO, then pushes a 0
+      sequence.length = 0;
+      push(0);
+    }
+  };
+}
+
+/** Splits a firmware image into flash and RAM writes. Throws on anything that doesn't fit. */
+function loadImage(image: FirmwareImage): LoadedImage {
+  const flash: LoadedImage['flash'] = [];
+  const sram: LoadedImage['sram'] = [];
+  const place = (address: number, data: Uint8Array): void => {
+    const end = address + data.length;
+    if (address >= FLASH_BASE && end <= FLASH_BASE + FLASH_SIZE) flash.push({ address, data });
+    else if (address >= SRAM_BASE && end <= SRAM_BASE + SRAM_SIZE) sram.push({ address, data });
+    else throw new Error(`firmware data at 0x${address.toString(16)}–0x${(end - 1).toString(16)} is outside the RP2040's flash and RAM`);
+  };
+  if (image.format === 'uf2') {
+    const uf2 = parseUf2(image.bytes);
+    if (uf2.familyId !== undefined && uf2.familyId !== UF2_FAMILY.RP2040) throw new Error(`this UF2 is for family 0x${uf2.familyId.toString(16)}, not the RP2040 (0xe48bff56)`);
+    uf2.blocks = uf2.blocks.filter((b) => b.family === undefined || b.family === UF2_FAMILY.RP2040);
+    placeUf2(uf2, [{ start: FLASH_BASE, end: FLASH_BASE + FLASH_SIZE }, { start: SRAM_BASE, end: SRAM_BASE + SRAM_SIZE }], place);
+  } else if (image.format === 'elf') {
+    const elf = parseElf32(image.bytes);
+    if (elf.machine !== 40) throw new Error(`this ELF is for machine ${elf.machine}, not ARM (40)`);
+    for (const segment of elf.segments) if (segment.data.length > 0) place(segment.paddr, segment.data);
+  } else throw new Error(`the RP2040 runs UF2 and ELF images (and MicroPython sketches); got ${describeFirmwareFormat(image.format)}`);
+  if (flash.length === 0 && sram.length === 0) throw new Error('the image has no data to load');
+  const ramEntry = flash.length === 0 ? Math.min(...sram.map((s) => s.address)) : undefined;
+  return { flash, sram, ramEntry };
+}
+
+/** A fresh RP2040 for a board part. */
+export function createRp2040Mcu(options: Rp2040McuOptions = {}): Rp2040Mcu {
+  return new Rp2040Mcu(options);
+}

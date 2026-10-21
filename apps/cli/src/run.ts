@@ -529,7 +529,7 @@ export function runHeadless(options: RunOptions, io: RunIo): RunReport {
     }
 
     const images = loadFirmware(io, doc, boards, options.firmware);
-    const built = buildBench(doc, images, io.esp32Rom?.());
+    const built = buildBench(doc, images, io.esp32Rom?.(), io.micropython?.());
     const bench = built.bench;
     mcus.push(...built.mcus);
 

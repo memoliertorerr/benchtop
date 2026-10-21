@@ -1,0 +1,12 @@
+{
+  "name": "example: pico-pio-square",
+  "project": "../../projects/pico-pio-square.json",
+  "firmware": {
+    "pico": "../../firmware/pico/pio-square.uf2"
+  },
+  "expect": [
+    "pin pico:GP3 frequency is 10000 Hz ±0.5% between 100ms and 300ms",
+    "pin pico:GP3 duty is 50% ±1 between 100ms and 300ms",
+    "serial contains \"square on GP3\" by 1100ms"
+  ]
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { highlight, type TokenKind, tokenize } from './tokenize.ts';
+import { highlight, languageOf, type TokenKind, tokenize, tokenizePython } from './tokenize.ts';
 
 /** [kind, text] for every token. */
 const kinds = (text: string): [TokenKind, string][] => tokenize(text).map((t) => [t.kind, text.slice(t.from, t.to)]);
@@ -89,3 +89,56 @@ describe('Arduino C++ tokenizer (BT42)', () => {
     expect(best).toBeLessThan(20);
   });
 });
+
+describe('MicroPython tokenizer (BT63)', () => {
+  const py = (text: string): [TokenKind, string][] => tokenizePython(text).map((t) => [t.kind, text.slice(t.from, t.to)]);
+
+  it('colors keywords, builtins, hardware names, strings, numbers, comments and decorators', () => {
+    const text = [
+      '# blink',
+      'from machine import Pin',
+      '@rp2.asm_pio(set_init=rp2.PIO.OUT_LOW)',
+      'def run(self, n=0x1F, f=1.5e-3):',
+      "    print(f'n={n}', b'\\x00', r\"\\d\", 'it''s')",
+      '    return None  # done',
+    ].join('\n');
+    expect(py(text)).toEqual([
+      ['comment', '# blink'],
+      ['keyword', 'from'],
+      ['builtin', 'machine'],
+      ['keyword', 'import'],
+      ['builtin', 'Pin'],
+      ['preprocessor', '@rp2.asm_pio'],
+      ['builtin', 'rp2'],
+      ['keyword', 'def'],
+      ['type', 'self'],
+      ['number', '0x1F'],
+      ['number', '1.5e-3'],
+      ['builtin', 'print'],
+      ['string', "f'n={n}'"],
+      ['string', "b'\\x00'"],
+      ['string', 'r"\\d"'],
+      ['string', "'it'"],
+      ['string', "'s'"],
+      ['keyword', 'return'],
+      ['keyword', 'None'],
+      ['comment', '# done'],
+    ]);
+  });
+
+  it('takes triple-quoted strings across lines and survives unterminated ones', () => {
+    expect(py('x = """a\n\'b\'\n"""\ny')).toEqual([['string', '"""a\n\'b\'\n"""']]);
+    expect(py("s = 'open\nz = 1")).toEqual([
+      ['string', "'open"],
+      ['number', '1'],
+    ]);
+    expect(py('"""never closed')).toEqual([['string', '"""never closed']]);
+  });
+
+  it('highlights by language, and a .py file is Python', () => {
+    expect(highlight('# x', 'python')).toBe('<span class="tok-comment"># x</span>');
+    expect(highlight('# x')).toBe('<span class="tok-preprocessor"># x</span>');
+    expect([languageOf('main.py'), languageOf('sketch.ino'), languageOf('LIB.PY')]).toEqual(['python', 'cpp', 'python']);
+  });
+});
+

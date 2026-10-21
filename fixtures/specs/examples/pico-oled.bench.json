@@ -1,0 +1,10 @@
+{
+  "name": "example: pico-oled",
+  "project": "../../projects/pico-i2c-oled.json",
+  "firmware": {
+    "pico": "../../firmware/pico/i2c-oled.uf2"
+  },
+  "expect": [
+    "serial contains \"frame 1\" by 1500ms"
+  ]
+}

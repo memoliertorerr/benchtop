@@ -9,10 +9,11 @@
  * file switch, blur and compile), as one coalesced undo step per run of edits; the document's
  * autosave keeps it across reloads, and export carries it. Compiling needs the bridge
  * (`npm run bridge`); without it the editor still edits and saves, and Compile says how to start
- * it.
+ * it. A MicroPython sketch (BT63; the Inspector's Language switch) is .py files colored and
+ * indented as Python, and Run sends them to the board's MicroPython — no compile, no bridge.
  */
 
-import { type FirmwareRef, SKETCH_FILE_PATTERN } from '@benchtop/core';
+import { type FirmwareRef, isMicroPythonFqbn, MICROPYTHON_FILE_PATTERN, SKETCH_FILE_PATTERN } from '@benchtop/core';
 import { CATALOG } from '@benchtop/parts';
 import { signal } from '@preact/signals';
 import { useEffect, useState } from 'preact/hooks';
@@ -22,6 +23,7 @@ import { type InlineRef, templateRef } from '../../editor/inline-compile.ts';
 import { openedExample, resetExample } from '../../examples/index.ts';
 import { compileAndRun, compileRows, fqbnOf, inlineStale, statusOf } from '../../editor/sketch-actions.ts';
 import { CodeEditor, type LineMark } from './CodeEditor.tsx';
+import { languageOf } from './tokenize.ts';
 
 const COMMIT_MS = 400;
 
@@ -137,10 +139,13 @@ export function CodePanel() {
     openFiles.value = new Map(openFiles.peek()).set(board.id, name);
   };
   const addFile = (): void => {
-    const name = window.prompt('New file (a .h, .hpp, .cpp, .c or .ino name):', 'helpers.h')?.trim();
+    const python = isMicroPythonFqbn(sketch.fqbn);
+    const name = window.prompt(python ? 'New module (a .py name):' : 'New file (a .h, .hpp, .cpp, .c or .ino name):', python ? 'helpers.py' : 'helpers.h')?.trim();
     if (name === undefined || name === '') return;
-    if (!SKETCH_FILE_PATTERN.test(name)) {
-      editorMessage.value = `"${name}" isn't a file name a sketch can have (letters, digits, _ . - and a .h/.hpp/.cpp/.c/.ino ending).`;
+    if (!(python ? MICROPYTHON_FILE_PATTERN : SKETCH_FILE_PATTERN).test(name)) {
+      editorMessage.value = python
+        ? `"${name}" isn't a module name a MicroPython sketch can have (letters, digits, _ . - and a .py ending).`
+        : `"${name}" isn't a file name a sketch can have (letters, digits, _ . - and a .h/.hpp/.cpp/.c/.ino ending).`;
       return;
     }
     if (names.includes(name)) {
@@ -163,6 +168,7 @@ export function CodePanel() {
     editor.setFirmware(board.id, { ...base, files });
   };
 
+  const python = isMicroPythonFqbn(sketch.fqbn);
   const firstError = marks.find((m) => m.severity === 'error') ?? marks[0];
   return (
     <div class="code-panel">
@@ -205,17 +211,25 @@ export function CodePanel() {
             : status.phase === 'error'
               ? status.detail
               : status.phase === 'ok'
-                ? `Compiled in ${status.detail} s${stale ? ' — edited since' : ''}`
+                ? python
+                  ? `Sent to MicroPython${stale ? ' — edited since' : ''}`
+                  : `Compiled in ${status.detail} s${stale ? ' — edited since' : ''}`
                 : !started
-                  ? 'Template — edit or compile to start'
+                  ? `Template — edit or ${python ? 'run' : 'compile'} to start`
                   : unsaved
                     ? 'Editing…'
                     : stale
-                      ? 'Not compiled since the last edit'
+                      ? `Not ${python ? 'run' : 'compiled'} since the last edit`
                       : 'Saved in the project'}
         </span>
-        <button type="button" class="tool-button primary" disabled={status.phase === 'compiling'} title="Compile & Run (⌘/Ctrl-Enter)" onClick={compile}>
-          Compile &amp; Run
+        <button
+          type="button"
+          class="tool-button primary"
+          disabled={status.phase === 'compiling'}
+          title={python ? 'Run on the board\'s MicroPython (⌘/Ctrl-Enter)' : 'Compile & Run (⌘/Ctrl-Enter)'}
+          onClick={compile}
+        >
+          {python ? 'Run' : 'Compile & Run'}
         </button>
       </div>
       <CodeEditor
@@ -227,6 +241,7 @@ export function CodePanel() {
         marks={marks}
         reveal={reveal}
         label={`${board.id}: ${file}`}
+        language={languageOf(file)}
       />
       {firstError !== undefined && (
         <button type="button" class={`code-problem ${firstError.severity}`} onClick={() => setReveal({ line: firstError.line, nonce: Date.now() })}>

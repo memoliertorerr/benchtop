@@ -19,6 +19,10 @@ fixtures/firmware/esp32/<name>.bin|.partitions.bin  ESP32 app image and partitio
 fixtures/firmware/esp32/<name>.syms.tsv       `nm -S -n --defined-only` of the full ELF
                                               ("addr\tsize\ttype\tname"); the ELF itself (6 MB,
                                               mostly DWARF), .map and bootloader are never committed
+fixtures/firmware/pico/<name>.uf2             Raspberry Pi Pico firmware (arduino-pico 6.2.0; the
+                                              ELF, 1.3 MB of mostly DWARF, isn't committed)
+fixtures/rp2040/<name>.c, .ld → .elf, .lst    freestanding RP2040 test programs (romcalls: every bootrom
+                                              function through the lookup tables)
 fixtures/xtensa/<name>.S → <name>.bin, .lst   Xtensa test programs (harness.inc: conventions)
 fixtures/xtensa/corpus/                       objdump decode corpora for the decoder tests (manifest.json)
 fixtures/pcb/<name>.pcb.json                  PCB layouts laid out by hand on a fixture project
@@ -36,6 +40,8 @@ fixtures/.build/                              arduino-cli and toolchain build fo
 npm run fixtures                         # build every sketch, rewrite the manifest
 npm run fixtures -- --only uno/blink     # build one sketch, update its manifest entries
 npm run fixtures -- --check              # rebuild into a temp dir, compare with the manifest
+npm run fixtures -- --only pico/blink    # one Pico sketch
+npm run fixtures -- --only rp2040/romcalls # one RP2040 test program
 npm run fixtures -- --only xtensa/smoke  # one Xtensa test program
 npm run fixtures -- --only xtensa/corpus # the decode corpora (needs serial-hello built first)
 ```
@@ -52,7 +58,31 @@ Board folders map to FQBNs in `scripts/fixture-boards.ts` (`uno` → `arduino:av
 `arduino:avr:nano` (.hex + .elf like the Uno), `mega` → `arduino:avr:mega` (the
 ATmega2560; `far-code`'s .hex is ~370 KB: its 130 KB of tables push code past 128 KiB), `esp32` → `esp32:esp32:esp32`, core 2.0.17). An ESP32 sketch builds in ~35 s and its build folder takes
 ~25 MB. The app image embeds the ELF's SHA-256 (app descriptor, 0xb0–0xcf), so the fixed build
-folders matter here too: `--check` proves the .bin is byte-identical across builds.
+folders matter here too: `--check` proves the .bin is byte-identical across builds. `pico` →
+`rp2040:rp2040:rpipico` (the arduino-pico core 6.2.0, installed with
+`--additional-urls https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json`;
+a sketch builds in ~15 s and keeps only its UF2). A Pico sketch with its own PIO program
+(`neopixel`, `pio-square`) commits the `.pio` source beside the `<name>.pio.h` that
+arduino-pico's `pioasm` 2.3.0 made from it (`~/Library/Arduino15/packages/rp2040/tools/pqt-pioasm/*/pioasm
+<name>.pio <name>.pio.h`): arduino-cli doesn't run pioasm, so rerun it by hand when a .pio
+changes.
+
+## RP2040 test programs
+
+`fixtures/rp2040/<name>.c` are freestanding programs (no SDK, no libc) linked by their own
+`<name>.ld`: 256 bytes where the second stage would be, the vector table at 0x10000100 (where our
+bootrom's direct boot looks), code in flash. `scripts/rp2040-programs.ts` builds them with the
+arduino-pico core's `arm-none-eabi-gcc -mcpu=cortex-m0plus -mthumb -O1` (no debug info) and
+`objdump -d`; the .c, .ld, .elf and .lst are committed. `romcalls` calls every bootrom function
+through the ROM's lookup tables, as the SDK does, and leaves the results at 0x20030000.
+
+## MicroPython sketches
+
+`fixtures/micropython/<name>/main.py` are MicroPython sketches for the Pico: nothing
+builds them — the board's stock MicroPython (`npm run fetch:micropython`, never committed)
+runs them as they are, so the sketch is the firmware. The tests, the examples gallery and the
+specs (`--firmware pico=../../micropython/<name>/main.py`) load them directly. Each starts with a
+comment saying what its tests assert.
 
 ## Xtensa test programs and decode corpora
 

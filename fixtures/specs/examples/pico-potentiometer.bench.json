@@ -1,0 +1,21 @@
+{
+  "name": "example: pico-potentiometer",
+  "project": "../../projects/pico-analog-read.json",
+  "firmware": {
+    "pico": "../../firmware/pico/analog-read.uf2"
+  },
+  "steps": [
+    {
+      "at": "1s",
+      "part": "pot",
+      "input": {
+        "kind": "value",
+        "value": 0.25
+      }
+    }
+  ],
+  "expect": [
+    "serial matches /^adc=20[3-5]\\d\\r?$/m by 1s",
+    "serial matches /^adc=10[1-3]\\d\\r?$/m by 1500ms"
+  ]
+}

@@ -39,7 +39,7 @@ const SLICE_NS = NS_PER_MS;
 export async function startGdbServer(options: GdbServerOptions): Promise<GdbServer> {
   const { doc, boards } = loadProject(options.io, options.project);
   const images = loadFirmware(options.io, doc, boards, options.firmware);
-  const { bench } = buildBench(doc, images, options.io.esp32Rom?.());
+  const { bench } = buildBench(doc, images, options.io.esp32Rom?.(), options.io.micropython?.());
   const board = options.board ?? boards.find((b) => bench.debugOf(b) !== undefined);
   if (board === undefined || !boards.includes(board)) throw new UsageError(options.board === undefined ? 'no board with a debugger in the project' : `no board "${options.board}"`);
   const debug = bench.debugOf(board);

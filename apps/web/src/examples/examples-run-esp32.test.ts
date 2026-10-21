@@ -95,7 +95,7 @@ export const ESP32_CHECKS: Record<string, (r: ExampleRun) => void> = {
 };
 
 describe('every ESP32 and two-board example runs as described (BT43)', () => {
-  const withEsp32 = EXAMPLES.filter((e) => Object.values(e.boards).some((b) => b.firmware.startsWith('esp32/')));
+  const withEsp32 = EXAMPLES.filter((e) => Object.values(e.boards).some((b) => 'firmware' in b && b.firmware.startsWith('esp32/')));
   it('has a check for each', () => {
     expect(withEsp32.map((e) => e.id).filter((id) => ESP32_CHECKS[id] === undefined)).toEqual([]);
   });

@@ -13,14 +13,27 @@
 import type { ProjectDoc } from '@benchtop/core';
 import { CATALOG } from '@benchtop/parts';
 
-export const CATEGORIES = ['Basics', 'Displays', 'Sensors', 'Motors', 'Sound', 'Environment', 'ESP32', 'Mega', 'Two boards'] as const;
+export const CATEGORIES = ['Basics', 'Displays', 'Sensors', 'Motors', 'Sound', 'Environment', 'ESP32', 'Raspberry Pi Pico', 'Mega', 'Two boards'] as const;
 export type Category = (typeof CATEGORIES)[number];
 
-export interface ExampleBoard {
-  /** Under fixtures/firmware/: uno/<name>.hex, nano/<name>.hex, mega/<name>.hex or esp32/<name>.bin. */
-  firmware: string;
-  /** Under fixtures/sketches/: <board folder>/<name>, the firmware's source. */
-  sketch: string;
+export type ExampleBoard =
+  | {
+      /** Under fixtures/firmware/: uno/<name>.hex, nano/<name>.hex, mega/<name>.hex, esp32/<name>.bin or pico/<name>.uf2. */
+      firmware: string;
+      /** Under fixtures/sketches/: <board folder>/<name>, the firmware's source. */
+      sketch: string;
+    }
+  | {
+      /** BT63: fixtures/micropython/<name>/ — a MicroPython sketch (main.py and its modules), its own firmware. */
+      micropython: string;
+    };
+
+/** The badge a board gets on its example's card: the board (from its firmware folder) or MicroPython. */
+export function boardBadge(board: ExampleBoard): { label: string; kind: string } {
+  if ('micropython' in board) return { label: 'MicroPython', kind: 'micropython' };
+  const folder = board.firmware.split('/')[0];
+  const label: Record<string, string> = { uno: 'Uno', nano: 'Nano', mega: 'Mega', esp32: 'ESP32', pico: 'Pico' };
+  return { label: label[folder] ?? folder, kind: folder };
 }
 
 export interface Example {
@@ -50,6 +63,8 @@ const uno = (name: string): Record<string, ExampleBoard> => ({ uno: { firmware: 
 const mega = (name: string): Record<string, ExampleBoard> => ({ mega: { firmware: `mega/${name}.hex`, sketch: `mega/${name}` } });
 /** One DevKit (part id `esp`) running fixtures' esp32/<name>. */
 const esp = (name: string): Record<string, ExampleBoard> => ({ esp: { firmware: `esp32/${name}.bin`, sketch: `esp32/${name}` } });
+/** One Raspberry Pi Pico (part id `pico`) running fixtures' pico/<name>. */
+const pico = (name: string): Record<string, ExampleBoard> => ({ pico: { firmware: `pico/${name}.uf2`, sketch: `pico/${name}` } });
 
 export const EXAMPLES: readonly Example[] = [
   { ...ex('blink', 'Blink', 'Basics', 'blink-led', uno('blink'), 'The classic: an LED on D13 (through 220 Ω on a breadboard) blinks once a second. It has a PCB too: an Uno shield — switch to PCB in the toolbar.'), pcb: 'blink' },
@@ -115,6 +130,15 @@ export const EXAMPLES: readonly Example[] = [
   ex('esp32-dac-sine', 'ESP32 DAC sine', 'ESP32', 'esp32-dac-sine', esp('dac-sine'), 'dacWrite on GPIO25 steps a 500 Hz sine into a speaker (unmute to hear it).'),
   ex('esp32-mic-level', 'ESP32 microphone pitch', 'ESP32', 'esp32-mic-level', esp('mic-level'), 'A microphone on GPIO34 (ADC1); the sketch prints the pitch it hears every 500 ms.'),
   ex('esp32-i2c-scan', 'ESP32 I2C scan', 'ESP32', 'esp32-i2c', esp('i2c-scan'), 'Wire scans the bus and finds the OLED (0x3C) and the clock (0x68).'),
+  ex('pico-blink', 'Pico blink', 'Raspberry Pi Pico', 'pico-blink', pico('blink'), 'The Raspberry Pi Pico on its own: the onboard LED (GP25) blinks every half second.'),
+  ex('pico-potentiometer', 'Pico potentiometer', 'Raspberry Pi Pico', 'pico-analog-read', pico('analog-read'), 'analogRead of a potentiometer on GP26 (ADC0) at 12 bits, printed ten times a second on USB serial — turn the knob.'),
+  ex('pico-fade', 'Pico PWM steps', 'Raspberry Pi Pico', 'pico-pwm-fade', pico('pwm-fade'), 'analogWrite on GP15 at 1 kHz: an LED steps through 0, 25, 50, 75 and 100 % duty, 200 ms each.'),
+  ex('pico-oled', 'Pico OLED', 'Raspberry Pi Pico', 'pico-i2c-oled', pico('i2c-oled'), 'Adafruit SSD1306 over Wire on GP4 (SDA) and GP5 (SCL): a box, "PICO" and a seconds counter.'),
+  ex('pico-tft', 'Pico color TFT', 'Raspberry Pi Pico', 'pico-spi-tft', pico('spi-tft'), 'The ILI9341 picture over SPI0 (SCK GP18, MOSI GP19), with CS on GP17 and D/C on GP20, then a digit counter.'),
+  ex('pico-neopixel', 'Pico NeoPixel', 'Raspberry Pi Pico', 'pico-neopixel', pico('neopixel'), 'Eight WS2812 pixels on GP2 driven by a PIO program, not bit-banging: pixel 0 steps red, green, blue every half second.'),
+  ex('pico-micropython-blink', 'MicroPython blink', 'Raspberry Pi Pico', 'pico-blink', { pico: { micropython: 'blink' } }, 'MicroPython on the Pico: main.py toggles the LED every 250 ms and prints the count. Edit it in the Code tab and press Run — nothing to compile.'),
+  ex('pico-micropython-neopixel', 'MicroPython NeoPixel', 'Raspberry Pi Pico', 'pico-neopixel', { pico: { micropython: 'neopixel' } }, "MicroPython's neopixel module drives the WS2812 strip on GP2: pixel 0 steps red, green, blue every half second."),
+  ex('pico-pio-square', 'Pico PIO square wave', 'Raspberry Pi Pico', 'pico-pio-square', pico('pio-square'), 'A two-instruction PIO program toggles GP3 at exactly 10 kHz while the CPU sleeps: probe GP3 with the Probe tool.'),
   ex('mega-chaser', 'Mega LED chaser', 'Mega', 'mega-chaser', mega('chaser'), 'Ten LEDs on the Mega’s odd pins D23–D41 light one after another, there and back — one shared resistor, since one LED is lit at a time.'),
   ex('mega-serial-ports', 'Mega serial ports', 'Mega', 'mega-serial-ports', mega('serial-ports'), 'The Mega has four UARTs: Serial1–3 are each wired back to themselves (TX→RX), and Serial reports what every port heard.'),
   ex('mega-analog', 'Mega analog scanner', 'Mega', 'mega-analog', mega('analog-hi'), 'All 16 analog inputs read ten times a second; four potentiometers on A0, A5, A8 and A15 — turn them, or watch the Plotter.'),
@@ -137,9 +161,10 @@ export const EXAMPLES: readonly Example[] = [
 ];
 
 // The examples' files, by repo-relative path. Literal patterns (the bundler needs them):
-// projects and sketches as text, AVR firmware (Uno, Nano, Mega) as text, ESP32 images as asset URLs.
+// projects and sketches as text, AVR firmware (Uno, Nano, Mega) as text, ESP32 images and Pico
+// UF2s as asset URLs.
 const PROJECTS = import.meta.glob(
-  '../../../../fixtures/projects/{blink-led,button-pullup,pwm-fade,traffic-light,simon,debug-demo,analog-pot,logic-demo,lcd-4bit,lcd-i2c,lcd-thermometer,ssd1306-adafruit,oled-clock,seven-seg-mux,bargraph,neopixel,dht22,hcsr04,distance-meter,ds1307,mpu6050,keypad,encoder,servo-sweep,servo-knob,keypad-lock,stepper-28byj48,relay,buzzer,speaker-melody,pcm-playback,mic-level,vu-meter,esp32-blink,esp32-serial,esp32-button,esp32-pwm-fader,esp32-neopixel,esp32-rainbow-ring,esp32-oled-clock,esp32-dac-sine,esp32-mic-level,esp32-i2c,uart-chat,uno-esp32-uart-divider,nano-analog,mega-chaser,mega-serial-ports,mega-analog,tft-demo,esp32-tft-demo,ir-remote,scale,flame-alarm,gas-meter,a4988-stepper,env-gas-fan,env-pir-hallway,env-parking,env-thermostat}.json',
+  '../../../../fixtures/projects/{blink-led,button-pullup,pwm-fade,traffic-light,simon,debug-demo,analog-pot,logic-demo,lcd-4bit,lcd-i2c,lcd-thermometer,ssd1306-adafruit,oled-clock,seven-seg-mux,bargraph,neopixel,dht22,hcsr04,distance-meter,ds1307,mpu6050,keypad,encoder,servo-sweep,servo-knob,keypad-lock,stepper-28byj48,relay,buzzer,speaker-melody,pcm-playback,mic-level,vu-meter,esp32-blink,esp32-serial,esp32-button,esp32-pwm-fader,esp32-neopixel,esp32-rainbow-ring,esp32-oled-clock,esp32-dac-sine,esp32-mic-level,esp32-i2c,uart-chat,uno-esp32-uart-divider,nano-analog,mega-chaser,mega-serial-ports,mega-analog,tft-demo,esp32-tft-demo,ir-remote,scale,flame-alarm,gas-meter,a4988-stepper,env-gas-fan,env-pir-hallway,env-parking,env-thermostat,pico-blink,pico-analog-read,pico-pwm-fade,pico-i2c-oled,pico-spi-tft,pico-neopixel,pico-pio-square}.json',
   { import: 'default' },
 ) as Record<string, () => Promise<unknown>>;
 const HEX = import.meta.glob(
@@ -151,7 +176,10 @@ const HEX = import.meta.glob(
   { query: '?raw', import: 'default' },
 ) as Record<string, () => Promise<string>>;
 const BIN = import.meta.glob(
-  '../../../../fixtures/firmware/esp32/{blink,serial-hello,gpio-input,pwm-fader,neopixel,rainbow-ring,oled-clock,dac-sine,mic-level,i2c-scan,uart-chat,uart-relay,tft-demo}.bin',
+  [
+    '../../../../fixtures/firmware/esp32/{blink,serial-hello,gpio-input,pwm-fader,neopixel,rainbow-ring,oled-clock,dac-sine,mic-level,i2c-scan,uart-chat,uart-relay,tft-demo}.bin',
+    '../../../../fixtures/firmware/pico/{blink,analog-read,pwm-fade,i2c-oled,spi-tft,neopixel,pio-square}.uf2',
+  ],
   { query: '?url', import: 'default' },
 ) as Record<string, () => Promise<string>>;
 const SKETCHES = import.meta.glob(
@@ -160,9 +188,13 @@ const SKETCHES = import.meta.glob(
     '../../../../fixtures/sketches/nano/analog-a6/*.{ino,h,hpp,c,cpp}',
     '../../../../fixtures/sketches/mega/{chaser,serial-ports,analog-hi}/*.{ino,h,hpp,c,cpp}',
     '../../../../fixtures/sketches/esp32/{blink,serial-hello,gpio-input,pwm-fader,neopixel,rainbow-ring,oled-clock,dac-sine,mic-level,i2c-scan,uart-chat,uart-relay,tft-demo}/*.{ino,h,hpp,c,cpp}',
+    '../../../../fixtures/sketches/pico/{blink,analog-read,pwm-fade,i2c-oled,spi-tft,neopixel,pio-square}/*.{ino,h,hpp,c,cpp}',
   ],
   { query: '?raw', import: 'default' },
 ) as Record<string, () => Promise<string>>;
+
+/** BT63: the MicroPython examples' sketches (each folder's .py files). */
+const MICROPYTHON = import.meta.glob('../../../../fixtures/micropython/{blink,neopixel}/*.py', { query: '?raw', import: 'default' }) as Record<string, () => Promise<string>>;
 
 const ROOT = '../../../../fixtures/';
 
@@ -183,7 +215,7 @@ export function loadProject(example: Example): Promise<unknown> {
 }
 
 /** A board's precompiled firmware bytes (a .hex as its text's bytes). */
-export async function loadFirmware(board: ExampleBoard): Promise<Uint8Array> {
+export async function loadFirmware(board: { firmware: string }): Promise<Uint8Array> {
   const path = `${ROOT}firmware/${board.firmware}`;
   const hex = HEX[path];
   if (hex !== undefined) return new TextEncoder().encode(await hex());
@@ -194,8 +226,18 @@ export async function loadFirmware(board: ExampleBoard): Promise<Uint8Array> {
   return new Uint8Array(await response.arrayBuffer());
 }
 
+/** A MicroPython example's sketch (BT63): every .py of fixtures/micropython/<name>/, main.py first among them. */
+export async function loadMicroPython(name: string): Promise<{ files: Record<string, string>; main: string }> {
+  const prefix = `${ROOT}micropython/${name}/`;
+  const entries = Object.entries(MICROPYTHON).filter(([path]) => path.startsWith(prefix) && !path.slice(prefix.length).includes('/'));
+  const files: Record<string, string> = {};
+  for (const [path, load] of entries) files[path.slice(prefix.length)] = await load();
+  if (!Object.hasOwn(files, 'main.py')) throw new Error(`micropython/${name} has no main.py`);
+  return { files, main: 'main.py' };
+}
+
 /** A board's sketch: every source file of its folder by name, and the main .ino. */
-export async function loadSketch(board: ExampleBoard): Promise<{ files: Record<string, string>; main: string }> {
+export async function loadSketch(board: { sketch: string }): Promise<{ files: Record<string, string>; main: string }> {
   const prefix = `${ROOT}sketches/${board.sketch}/`;
   const entries = Object.entries(SKETCHES).filter(([path]) => path.startsWith(prefix) && !path.slice(prefix.length).includes('/'));
   if (entries.length === 0) throw new Error(`no sketch ${board.sketch}`);

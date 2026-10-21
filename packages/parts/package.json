@@ -13,6 +13,7 @@
   },
   "devDependencies": {
     "@benchtop/avr": "0.0.0",
-    "@benchtop/esp32": "0.0.0"
+    "@benchtop/esp32": "0.0.0",
+    "@benchtop/rp2040": "0.0.0"
   }
 }

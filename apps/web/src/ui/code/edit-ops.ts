@@ -5,6 +5,8 @@
  */
 
 export const INDENT = '  ';
+/** BT63: Python's indent (PEP 8: four spaces). */
+export const PY_INDENT = '    ';
 
 export interface Edit {
   /** Replace text[from, to) with `insert`, then select [selStart, selEnd). */
@@ -19,10 +21,11 @@ const lineStartOf = (text: string, pos: number): number => text.lastIndexOf('\n'
 
 /**
  * Tab / Shift-Tab. A caret with Tab inserts an indent; a selection (or Shift-Tab) indents or
- * unindents every line it touches by one level, keeping those lines selected.
+ * unindents every line it touches by one level (`unit`: INDENT, or PY_INDENT in Python),
+ * keeping those lines selected.
  */
-export function indent(text: string, selStart: number, selEnd: number, out: boolean): Edit {
-  if (selStart === selEnd && !out) return { from: selStart, to: selEnd, insert: INDENT, selStart: selStart + INDENT.length, selEnd: selStart + INDENT.length };
+export function indent(text: string, selStart: number, selEnd: number, out: boolean, unit: string = INDENT): Edit {
+  if (selStart === selEnd && !out) return { from: selStart, to: selEnd, insert: unit, selStart: selStart + unit.length, selEnd: selStart + unit.length };
   const from = lineStartOf(text, selStart);
   // A selection ending at a line's start doesn't take that line.
   const lastPos = selEnd > selStart && text[selEnd - 1] === '\n' ? selEnd - 1 : selEnd;
@@ -34,10 +37,10 @@ export function indent(text: string, selStart: number, selEnd: number, out: bool
   const changed = lines.map((line, i) => {
     let next: string;
     if (out) {
-      const spaces = line.startsWith(INDENT) ? INDENT.length : line.startsWith(' ') || line.startsWith('\t') ? 1 : 0;
+      const spaces = line.startsWith(unit) ? unit.length : line.startsWith(' ') || line.startsWith('\t') ? 1 : 0;
       next = line.slice(spaces);
     } else {
-      next = line.length === 0 ? line : INDENT + line;
+      next = line.length === 0 ? line : unit + line;
     }
     const delta = next.length - line.length;
     if (i === 0) firstDelta = delta;
@@ -51,12 +54,17 @@ export function indent(text: string, selStart: number, selEnd: number, out: bool
 
 /**
  * Enter: a newline with the current line's indentation, one level more after an opening `{`
- * (and, when the caret sits right before its `}`, that brace on its own line below).
+ * (and, when the caret sits right before its `}`, that brace on its own line below) — in
+ * Python (BT63), one PY_INDENT more after a line ending in `:` (a block opens).
  */
-export function newline(text: string, selStart: number, selEnd: number): Edit {
+export function newline(text: string, selStart: number, selEnd: number, python = false): Edit {
   const start = lineStartOf(text, selStart);
   const lead = /^[ \t]*/.exec(text.slice(start, selStart))?.[0] ?? '';
   const before = text.slice(start, selStart).trimEnd();
+  if (python) {
+    const insert = `\n${lead}${before.endsWith(':') && !before.trimStart().startsWith('#') ? PY_INDENT : ''}`;
+    return { from: selStart, to: selEnd, insert, selStart: selStart + insert.length, selEnd: selStart + insert.length };
+  }
   const opens = before.endsWith('{');
   if (opens && text[selEnd] === '}') {
     const insert = `\n${lead}${INDENT}\n${lead}`;

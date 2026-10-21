@@ -14,7 +14,7 @@ import { docBounds } from '../editor/frame.ts';
 import { pinPosition } from '../editor/pins.ts';
 import { orthogonalPath, pathData } from '../editor/routing.ts';
 import { openExample } from '../examples/index.ts';
-import { CATEGORIES, EXAMPLES, type Example, loadProject } from '../examples/manifest.ts';
+import { boardBadge, CATEGORIES, EXAMPLES, type Example, loadProject } from '../examples/manifest.ts';
 import { viewFor } from '../views/registry.ts';
 
 export const galleryOpen = signal(false);
@@ -102,11 +102,14 @@ function Card({ example, doc }: { example: Example; doc: ProjectDoc | undefined 
       {doc === undefined ? <div class="preview" style={{ width: `${CARD_W}px`, height: `${CARD_H}px` }} /> : <ProjectPreview doc={doc} />}
       <span class="example-title">
         {example.title}
-        {Object.values(example.boards).map((b) => (
-          <span key={b.firmware} class={`example-board ${b.firmware.startsWith('esp32/') ? 'esp32' : 'uno'}`}>
-            {b.firmware.startsWith('esp32/') ? 'ESP32' : 'Uno'}
-          </span>
-        ))}
+        {Object.entries(example.boards).map(([id, b]) => {
+          const badge = boardBadge(b);
+          return (
+            <span key={id} class={`example-board ${badge.kind}`}>
+              {badge.label}
+            </span>
+          );
+        })}
       </span>
       <span class="example-description">{example.description}</span>
     </button>

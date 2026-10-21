@@ -1,0 +1,70 @@
+{
+  "format": 1,
+  "name": "pico-analog-read",
+  "parts": [
+    {
+      "id": "pico",
+      "type": "raspberry-pi-pico",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "pot",
+      "type": "potentiometer",
+      "x": 35,
+      "y": 10,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "pot",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "pico",
+        "pin": "3V3"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "pot",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "pico",
+        "pin": "GND.7"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "pot",
+        "pin": "SIG"
+      },
+      "to": {
+        "part": "pico",
+        "pin": "GP26"
+      },
+      "waypoints": [],
+      "color": "blue"
+    }
+  ],
+  "firmware": {
+    "pico": {
+      "kind": "file",
+      "name": "analog-read.uf2",
+      "format": "uf2"
+    }
+  }
+}

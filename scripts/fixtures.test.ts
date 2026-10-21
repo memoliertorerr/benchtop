@@ -104,3 +104,17 @@ describe('Xtensa test programs and decode corpora', () => {
     expect(total).toBeLessThanOrEqual(1.5 * 1024 * 1024);
   });
 });
+
+describe('RP2040 test programs', () => {
+  it('every fixtures/rp2040/*.c has its linker script, .elf and .lst, with no machine paths', () => {
+    const dir = join(ROOT, 'fixtures', 'rp2040');
+    const programs = readdirSync(dir).filter((f) => f.endsWith('.c'));
+    expect(programs).toContain('romcalls.c');
+    for (const source of programs) {
+      const name = source.slice(0, -2);
+      for (const ext of ['ld', 'elf', 'lst']) expect(existsSync(join(dir, `${name}.${ext}`)), `${name}.${ext}`).toBe(true);
+      expect(readFileSync(join(dir, `${name}.lst`), 'utf8')).not.toMatch(/\/Users\//);
+      expect(readFileSync(join(dir, `${name}.elf`)).includes(Buffer.from('/Users/'))).toBe(false);
+    }
+  });
+});

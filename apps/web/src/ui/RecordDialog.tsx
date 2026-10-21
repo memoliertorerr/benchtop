@@ -81,7 +81,7 @@ export function RecordDialog() {
             <input
               type="text"
               value={path}
-              title="Path to the compiled firmware (.hex, .elf or .bin), relative to where you save the spec"
+              title="Path to the compiled firmware (.hex, .elf, .bin or .uf2), relative to where you save the spec"
               onInput={(e) => setFirmware({ ...firmware, [board]: (e.target as HTMLInputElement).value })}
             />
           </label>

@@ -24,6 +24,8 @@ export interface CompileArtifacts {
   bin?: Uint8Array;
   /** ESP32 partition table. */
   partitions?: Uint8Array;
+  /** RP2040 image (BT61). */
+  uf2?: Uint8Array;
 }
 
 export interface CompileResult {
@@ -95,5 +97,7 @@ function readArtifacts(dir: string, name: string): CompileArtifacts {
   if (bin !== undefined) artifacts.bin = bin;
   const partitions = file('partitions.bin');
   if (partitions !== undefined) artifacts.partitions = partitions;
+  const uf2 = file('uf2');
+  if (uf2 !== undefined) artifacts.uf2 = uf2;
   return artifacts;
 }

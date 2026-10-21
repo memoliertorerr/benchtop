@@ -115,7 +115,7 @@ describe('parseProject rejects, naming the field', () => {
     ['a missing pin name', '/wires/0/from/pin', (d) => delete d.wires[0].from.pin],
     ['a duplicate wire id', '/wires/1/id', (d) => (d.wires[1].id = 'w1')],
     ['firmware for a missing part', '/firmware/nano', (d) => (d.firmware.nano = d.firmware.uno)],
-    ['an unknown firmware format', '/firmware/uno/format', (d) => (d.firmware.uno.format = 'uf2')],
+    ['an unknown firmware format', '/firmware/uno/format', (d) => (d.firmware.uno.format = 'srec')],
     ['an unknown firmware kind', '/firmware/uno/kind', (d) => (d.firmware.uno = { kind: 'url', url: 'x' })],
     ['a 257-character name', '/name', (d) => (d.name = 'x'.repeat(257))],
     ['a missing wires list', '/wires', (d) => delete d.wires],
@@ -186,6 +186,12 @@ describe('inline sketches (BT42)', () => {
     expect(result.doc.firmware.uno).not.toBe(input.firmware.uno);
   });
 
+  it('accepts a MicroPython sketch: .py files, a .py main (BT63)', () => {
+    const files = { 'main.py': 'import lib\nlib.run()\n', 'lib.py': 'def run():\n    print("hi")\n' };
+    const result = parseProject(inline(files, 'main.py', 'micropython:rp2:pico'));
+    expect(result.ok && result.doc.firmware.uno).toEqual({ kind: 'inline', fqbn: 'micropython:rp2:pico', files, main: 'main.py' });
+  });
+
   it('leaves older documents unchanged', () => {
     const input = loose();
     const result = parseProject(input);
@@ -211,6 +217,9 @@ describe('inline sketches (BT42)', () => {
     ['main not a .ino', '/firmware/uno/main', inline({ 'sketch.ino': blink, 'pins.h': '' }, 'pins.h')],
     ['main not among the files', '/firmware/uno/main', inline({ 'other.ino': blink }, 'sketch.ino')],
     ['no fqbn', '/firmware/uno/fqbn', inline({ 'sketch.ino': blink }, 'sketch.ino', '')],
+    ['a .py in an Arduino sketch', '/firmware/uno/files/main.py', inline({ 'sketch.ino': blink, 'main.py': '' })],
+    ['a .ino in a MicroPython sketch', '/firmware/uno/files/sketch.ino', inline({ 'main.py': '', 'sketch.ino': blink }, 'main.py', 'micropython:rp2:pico')],
+    ['a MicroPython main that is not .py', '/firmware/uno/main', inline({ 'main.py': '' }, 'sketch.ino', 'micropython:rp2:pico')],
   ];
   for (const [what, path, input] of rejects) {
     it(`rejects ${what}`, () => {

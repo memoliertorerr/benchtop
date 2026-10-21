@@ -318,7 +318,7 @@ export const UNO_CHECKS: Record<string, (r: ExampleRun) => void> = {
 };
 
 describe('every Uno, Nano and Mega example runs as described (BT43, BT45, BT47)', () => {
-  const unoOnly = EXAMPLES.filter((e) => Object.values(e.boards).every((b) => /^(uno|nano|mega)\//.test(b.firmware)));
+  const unoOnly = EXAMPLES.filter((e) => Object.values(e.boards).every((b) => 'firmware' in b && /^(uno|nano|mega)\//.test(b.firmware)));
   it('has a check for each', () => {
     expect(unoOnly.map((e) => e.id).filter((id) => UNO_CHECKS[id] === undefined)).toEqual([]);
   });

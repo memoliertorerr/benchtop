@@ -1,0 +1,11 @@
+{
+  "name": "example: pico-tft",
+  "project": "../../projects/pico-spi-tft.json",
+  "firmware": {
+    "pico": "../../firmware/pico/spi-tft.uf2"
+  },
+  "expect": [
+    "serial contains \"drawn\" by 1500ms",
+    "serial matches /^1\\r?$/m by 2s"
+  ]
+}

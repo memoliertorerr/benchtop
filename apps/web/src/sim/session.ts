@@ -74,6 +74,8 @@ export interface SimSessionDeps {
   schedule(fn: () => void): void;
   /** The ESP32 ROM ELF, when the worker has it (BT34); undefined: ESP32 boards report it missing. */
   esp32Rom?(): Uint8Array | undefined;
+  /** The Pico's stock MicroPython UF2 (BT63); undefined: MicroPython sketches report it missing. */
+  micropython?(): Uint8Array | undefined;
   /**
    * The UI can read shared memory (the worker is cross-origin isolated): visual state goes
    * through a frame ring (BT40) instead of `frame` messages.
@@ -281,7 +283,7 @@ export class SimSession {
     this.latest.clear();
     this.serial.clear();
     this.cycleMarks.clear();
-    this.env = createBenchEnv(this.deps.esp32Rom?.());
+    this.env = createBenchEnv(this.deps.esp32Rom?.(), this.deps.micropython?.());
     // assembleBench resets the bench, which invalidates every part: the first frame carries
     // every view's state and nothing keeps showing what a previous bench left on screen.
     const project = validateProject(doc);
@@ -643,8 +645,13 @@ function firmwareKey(image: FirmwareImage | undefined): string {
     hash = Math.imul(hash ^ v, 0x01000193) >>> 0;
   };
   if (image.format === 'hex') for (let i = 0; i < image.text.length; i++) mix(image.text.charCodeAt(i));
-  else if (image.format === 'elf') for (let i = 0; i < image.bytes.length; i++) mix(image.bytes[i]);
-  else for (let i = 0; i < image.app.length; i++) mix(image.app[i]);
+  else if (image.format === 'elf' || image.format === 'uf2') for (let i = 0; i < image.bytes.length; i++) mix(image.bytes[i]);
+  else if (image.format === 'micropython') {
+    for (const text of [image.main, ...Object.keys(image.files).sort().flatMap((name) => [name, image.files[name]])]) {
+      for (let i = 0; i < text.length; i++) mix(text.charCodeAt(i));
+      mix(0);
+    }
+  } else for (let i = 0; i < image.app.length; i++) mix(image.app[i]);
   return `${image.format}:${hash.toString(16)}`;
 }
 

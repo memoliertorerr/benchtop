@@ -65,4 +65,7 @@ export const PORT_GROUPS: Readonly<Record<BoardSpec['mcu'], PortGroups>> = {
   },
   // ESP32: none modelled (its datasheet words current limits per power domain, not pin group).
   esp32: { source: [], sink: [] },
+  // RP2040, RP2350: none (their datasheets limit the IOVDD supply current, not pin groups).
+  rp2040: { source: [], sink: [] },
+  rp2350: { source: [], sink: [] },
 };

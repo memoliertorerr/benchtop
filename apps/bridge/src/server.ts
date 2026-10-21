@@ -81,6 +81,7 @@ export function compileResultToJson(result: CompileResult): string {
       elf: b64(result.artifacts.elf),
       bin: b64(result.artifacts.bin),
       partitions: b64(result.artifacts.partitions),
+      uf2: b64(result.artifacts.uf2),
     },
   });
 }

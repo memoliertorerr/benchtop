@@ -65,6 +65,19 @@ export function findXtensaTool(name: string, env: NodeJS.ProcessEnv = process.en
   return dirs.map((dir) => join(dir, name)).find((path) => existsSync(path) && statSync(path).isFile());
 }
 
+/**
+ * An Arm toolchain program (BT60: `arm-none-eabi-gcc`, `-objdump`, …) from the arduino-pico
+ * core's pqt-gcc (the newest version folder), or $BENCHTOP_ARM_BIN/<name>.
+ */
+export function findArmTool(name: string, env: NodeJS.ProcessEnv = process.env, home = homedir()): string | undefined {
+  const dirs: string[] = [];
+  if (env.BENCHTOP_ARM_BIN) dirs.push(env.BENCHTOP_ARM_BIN);
+  const dataDir = env.ARDUINO_DIRECTORIES_DATA || (process.platform === 'darwin' ? join(home, 'Library', 'Arduino15') : join(home, '.arduino15'));
+  const gccDir = join(dataDir, 'packages', 'rp2040', 'tools', 'pqt-gcc');
+  if (existsSync(gccDir)) for (const version of readdirSync(gccDir).sort().reverse()) dirs.push(join(gccDir, version, 'bin'));
+  return dirs.map((dir) => join(dir, name)).find((path) => existsSync(path) && statSync(path).isFile());
+}
+
 export interface CliResult {
   /** Exit code; null when killed (timeout). */
   code: number | null;

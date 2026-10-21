@@ -1,0 +1,12 @@
+{
+  "name": "example: pico-fade",
+  "project": "../../projects/pico-pwm-fade.json",
+  "firmware": {
+    "pico": "../../firmware/pico/pwm-fade.uf2"
+  },
+  "expect": [
+    "pin pico:GP15 frequency is 1000 Hz ±1% between 250ms and 380ms",
+    "pin pico:GP15 duty is 25% ±2 between 250ms and 380ms",
+    "pin pico:GP15 duty is 75% ±2 between 650ms and 780ms"
+  ]
+}

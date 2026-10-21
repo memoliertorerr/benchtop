@@ -6,7 +6,8 @@
 
 import type { FirmwareImage } from '@benchtop/core';
 
-export type FirmwareFormat = 'hex' | 'elf' | 'esp32-bin';
+/** `micropython` (BT63): a MicroPython sketch, stored as the UTF-8 JSON `{ files, main }` (microPythonBytes). */
+export type FirmwareFormat = 'hex' | 'elf' | 'esp32-bin' | 'uf2' | 'micropython';
 
 /** Files larger than this are refused before they are read. */
 export const MAX_FIRMWARE_BYTES = 4 * 1024 * 1024;
@@ -25,7 +26,32 @@ export function formatOf(fileName: string): FirmwareFormat | undefined {
   if (lower.endsWith('.hex')) return 'hex';
   if (lower.endsWith('.elf')) return 'elf';
   if (lower.endsWith('.bin')) return 'esp32-bin';
+  if (lower.endsWith('.uf2')) return 'uf2';
+  if (lower.endsWith('.py')) return 'micropython';
   return undefined;
+}
+
+/** A MicroPython sketch as stored firmware bytes. */
+export function microPythonBytes(files: Readonly<Record<string, string>>, main: string): Uint8Array {
+  return new TextEncoder().encode(JSON.stringify({ files, main }));
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/** The sketch microPythonBytes stored (checked: the store is this app's, but storage can rot). */
+function microPythonImage(bytes: Uint8Array): FirmwareImage {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(new TextDecoder().decode(bytes));
+  } catch {
+    parsed = undefined;
+  }
+  if (isRecord(parsed) && typeof parsed.main === 'string' && isRecord(parsed.files)) {
+    const files: Record<string, string> = {};
+    for (const [name, text] of Object.entries(parsed.files)) if (typeof text === 'string') files[name] = text;
+    if (Object.hasOwn(files, parsed.main)) return { format: 'micropython', files, main: parsed.main };
+  }
+  throw new Error('the stored MicroPython sketch is damaged: open the Code tab and Run it again');
 }
 
 /** What the worker loads for stored firmware. */
@@ -37,6 +63,10 @@ export function toImage(firmware: StoredFirmware): FirmwareImage {
       return { format: 'elf', bytes: firmware.bytes };
     case 'esp32-bin':
       return { format: 'esp32-bin', app: firmware.bytes };
+    case 'uf2':
+      return { format: 'uf2', bytes: firmware.bytes };
+    case 'micropython':
+      return microPythonImage(firmware.bytes);
   }
 }
 

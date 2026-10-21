@@ -148,6 +148,10 @@ function storedFrom(ref: SketchRef, result: BridgeCompileResult): StoredFirmware
     const bin = result.artifacts.bin;
     return bin === undefined ? undefined : { name: `${name}.ino.bin`, format: 'esp32-bin', bytes: base64Bytes(bin) };
   }
+  if (ref.fqbn.startsWith('rp2040:')) {
+    const uf2 = result.artifacts.uf2;
+    return uf2 === undefined ? undefined : { name: `${name}.ino.uf2`, format: 'uf2', bytes: base64Bytes(uf2) };
+  }
   const hex = result.artifacts.hex;
   return hex === undefined ? undefined : { name: `${name}.ino.hex`, format: 'hex', bytes: new TextEncoder().encode(hex) };
 }

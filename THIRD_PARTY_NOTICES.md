@@ -11,6 +11,7 @@ Installed by `npm install`, not stored in this repository; bundled into builds o
 | Package | Version | License | Copyright |
 |---|---|---|---|
 | [avr8js](https://github.com/wokwi/avr8js) | 0.21.1 | MIT | © 2019–2025 Uri Shaked |
+| [rp2040js](https://github.com/wokwi/rp2040js) | 1.4.0 | MIT | © 2021 Uri Shaked |
 | [@wokwi/elements](https://github.com/wokwi/wokwi-elements) | 1.9.2 | MIT | © 2020 Uri Shaked |
 | [preact](https://github.com/preactjs/preact) | 10.29.8 | MIT | © 2015–present Jason Miller |
 | [@preact/signals](https://github.com/preactjs/signals) | 2.11.2 | MIT | © 2022–present Preact Team |
@@ -57,6 +58,11 @@ Development-only tools (TypeScript, Vite, Vitest, @types/node) are not shipped.
   [esp-rom-elfs](https://github.com/espressif/esp-rom-elfs) release 20241011, Copyright
   Espressif Systems, Apache License 2.0. `npm run fetch:esp32-rom` downloads it (after you
   approve) into `.cache/esp32-rom`, which git ignores.
+- **MicroPython firmware** — the v1.29.0 UF2s `RPI_PICO-20260824-v1.29.0.uf2` and
+  `RPI_PICO2-RISCV-20260824-v1.29.0.uf2` from [micropython.org](https://micropython.org),
+  Copyright Damien P. George and contributors, MIT License (the builds include other components
+  under their own licenses, listed in MicroPython's repository). `npm run fetch:micropython`
+  downloads them (after you approve) into `.cache/micropython`, which git ignores.
 
 ## Test firmware (`fixtures/firmware/`)
 
@@ -76,6 +82,8 @@ in `fixtures/firmware/manifest.json`. Linked into them, under their own licenses
 | DHTlib 0.1.37 | `dht22-dhtlib` | MIT | <https://github.com/RobTillaart/DHTlib> |
 | Arduino-ESP32 core 2.0.17 | ESP32 fixtures | LGPL-2.1-or-later | <https://github.com/espressif/arduino-esp32/tree/2.0.17> |
 | ESP-IDF v4.4.7 libraries (incl. FreeRTOS, MIT; newlib, BSD-style) | ESP32 fixtures | Apache-2.0 and others | <https://github.com/espressif/esp-idf/tree/v4.4.7> |
+| Arduino-Pico core 6.2.0 (Earle F. Philhower III) | Pico fixtures | LGPL-2.1-or-later | <https://github.com/earlephilhower/arduino-pico> |
+| Raspberry Pi Pico SDK (in the Arduino-Pico core), TinyUSB | Pico fixtures | BSD-3-Clause, MIT | <https://github.com/raspberrypi/pico-sdk> |
 | GCC runtime (libgcc) | all fixtures | GPL-3.0 with the GCC Runtime Library Exception | <https://gcc.gnu.org/> |
 
 The fixtures exist to test the emulator. The complete source of the parts written for this
@@ -85,10 +93,16 @@ the LGPL components are available from the links above.
 
 The decode corpora in `fixtures/xtensa/corpus/` are `xtensa-esp32-elf-objdump` output for this
 project's test programs and for the instruction words of the `serial-hello` fixture; the Xtensa
-test programs in `fixtures/xtensa/` are this project's own assembly sources (MIT).
+test programs in `fixtures/xtensa/` and the RP2040 test programs in `fixtures/rp2040/` are this
+project's own sources (MIT).
+
+The RP2040 bootrom the simulator runs is this project's own (`packages/rp2040/src/bootrom/`),
+written from the RP2040 datasheet's description of the bootrom's tables and functions; the real
+bootrom isn't used.
 
 ## References (not included)
 
-Espressif's ESP32 Technical Reference Manual and datasheet, Microchip's ATmega328P datasheet,
+Espressif's ESP32 Technical Reference Manual and datasheet, Raspberry Pi's RP2040 datasheet,
+Microchip's ATmega328P datasheet,
 Cadence's Xtensa Instruction Set Architecture Reference Manual and the part datasheets cited in
 the code were read for behavior; none of their text is included.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { type Edit, find, indent, lineOf, newline } from './edit-ops.ts';
+import { type Edit, find, indent, lineOf, newline, PY_INDENT } from './edit-ops.ts';
 
 /** Applies an edit; returns the text with [ and ] around the selection. */
 function apply(text: string, edit: Edit): string {
@@ -49,4 +49,18 @@ describe('code editor operations (BT42)', () => {
     expect(find(text, 'nope', 0)).toBe(-1);
     expect(lineOf('a\nb\nc', 4)).toBe(3);
   });
+
+  it('in Python, Enter indents four spaces after a block opener and Tab uses four spaces (BT63)', () => {
+    const [text, a, b] = sel('while True:[]');
+    expect(apply(text, newline(text, a, b, true))).toBe('while True:\n    []');
+    const [t2, a2, b2] = sel('    x = 1[]');
+    expect(apply(t2, newline(t2, a2, b2, true))).toBe('    x = 1\n    []');
+    const [t3, a3, b3] = sel('# note:[]');
+    expect(apply(t3, newline(t3, a3, b3, true))).toBe('# note:\n[]');
+    const [t4, a4, b4] = sel('[a\nb]');
+    expect(apply(t4, indent(t4, a4, b4, false, PY_INDENT))).toBe('    [a\n    b]');
+    const [t5, a5, b5] = sel('        x[]');
+    expect(apply(t5, indent(t5, a5, b5, true, PY_INDENT))).toBe('    x[]');
+  });
 });
+

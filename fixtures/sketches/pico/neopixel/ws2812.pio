@@ -1,0 +1,13 @@
+; ws2812.pio (BT62): WS2812 ("NeoPixel") bits from PIO, our own program. Each bit is 10 PIO
+; cycles at 800 kHz × 10: high 2 cycles, then high 5 more for a 1 (low for a 0), then low 3.
+; The side-set pin is the data line; OUT shifts the 24-bit GRB word MSB first (autopull).
+.program ws2812
+.side_set 1
+.wrap_target
+bit:
+    out x, 1        side 0 [2]  ; low 3 cycles (the end of the previous bit), take the next bit
+    jmp !x low      side 1 [1]  ; high 2 cycles
+    jmp bit         side 1 [4]  ; a 1: high 5 more
+low:
+    nop             side 0 [4]  ; a 0: low 5
+.wrap

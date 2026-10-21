@@ -73,16 +73,18 @@ export interface Wire {
 
 /**
  * Where a board's firmware comes from. The document stores a reference, never the bytes:
- * - `file`: a `.hex` / `.elf` / `.bin` the user dropped; the app keeps the bytes (IndexedDB in
- *   the browser, a path argument in the CLI) keyed by board id.
+ * - `file`: a `.hex` / `.elf` / `.bin` / `.uf2` (BT60) the user dropped; the app keeps the bytes
+ *   (IndexedDB in the browser, a path argument in the CLI) keyed by board id.
  * - `sketch`: an absolute sketch folder the compile bridge builds with `fqbn`.
  * - `inline` (BT42, human-approved): the sketch's source lives in the document — `files` maps
  *   file names to their text and `main` names the `.ino` among them; the compile bridge builds
  *   it with `fqbn`. `parseProject` limits it (at most 32 files, 256 KB of source, names
  *   `[A-Za-z0-9_][A-Za-z0-9_.-]*.(ino|h|hpp|c|cpp)`). The compiled bytes stay outside the
- *   document, as for the other kinds.
+ *   document, as for the other kinds. A MicroPython sketch (BT63, approved 2026-10-21) is an
+ *   inline one with fqbn `micropython:rp2:pico` (or `micropython:rp2:pico2`): `.py` files, `main`
+ *   (by convention `main.py`) the one that runs at boot; nothing compiles it.
  */
 export type FirmwareRef =
-  | { kind: 'file'; name: string; format: 'hex' | 'elf' | 'esp32-bin' }
+  | { kind: 'file'; name: string; format: 'hex' | 'elf' | 'esp32-bin' | 'uf2' }
   | { kind: 'sketch'; path: string; fqbn: string }
   | { kind: 'inline'; fqbn: string; files: Record<string, string>; main: string };

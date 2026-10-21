@@ -5,7 +5,8 @@ import { CATALOG } from '@benchtop/parts';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { REPO_ROOT } from '../../../../packages/core/src/firmware/fixtures.test-helper.ts';
 import { type Manifest, SKETCH_SOURCE, sketchSourceSha256 } from '../../../../scripts/fixture-boards.ts';
-import { CATEGORIES, EXAMPLES, loadFirmware, loadProject, loadSketch } from './manifest.ts';
+import { micropythonFqbnOf } from '../editor/fqbn.ts';
+import { CATEGORIES, EXAMPLES, loadFirmware, loadMicroPython, loadProject, loadSketch } from './manifest.ts';
 
 // BT38/BT43: every gallery example is a committed project that parses, whose boards are boards
 // in it; its loaders return exactly the committed files; its sketch is the fixture sketch folder,
@@ -30,7 +31,7 @@ const manifest = JSON.parse(readFileSync(join(REPO_ROOT, 'fixtures', 'firmware',
 describe('examples gallery (BT38, BT43, BT45, BT47, BT56)', () => {
   it('has unique ids, the planned categories and examples', () => {
     expect(new Set(EXAMPLES.map((e) => e.id)).size).toBe(EXAMPLES.length);
-    expect([...CATEGORIES]).toEqual(['Basics', 'Displays', 'Sensors', 'Motors', 'Sound', 'Environment', 'ESP32', 'Mega', 'Two boards']);
+    expect([...CATEGORIES]).toEqual(['Basics', 'Displays', 'Sensors', 'Motors', 'Sound', 'Environment', 'ESP32', 'Raspberry Pi Pico', 'Mega', 'Two boards']);
     for (const e of EXAMPLES) expect(CATEGORIES).toContain(e.category);
     const planned = [
       'blink', 'button', 'fade', 'serial-echo', 'potentiometer', 'lcd1602', 'oled', 'servo', 'neopixel', 'dht22', 'hc-sr04', 'esp32-blink', 'esp32-serial-hello',
@@ -60,6 +61,14 @@ describe('examples gallery (BT38, BT43, BT45, BT47, BT56)', () => {
       for (const [board, files] of Object.entries(example.boards)) {
         const part = parsed.doc.parts.find((p) => p.id === board);
         expect(part !== undefined && CATALOG.get(part.type)?.board !== undefined, `${board} is a board`).toBe(true);
+        if ('micropython' in files) {
+          // BT63: a MicroPython sketch: every .py of its folder, byte for byte, on a board MicroPython runs on.
+          expect(part !== undefined && micropythonFqbnOf(part.type) !== undefined, `${board} runs MicroPython`).toBe(true);
+          const dir = join(REPO_ROOT, 'fixtures', 'micropython', files.micropython);
+          const onDisk = Object.fromEntries(readdirSync(dir).filter((n) => n.endsWith('.py')).map((n) => [n, readFileSync(join(dir, n), 'utf8')]));
+          expect((await loadMicroPython(files.micropython)).files).toEqual(onDisk);
+          continue;
+        }
         // Firmware: the committed bytes.
         const firmware = readFileSync(join(REPO_ROOT, 'fixtures', 'firmware', files.firmware));
         expect(Buffer.from(await loadFirmware(files)).equals(firmware)).toBe(true);
@@ -79,7 +88,9 @@ describe('examples gallery (BT38, BT43, BT45, BT47, BT56)', () => {
       expect(existsSync(specPath), `fixtures/specs/examples/${example.id}.bench.json`).toBe(true);
       const spec = JSON.parse(readFileSync(specPath, 'utf8')) as { project: string; firmware: Record<string, string>; expect: string[] };
       expect(spec.project).toBe(`../../projects/${example.project}.json`);
-      expect(spec.firmware).toEqual(Object.fromEntries(Object.entries(example.boards).map(([board, b]) => [board, `../../firmware/${b.firmware}`])));
+      expect(spec.firmware).toEqual(
+        Object.fromEntries(Object.entries(example.boards).map(([board, b]) => [board, 'micropython' in b ? `../../micropython/${b.micropython}/main.py` : `../../firmware/${b.firmware}`])),
+      );
       expect(spec.expect.length).toBeGreaterThan(0);
     });
   }

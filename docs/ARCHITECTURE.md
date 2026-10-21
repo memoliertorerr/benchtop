@@ -34,6 +34,7 @@ simulation core has no DOM, the same code runs headless in Node for tests and CI
 | `@benchtop/avr` | the Uno `Mcu`: ATmega328P peripherals via avr8js, Uno pin map, Intel HEX and ELF loading | know about parts or the UI |
 | `@benchtop/esp32` | the ESP32 `Mcu` (`createEsp32Mcu`, `esp32McuFactory`): Xtensa LX6 core, SoC (memory map, peripherals, two cores, pins), direct boot, boot debugging | know about parts or the UI |
 | `@benchtop/parts` | the part catalog: pin layouts, internal buses (breadboards), metadata, behavior models | touch DOM — views live in `apps/web` |
+| `@benchtop/rp2040` | the RP2040 `Mcu` (`createRp2040Mcu`, `rp2040McuFactory`) over rp2040js: the clean-room bootrom, UF2/ELF loading, pins, UARTs, USB serial, I2C/SPI controllers | know about parts or the UI |
 | `@benchtop/pcb` | the PCB document, footprints, nets from the bench, ratsnest, DRC, fabrication exports | touch DOM; run simulation |
 | `@benchtop/web` | the editor, part views, the worker host and the worker entry | run CPU emulation on the UI thread |
 | `@benchtop/bridge` | the local compile bridge: runs arduino-cli for the browser (Node, zero dependencies) | listen beyond loopback; write outside its temp build folders |
@@ -517,7 +518,8 @@ parts, and sensors get values through the inputs they already take.
 
 The contract is `packages/core/src/contracts/mcu.ts`. An `Mcu` exposes its `clockHz` (the
 constant rate its `cycles` counter advances at), firmware loading (`FirmwareImage`: HEX text,
-ELF bytes or an ESP32 app image), `reset()`, `runUntil(targetCycles)`, its pins as `McuPin`s
+ELF bytes, an ESP32 app image, a UF2 or a MicroPython sketch
+`{ format: 'micropython', files, main }` the board's stock interpreter runs), `reset()`, `runUntil(targetCycles)`, its pins as `McuPin`s
 (mode, output level, optionally `outputVolts()` — an analog output such as a DAC, which the bench
 drives at strong strength — `setInput(NetState)`
 from the bench, `onOutputChange` fired synchronously from inside the run) and its UART, I2C and
@@ -1135,6 +1137,141 @@ sequence, files matched by basename or trailing path.
   off) measures 2.3–2.7× against the ≥ 5× target: with skip-ahead on, what is left is the tick
   work, executed instruction by instruction (what would help is a faster interpreter, not a bigger skip).
 
+- **RP2040** — `@benchtop/rp2040` wraps [rp2040js](https://github.com/wokwi/rp2040js)
+  1.4.0 (MIT, Wokwi): its Cortex-M0+ core 0 and peripherals (GPIO, SIO, PWM, timer, UART, I2C,
+  SPI, ADC, PIO, DMA, USB). Core 1 isn't simulated yet: its bootrom's side of the FIFO is
+  (below). `createRp2040Mcu()` /
+  `rp2040McuFactory` give the bench an `Mcu` of kind `'rp2040'` (an additive contract change,
+  with `FirmwareImage { format: 'uf2' }`).
+
+  **Time.** `cycles` count a 125 MHz reference clock (8 ns), whatever clk_sys the firmware
+  programs (arduino-pico runs 133–200 MHz); each instruction takes rp2040js's cycle count at the
+  current clk_sys (a clock listener follows it). The adapter owns rp2040js's `IClock`
+  (`clock.ts`): nanoseconds plus the alarms the timer, ADC, PWM and UART schedule, ticked once per
+  instruction (one compare when nothing is due); while the core waits in WFI/WFE the loop jumps
+  to the next alarm (unless PIO runs: see below). Measured: blink (mostly asleep in `delay`) ≈
+  13× real time (≈ 6× before the USB fix below), a busy loop ≈ 15 % (rp2040js's decoder is
+  an if-chain), an idle MicroPython REPL ≈ 500×.
+
+  **Our bootrom** (`bootrom/`; the real one isn't used — its float library may only run on an
+  RP2040 device, or under GPLv2). The datasheet's §2.8.3 fixed header (table 163: boot stack
+  0x20042000, reset/NMI/HardFault handlers, 'M' 'u' 0x01, version 3, the 16-bit pointers to the
+  function table, the data table and `rom_table_lookup`), every function and data code of
+  tables 164–168 and 171, and the soft float/double tables of tables 169/170 (each preceded at
+  table − 2 by its size in words, which the SDK checks). Every entry is a 4-byte Thumb stub,
+  `bkpt #id; bx lr`; the adapter catches a BKPT whose PC is inside the ROM and runs the function
+  in JS (`handlers.ts`, `float.ts`), charging the datasheet's average cycles. Float semantics
+  follow §2.8.3.2.1: correctly rounded basic operations, denormals in and out as zero, NaNs in
+  and out as infinities (+∞ unless the datasheet gives a sign), conversions to integers rounding
+  toward −∞ and clamping; fsin also returns the cosine in r1 (dsin in r2:r3), which the SDK's
+  sincosf relies on. Flash functions work on offsets from the start of flash: erase writes 0xFF,
+  program ANDs bits in; the XIP enter/exit/flush functions have nothing to do (rp2040js serves
+  XIP reads from the flash array). `reset_to_usb_boot` reports `rp2040-usb-boot` and halts;
+  `_wait_for_vector` (core 1) faults. A BKPT outside the ROM halts with a fault (no debugger: on
+  the board, a HardFault).
+
+  **What our bootrom leaves (direct boot).** Reset runs the ROM's reset stub, which boots the
+  loaded image directly instead of the real sequence (flash second stage, checksum, BOOTSEL):
+  for a flash image, VTOR = 0x10000100 (the vector table after the 256-byte second stage, which
+  isn't run: rp2040js needs no SSI setup for XIP reads), SP and PC from that table; for a
+  RAM-only UF2, PC = its lowest address and SP = 0x20042000 (datasheet §2.8.4.2). A flash with no
+  valid vector table halts as "BOOTSEL mode". Clocks, pads and peripherals are as rp2040js resets
+  them; the SDK's runtime init programs what it needs. Flash keeps what the firmware programmed
+  across `reset()`.
+
+  **Firmware.** UF2 (`uf2.ts`: 512-byte blocks, magics, payload sizes, block numbers and totals,
+  the family ID 0xE48BFF56; blocks flagged "not main flash" are skipped; every block must lie in
+  flash 0x10000000–0x10FFFFFF or RAM 0x20000000–0x20041FFF) or ELF (PT_LOAD segments at their
+  physical addresses).
+
+  **Pins and buses.** `GPIO0`–`GPIO29` as `McuPin`s: SIO outputs are `output`; PWM and PIO
+  outputs, UART TX/RTS and SPI CSn/SCK/TX are `peripheral` (UART and SPI bytes travel at byte
+  level, so those pins idle); GPIO26–29 with input disabled and function NULL are `analog`;
+  otherwise inputs with the pads' pulls. Inputs use a Schmitt trigger (high ≥ 2.0 V, low ≤ 0.8 V,
+  datasheet §5.5.3); GPIO26–29 also feed ADC channels 0–3 (12-bit of 3.3 V) and channel 4 (the
+  temperature sensor) reads 0.706 V (27 °C). UART 0 is USB serial (arduino-pico's `Serial`):
+  rp2040js's CDC host enumerates the device; bytes sent before that are lost, as on a board.
+  rp2040js's host answers every OUT endpoint the device arms at once — with an empty packet
+  when it has nothing to send — so TinyUSB re-armed in a loop and the USB interrupt fired every
+  ~27 µs (an idle MicroPython REPL ran at 27 % of real time and never slept); a real host sends
+  OUT data only when it has some, so the adapter holds an arm until bytes are queued.
+  UARTs 1 and 2 are UART0 and UART1: `pins()` from the GPIO function select, `baud()` from the
+  divisors, received bytes paced at 10 bits each. I2C and SPI controllers 0 and 1 implement the
+  bus contracts (rp2040js's I2C callbacks completed at once; SPI transfers to the selected
+  devices), with arduino-pico's default pins before the firmware routes them. rp2040js's
+  warnings about registers it doesn't model become one `info` Problem (`rp2040-unimplemented`).
+
+  Two rp2040js gaps the adapter covers: the inter-core FIFO (SIO 0x50–0x58), which it doesn't
+  model and logs to the console, is core 1's bootrom seen from core 0 (datasheet §2.8.2; modelled as
+  "core 1 asleep" before, MicroPython hung in its soft reboot): released from reset
+  (the PSM's FRCE_OFF.proc1 cleared, as the SDK's `multicore_reset_core1` does) it drains its
+  FIFO and pushes a 0; it echoes each word of a launch sequence, so `multicore_launch_core1`
+  returns — the launched code doesn't run, and `rp2040-core1` (a warning) says so; and its PWM
+  compare alarms, which reschedule themselves with a zero delay while a slice
+  counts with its 32-bit reset TOP — our clock defers an alarm that re-fires at the same instant
+  by one 8 ns reference cycle, so the core keeps running.
+
+  **PIO and DMA.** rp2040js runs PIO from `setTimeout`, apart from simulated time and
+  ignoring clock dividers and delays; the adapter turns that off and steps the eight state
+  machines itself (`pumpPio`): each executes its next instruction once its wait — the
+  instruction's cycles, delay included, × its clock divider, in clk_sys cycles — has passed, all
+  of them in time order with the clock moved to each step, so PIO pin changes reach the bench at
+  their own times even inside a long CPU instruction (an exception entry, a ROM call's charged
+  cycles). While the core sleeps, PIO steps up to the next alarm; once every running machine is
+  stalled (on a FIFO, a pin or an IRQ) and has looked at its condition since the core last ran,
+  the bench last called `runUntil` and the last alarm fired (the clock counts fired alarms),
+  nothing can change before the next alarm and the loop jumps to it. Measured: one state machine
+  stepping 640,000 times a simulated second costs ≈ 15 % (pio-square ≈ 5× real time against
+  blink's ≈ 6×). DMA is rp2040js's own, paced by the peripherals' DREQs; SPI frames wider than
+  8 bits (the SDK's 16-bit mode, as a DMA fill uses) travel to the bus as two bytes, MSB first.
+
+  **The Pico board.** `raspberry-pi-pico` (packages/parts/src/boards): our own pin table
+  from the datasheet's mechanical drawing and pinout — 21 × 51 mm, two rows of 20 castellated
+  pads on 2.54 mm, 17.78 mm apart (it straddles a breadboard's channel with two free rows each
+  side), pin 1 GP0 top left, USB up; GP0–GP22 and GP26–GP28 map to GPIOn, the eight grounds (AGND
+  included) are one bus, 3V3 is a 3.3 V supply and VBUS/VSYS carry USB's 5 V while `usbPowered`
+  (default). The onboard LED is GP25, which no header carries: the board's TP5 test pad (GP25 on
+  the real board) is a pin, off the 2.54 mm grid so no hole lies under it, and the model watches
+  it (visual `led`, PWM-dimmed). The view is our own SVG (apps/web/src/views/raspberry-pi-pico.ts).
+  The bridge allows `rp2040:rp2040:rpipico` and returns the build's UF2 (artifact `uf2`); a new
+  sketch on a Pico starts from a blink-and-count template.
+
+  **Tests.** `fixtures/sketches/pico/` (built for `rp2040:rp2040:rpipico`, arduino-pico 6.2.0;
+  the UF2 is committed): blink toggles GP25 every 500 ms ±1 %; serial-hello prints on USB serial,
+  UART0 (GP0/GP1) and UART1 (GP4/GP5); float-math's results through the ROM's tables match the
+  host's to the printed digits; pwm-fade measures 1 kHz ±1 % at the duty given. On benches
+  (packages/parts integration/pico-circuits.test.ts): a pot on GP26 reads 12-bit within ±8,
+  Adafruit SSD1306 over Wire (GP4/GP5) and the ILI9341 driver over SPI0 draw their pictures, an
+  `attachInterrupt` on GP14 counts each button press once. `fixtures/rp2040/romcalls.c` (freestanding, built with
+  arduino-pico's arm-none-eabi-gcc by scripts/rp2040-programs.ts, loaded as an ELF) calls every
+  bootrom function through `rom_func_lookup`/`rom_data_lookup` as the SDK does. PIO and DMA
+  (packages/rp2040 pio.test.ts and the integration tests): pio-square, a two-instruction
+  program on PIO1, measures 10 kHz ±0.5 % at a 50 % duty on GP3; neopixel's WS2812 program (our
+  own .pio, assembled by arduino-pico's pioasm into the committed .pio.h) sends 0 and 1 bits high
+  for 250 and 875 ns ±10 ns and lights a NeoPixel strip with the sketch's colors; spi-tft-dma,
+  whose rectangles are DMA fills into SPI0 in 16-bit frames paced by its TX DREQ, draws exactly
+  spi-tft's picture.
+
+  **MicroPython.** A `{ format: 'micropython', files, main }` image runs on the stock
+  MicroPython 1.29.0 UF2 (`micropython-manifest.ts`, fetched by `npm run fetch:micropython`
+  after you approve the download, into `.cache/micropython`, size and SHA-256 pinned, never committed;
+  `createRp2040Mcu({ micropython })`, `rp2040McuFactory(…, micropython)`; without it the board
+  reports `micropython-missing` and halts). Every load and reset starts the interpreter's image
+  with an empty flash filesystem and puts the sketch on the board as an IDE does, over USB
+  serial (`micropython.ts`, `MicroPythonInstaller`): CR until the friendly REPL's `>>> `,
+  Ctrl-A into the raw REPL, per file part (≤ 2 KB, in `f.write` calls of ≤ 256 characters, as
+  Python literals in printable ASCII — no byte is a control character the REPL acts on) the
+  code and Ctrl-D, checking "OK…\x04…\x04>" with stderr empty (else `micropython-install`
+  carries MicroPython's message), Ctrl-B, Ctrl-D for a soft reboot — and from the line after
+  "MPY: soft reboot" the serial monitor sees the device, so main.py's first print shows. The
+  main file is written as main.py, the others by name. While installing, the installer owns the
+  line: the device's output goes to it and the bench's input waits; it is ticked every 50 ms of
+  simulated time (REPL pokes every 200 ms; 15 s for the REPL to appear, 10 s per later stage).
+  Installing takes ≈ 18 ms of simulated time. The interpreter runs unmodified: `machine.Pin`
+  (`Pin("LED")` is GP25), `ADC.read_u16`, PWM, I2C, SPI, `time.sleep_ms` (an exact 250 ms
+  period), `neopixel` (its bitstream's timing decodes cleanly), tracebacks and the REPL.
+  Measured: MicroPython blink (asleep in `sleep_ms` between toggles) ≈ 25–45× real time.
+
 ## Worker protocol
 
 `apps/web/src/sim/protocol.ts` defines `ToSim` (UI → worker) and `FromSim` (worker → UI)
@@ -1219,7 +1356,8 @@ keeps outside the document, a sketch folder plus FQBN for the compile bridge, or
 additive contract change — an inline sketch: `{ kind: 'inline', fqbn, files,
 main }`, the source itself, at most 32 files and 256 KB of UTF-8, names
 `[A-Za-z0-9_][A-Za-z0-9_.-]*.(ino|h|hpp|c|cpp)`, `main` a .ino among them; parseProject
-enforces it). The editor snaps to the 0.1" (2.54 mm) grid, but the document stores mm.
+enforces it. An fqbn starting `micropython:` — `micropython:rp2:pico` — makes it a
+MicroPython sketch: `.py` names, `main` a .py, nothing compiles it). The editor snaps to the 0.1" (2.54 mm) grid, but the document stores mm.
 
 Documents from outside are untrusted. `parseProject` (`packages/core/src/project/validate.ts`)
 checks structure only — it knows no part types or pin names, since core never imports the
@@ -1283,13 +1421,15 @@ become part input. The serial monitor (`ui/SerialMonitor.tsx`) keeps the newest 
 board (`ui/serial-buffer.ts`: lines split across chunks, UTF-8 streamed, simulated-time stamps)
 and appends DOM nodes rather than re-rendering; autoscroll pauses while you read further up.
 Examples: **Examples…** opens a gallery (`ui/ExamplesGallery.tsx`, a
-modal dialog) of the entries in `examples/manifest.ts` — 60 circuits in nine categories (Basics,
-Displays, Sensors, Motors, Sound, Environment, ESP32, Mega, Two boards; Environment has four: a
-gas alarm whose fan clears the room, a PIR hallway light, a parking sensor with a car driving in,
-a thermostat). Each names a committed fixture project and,
+modal dialog) of the entries in `examples/manifest.ts` — 69 circuits in ten categories (Basics,
+Displays, Sensors, Motors, Sound, Environment, ESP32, Raspberry Pi Pico, Mega, Two boards;
+Environment has four: a gas alarm whose fan clears the room, a PIR hallway light, a parking
+sensor with a car driving in, a thermostat; the Pico has nine: blink, a potentiometer, PWM
+steps, an OLED, a color TFT, NeoPixels through PIO, a PIO square wave, and MicroPython blink
+and NeoPixel, whose firmware is the sketch itself). Each names a committed fixture project and,
 per board, the firmware its tests run and the sketch folder it was built from; the files load
 through `import.meta.glob` patterns that list exactly the examples' files (projects, sketches and
-.hex as text, ESP32 .bin as `?url` assets fetched on open), so nothing loads until asked and
+.hex as text, ESP32 .bin and Pico .uf2 as `?url` assets fetched on open), so nothing loads until asked and
 nothing else is bundled. Opening one puts each board's sketch in the document as its inline
 sketch and stores the precompiled firmware tagged with that sketch's source hash — so it
 runs without the bridge, and the Code tab knows the build is current; **Reset example** (Code
@@ -1416,6 +1556,19 @@ Problems tab and on the editor's lines (gutter dot, tinted line, the first error
 editor — a click selects its line). Without the bridge the editor still edits and saves;
 Compile says to start it with `npm run bridge`. The document's autosave keeps the code across
 reloads, and Export / Open carry it. The CLI refuses an inline board without `--firmware`.
+
+**MicroPython.** On boards MicroPython runs on (`editor/fqbn.ts` `micropythonFqbnOf`:
+the RP2040 → `micropython:rp2:pico`), the Inspector's **Language** switch (Arduino C++ /
+MicroPython) replaces the board's sketch with the other language's template (undoable; a
+started sketch asks first). A MicroPython sketch's files are .py modules (+ adds one), colored
+by `tokenizePython` (keywords, builtins and MicroPython's hardware names, `#` comments, strings
+with prefixes and triple quotes, numbers, decorators) and indented four spaces (Enter adds a
+level after a `:`). **Run** (⌘/Ctrl-Enter) skips the bridge: `compileInline` stores the sketch
+itself as the board's firmware (format `micropython`, the UTF-8 JSON `{ files, main }`, tagged
+with its source hash) and delivers it like a build. A dropped `.py` becomes the board's main.py.
+The worker gets the interpreter UF2 from the dev server's `/micropython/` (like the ESP32 ROM;
+never bundled). The CLI runs an inline MicroPython sketch with no `--firmware`, and takes
+`--firmware pico=<file>.py` as a one-file sketch.
 
 ### Logic analyzer
 

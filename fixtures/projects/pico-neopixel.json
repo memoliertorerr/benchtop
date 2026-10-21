@@ -1,0 +1,70 @@
+{
+  "format": 1,
+  "name": "pico-neopixel",
+  "parts": [
+    {
+      "id": "pico",
+      "type": "raspberry-pi-pico",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "strip",
+      "type": "neopixel-strip",
+      "x": 35,
+      "y": -20,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "pico",
+        "pin": "GP2"
+      },
+      "to": {
+        "part": "strip",
+        "pin": "DIN"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "pico",
+        "pin": "3V3"
+      },
+      "to": {
+        "part": "strip",
+        "pin": "VCC"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "pico",
+        "pin": "GND.1"
+      },
+      "to": {
+        "part": "strip",
+        "pin": "GND"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "pico": {
+      "kind": "file",
+      "name": "neopixel.uf2",
+      "format": "uf2"
+    }
+  }
+}

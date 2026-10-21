@@ -1,0 +1,85 @@
+{
+  "format": 1,
+  "name": "pico-i2c-oled",
+  "parts": [
+    {
+      "id": "pico",
+      "type": "raspberry-pi-pico",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "oled",
+      "type": "ssd1306",
+      "x": 35,
+      "y": 0,
+      "rotation": 0,
+      "props": {
+        "address": "0x3C"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "oled",
+        "pin": "DATA"
+      },
+      "to": {
+        "part": "pico",
+        "pin": "GP4"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "oled",
+        "pin": "CLK"
+      },
+      "to": {
+        "part": "pico",
+        "pin": "GP5"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "oled",
+        "pin": "3V3"
+      },
+      "to": {
+        "part": "pico",
+        "pin": "3V3"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "oled",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "pico",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "pico": {
+      "kind": "file",
+      "name": "i2c-oled.uf2",
+      "format": "uf2"
+    }
+  }
+}

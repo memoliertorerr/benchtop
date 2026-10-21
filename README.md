@@ -28,6 +28,17 @@ and PWM, ADC (the Nano's A6/A7, the Mega's 16 inputs), USART (the Mega's four), 
 EEPROM, interrupts; Mega sketches past 128 KB run. The Nano straddles a breadboard like the real
 one.
 
+**Raspberry Pi Pico** (RP2040 via [rp2040js](https://github.com/wokwi/rp2040js)): the `.uf2` (or
+`.elf`) the Arduino-Pico core builds runs on core 0 with a bootrom written for Benchtop — GPIO,
+PWM, the ADC, UART0/UART1, USB serial (`Serial`), I2C (`Wire`), SPI, pin interrupts, PIO
+(your own `.pio` programs, at their clock dividers, with exact pin timing — NeoPixels through
+PIO work), DMA and the ROM's floating point; the Pico straddles a breadboard like the real
+board, and the Code tab compiles for it through the bridge (`rp2040:rp2040:rpipico`). It also
+runs **MicroPython**: switch a Pico's Language to MicroPython in the Inspector, write `main.py`
+in the Code tab and press Run — nothing compiles; the stock MicroPython 1.29 firmware gets your
+files over USB serial the way an IDE puts them there, and `machine.Pin`, `ADC`, `PWM`, `I2C`,
+`SPI`, `neopixel` and the REPL work (see "MicroPython" below). Core 1 is the next step.
+
 **ESP32 DevKit V1** — an Xtensa LX6 dual-core emulator written in TypeScript for this project,
 running the real `.bin` image Arduino-ESP32 2.0.17 builds, on Espressif's real mask ROM:
 
@@ -93,7 +104,7 @@ npm install
 npm run dev          # the editor at http://localhost:5173
 ```
 
-**Examples…** opens 60 ready-to-run circuits, each with its sketch, which you can change and
+**Examples…** opens 69 ready-to-run circuits, each with its sketch, which you can change and
 run again (Basics: blink, button, fade, traffic light, a Simon game, serial echo, a Nano on a
 breadboard; Displays: LCDs,
 an LCD thermometer, OLED and an OLED clock, a color TFT, 7-segment, bar graph, NeoPixels; Sensors: DHT22,
@@ -102,7 +113,8 @@ gas meter, keypad, rotary encoder; Motors: servo sweep, a
 servo knob, a keypad lock, a stepper, an A4988 stepper driver, a relay; Sound: buzzers, a speaker melody, PCM through PWM,
 a microphone pitch meter, a VU meter; Environment: a gas alarm with an extractor fan, a PIR
 hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, a PWM fader, NeoPixel, a
-rainbow ring, an OLED clock, a color TFT, the DAC, the microphone, an I2C scan; Mega: an LED chaser, four
+rainbow ring, an OLED clock, a color TFT, the DAC, the microphone, an I2C scan; Raspberry Pi Pico:
+blink, a potentiometer, PWM steps, an OLED, a color TFT; Mega: an LED chaser, four
 serial ports, a 16-input analog scanner; Two boards: an Uno ↔ ESP32
 chat and relay).
 
@@ -160,6 +172,23 @@ It downloads `esp-rom-elfs` 20241011 from Espressif's GitHub releases (≈ 3.4 M
 against two pinned SHA-256 hashes and keeps it in `.cache/esp32-rom`, which git ignores.
 Without it, ESP32 boards report "ESP32 ROM not installed" in the Problems panel. The development
 server serves the cached ROM to the simulation worker; it is never bundled into a build.
+
+### MicroPython (not included)
+
+MicroPython sketches run on the stock MicroPython firmware for the Pico, which isn't part of
+this repository either. Fetch it once:
+
+```bash
+npm run fetch:micropython
+```
+
+It downloads the v1.29.0 UF2s for the Pico and the Pico 2 from micropython.org (≈ 1.5 MB),
+checks their pinned sizes and SHA-256 hashes and keeps them in `.cache/micropython`, which git
+ignores. Without it, a Pico running MicroPython reports "MicroPython not installed". Every Run
+(and every reset) starts the board with an empty filesystem and writes your files again, so
+`main.py` runs with the serial monitor attached; type into the serial monitor to use the REPL
+when it ends. You can also drop a `.py` file on a Pico, or run one headless:
+`npm run bench -- run fixtures/projects/pico-blink.json --firmware pico=main.py`.
 
 ### Compiling sketches (optional)
 
@@ -221,7 +250,7 @@ time; **Stop** proposes expectations from where it ended (serial lines, lit LEDs
 servo angles) — tick the ones you want, name the firmware files, and download the spec. Every
 example in the gallery has such a spec in `fixtures/specs/examples/`. In a
 GitHub Actions job, after `npm ci`, compiling your sketches with `arduino-cli` and (for ESP32
-boards) `npm run fetch:esp32-rom -- --yes`:
+boards) `npm run fetch:esp32-rom -- --yes` (for MicroPython sketches `npm run fetch:micropython -- --yes`):
 
 ```yaml
 - run: npm run bench -- test specs --junit results.xml --markdown summary.md
@@ -259,6 +288,7 @@ simulation runs in a Web Worker; the UI only renders. Packages:
 | `packages/core` | contracts, netlist, switch-level signal resolution, analog solver, scheduler, the `Bench`, firmware loaders (Intel HEX, ELF, DWARF lines), problem checks, probes |
 | `packages/avr` | the AVR `Mcu`s over avr8js (ATmega328P: Uno, Nano; ATmega2560: Mega), their debugger and the GDB protocol |
 | `packages/esp32` | the Xtensa LX6 core, decoder and objdump-exact disassembler, the ESP32 SoC and its peripherals, direct boot, the ESP32 `Mcu` |
+| `packages/rp2040` | the RP2040 `Mcu` over rp2040js, with a clean-room bootrom, UF2 and ELF loading and USB serial |
 | `packages/parts` | the part catalog: pins, buses, behavior models |
 | `apps/web` | the editor, part views, the simulation worker |
 | `apps/bridge` | the local compile bridge (Node, no dependencies) |
@@ -277,7 +307,8 @@ npm run screenshots  # refresh docs/images from the running dev server (needs Ch
 ```
 
 The tests run real compiled firmware (`fixtures/`) and assert on pins, bytes and timing. The
-ESP32 tests need the ROM (`npm run fetch:esp32-rom`).
+ESP32 tests need the ROM (`npm run fetch:esp32-rom`), the MicroPython tests the stock firmware
+(`npm run fetch:micropython`).
 
 ## Accuracy and limitations
 
@@ -294,15 +325,20 @@ backed by tests (for example, ESP32 blink toggles every 500.000 ms of simulated 
 ## Credits
 
 - [avr8js](https://github.com/wokwi/avr8js) (MIT) — the ATmega328P core behind the Uno.
+- [rp2040js](https://github.com/wokwi/rp2040js) (MIT) — the RP2040 core and peripherals behind
+  the Raspberry Pi Pico; the bootrom it runs is Benchtop's own.
 - [@wokwi/elements](https://github.com/wokwi/wokwi-elements) (MIT) — the part drawings, and
   the pin positions the part catalog copies from them.
 - [esp-rom-elfs](https://github.com/espressif/esp-rom-elfs) (Apache-2.0) — Espressif's ESP32
   ROM, which you download yourself (above).
+- [MicroPython](https://micropython.org) (MIT) — the stock Pico firmware MicroPython sketches
+  run on, which you download yourself (above).
 
 ## Disclosures
 
-- **Not affiliated** with Arduino, Espressif Systems or Wokwi. Arduino, ESP32 and other names
-  are trademarks of their owners, used only to say what this software emulates.
+- **Not affiliated** with Arduino, Espressif Systems, Raspberry Pi or Wokwi. Arduino, ESP32,
+  Raspberry Pi, RP2040 and other names are trademarks of their owners, used only to say what
+  this software emulates.
 - **Clean-room toward other simulators.** No code or assets are taken from closed-source
   simulators. Hardware behavior comes from datasheets, Espressif's Technical Reference Manual,
   ESP-IDF headers and compiled firmware. Open-source code and data are used under their

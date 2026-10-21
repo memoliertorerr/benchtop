@@ -1,8 +1,11 @@
+import { type FirmwareRef, isMicroPythonFqbn } from '@benchtop/core';
 import { CATALOG } from '@benchtop/parts';
 import { useRef } from 'preact/hooks';
-import { editor } from '../editor/app-store.ts';
+import { editor, editorMessage } from '../editor/app-store.ts';
 import { attachFirmwareFile } from '../editor/firmware-actions.ts';
 import { firmwareStore } from '../editor/firmware-store.ts';
+import { micropythonFqbnOf } from '../editor/fqbn.ts';
+import { templateRef } from '../editor/inline-compile.ts';
 import { compileNow, fqbnOf, recentFolders, type SketchStatus, setSketchFolder, setWatching, statusOf } from '../editor/sketch-actions.ts';
 import { WIRE_COLORS, WIRE_SHADES } from '../editor/wiring.ts';
 import { PartControls } from './PartControls.tsx';
@@ -105,16 +108,21 @@ export function Inspector() {
       </dl>
       {def.board !== undefined && (
         <div class="firmware-box">
+          <LanguageSwitch board={part.id} type={part.type} firmware={firmware} />
           <div class="field-label">Firmware</div>
           <div class="firmware-name">
             {firmware === undefined
               ? 'none — drop a .hex or .elf on the board, or set a sketch folder'
               : firmware.kind === 'file'
                 ? firmware.name
-                : (firmwareStore.get(part.id)?.name ?? 'not compiled yet')}
+                : (firmwareStore.get(part.id)?.name ?? (isPython(firmware) ? 'not run yet' : 'not compiled yet'))}
           </div>
           <FirmwareButton board={part.id} />
-          <SketchControls board={part.id} type={part.type} sketch={firmware?.kind === 'sketch' ? firmware.path : undefined} />
+          {isPython(firmware) ? (
+            <p class="muted panel-note">MicroPython: write main.py in the Code tab and press Run — nothing to compile.</p>
+          ) : (
+            <SketchControls board={part.id} type={part.type} sketch={firmware?.kind === 'sketch' ? firmware.path : undefined} />
+          )}
         </div>
       )}
       <PartControls part={part} defaults={def.defaults} />
@@ -157,6 +165,33 @@ export function Inspector() {
   );
 }
 
+const isPython = (ref: FirmwareRef | undefined): boolean => ref?.kind === 'inline' && isMicroPythonFqbn(ref.fqbn);
+
+/**
+ * BT63: Arduino C++ or MicroPython, on boards MicroPython runs on. Switching starts the other
+ * language's template sketch (undoable); the old firmware runs until the first Run.
+ */
+function LanguageSwitch({ board, type, firmware }: { board: string; type: string; firmware: FirmwareRef | undefined }) {
+  const python = micropythonFqbnOf(type);
+  const arduino = fqbnOf(type);
+  if (python === undefined || arduino === undefined) return null;
+  const choose = (toPython: boolean): void => {
+    if (toPython === isPython(firmware)) return;
+    if (firmware?.kind === 'inline' && !window.confirm(`Switch ${board} to ${toPython ? 'MicroPython' : 'Arduino C++'}? Its sketch is replaced by a template (Undo brings it back).`)) return;
+    editor.setFirmware(board, templateRef(toPython ? python : arduino));
+    editorMessage.value = toPython ? `${board} runs MicroPython now: edit main.py in the Code tab and press Run.` : `${board} runs Arduino C++ again: write its sketch in the Code tab and Compile & Run.`;
+  };
+  return (
+    <label class="field">
+      <span class="field-label">Language</span>
+      <select class="tool-select" value={isPython(firmware) ? 'micropython' : 'arduino'} onChange={(event) => choose((event.target as HTMLSelectElement).value === 'micropython')}>
+        <option value="arduino">Arduino C++</option>
+        <option value="micropython">MicroPython</option>
+      </select>
+    </label>
+  );
+}
+
 function FirmwareButton({ board }: { board: string }) {
   const input = useRef<HTMLInputElement>(null);
   return (
@@ -167,7 +202,7 @@ function FirmwareButton({ board }: { board: string }) {
       <input
         ref={input}
         type="file"
-        accept=".hex,.elf,.bin"
+        accept=".hex,.elf,.bin,.uf2,.py"
         hidden
         onChange={(event) => {
           const el = event.target as HTMLInputElement;

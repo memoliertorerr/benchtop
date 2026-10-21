@@ -68,6 +68,12 @@ export const FIXTURE_BOARDS: Readonly<Record<string, FixtureBoard>> = {
     ],
     symbols: 'xtensa-esp32-elf-nm',
   },
+  // BT60: the Raspberry Pi Pico with the arduino-pico core (6.2.0). The UF2 is what a user drops
+  // on the board; the ELF (1.3 MB, mostly DWARF) isn't committed.
+  pico: {
+    fqbn: 'rp2040:rp2040:rpipico',
+    outputs: [{ from: 'uf2', ext: 'uf2' }],
+  },
 };
 
 /** Every committed output of one sketch, as paths under fixtures/firmware/. */

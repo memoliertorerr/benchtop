@@ -11,13 +11,14 @@ import { editor, editorMessage } from '../editor/app-store.ts';
 import { type FirmwareFormat, firmwareStore, type StoredFirmware } from '../editor/firmware-store.ts';
 import { frameDoc } from '../editor/frame.ts';
 import { importNotes } from '../editor/import-notes.ts';
-import { sourceHash } from '../editor/inline-compile.ts';
+import { micropythonFqbnOf } from '../editor/fqbn.ts';
+import { sourceHash, storedMicroPython } from '../editor/inline-compile.ts';
 import { fqbnOf } from '../editor/sketch-actions.ts';
 import { firmwareChanged } from '../sim/controller.ts';
 import { resetPcb } from '../pcb/mode.ts';
-import { EXAMPLES, loadFirmware, loadPcb, loadProject, loadSketch } from './manifest.ts';
+import { EXAMPLES, loadFirmware, loadMicroPython, loadPcb, loadProject, loadSketch } from './manifest.ts';
 
-const formatOf = (path: string): FirmwareFormat => (path.endsWith('.hex') ? 'hex' : path.endsWith('.elf') ? 'elf' : 'esp32-bin');
+const formatOf = (path: string): FirmwareFormat => (path.endsWith('.hex') ? 'hex' : path.endsWith('.elf') ? 'elf' : path.endsWith('.uf2') ? 'uf2' : 'esp32-bin');
 
 /** The example opened last: its id, title and the document it made (for Reset and share links). */
 export const openedExample = signal<{ id: string; title: string; doc: ProjectDoc } | null>(null);
@@ -34,6 +35,16 @@ export async function openExample(id: string): Promise<void> {
     const stored: [string, StoredFirmware][] = [];
     for (const [board, files] of Object.entries(example.boards)) {
       const part = parsed.doc.parts.find((p) => p.id === board);
+      if ('micropython' in files) {
+        // BT63: a MicroPython sketch is its own firmware.
+        const fqbn = part === undefined ? undefined : micropythonFqbnOf(part.type);
+        if (fqbn === undefined) throw new Error(`no MicroPython board "${board}" in the project`);
+        const sketch = await loadMicroPython(files.micropython);
+        const ref = { kind: 'inline' as const, fqbn, files: sketch.files, main: sketch.main };
+        firmware[board] = ref;
+        stored.push([board, storedMicroPython(ref)]);
+        continue;
+      }
       const fqbn = part === undefined ? undefined : fqbnOf(part.type);
       if (fqbn === undefined) throw new Error(`no board "${board}" in the project`);
       const [bytes, sketch] = await Promise.all([loadFirmware(files), loadSketch(files)]);

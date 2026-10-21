@@ -1,0 +1,12 @@
+{
+  "name": "example: pico-micropython-neopixel",
+  "project": "../../projects/pico-neopixel.json",
+  "firmware": {
+    "pico": "../../micropython/neopixel/main.py"
+  },
+  "expect": [
+    "serial contains \"shown 1\" by 800ms",
+    "pixel strip[0] is #00ff00 at 800ms",
+    "pixel strip[3] is #101010 at 800ms"
+  ]
+}

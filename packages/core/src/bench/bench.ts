@@ -107,9 +107,12 @@ export interface Frame {
 /** UARTs per MCU the bench links over wires (BT39): the ESP32 has 3, the ATmega2560 4 (BT46). */
 const MAX_UARTS = 4;
 /** Logic supply of each MCU kind: what its output pins carry for level 1. */
-export const MCU_LOGIC_VOLTS: Readonly<Record<BoardSpec['mcu'], number>> = { atmega328p: 5, atmega2560: 5, esp32: 3.3 };
-/** Internal pull-up/pull-down resistance per MCU, ohms (datasheet typicals; the analog layer). */
-export const MCU_PULL_OHMS: Readonly<Record<BoardSpec['mcu'], number>> = { atmega328p: 35_000, atmega2560: 35_000, esp32: 45_000 };
+export const MCU_LOGIC_VOLTS: Readonly<Record<BoardSpec['mcu'], number>> = { atmega328p: 5, atmega2560: 5, esp32: 3.3, rp2040: 3.3, rp2350: 3.3 };
+/**
+ * Internal pull-up/pull-down resistance per MCU, ohms (datasheet typicals; the analog layer). The
+ * RP2040 and RP2350 datasheets give 50 kΩ (pad electrical specifications).
+ */
+export const MCU_PULL_OHMS: Readonly<Record<BoardSpec['mcu'], number>> = { atmega328p: 35_000, atmega2560: 35_000, esp32: 45_000, rp2040: 50_000, rp2350: 50_000 };
 /** Logic supply assumed for a part whose power pin isn't on a powered net. */
 export const DEFAULT_PART_VOLTS = 5;
 /** I2C/SPI controller indexes probed per MCU when attaching devices. */

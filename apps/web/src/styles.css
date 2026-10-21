@@ -1375,6 +1375,15 @@ wokwi-ks2e-m-dc5[data-contacts='no'] {
   background: #6b46c1;
 }
 
+.example-board.pico,
+.example-board.micropython {
+  background: #a8326e;
+}
+
+.example-board.mega {
+  background: #2c7a7b;
+}
+
 .example-description {
   padding: 0 12px;
   font-size: 12.5px;

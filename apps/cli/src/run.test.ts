@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { REPO_ROOT } from '../../../packages/core/src/firmware/fixtures.test-helper.ts';
+import { cachedMicroPython } from '../../../packages/rp2040/src/micropython.test-helper.ts';
 import { parseAssertion, parseRunArgs, parseTime, type RunIo, type RunOptions, type RunReport, runHeadless, UsageError } from './run.ts';
 
 // The headless runner in-process (BT25): files come from the repo, plus virtual ones.
@@ -72,7 +73,7 @@ describe('runHeadless', () => {
       [{ expect: ['pin uno:99 is 1 at 1s'] }, {}, /no pin "99"/],
       [{ expect: ['serial[mega] contains "x" by 1s'] }, {}, /no board "mega"/],
       [{ expect: ['led uno:13 is on'] }, {}, /not an assertion/],
-      [{ firmware: { uno: 'fixtures/projects/cli-demo.json' }, duration: '1s' }, {}, /\.hex, \.elf or \.bin/],
+      [{ firmware: { uno: 'fixtures/projects/cli-demo.json' }, duration: '1s' }, {}, /\.hex, \.elf, \.bin, \.uf2 or a MicroPython \.py/],
     ];
     for (const [options, virtual, message] of cases) {
       const report = run(options, virtual);
@@ -116,6 +117,25 @@ describe('serial steps (BT48)', () => {
       io(),
     );
     expect(early.exitCode).toBe(1);
+  });
+
+  it('runs MicroPython: a .py as --firmware, an inline MicroPython sketch with none, the REPL typed into (BT63)', () => {
+    const withPython = (virtual: Record<string, string> = {}): RunIo => ({ ...io(virtual), micropython: () => cachedMicroPython() });
+    const file = runHeadless(
+      { project: 'fixtures/projects/pico-blink.json', firmware: { pico: 'fixtures/micropython/hello/main.py' }, expect: ['serial contains "ValueError: boom" by 500ms', 'serial contains "42" by 900ms'], scriptJson: [{ at: '600ms', serial: 'print(6 * 7)\r' }] },
+      withPython(),
+    );
+    expect(file.error).toBeNull();
+    expect(file.assertions.map((a) => a.ok)).toEqual([true, true]);
+    const project = JSON.parse(readFileSync(resolve(REPO_ROOT, 'fixtures/projects/pico-blink.json'), 'utf8')) as { firmware: Record<string, unknown> };
+    project.firmware.pico = { kind: 'inline', fqbn: 'micropython:rp2:pico', files: { 'main.py': 'print("inline")\n' }, main: 'main.py' };
+    const inline = runHeadless({ project: 'inline.json', firmware: {}, expect: ['serial contains "inline" by 500ms'] }, withPython({ 'inline.json': JSON.stringify(project) }));
+    expect(inline.error).toBeNull();
+    expect(inline.exitCode).toBe(0);
+    // Without the cached interpreter: the board reports what to fetch.
+    const missing = runHeadless({ project: 'fixtures/projects/pico-blink.json', firmware: { pico: 'fixtures/micropython/hello/main.py' }, expect: ['serial contains "hello" by 300ms'] }, io());
+    expect(missing.exitCode).toBe(1);
+    expect(JSON.stringify(missing.problems)).toMatch(/npm run fetch:micropython/);
   });
 
   it('refuses a serial step with no board in a two-board project, an unknown board or a non-string', () => {

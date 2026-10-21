@@ -29,6 +29,7 @@
  */
 
 import type { BoardSpec, FirmwareImage, I2cController, I2cDevice, Level, Mcu, McuPin, NetState, PinMode, Problem, RunResult, SpiController, SpiDevice, UartPort } from '@benchtop/core';
+import { describeFirmwareFormat } from '@benchtop/core';
 import { directBoot } from './boot/direct-boot.ts';
 import { ROM_ELF_NAME, ROM_ELF_SHA256, ROM_RELEASE } from './boot/rom-manifest.ts';
 import { parseRomElf, type RomImage } from './boot/rom.ts';
@@ -301,7 +302,7 @@ export class Esp32Mcu implements Mcu {
   }
 
   load(image: FirmwareImage): void {
-    if (image.format !== 'esp32-bin') throw new Error(`The ESP32 runs app images (.bin); got ${image.format === 'hex' ? 'Intel HEX' : 'an ELF'}.`);
+    if (image.format !== 'esp32-bin') throw new Error(`The ESP32 runs app images (.bin); got ${describeFirmwareFormat(image.format)}.`);
     const previous = this.image;
     this.image = image.partitions === undefined ? { app: image.app } : { app: image.app, partitions: image.partitions };
     this.reset();

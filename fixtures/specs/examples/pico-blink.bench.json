@@ -1,0 +1,11 @@
+{
+  "name": "example: pico-blink",
+  "project": "../../projects/pico-blink.json",
+  "firmware": {
+    "pico": "../../firmware/pico/blink.uf2"
+  },
+  "expect": [
+    "pin pico:TP5 frequency is 1 Hz ±1% between 500ms and 3500ms",
+    "pin pico:TP5 duty is 50% ±1 between 500ms and 3500ms"
+  ]
+}

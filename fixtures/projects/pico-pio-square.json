@@ -1,0 +1,22 @@
+{
+  "format": 1,
+  "name": "pico-pio-square",
+  "parts": [
+    {
+      "id": "pico",
+      "type": "raspberry-pi-pico",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [],
+  "firmware": {
+    "pico": {
+      "kind": "file",
+      "name": "pio-square.uf2",
+      "format": "uf2"
+    }
+  }
+}

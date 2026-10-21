@@ -29,6 +29,13 @@ export const MAX_ERRORS = 100;
 export const ID_PATTERN = /^[a-z][a-z0-9_-]{0,31}$/;
 /** An inline sketch's file names (BT42): a plain name, no folders, a C/C++/Arduino extension. */
 export const SKETCH_FILE_PATTERN = /^[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}\.(?:ino|h|hpp|c|cpp)$/;
+/** A MicroPython inline sketch's file names (BT63): a plain name, no folders, `.py`. */
+export const MICROPYTHON_FILE_PATTERN = /^[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}\.py$/;
+
+/** Whether an inline sketch's FQBN names MicroPython (`micropython:rp2:pico`): its files are .py and nothing compiles them. */
+export function isMicroPythonFqbn(fqbn: string): boolean {
+  return fqbn.startsWith('micropython:');
+}
 /** Most files in an inline sketch. */
 export const MAX_SKETCH_FILES = 32;
 /** Most source in an inline sketch, UTF-8 bytes over all its files. */
@@ -47,7 +54,7 @@ export interface ValidationError {
 export type ParseProjectResult = { ok: true; doc: ProjectDoc } | { ok: false; errors: ValidationError[] };
 
 const ROTATIONS = [0, 90, 180, 270] as const;
-const FIRMWARE_FORMATS = ['hex', 'elf', 'esp32-bin'] as const;
+const FIRMWARE_FORMATS = ['hex', 'elf', 'esp32-bin', 'uf2'] as const;
 
 /** Validates `input` (typically `JSON.parse` output) as a `ProjectDoc`. */
 export function parseProject(input: unknown): ParseProjectResult {
@@ -338,7 +345,7 @@ function parseFirmwareRef(c: Collector, value: unknown, path: string): FirmwareR
     const name = parseString(c, field(value, 'name'), `${path}/name`, false);
     const format = field(value, 'format');
     const i = typeof format === 'string' ? (FIRMWARE_FORMATS as readonly string[]).indexOf(format) : -1;
-    if (i < 0) c.add(`${path}/format`, `must be "hex", "elf" or "esp32-bin", got ${describe(format)}`);
+    if (i < 0) c.add(`${path}/format`, `must be "hex", "elf", "esp32-bin" or "uf2", got ${describe(format)}`);
     if (name === undefined || i < 0) return undefined;
     return { kind, name, format: FIRMWARE_FORMATS[i] };
   }
@@ -368,14 +375,19 @@ function utf8Length(text: string): number {
   return bytes;
 }
 
-/** An inline sketch (BT42): fqbn, the files by name (each a string), the main .ino among them. */
+/**
+ * An inline sketch (BT42): fqbn, the files by name (each a string), the main .ino among them.
+ * A MicroPython one (BT63, fqbn `micropython:…`) holds .py files, its main a .py among them.
+ */
 function parseInlineSketch(c: Collector, value: Record<string, unknown>, path: string): FirmwareRef | undefined {
   const fqbn = parseString(c, field(value, 'fqbn'), `${path}/fqbn`, false);
   const main = field(value, 'main');
   const files = field(value, 'files');
   let ok = fqbn !== undefined;
-  if (typeof main !== 'string' || !SKETCH_FILE_PATTERN.test(main) || !main.endsWith('.ino')) {
-    c.add(`${path}/main`, `must name the sketch's .ino file, got ${describe(main)}`);
+  const python = fqbn !== undefined && isMicroPythonFqbn(fqbn);
+  const pattern = python ? MICROPYTHON_FILE_PATTERN : SKETCH_FILE_PATTERN;
+  if (typeof main !== 'string' || !pattern.test(main) || !(python || main.endsWith('.ino'))) {
+    c.add(`${path}/main`, `must name the sketch's ${python ? '.py' : '.ino'} file, got ${describe(main)}`);
     ok = false;
   }
   if (!isRecord(files)) {
@@ -392,8 +404,8 @@ function parseInlineSketch(c: Collector, value: Record<string, unknown>, path: s
   for (const name of names) {
     const text = files[name];
     const at = `${path}/files/${escapePointer(name)}`;
-    if (!SKETCH_FILE_PATTERN.test(name)) {
-      c.add(at, `file name must match ${SKETCH_FILE_PATTERN.source}`);
+    if (!pattern.test(name)) {
+      c.add(at, `file name must match ${pattern.source}`);
       ok = false;
       continue;
     }

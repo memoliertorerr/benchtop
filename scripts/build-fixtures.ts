@@ -18,7 +18,8 @@
  *
  * A full run (no --only) then builds the Xtensa test programs (scripts/xtensa-programs.ts) and
  * the decode corpora (scripts/xtensa-corpus.ts, which reads serial-hello's ELF from its build
- * folder); `--only xtensa/<name>` or `--only xtensa/corpus` builds just those.
+ * folder); `--only xtensa/<name>` or `--only xtensa/corpus` builds just those. Likewise the
+ * RP2040 test programs (BT60: scripts/rp2040-programs.ts, `--only rp2040/<name>`).
  */
 
 import { execFileSync } from 'node:child_process';
@@ -32,6 +33,7 @@ import { arduinoCliCandidates, findArduinoCli, findAvrTool, findXtensaTool, runA
 import { ADDR2LINE_ORACLES, FIXTURE_BOARDS, type Manifest, type ManifestOutput, sketchSourceSha256 } from './fixture-boards.ts';
 import { writeCorpora } from './xtensa-corpus.ts';
 import { buildPrograms } from './xtensa-programs.ts';
+import { buildRp2040Programs } from './rp2040-programs.ts';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SKETCHES = join(ROOT, 'fixtures', 'sketches');
@@ -53,7 +55,7 @@ async function main(): Promise<number> {
   const known = new Set(['--check', '--only', ...(only === undefined ? [] : [only])]);
   const unknown = args.filter((a) => !known.has(a));
   if (unknown.length > 0 || (onlyIndex >= 0 && only === undefined)) {
-    console.error(`usage: node scripts/build-fixtures.ts [--only <board>/<name> | --only xtensa/<name> | --only xtensa/corpus] [--check]`);
+    console.error(`usage: node scripts/build-fixtures.ts [--only <board>/<name> | --only xtensa/<name> | --only xtensa/corpus | --only rp2040/<name>] [--check]`);
     return 1;
   }
 
@@ -63,6 +65,8 @@ async function main(): Promise<number> {
     const mismatches = target === 'corpus' ? writeCorpora(check) : buildPrograms(check, target);
     return mismatches === 0 ? 0 : 1;
   }
+  // RP2040 test programs (BT60): the arduino-pico core's Arm toolchain only.
+  if (only?.startsWith('rp2040/')) return buildRp2040Programs(check, only.slice('rp2040/'.length)) === 0 ? 0 : 1;
 
   const cli = findArduinoCli();
   if (cli === undefined) {
@@ -187,7 +191,7 @@ async function main(): Promise<number> {
       if (!same) mismatches++;
       console.info(`${same ? 'same   ' : 'CHANGED'} ${output.sha256}  ${output.file}`);
     }
-    if (only === undefined) mismatches += buildPrograms(true) + writeCorpora(true);
+    if (only === undefined) mismatches += buildPrograms(true) + writeCorpora(true) + buildRp2040Programs(true);
     console.info(mismatches === 0 ? 'check: every output is byte-identical to the manifest' : `check: ${mismatches} output(s) differ`);
     return mismatches === 0 ? 0 : 1;
   }
@@ -202,6 +206,7 @@ async function main(): Promise<number> {
   if (only === undefined) {
     buildPrograms(false);
     writeCorpora(false);
+    buildRp2040Programs(false);
   }
   console.info(`wrote ${MANIFEST.slice(ROOT.length + 1)}; fixtures/firmware is ${formatBytes(dirSize(FIRMWARE))}`);
   return 0;

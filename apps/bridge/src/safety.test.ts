@@ -78,10 +78,12 @@ describe('request guards', () => {
     expect(isAllowedOrigin(undefined, 5175)).toBe(false);
   });
 
-  it('allows only the Uno and ESP32 FQBNs', () => {
+  it('allows only the Uno, Nano, Mega, ESP32 and Pico FQBNs', () => {
     expect(isAllowedFqbn('arduino:avr:uno')).toBe(true);
     expect(isAllowedFqbn('arduino:avr:nano')).toBe(true);
     expect(isAllowedFqbn('esp32:esp32:esp32')).toBe(true);
+    expect(isAllowedFqbn('rp2040:rp2040:rpipico')).toBe(true); // BT61
+    expect(isAllowedFqbn('rp2040:rp2040:rpipico2')).toBe(false);
     expect(isAllowedFqbn('arduino:avr:mega')).toBe(true);
     expect(isAllowedFqbn('arduino:avr:leonardo')).toBe(false);
     expect(isAllowedFqbn('arduino:avr:uno --build-property x=y')).toBe(false);

@@ -53,6 +53,7 @@ import {
   type WatchdogConfig,
 } from 'avr8js';
 import {
+  describeFirmwareFormat,
   EM_AVR,
   type FirmwareImage,
   type Debuggable,
@@ -449,7 +450,7 @@ export class AvrMcu implements Mcu, Debuggable {
     let bytes: Uint8Array;
     if (image.format === 'hex') bytes = parseIntelHex(image.text, { maxBytes: flashBytes }).bytes;
     else if (image.format === 'elf') bytes = flashFromElf(image.bytes, flashBytes);
-    else throw new Error(`the ${name} runs .hex or .elf firmware, not an ESP32 image`);
+    else throw new Error(`the ${name} runs .hex or .elf firmware; got ${describeFirmwareFormat(image.format)}`);
     const flash = new Uint16Array(flashBytes / 2).fill(0xffff);
     for (let i = 0; i < bytes.length; i += 2) {
       flash[i >> 1] = bytes[i] | ((i + 1 < bytes.length ? bytes[i + 1] : 0xff) << 8);

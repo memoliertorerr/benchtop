@@ -14,8 +14,11 @@ import type { BoardSpec, PartDefinition, Problem } from '../contracts/part.ts';
 import type { ProjectDoc } from '../contracts/project.ts';
 import type { Netlist } from '../netlist/netlist.ts';
 
-/** Highest voltage an MCU's GPIO accepts, by kind. */
-export const MAX_INPUT_VOLTS: Readonly<Record<BoardSpec['mcu'], number>> = { atmega328p: 5.5, atmega2560: 5.5, esp32: 3.6 };
+/**
+ * Highest voltage an MCU's GPIO accepts, by kind. The RP2040's GPIO aren't 5 V tolerant
+ * (IOVDD + 0.3 V at 3.3 V); the RP2350's are, while IOVDD is powered (datasheet, GPIO).
+ */
+export const MAX_INPUT_VOLTS: Readonly<Record<BoardSpec['mcu'], number>> = { atmega328p: 5.5, atmega2560: 5.5, esp32: 3.6, rp2040: 3.6, rp2350: 5.5 };
 
 export interface StaticCheckInput {
   doc: ProjectDoc;

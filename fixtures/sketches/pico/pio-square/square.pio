@@ -1,0 +1,7 @@
+; square.pio (BT62): a square wave on one SET pin, 64 PIO cycles a period (32 high, 32 low);
+; the frequency is the state machine's clock over 64.
+.program square
+.wrap_target
+    set pins, 1 [31]
+    set pins, 0 [31]
+.wrap

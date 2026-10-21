@@ -1,7 +1,7 @@
 /**
- * What an MCU adapter implements: `@benchtop/avr` (ATmega328P) and `@benchtop/esp32`. The bench
- * owns time and nets; an `Mcu` executes firmware up to a cycle count it is given and reports
- * its pins through `McuPin`. Nothing here knows about parts.
+ * What an MCU adapter implements: `@benchtop/avr` (ATmega328P, ATmega2560), `@benchtop/esp32` and
+ * `@benchtop/rp2040`. The bench owns time and nets; an `Mcu` executes firmware up to a cycle
+ * count it is given and reports its pins through `McuPin`. Nothing here knows about parts.
  */
 
 import type { I2cController, SpiController } from './bus.ts';
@@ -45,11 +45,19 @@ export interface McuPin {
   onOutputChange(listener: () => void): void;
 }
 
-/** Firmware bytes, as handed to `Mcu.load`. Untrusted: adapters validate sizes and addresses. */
+/**
+ * Firmware bytes, as handed to `Mcu.load`. Untrusted: adapters validate sizes and addresses.
+ * `uf2`: a USB Flashing Format file (BT60, additive, approved 2026-10-21) — the RP2040's and
+ * RP2350's native image. `micropython`: a MicroPython sketch (BT63, additive, approved
+ * 2026-10-21) — `.py` files by name, `main` naming the one that runs at boot; the board's stock
+ * interpreter runs it.
+ */
 export type FirmwareImage =
   | { format: 'hex'; text: string }
   | { format: 'elf'; bytes: Uint8Array }
-  | { format: 'esp32-bin'; app: Uint8Array; partitions?: Uint8Array };
+  | { format: 'esp32-bin'; app: Uint8Array; partitions?: Uint8Array }
+  | { format: 'uf2'; bytes: Uint8Array }
+  | { format: 'micropython'; files: Readonly<Record<string, string>>; main: string };
 
 /** Why `runUntil` returned. */
 export interface RunResult {
@@ -65,8 +73,8 @@ export interface RunResult {
 
 /** One microcontroller, created by the bench's environment for a board part. */
 export interface Mcu {
-  /** Which chip; matches `BoardSpec.mcu`. */
-  readonly kind: 'atmega328p' | 'atmega2560' | 'esp32';
+  /** Which chip; matches `BoardSpec.mcu` ('rp2040', 'rp2350': BT60/BT65, additive, approved 2026-10-21). */
+  readonly kind: 'atmega328p' | 'atmega2560' | 'esp32' | 'rp2040' | 'rp2350';
   /**
    * Hz: the rate at which `cycles` advances. Constant for the life of the Mcu; an MCU whose CPU
    * clock changes at run time (ESP32) counts `cycles` in a fixed reference clock. The bench
