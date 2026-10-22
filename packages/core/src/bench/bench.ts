@@ -31,6 +31,17 @@
  * FIFO one frame later, as on a wire; the ESP32 model reports at the stop bit, so its bytes
  * arrive one frame late. Rates more than 3 % apart are a `uart-baud-mismatch` warning; the
  * bytes still arrive (no garbling is modeled).
+ *
+ * Rebuilds that carry over (BT78). `carry()` ends a bench and hands the next one
+ * (`BenchOptions.carry`) its time, its scheduler, its MCUs and its part models. A board whose
+ * part id, MCU kind and firmware ref are unchanged keeps its MCU running (not loaded, not reset);
+ * a part whose id, type and props, logic supply and analog role are unchanged keeps its model,
+ * re-bound to its new nets: its pin listeners move there, its last drives and link settings are
+ * re-applied, its bus devices re-attach. Everything else is built fresh — netlist, resolver,
+ * analog layer, checks, environment — and the dropped parts' models are disposed and their
+ * timers cancelled with the old bench's own (scheduler owner tags). While a carried bench
+ * builds, net changes reach nobody; once it settled, every MCU pin and listener sees its net's
+ * state once, so kept MCUs and models see the edit, not the build.
  */
 
 import { buildIslands } from '../analog/islands.ts';
@@ -54,7 +65,7 @@ import type {
   Problem,
   VisualState,
 } from '../contracts/part.ts';
-import type { ProjectDoc } from '../contracts/project.ts';
+import type { FirmwareRef, ProjectDoc } from '../contracts/project.ts';
 import { type Level, type NetState, Strength } from '../contracts/signal.ts';
 import { cyclesToNanos, nanosToCycles, NS_PER_MS, NS_PER_US, type Nanos } from '../contracts/time.ts';
 import { ENV_PERIOD_NS, EnvRuntime } from '../env/runtime.ts';
@@ -62,6 +73,7 @@ import type { EnvSpecFor, PointField } from '../env/spec.ts';
 import { buildNetlist, type Netlist } from '../netlist/netlist.ts';
 import { type ResolverLink, SignalResolver } from '../signals/resolver.ts';
 import { Scheduler } from './scheduler.ts';
+import { firmwareKey, propsKey } from './signature.ts';
 
 /** What the bench needs from outside core: part definitions and MCU implementations. */
 /** How `runUntil`/`runFor` ended: at the requested time, or at a debugger breakpoint. */
@@ -95,6 +107,56 @@ export interface BenchOptions {
    * document holding an ambient part gets a world that feeds its sensors.
    */
   envSpecFor?: EnvSpecFor;
+  /**
+   * BT78: what the previous bench handed over (`Bench.carry()`): this bench starts at its time
+   * and keeps its scheduler, unchanged boards' MCUs and unchanged parts' models.
+   */
+  carry?: BenchCarry;
+  /**
+   * BT79: boards to start afresh on a carried build even when they could carry over — new
+   * firmware under an unchanged ref (the MCP server's `sim_update` with a board's firmware file).
+   */
+  restart?: readonly string[];
+}
+
+/** BT78: a bench's hand-over to the next one, from `Bench.carry()`. Opaque but for the time. */
+export interface BenchCarry {
+  /** Simulated time the next bench starts at, ns. */
+  readonly time: Nanos;
+  /** The rest is the bench's own. */
+  readonly state: unknown;
+}
+
+/** What `BenchCarry.state` holds. */
+interface CarryState {
+  readonly scheduler: Scheduler;
+  readonly boards: Map<string, CarriedMcu>;
+  readonly parts: Map<string, PartBinding>;
+  /** Every model handed over, for `discardCarry`. */
+  readonly models: PartModel[];
+}
+
+interface CarriedMcu {
+  readonly mcu: Mcu;
+  readonly port: McuPort;
+  readonly kind: BoardSpec['mcu'];
+  readonly firmware: string;
+  readonly base: Nanos;
+  readonly stopped: { reason: string; detail: string } | null;
+}
+
+/**
+ * BT78: disposes every part model a carry holds — for a caller whose next bench failed to build
+ * (it rebuilds from scratch instead).
+ */
+export function discardCarry(carry: BenchCarry): void {
+  for (const model of (carry.state as CarryState).models) {
+    try {
+      model.dispose?.();
+    } catch {
+      // a model that fails to let go is gone anyway
+    }
+  }
 }
 
 /** Visual state of the parts that called `invalidate()` since the previous frame. */
@@ -129,20 +191,174 @@ interface PartSlot {
   model: PartModel | null;
   logicVolts: number;
   dirty: boolean;
+  /** The model's link to the bench (null without a model). */
+  binding: PartBinding | null;
+}
+
+/** Scheduler owner tags of part bindings (0 is the bench's own). */
+let nextOwner = 1;
+
+/**
+ * BT78: a part model's link to the bench it runs on — its context, handles and bus devices
+ * route through it, so a rebuild that keeps the model re-points it (`bench`, `slot`) and the
+ * handles, and the model never notices.
+ */
+interface PartBinding {
+  bench: Bench;
+  slot: PartSlot;
+  /** Its timers' scheduler owner tag. */
+  readonly owner: number;
+  readonly type: string;
+  /** The document props it was created with (`propsKey`), and whether it got the analog prop. */
+  readonly props: string;
+  readonly analog: boolean;
+  readonly pins: Map<string, BenchPin>;
+  readonly links: Map<string, BenchLink>;
+  readonly i2c: { sda: string; scl: string; device: I2cDevice }[];
+  readonly spi: { pins: { sck: string; mosi: string; miso: string; cs: string }; device: SpiDevice }[];
+}
+
+/**
+ * A part's pin handle. BT78: a class with re-pointable fields — a kept model's handles follow it
+ * to the next bench (`rebind`): its listeners are filed on the new net, its last drive re-applied.
+ */
+class BenchPin implements PinHandle {
+  readonly name: string;
+  private resolver: SignalResolver;
+  private netListeners: (((state: NetState) => void)[] | undefined)[];
+  private net: number;
+  private logicVolts: number;
+  private driver = -1;
+  /** The last drive, re-applied on a rebuild: 0 none (or released), 1 a level, 2 volts. */
+  private drove = 0;
+  private level: Level = 0;
+  private volts = 0;
+  private strength: Strength = Strength.strong;
+  private readonly listeners: ((state: NetState) => void)[] = [];
+
+  constructor(name: string, resolver: SignalResolver, netListeners: (((state: NetState) => void)[] | undefined)[], net: number, logicVolts: number) {
+    this.name = name;
+    this.resolver = resolver;
+    this.netListeners = netListeners;
+    this.net = net;
+    this.logicVolts = logicVolts;
+  }
+
+  read(): NetState {
+    return this.resolver.state(this.net);
+  }
+
+  drive(level: Level, strength: Strength = Strength.strong): void {
+    this.drove = 1;
+    this.level = level;
+    this.strength = strength;
+    this.resolver.setDriver(this.driverId(), level, strength);
+  }
+
+  driveVolts(volts: number, strength: Strength = Strength.strong): void {
+    this.drove = 2;
+    this.volts = volts;
+    this.strength = strength;
+    this.resolver.setDriverVolts(this.driverId(), volts, strength);
+  }
+
+  release(): void {
+    this.drove = 0;
+    if (this.driver >= 0) this.resolver.releaseDriver(this.driver);
+  }
+
+  onChange(listener: (state: NetState) => void): void {
+    this.listeners.push(listener);
+    (this.netListeners[this.net] ??= []).push(listener);
+  }
+
+  /** On a new bench: its resolver and this pin's net there; listeners and the last drive follow. */
+  rebind(resolver: SignalResolver, netListeners: (((state: NetState) => void)[] | undefined)[], net: number, logicVolts: number): void {
+    this.resolver = resolver;
+    this.netListeners = netListeners;
+    this.net = net;
+    this.logicVolts = logicVolts;
+    this.driver = -1;
+    for (const listener of this.listeners) (netListeners[net] ??= []).push(listener);
+    if (this.drove === 1) resolver.setDriver(this.driverId(), this.level, this.strength);
+    else if (this.drove === 2) resolver.setDriverVolts(this.driverId(), this.volts, this.strength);
+  }
+
+  private driverId(): number {
+    return this.driver >= 0 ? this.driver : (this.driver = this.resolver.allocDriver(this.net, this.logicVolts));
+  }
+}
+
+/** A part's link handle; BT78: re-pointable like `BenchPin`, its last setting re-applied. */
+class BenchLink implements LinkHandle {
+  private index: number;
+  private resolver: SignalResolver;
+  private analog: AnalogLayer | null;
+  /** −1 never set, else 0 open / 1 closed. */
+  private closed = -1;
+  private ohms = Number.NaN;
+
+  constructor(index: number, resolver: SignalResolver, analog: AnalogLayer | null) {
+    this.index = index;
+    this.resolver = resolver;
+    this.analog = analog;
+  }
+
+  setClosed(closed: boolean): void {
+    this.closed = closed ? 1 : 0;
+    this.resolver.setLinkClosed(this.index, closed);
+  }
+
+  // Switch-level resolution ignores resistance; the analog layer re-solves the link's island.
+  setOhms(ohms: number): void {
+    if (ohms >= 0) this.ohms = ohms;
+    const analog = this.analog;
+    if (analog === null || !(ohms >= 0) || analog.linkOhms[this.index] === ohms) return;
+    analog.linkOhms[this.index] = ohms;
+    this.resolver.touchLink(this.index);
+  }
+
+  rebind(index: number, resolver: SignalResolver, analog: AnalogLayer | null): void {
+    this.index = index;
+    this.resolver = resolver;
+    this.analog = analog;
+    if (this.closed >= 0) resolver.setLinkClosed(index, this.closed === 1);
+    if (!Number.isNaN(this.ohms)) this.setOhms(this.ohms);
+  }
 }
 
 interface McuPinEntry {
   readonly pin: McuPin;
   readonly drivers: number[];
   readonly nets: number[];
+  /** The resolver of the bench the MCU runs on now (BT78: re-pointed by a carried build). */
+  resolver: SignalResolver;
   readonly apply: () => void;
   /** Header pins mapped to this MCU pin, for the dynamic checks' change counts. */
   readonly watched: CheckedBoardPin[];
 }
 
+/**
+ * BT78: an MCU's side of its benches. `McuPin.onOutputChange` and `UartPort.onTransmit` have no
+ * unsubscribe, so each MCU's listeners are registered once, here, and route to whichever bench
+ * and slot run it now.
+ */
+interface McuPort {
+  bench: Bench;
+  slot: McuSlot | null;
+  /** MCU pin id → its entry (drivers and nets on the current bench). */
+  readonly entries: Map<string, McuPinEntry>;
+  /** UART listeners registered. */
+  hooked: boolean;
+}
+
 interface McuSlot {
   readonly partId: string;
   readonly mcu: Mcu;
+  readonly port: McuPort;
+  readonly kind: BoardSpec['mcu'];
+  /** The board's firmware ref in this bench's document (`firmwareKey`). */
+  readonly firmware: string;
   readonly clockHz: number;
   /** Bench time at which the MCU's cycle counter was 0. */
   base: Nanos;
@@ -191,8 +407,14 @@ export class Bench {
   readonly netlist: Netlist;
   readonly quantum: Nanos;
   private readonly resolver: SignalResolver;
-  private readonly scheduler = new Scheduler();
+  private readonly scheduler: Scheduler;
   private time: Nanos = 0;
+  /** BT78: building on a carry — net changes reach nobody until the bench settled. */
+  private quiet = false;
+  /** BT78: handed to another bench; this one can't run any more. */
+  private carriedOver = false;
+  /** Boards whose MCU came over from the previous bench, running. */
+  private readonly keptBoards = new Set<string>();
   private current: McuSlot | null = null;
   /** The MCU whose run just stopped at a breakpoint (read and cleared by the run loop). */
   private breakSlot: McuSlot | null = null;
@@ -236,6 +458,11 @@ export class Bench {
   private readonly env: EnvRuntime | null = null;
 
   constructor(doc: ProjectDoc, env: BenchEnv, options: BenchOptions = {}) {
+    const carried = options.carry === undefined ? null : (options.carry.state as CarryState);
+    this.scheduler = carried?.scheduler ?? new Scheduler();
+    this.time = options.carry?.time ?? 0;
+    this.quiet = carried !== null;
+
     // Topology.
     const defs = new Map<string, PartDefinition | undefined>();
     const defOf = (type: string): PartDefinition | undefined => {
@@ -365,14 +592,23 @@ export class Bench {
       }
     }
 
-    // MCUs on board parts.
+    // MCUs on board parts: an unchanged board keeps its running MCU (BT78).
     for (const part of doc.parts) {
       const board = defOf(part.type)?.board;
       if (board === undefined) continue;
+      const firmware = firmwareKey(doc.firmware[part.id] as FirmwareRef | undefined);
+      const kept = carried?.boards.get(part.id);
+      if (kept !== undefined && kept.kind === board.mcu && kept.firmware === firmware && options.restart?.includes(part.id) !== true) {
+        carried?.boards.delete(part.id);
+        this.keptBoards.add(part.id);
+        this.addMcu(part.id, board, kept.mcu, kept.port, firmware, kept);
+        continue;
+      }
       let mcu: Mcu | undefined;
+      const port: McuPort = { bench: this, slot: null, entries: new Map(), hooked: false };
       try {
         const id = part.id;
-        mcu = env.createMcu(board, id, (p) => this.report(p.parts.includes(id) ? p : { ...p, parts: [id, ...p.parts] }));
+        mcu = env.createMcu(board, id, (p) => port.bench.report(p.parts.includes(id) ? p : { ...p, parts: [id, ...p.parts] }));
       } catch (error) {
         this.buildProblems.push(problem('error', 'mcu-unavailable', `Creating the ${board.mcu} for "${part.id}" failed: ${errorText(error)}`, [part.id]));
         continue;
@@ -381,7 +617,7 @@ export class Bench {
         this.buildProblems.push(problem('error', 'mcu-unavailable', `No ${board.mcu} implementation for "${part.id}".`, [part.id]));
         continue;
       }
-      this.addMcu(part.id, board, mcu);
+      this.addMcu(part.id, board, mcu, port, firmware, null);
     }
     this.quantum = options.quantum ?? (this.mcus.length > 1 ? 100 * NS_PER_US : NS_PER_MS);
     if (!(this.quantum > 0)) throw new RangeError(`quantum must be > 0, got ${this.quantum}`);
@@ -390,7 +626,7 @@ export class Bench {
     for (const part of doc.parts) {
       const def = defOf(part.type);
       if (def === undefined) continue;
-      const slot: PartSlot = { id: part.id, def, model: null, logicVolts: DEFAULT_PART_VOLTS, dirty: false };
+      const slot: PartSlot = { id: part.id, def, model: null, logicVolts: DEFAULT_PART_VOLTS, dirty: false, binding: null };
       for (const pin of def.pins) {
         if (pin.role !== 'power' || pin.volts !== undefined) continue;
         const volts = this.resolver.state(netlist.netOf(part.id, pin.name)).volts;
@@ -400,18 +636,44 @@ export class Bench {
       this.parts.set(part.id, slot);
       this.partList.push(slot);
       if (def.createModel === undefined) continue;
+      const analog = this.analogParts.has(part.id);
+      const props = propsKey(part.props);
+      const kept = carried?.parts.get(part.id);
+      if (kept !== undefined && kept.type === part.type && kept.props === props && kept.analog === analog && kept.slot.logicVolts === slot.logicVolts && kept.slot.model !== null) {
+        carried?.parts.delete(part.id);
+        this.rebindPart(kept, slot);
+        continue;
+      }
+      const binding: PartBinding = { bench: this, slot, owner: nextOwner++, type: part.type, props, analog, pins: new Map(), links: new Map(), i2c: [], spi: [] };
+      slot.binding = binding;
       try {
-        const props = this.analogParts.has(part.id) ? { ...def.defaults, ...part.props, [ANALOG_PROP]: true } : { ...def.defaults, ...part.props };
-        slot.model = def.createModel(this.makeContext(slot), props);
+        const merged = analog ? { ...def.defaults, ...part.props, [ANALOG_PROP]: true } : { ...def.defaults, ...part.props };
+        slot.model = def.createModel(this.makeContext(binding), merged);
       } catch (error) {
         this.buildProblems.push(problem('error', 'part-model-error', `Part "${part.id}" failed to start: ${errorText(error)}`, [part.id]));
       }
+    }
+    if (carried !== null) {
+      // What didn't carry over: the models go, and their timers with the old bench's own.
+      const dropped = new Set<number>([0]);
+      for (const binding of carried.parts.values()) {
+        dropped.add(binding.owner);
+        try {
+          binding.slot.model?.dispose?.();
+        } catch {
+          // gone either way
+        }
+      }
+      carried.parts.clear();
+      carried.boards.clear();
+      this.scheduler.cancelOwners((owner) => dropped.has(owner));
     }
 
     this.building = false;
     for (const attachment of this.i2c) this.attachI2cDevice(attachment);
     for (const attachment of this.spi) this.attachSpiDevice(attachment);
     for (const slot of this.mcus) this.checkBusPins(slot, false); // the pins those attachments saw
+    this.quiet = false;
     this.syncAll();
 
     // Circuit checks: static ones now, dynamic ones every 10 ms of simulated time.
@@ -436,7 +698,7 @@ export class Bench {
       const island = analog.netIsland[net];
       return island >= 0 && analog.tooLarge[island] === 0;
     });
-    this.scheduler.schedule(CHECK_INTERVAL_NS, this.checkTick);
+    this.scheduler.schedule(this.time + CHECK_INTERVAL_NS, this.checkTick);
 
     // The environment (BT54): a world feeding the sensors, when the document has an ambient part.
     if (options.envSpecFor !== undefined) {
@@ -464,10 +726,12 @@ export class Bench {
           const p = this.buildProblems[i];
           if (p.code === 'unwired-part' && p.parts.length === 1 && env.owns(p.parts[0])) this.buildProblems.splice(i, 1);
         }
-        env.reset();
-        this.scheduler.schedule(ENV_PERIOD_NS, this.envTick);
+        env.reset(this.time);
+        this.scheduler.schedule(this.time + ENV_PERIOD_NS, this.envTick);
       }
     }
+    // A carried bench isn't reset: every part shows its state in the next frame.
+    if (carried !== null) for (const slot of this.partList) this.invalidate(slot);
   }
 
   /** Runs the dynamic checks and schedules the next run. */
@@ -495,6 +759,7 @@ export class Bench {
    * Earlier or equal times do nothing.
    */
   runUntil(t: Nanos): BenchRunResult {
+    if (this.carriedOver) throw new Error('this bench was carried over to another');
     if (!(t > this.time)) return RUN_TARGET;
     this.running = true;
     try {
@@ -723,6 +988,41 @@ export class Bench {
     return [...byKey.values()];
   }
 
+  /**
+   * BT78: ends this bench and hands the next one (`BenchOptions.carry`) its time, scheduler,
+   * MCUs and part models — which of them it keeps is the next bench's decision. Pending serial
+   * output is flushed to this bench's listeners first; bus devices are detached from the MCUs'
+   * controllers (the next bench attaches the kept ones again). Don't `dispose()` this bench
+   * afterwards, and don't run it: it has nothing left.
+   */
+  carry(): BenchCarry {
+    if (this.running) throw new Error('carry() inside a run');
+    if (this.carriedOver) throw new Error('this bench was already carried over');
+    this.flushSerial();
+    for (const [attachment, controller] of this.i2cAttached) controller.detach(attachment.device);
+    for (const [attachment, controller] of this.spiAttached) controller.detach(attachment.device);
+    this.i2cAttached.clear();
+    this.spiAttached.clear();
+    this.i2cBuses.clear();
+    const boards = new Map<string, CarriedMcu>();
+    for (const slot of this.mcus) boards.set(slot.partId, { mcu: slot.mcu, port: slot.port, kind: slot.kind, firmware: slot.firmware, base: slot.base, stopped: slot.stopped });
+    const parts = new Map<string, PartBinding>();
+    const models: PartModel[] = [];
+    for (const slot of this.partList) {
+      if (slot.binding === null || slot.model === null) continue;
+      parts.set(slot.id, slot.binding);
+      models.push(slot.model);
+    }
+    this.carriedOver = true;
+    const state: CarryState = { scheduler: this.scheduler, boards, parts, models };
+    return { time: this.time, state };
+  }
+
+  /** BT78: whether a board's MCU came over running from the previous bench (no firmware load). */
+  carriedBoard(boardPartId: string): boolean {
+    return this.keptBoards.has(boardPartId);
+  }
+
   /** Tears the bench down: every part model's `dispose()`. */
   dispose(): void {
     this.scheduler.clear();
@@ -731,13 +1031,18 @@ export class Bench {
 
   // ── Build ────────────────────────────────────────────────────────────────────────────────
 
-  private addMcu(partId: string, board: BoardSpec, mcu: Mcu): void {
+  /** `kept`: the MCU came over running from the previous bench (BT78), with its time base. */
+  private addMcu(partId: string, board: BoardSpec, mcu: Mcu, port: McuPort, firmware: string, kept: CarriedMcu | null): void {
     const slot: McuSlot = {
       partId,
       mcu,
+      port,
+      kind: board.mcu,
+      firmware,
       clockHz: mcu.clockHz,
-      base: 0,
-      stopped: null,
+      // A new MCU starts from reset now (a rebuilt bench's time isn't 0).
+      base: kept?.base ?? this.time,
+      stopped: kept?.stopped ?? null,
       pinEntries: [],
       netOfPin: new Map(),
       serial: new Uint8Array(256),
@@ -745,9 +1050,18 @@ export class Bench {
       serialListeners: [],
       busPins: [],
     };
+    port.bench = this;
+    port.slot = slot;
     const logicVolts = MCU_LOGIC_VOLTS[board.mcu];
     const pullOhms = MCU_PULL_OHMS[board.mcu];
-    const entries = new Map<string, McuPinEntry>();
+    const entries = port.entries;
+    for (const entry of entries.values()) {
+      // A kept MCU's pins: their listeners stay, their drivers and nets are this bench's.
+      entry.drivers.length = 0;
+      entry.nets.length = 0;
+      entry.watched.length = 0;
+      entry.resolver = this.resolver;
+    }
     for (const [header, pinId] of Object.entries(board.pinMap)) {
       const net = this.netlist.netOf(partId, header);
       const pin = mcu.pins.get(pinId);
@@ -764,25 +1078,32 @@ export class Bench {
       if (entry === undefined) {
         const drivers: number[] = [];
         const watched: CheckedBoardPin[] = [];
-        const resolver = this.resolver;
-        const apply = (): void => {
-          for (let i = 0; i < watched.length; i++) watched[i].changes++;
-          const mode = pin.mode();
-          const volts = pin.outputVolts?.();
-          for (let i = 0; i < drivers.length; i++) {
-            const id = drivers[i];
-            if (volts !== undefined) resolver.setDriverVolts(id, volts, Strength.strong);
-            else if (mode === 'output' || mode === 'peripheral') resolver.setDriver(id, pin.outputLevel(), Strength.strong);
-            else if (mode === 'input-pullup') resolver.setDriver(id, 1, Strength.weak);
-            else if (mode === 'input-pulldown') resolver.setDriver(id, 0, Strength.weak);
-            else resolver.releaseDriver(id);
-          }
+        const created: McuPinEntry = {
+          pin,
+          drivers,
+          nets: [],
+          resolver: this.resolver,
+          apply: (): void => {
+            const resolver = created.resolver;
+            for (let i = 0; i < watched.length; i++) watched[i].changes++;
+            const mode = pin.mode();
+            const volts = pin.outputVolts?.();
+            for (let i = 0; i < drivers.length; i++) {
+              const id = drivers[i];
+              if (volts !== undefined) resolver.setDriverVolts(id, volts, Strength.strong);
+              else if (mode === 'output' || mode === 'peripheral') resolver.setDriver(id, pin.outputLevel(), Strength.strong);
+              else if (mode === 'input-pullup') resolver.setDriver(id, 1, Strength.weak);
+              else if (mode === 'input-pulldown') resolver.setDriver(id, 0, Strength.weak);
+              else resolver.releaseDriver(id);
+            }
+          },
+          watched,
         };
-        entry = { pin, drivers, nets: [], apply, watched };
+        entry = created;
         entries.set(pinId, entry);
-        slot.pinEntries.push(entry);
-        pin.onOutputChange(apply);
+        pin.onOutputChange(entry.apply);
       }
+      if (!slot.pinEntries.includes(entry)) slot.pinEntries.push(entry);
       entry.watched.push(checked);
       if (entry.nets.includes(net)) continue;
       entry.nets.push(net);
@@ -793,96 +1114,108 @@ export class Bench {
         this.analog.netReader[net] = 1;
       }
     }
-    mcu.uart(0)?.onTransmit((byte) => {
-      if (slot.serialLen === slot.serial.length) {
-        const bigger = new Uint8Array(slot.serial.length * 2);
-        bigger.set(slot.serial);
-        slot.serial = bigger;
+    if (!port.hooked) {
+      // Once per MCU: the listeners follow the port to the bench and slot running it (BT78).
+      port.hooked = true;
+      mcu.uart(0)?.onTransmit((byte) => {
+        const current = port.slot as McuSlot;
+        if (current.serialLen === current.serial.length) {
+          const bigger = new Uint8Array(current.serial.length * 2);
+          bigger.set(current.serial);
+          current.serial = bigger;
+        }
+        current.serial[current.serialLen++] = byte;
+      });
+      for (let i = 0; i < MAX_UARTS; i++) {
+        const uart = mcu.uart(i);
+        if (uart?.pins !== undefined) uart.onTransmit((byte) => port.bench.forwardUart(port.slot as McuSlot, uart, byte));
       }
-      slot.serial[slot.serialLen++] = byte;
-    });
-    for (let i = 0; i < MAX_UARTS; i++) {
-      const port = mcu.uart(i);
-      if (port?.pins !== undefined) port.onTransmit((byte) => this.forwardUart(slot, port, byte));
     }
     this.mcus.push(slot);
     this.mcuByPart.set(partId, slot);
     for (const entry of slot.pinEntries) entry.apply();
   }
 
-  private makeContext(slot: PartSlot): PartContext {
-    const handles = new Map<string, PinHandle>();
+  /** The context a model gets: everything goes through its binding, so a carried model follows it (BT78). */
+  private makeContext(binding: PartBinding): PartContext {
     return {
-      now: () => this.now(),
+      now: () => binding.bench.now(),
       pin: (name) => {
-        let handle = handles.get(name);
+        let handle = binding.pins.get(name);
         if (handle === undefined) {
-          handle = this.makePinHandle(slot, name);
-          handles.set(name, handle);
+          const bench = binding.bench;
+          handle = new BenchPin(name, bench.resolver, bench.netListeners, bench.netOfPart(binding.slot.id, name), binding.slot.logicVolts);
+          binding.pins.set(name, handle);
         }
         return handle;
       },
-      link: (id) => this.makeLinkHandle(slot.id, id),
+      link: (id) => {
+        let handle = binding.links.get(id);
+        if (handle === undefined) {
+          const bench = binding.bench;
+          handle = new BenchLink(bench.linkOf(binding.slot.id, id), bench.resolver, bench.analog);
+          binding.links.set(id, handle);
+        }
+        return handle;
+      },
       schedule: (delay, callback) => {
         if (Number.isNaN(delay)) throw new RangeError('timer delay is NaN');
-        return this.scheduler.schedule(this.now() + Math.max(0, delay), callback);
+        const bench = binding.bench;
+        return bench.scheduler.schedule(bench.now() + Math.max(0, delay), callback, binding.owner);
       },
-      cancel: (timerId) => this.scheduler.cancel(timerId),
-      invalidate: () => this.invalidate(slot),
+      cancel: (timerId) => binding.bench.scheduler.cancel(timerId),
+      invalidate: () => binding.bench.invalidate(binding.slot),
       // A model can't know its own id, so the bench names it in every problem it reports.
-      report: (p) => this.report(p.parts.includes(slot.id) ? p : { ...p, parts: [slot.id, ...p.parts] }),
+      report: (p) => {
+        const id = binding.slot.id;
+        binding.bench.report(p.parts.includes(id) ? p : { ...p, parts: [id, ...p.parts] });
+      },
       attachI2c: (sda, scl, device) => {
-        const attachment = { partId: slot.id, sda: this.netOfPart(slot.id, sda), scl: this.netOfPart(slot.id, scl), device };
-        this.i2c.push(attachment);
-        if (!this.building) this.attachI2cDevice(attachment);
+        binding.i2c.push({ sda, scl, device });
+        binding.bench.addI2c(binding.slot.id, sda, scl, device);
       },
       attachSpi: (pins, device) => {
-        const attachment: SpiAttachment = {
-          partId: slot.id,
-          sck: this.netOfPart(slot.id, pins.sck),
-          mosi: this.netOfPart(slot.id, pins.mosi),
-          miso: this.netOfPart(slot.id, pins.miso),
-          cs: this.netOfPart(slot.id, pins.cs),
-          device,
-        };
-        this.spi.push(attachment);
-        if (!this.building) this.attachSpiDevice(attachment);
+        binding.spi.push({ pins, device });
+        binding.bench.addSpi(binding.slot.id, pins, device);
       },
     };
   }
 
-  private makePinHandle(slot: PartSlot, name: string): PinHandle {
-    const net = this.netOfPart(slot.id, name);
-    const resolver = this.resolver;
-    let driver = -1;
-    const driverId = (): number => (driver >= 0 ? driver : (driver = resolver.allocDriver(net, slot.logicVolts)));
-    return {
-      name,
-      read: () => resolver.state(net),
-      drive: (level: Level, strength: Strength = Strength.strong) => resolver.setDriver(driverId(), level, strength),
-      driveVolts: (volts: number, strength: Strength = Strength.strong) => resolver.setDriverVolts(driverId(), volts, strength),
-      release: () => {
-        if (driver >= 0) resolver.releaseDriver(driver);
-      },
-      onChange: (listener) => {
-        (this.netListeners[net] ??= []).push(listener);
-      },
-    };
+  /** BT78: a model from the previous bench, on this one's nets: handles, links and bus devices follow. */
+  private rebindPart(binding: PartBinding, slot: PartSlot): void {
+    slot.model = binding.slot.model;
+    slot.binding = binding;
+    binding.bench = this;
+    binding.slot = slot;
+    for (const pin of binding.pins.values()) pin.rebind(this.resolver, this.netListeners, this.netOfPart(slot.id, pin.name), slot.logicVolts);
+    for (const [id, link] of binding.links) link.rebind(this.linkOf(slot.id, id), this.resolver, this.analog);
+    for (const a of binding.i2c) this.addI2c(slot.id, a.sda, a.scl, a.device);
+    for (const a of binding.spi) this.addSpi(slot.id, a.pins, a.device);
   }
 
-  private makeLinkHandle(partId: string, linkId: string): LinkHandle {
+  private addI2c(partId: string, sda: string, scl: string, device: I2cDevice): void {
+    const attachment = { partId, sda: this.netOfPart(partId, sda), scl: this.netOfPart(partId, scl), device };
+    this.i2c.push(attachment);
+    if (!this.building) this.attachI2cDevice(attachment);
+  }
+
+  private addSpi(partId: string, pins: { sck: string; mosi: string; miso: string; cs: string }, device: SpiDevice): void {
+    const attachment: SpiAttachment = {
+      partId,
+      sck: this.netOfPart(partId, pins.sck),
+      mosi: this.netOfPart(partId, pins.mosi),
+      miso: this.netOfPart(partId, pins.miso),
+      cs: this.netOfPart(partId, pins.cs),
+      device,
+    };
+    this.spi.push(attachment);
+    if (!this.building) this.attachSpiDevice(attachment);
+  }
+
+  private linkOf(partId: string, linkId: string): number {
     const index = this.linkIndex.get(`${partId}\u0000${linkId}`);
     if (index === undefined) throw new Error(`part "${partId}" has no link "${linkId}"`);
-    return {
-      setClosed: (closed) => this.resolver.setLinkClosed(index, closed),
-      // Switch-level resolution ignores resistance; the analog layer re-solves the link's island.
-      setOhms: (ohms) => {
-        const analog = this.analog;
-        if (analog === null || !(ohms >= 0) || analog.linkOhms[index] === ohms) return;
-        analog.linkOhms[index] = ohms;
-        this.resolver.touchLink(index);
-      },
-    };
+    return index;
   }
 
   private netOfPart(partId: string, pin: string): number {
@@ -1078,6 +1411,7 @@ export class Bench {
   private readonly netChanged = (net: number): void => {
     const state = this.resolver.state(net);
     this.conflict[net] = state.conflict ? 1 : 0;
+    if (this.quiet) return; // a carried build settles first; syncAll then tells everyone once
     const pins = this.netMcuPins[net];
     if (pins !== undefined) for (let i = 0; i < pins.length; i++) pins[i].setInput(state);
     const listeners = this.netListeners[net];

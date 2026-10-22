@@ -135,7 +135,7 @@ describe('MCP lifecycle', () => {
   it('lists its tools with schemas and annotations; unknown tools are JSON-RPC errors, bad arguments tool errors', async () => {
     const server = testServer();
     const list = (await request(server, 'tools/list')).result as { tools: { name: string; inputSchema: { type: string }; annotations?: object }[] };
-    expect(list.tools.map((t) => t.name)).toEqual(['list_parts', 'describe_part', 'validate_project', 'run_simulation', 'run_tests', 'sim_open', 'sim_run', 'sim_input', 'sim_serial', 'sim_state', 'sim_reset', 'sim_close', 'sim_list', 'list_examples', 'open_example', 'debug_registers', 'debug_memory', 'debug_breakpoints', 'debug_step', 'compile_sketch', 'pcb_check', 'pcb_export']);
+    expect(list.tools.map((t) => t.name)).toEqual(['list_parts', 'describe_part', 'validate_project', 'run_simulation', 'run_tests', 'sim_open', 'sim_run', 'sim_input', 'sim_serial', 'sim_state', 'sim_update', 'sim_reset', 'sim_close', 'sim_list', 'list_examples', 'open_example', 'debug_registers', 'debug_memory', 'debug_breakpoints', 'debug_step', 'compile_sketch', 'pcb_check', 'pcb_export']);
     for (const t of list.tools) expect(t.inputSchema.type).toBe('object');
     expect((await request(server, 'tools/call', { name: 'nope', arguments: {} })).error?.code).toBe(INVALID_PARAMS);
     const bad = (await request(server, 'tools/call', { name: 'describe_part', arguments: { type: 3, extra: 1 } })).result as { isError: boolean; content: { text: string }[] };

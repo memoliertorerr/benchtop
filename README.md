@@ -132,7 +132,8 @@ Pick a board from the palette, add parts, wire them, then drop a firmware file o
 and press Run — or write the sketch in the app: the **Code** tab edits the board's sketch
 (highlighting, find, multiple files), and **Compile & Run** (⌘/Ctrl-Enter) builds it through
 the local compile bridge (`npm run bridge`, below) and runs it; errors show on their lines. The
-sketch is saved in the project. **Examples…** opens a gallery of ready-to-run circuits (Uno, Nano, Mega and ESP32), and
+sketch is saved in the project. Edit the circuit while it runs: add a part, rewire, change a
+value — the boards keep running and the other parts keep their state. **Examples…** opens a gallery of ready-to-run circuits (Uno, Nano, Mega and ESP32), and
 **Open…** also imports a [Wokwi](https://wokwi.com) `diagram.json` — the circuit comes over,
 anything it can't map is listed in the Problems tab, and you drop the firmware on the board.
 **Export ▾** saves the project as `.json`, the bench as it looks right now as a PNG (2×) or
@@ -252,7 +253,7 @@ Other clients take the same command in their JSON configuration:
 
 The tools: the part catalog (`list_parts`, `describe_part`), `validate_project`,
 `run_simulation`, `run_tests`, live sessions (`sim_open`, `sim_run`, `sim_input`, `sim_serial`,
-`sim_state`, `sim_reset`, `sim_close`, `sim_list`), the gallery (`list_examples`,
+`sim_state`, `sim_update` — edit the circuit while it runs, `sim_reset`, `sim_close`, `sim_list`), the gallery (`list_examples`,
 `open_example`, and each example as a resource), debugging any board in a session (`debug_registers`,
 `debug_memory`, `debug_breakpoints`, `debug_step`), `compile_sketch` (with your arduino-cli)
 and the PCB pair `pcb_check` and `pcb_export`.

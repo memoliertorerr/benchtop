@@ -18,13 +18,20 @@ import type {
   VisualState,
 } from '@benchtop/core';
 
-export const PROTOCOL_VERSION = 11;
+export const PROTOCOL_VERSION = 12;
 
 export type ToSim =
   | { type: 'hello'; protocol: number }
   /** Builds a new bench from `doc` (paused at t = 0) and loads firmware per board part id. */
   /** `debugElf` (BT74): a board's ELF for the debugger's symbols and lines when its image isn't one (a .hex, .uf2 or .bin built from it). */
   | { type: 'load'; doc: ProjectDoc; firmware: Record<string, FirmwareImage>; debugElf?: Record<string, Uint8Array> }
+  /**
+   * BT79: the loaded bench's document changed (an edit while loaded): the bench is rebuilt with
+   * carry-over — time, unchanged boards (still running their firmware) and unchanged parts'
+   * state continue; `firmware` is loaded only into boards that are new or whose firmware ref
+   * changed. Keeps running if it was. Answered with `edited`.
+   */
+  | { type: 'edit'; doc: ProjectDoc; firmware: Record<string, FirmwareImage>; debugElf?: Record<string, Uint8Array> }
   /**
    * New firmware for one board of the loaded bench (a fresh compile): loads it and resets that
    * board's MCU only; its clock restarts at the current bench time, other parts keep their state
@@ -115,6 +122,8 @@ export interface FrameStats {
 export type FromSim =
   | { type: 'ready'; protocol: number }
   | { type: 'loaded'; problems: Problem[] }
+  /** BT79: an `edit` was applied (or, when carrying over failed, the bench was loaded afresh: `reloaded`). */
+  | { type: 'edited'; problems: Problem[]; reloaded: boolean }
   /**
    * Sent after each load when the worker is cross-origin isolated (BT40): from now on the parts'
    * visual state is published in this shared buffer (frame-ring.ts; one slot per part, in

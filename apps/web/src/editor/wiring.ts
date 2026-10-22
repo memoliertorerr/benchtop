@@ -56,8 +56,16 @@ export const CATALOG_PINS: PartPinsSource = {
   },
 };
 
+const netlists = new WeakMap<ProjectDoc, Netlist>();
+
+/** The document's nets (built once per document object: the canvas and the run controls share it). */
 export function editorNetlist(doc: ProjectDoc): Netlist {
-  return buildNetlist(doc, CATALOG_PINS);
+  let netlist = netlists.get(doc);
+  if (netlist === undefined) {
+    netlist = buildNetlist(doc, CATALOG_PINS);
+    netlists.set(doc, netlist);
+  }
+  return netlist;
 }
 
 /**

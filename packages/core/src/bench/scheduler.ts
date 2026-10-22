@@ -7,6 +7,10 @@
  * marked dead and dropped when it reaches the top of the heap (the heap is compacted if dead
  * entries pile up). A timer id packs the entry index and that entry's generation, so ids of
  * fired or cancelled timers never match a recycled entry.
+ *
+ * Owners (BT78): each entry carries a small integer tag — 0 for the bench's own timers, else the
+ * part binding that scheduled it — so a rebuild that keeps the scheduler can drop the timers of
+ * the parts and the bench it replaces (`cancelOwners`).
  */
 
 import type { Nanos } from '../contracts/time.ts';
@@ -18,6 +22,7 @@ export class Scheduler {
   private time = new Float64Array(64);
   private seq = new Float64Array(64);
   private gen = new Float64Array(64);
+  private owner = new Int32Array(64);
   private callbacks: ((() => void) | null)[] = new Array(64).fill(null);
   private free = new Int32Array(64);
   private freeLen = 64;
@@ -36,11 +41,12 @@ export class Scheduler {
   }
 
   /** Runs `callback` once when the clock reaches `at` (absolute ns). Returns a timer id ≥ 0. */
-  schedule(at: Nanos, callback: () => void): number {
+  schedule(at: Nanos, callback: () => void, owner = 0): number {
     if (Number.isNaN(at)) throw new RangeError('timer time is NaN');
     if (this.freeLen === 0) this.grow();
     const e = this.free[--this.freeLen];
     this.time[e] = at;
+    this.owner[e] = owner;
     this.seq[e] = this.nextSeq++;
     this.callbacks[e] = callback;
     this.live++;
@@ -57,6 +63,18 @@ export class Scheduler {
     this.callbacks[e] = null;
     this.gen[e]++;
     this.live--;
+    if (this.heapLen > 1024 && this.heapLen > 2 * this.live) this.compact();
+  }
+
+  /** BT78: cancels every pending timer whose owner tag `drop` accepts. */
+  cancelOwners(drop: (owner: number) => boolean): void {
+    for (let i = 0; i < this.heapLen; i++) {
+      const e = this.heap[i];
+      if (this.callbacks[e] === null || !drop(this.owner[e])) continue;
+      this.callbacks[e] = null;
+      this.gen[e]++;
+      this.live--;
+    }
     if (this.heapLen > 1024 && this.heapLen > 2 * this.live) this.compact();
   }
 
@@ -170,6 +188,9 @@ export class Scheduler {
     const gen = new Float64Array(size);
     gen.set(this.gen);
     this.gen = gen;
+    const owner = new Int32Array(size);
+    owner.set(this.owner);
+    this.owner = owner;
     for (let i = old; i < size; i++) this.callbacks.push(null);
     const heap = new Int32Array(size);
     heap.set(this.heap);

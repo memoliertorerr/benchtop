@@ -1,8 +1,9 @@
 /**
  * Live sessions as MCP tools (BT69): `sim_open` a bench, then `sim_run` it in steps, `sim_input`
- * and `sim_serial` into it, `sim_state` to read parts and pins, `sim_reset`, `sim_close`,
- * `sim_list`. Every result carries the session's time; runs return the serial output since the
- * last call, new problems and the watched pins' measurements over the run.
+ * and `sim_serial` into it, `sim_state` to read parts and pins, `sim_update` (BT79) to edit the
+ * circuit while it runs, `sim_reset`, `sim_close`, `sim_list`. Every result carries the
+ * session's time; runs return the serial output since the last call, new problems and the
+ * watched pins' measurements over the run.
  */
 
 import { type DebugTables, type FirmwareImage, lineTableFromElf, parseElf32, type ProjectDoc, SymbolTable, type VisualState } from '@benchtop/core';
@@ -279,6 +280,55 @@ export const simReset: Tool<SimContext> = {
   },
 };
 
+export const simUpdate: Tool<SimContext> = {
+  name: 'sim_update',
+  title: 'Edit a live simulation',
+  description:
+    'Replaces an open session\'s project with an edited one while it runs, as editing a running circuit in the app does: time goes on, boards keep running their firmware (no reboot), parts that are unchanged (same id, type and props) keep their state — a display keeps what it shows — and added parts start fresh. Give "firmware" (or "micropython") only for boards that are new or that should start new firmware; the others keep what they run. Watched pins stay watched. Returns which boards kept running, started or went, and new problems.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      session: SESSION,
+      ...PROJECT_ARGS,
+      firmware: { type: 'object', additionalProperties: { type: 'string', maxLength: 1024 }, description: 'Board part id → firmware file under the root, for new boards and boards to re-flash.' },
+      micropython: MICROPYTHON_ARG,
+    },
+    required: ['session'],
+    additionalProperties: false,
+  },
+  annotations: { readOnlyHint: true, openWorldHint: false },
+  run(args, context) {
+    const session = context.sessions.get(args.session as string);
+    const { json } = projectJsonArg(args, context);
+    const { doc, boards } = projectFromJson(withMicroPython(json, args.micropython));
+    const firmware = (args.firmware ?? {}) as Record<string, string>;
+    const restart = [...new Set([...Object.keys(firmware), ...Object.keys((args.micropython ?? {}) as object)])];
+    // Firmware is read for the boards that start: new ones (or of another type) and `restart`.
+    const typeOf = (d: ProjectDoc, id: string): string | undefined => d.parts.find((p) => p.id === id)?.type;
+    const starting = new Set(boards.filter((b) => restart.includes(b) || !session.boards.includes(b) || typeOf(session.doc, b) !== typeOf(doc, b)));
+    const images = loadFirmware(context.io, { ...doc, firmware: Object.fromEntries(Object.entries(doc.firmware).filter(([b]) => starting.has(b))) }, boards, firmware);
+    const tables: Record<string, DebugTables> = {};
+    for (const [board, path] of Object.entries(firmware)) {
+      const found = tablesBeside(context, doc, board, path);
+      if (found !== undefined) tables[board] = found;
+    }
+    let update;
+    try {
+      update = session.update({ doc, boards, images, roms: cachedRoms(context.io), restart, tables });
+    } catch (error) {
+      context.sessions.close(session.id);
+      throw new ToolError(`the edit could not be applied (${error instanceof Error ? error.message : String(error)}); session ${session.id} is closed — sim_open it again`);
+    }
+    return {
+      session: session.id,
+      now: timeText(session.bench.now()),
+      ...update,
+      parts: doc.parts.map((p) => ({ id: p.id, type: p.type })),
+      problems: session.newProblems(),
+    };
+  },
+};
+
 export const simClose: Tool<SimContext> = {
   name: 'sim_close',
   title: 'Close a live simulation',
@@ -302,4 +352,4 @@ export const simList: Tool<SimContext> = {
   },
 };
 
-export const SIM_TOOLS: readonly Tool<SimContext>[] = [simOpen, simRun, simInput, simSerial, simState, simReset, simClose, simList];
+export const SIM_TOOLS: readonly Tool<SimContext>[] = [simOpen, simRun, simInput, simSerial, simState, simUpdate, simReset, simClose, simList];

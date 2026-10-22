@@ -311,10 +311,11 @@ export class EnvRuntime {
   }
 
   /** Back to the document's state at time 0, and the sensors told what the world holds. */
-  reset(): void {
+  /** The power-on world at bench time `now` (a rebuilt bench starts where the last one was, BT78). */
+  reset(now: Nanos = 0): void {
     this.world = this.makeWorld();
     this.overlay = this.ambientSpec.overlay;
-    this.lastStep = 0;
+    this.lastStep = now;
     this.lastHeatmap = -Infinity;
     this.heatmapDirty = true;
     for (const s of this.sensors) s.last.fill(Number.NaN);

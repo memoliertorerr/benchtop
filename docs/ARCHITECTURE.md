@@ -103,6 +103,35 @@ once. Bus devices that parts register with `attachI2c`/`attachSpi` are attached 
 the MCU controller whose current pins share their nets; SPI `selected()` reads the CS net (low =
 selected).
 
+**Rebuilds that carry over.** `bench.carry()` ends a bench and hands the next one
+(`new Bench(doc, env, { carry })`, `assembleBench(…, { carry })`) its time, its `Scheduler` and
+its MCUs and part models — the next bench decides what it keeps. A board whose part id, MCU kind
+and firmware ref (`firmwareKey`: an inline sketch by its FQBN) are unchanged keeps its MCU
+running: not loaded, not reset, its time base unchanged; a new board starts from reset at the
+carried time, as a firmware swap does (`BenchOptions.restart` forces that for boards getting new
+firmware under an unchanged ref). A part whose id, type, document props (`propsKey`), logic
+supply and analog role are unchanged keeps its model. Neither contract has a way to re-bind, so
+the bench does it underneath them: `McuPin.onOutputChange` and `UartPort.onTransmit` have no
+unsubscribe, so each MCU's listeners are registered once on a port that routes to whichever
+bench and slot run it now (`report` too); a part's context, `PinHandle`s (`BenchPin`) and
+`LinkHandle`s (`BenchLink`) go through a binding with re-pointable fields, so a kept model's
+handles — taken once in `createModel` — follow it: listeners are filed on the new nets, the last
+drive and link setting are re-applied, its I2C/SPI devices re-attach (the old bench detaches
+every device from the controllers when it carries). Scheduler entries carry an owner tag (0:
+the bench's own ticks and UART bytes in flight; else a part binding): the new bench cancels the
+old bench's and the dropped parts' timers, so a kept model's timer ids stay valid and fire on
+time. The netlist, resolver, analog layer, checks and environment are built fresh (the
+environment's world restarts at the carried time). While a carried bench builds, net changes
+reach nobody (`quiet`); when it has settled, every MCU pin and listener sees its net's state
+once — a kept MCU sees the edit, not the transient states of the build. No contract changed:
+`PartModel.dispose` (now also for a dropped model on a rebuild) and "get handles once, in
+`createModel`" already described it. Tests: `bench/carry.test.ts` (FakeMcu: time, a model
+following its pin to another net, timers kept, dropped and new, drives and links re-applied, no
+glitch on a kept MCU's input, I2C re-attachment, new and re-flashed boards) and
+`packages/parts/src/integration/hot-swap.test.ts` (an Uno's I2C LCD keeps its text and
+`millis()` keeps counting with no second boot; an LED added to a running blink follows the
+sketch's schedule; a Pico and an ESP32 keep blinking on their own schedules across an edit).
+
 Problem codes the bench emits today: `unknown-part-type`, `unresolved-wire`,
 `bad-part-definition`, `mcu-unavailable`, `part-model-error`, `i2c-unattached`,
 `spi-unattached` (info), `environment-duplicate` — fixed at build; `short` and `oscillation` — live, from the resolver;
@@ -376,7 +405,7 @@ message wins; codes, titles and hints in `packages/core/src/check/codes.ts`):
   100 mA in, ATmega2560 200 or 100 mA; past it the datasheet only says V_OH/V_OL may leave
   spec, hence a warning; it names the pins carrying ≥ 1 mA and the group, held 1 s like a pin's;
   no ESP32 groups) and `unpowered-part` (a wired power or ground net with no driver).
-- **Reported by parts** (`ctx.report`): sticky until reset or a topology change, except that a
+- **Reported by parts** (`ctx.report`): sticky until reset or a rebuild, except that a
   report with an empty message withdraws it (how `led-overcurrent` clears while the current is
   low; the contract has no clear call). Analog reports (`analog-undefined-level`,
   `analog-no-convergence`) follow the same rule.
@@ -1617,9 +1646,14 @@ sequence, files matched by basename or trailing path.
 ## Worker protocol
 
 `apps/web/src/sim/protocol.ts` defines `ToSim` (UI → worker) and `FromSim` (worker → UI)
-messages, versioned by `PROTOCOL_VERSION` (11: the debug ELF beside a load's images and the MCU
-kind and register names in `debugInfo`). UI → worker: `hello`, `load` (a project plus
-firmware images per board), `setFirmware` (one board's new image on the loaded bench: that
+messages, versioned by `PROTOCOL_VERSION` (12: the debug ELF beside a load's images and the MCU
+kind and register names in `debugInfo`, then `edit`/`edited`). UI → worker: `hello`, `load` (a
+project plus firmware images per board), `edit` (the loaded bench's new document; the worker
+rebuilds it with carry-over, keeps the serial history, breakpoints and symbols of the boards that
+carried over, re-probes the probes without restarting their history — the UI appends — and
+posts a new `frameRing` only when the part list changed; the images reach only boards that
+start afresh; answered by `edited` with the problems, or with `reloaded: true` when carrying
+over failed and it loaded afresh), `setFirmware` (one board's new image on the loaded bench: that
 MCU loads and resets, its clock restarts at the current bench time, everything else carries
 on), `run` (speed; Infinity = max), `pause`, `reset`, `step` (ns),
 `input` (part, PartInput), `audioIn` (a microphone part's 16 kHz samples, each fed to
@@ -1754,8 +1788,19 @@ show green dots; while a part is dragged, green rings mark where its legs would 
 ### Running
 
 `apps/web/src/sim/controller.ts` loads the document plus each board's stored firmware into the
-worker when either changed, then runs at the chosen speed (0.1×, 1×, 10×, Max); any edit while
-running reloads the bench and resumes (debounced 150 ms; time restarts at 0). Firmware bytes
+worker when either changed, then runs at the chosen speed (0.1×, 1×, 10×, Max). An edit that
+changes the circuit while a bench is loaded — running or paused — goes to the worker as `edit`
+(debounced 150 ms): it rebuilds the bench with carry-over, so time goes on, the boards keep
+running their firmware and unchanged parts keep their state (a display keeps what the sketch
+drew); a run keeps running, a pause stays paused, a board stopped at a breakpoint stays there.
+New firmware bytes under the same document (a re-dropped file) still load afresh, and a Run or
+Reset first sends an edit still waiting in the debounce. Which edits count is `benchSignature`
+(core `bench/signature.ts`): the parts' ids, types and props, the nets as which pins share one
+(contacts included, part order and net numbering ignored), the firmware refs (an inline sketch
+by its FQBN) and — only with an environment part — the positions of the parts the environment
+uses. Recoloring a wire, moving its waypoints or moving a part whose pins touch nothing new
+leaves the bench alone; the editor's netlist and the signature are computed once per document
+object (≈ 4 ms for the largest fixture, perf-100-leds, netlist included). Firmware bytes
 live in IndexedDB by board id (`editor/firmware-store.ts`, session-only fallback, files over
 4 MB refused); the document keeps only the `FirmwareRef`. A `.hex`/`.elf` dropped onto a board,
 or chosen with the inspector's "Load firmware…", attaches it. Part states (from frames or the
@@ -2153,8 +2198,11 @@ Model Context Protocol on stdio — one more front end over the headless runner,
   frequency (from rising edges), duty and final level over that run; `sim_input` checks the part
   and input through the spec parser (`parseScript`) and sends it at the current time;
   `sim_serial`; `sim_state` returns every part's latest visual state (arrays over 32 entries —
-  framebuffers — summarized unless `full`) and pin levels and volts; `sim_reset`, `sim_close`,
-  `sim_list`.
+  framebuffers — summarized unless `full`) and pin levels and volts; `sim_update` (a new
+  project document for a live session, rebuilt with carry-over like an edit in the app — boards
+  keep running unless `firmware`/`micropython` names them, which re-flashes them; returns the
+  boards kept, started and removed and the watched pins that went; if the rebuild fails the
+  session is closed and the call says so); `sim_reset`, `sim_close`, `sim_list`.
 - Examples (`tools/examples.ts`): `list_examples` and `open_example` (a session on an
   example's own firmware, with its sketch sources) and the resources `benchtop://examples/<id>`
   (card, project document, sketches) come from `fixtures/examples.json` in the Benchtop

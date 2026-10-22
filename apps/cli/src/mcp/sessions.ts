@@ -7,9 +7,12 @@
  * A run goes in 10 ms simulated slices, so it can stop at a serial text and at the call's
  * wall-clock budget; a watched pin's probe is drained every slice (its ring holds far more edges
  * than 10 ms of anything a sketch toggles).
+ *
+ * BT79: `update` gives a session a new project document while it lives — the bench is rebuilt
+ * with carry-over (time, boards that keep running, unchanged parts' state), as the app does.
  */
 
-import { type Bench, type BenchRunResult, type DebugTables, type FirmwareImage, lineTableFromElf, type Mcu, type NetState, parseElf32, type Problem, type ProjectDoc, SymbolTable, type VisualState } from '@benchtop/core';
+import { type Bench, type BenchRunResult, type DebugTables, discardCarry, type FirmwareImage, lineTableFromElf, type NetState, parseElf32, type Problem, type ProjectDoc, SymbolTable, type VisualState } from '@benchtop/core';
 import { type BenchRoms, buildBench, resolvePin, UsageError } from '../load.ts';
 
 /** Simulated time per run slice. */
@@ -60,13 +63,23 @@ export interface SessionInit {
   tables?: Readonly<Record<string, DebugTables>>;
 }
 
+/** What `Session.update` did to the boards and watched pins. */
+export interface SessionUpdate {
+  /** Boards still running what they ran. */
+  kept: string[];
+  /** Boards started afresh (new, re-flashed or of another kind). */
+  started: string[];
+  removed: string[];
+  /** Watched pins that no longer exist (no longer measured). */
+  unwatched: string[];
+}
+
 export class Session {
   readonly id: string;
   readonly label: string;
-  readonly doc: ProjectDoc;
-  readonly boards: string[];
-  readonly bench: Bench;
-  readonly mcus: Mcu[];
+  doc: ProjectDoc;
+  boards: string[];
+  bench: Bench;
   lastUsed = 0;
   private readonly serialChars: number;
   /** Serial text per board since the last read, and characters dropped from its front. */
@@ -85,18 +98,27 @@ export class Session {
     this.doc = init.doc;
     this.boards = init.boards;
     this.serialChars = init.serialChars;
-    const built = buildBench(init.doc, init.images, init.roms);
-    this.bench = built.bench;
-    this.mcus = built.mcus;
+    this.bench = buildBench(init.doc, init.images, init.roms).bench;
     for (const board of init.boards) {
       this.pending[board] = '';
       this.dropped[board] = 0;
+    }
+    this.listenSerial();
+    for (const key of init.watch) this.addWatch(key);
+    this.addTables(init.images, init.tables ?? {});
+    this.collect();
+  }
+
+  private listenSerial(): void {
+    for (const board of this.boards) {
       const decoder = new TextDecoder();
       this.bench.onSerial(board, (bytes) => this.append(board, decoder.decode(bytes, { stream: true })));
     }
-    for (const key of init.watch) this.addWatch(key);
-    for (const [board, tables] of Object.entries(init.tables ?? {})) this.tables.set(board, tables);
-    for (const [board, image] of Object.entries(init.images)) {
+  }
+
+  private addTables(images: Readonly<Record<string, FirmwareImage>>, tables: Readonly<Record<string, DebugTables>>): void {
+    for (const [board, found] of Object.entries(tables)) this.tables.set(board, found);
+    for (const [board, image] of Object.entries(images)) {
       if (image.format !== 'elf') continue;
       try {
         const elf = parseElf32(image.bytes);
@@ -105,7 +127,54 @@ export class Session {
         // an ELF the MCU accepted but the debug tables can't read: addresses only
       }
     }
+  }
+
+  /**
+   * BT79: a new project document for the live bench. It is rebuilt with carry-over: time goes on,
+   * a board keeps running what it ran unless it is in `restart` (its new firmware is in
+   * `images`) or new, unchanged parts keep their state, watched pins are measured on (those that
+   * no longer exist are dropped). Serial text not yet read stays. If the rebuild fails, the
+   * session can't go on: the caller closes it.
+   */
+  update(next: { doc: ProjectDoc; boards: string[]; images: Readonly<Record<string, FirmwareImage>>; roms: SessionInit['roms']; restart: readonly string[]; tables?: Readonly<Record<string, DebugTables>> }): SessionUpdate {
+    const carry = this.bench.carry(); // flushes serial output to this session first
+    let bench: Bench;
+    try {
+      bench = buildBench(next.doc, next.images, next.roms, { carry, restart: next.restart }).bench;
+    } catch (error) {
+      discardCarry(carry);
+      throw error;
+    }
+    const removed = this.boards.filter((b) => !next.boards.includes(b));
+    const kept = next.boards.filter((b) => bench.carriedBoard(b));
+    const started = next.boards.filter((b) => !bench.carriedBoard(b));
+    for (const board of removed) {
+      delete this.pending[board];
+      delete this.dropped[board];
+    }
+    for (const board of [...removed, ...started]) this.tables.delete(board);
+    for (const board of started) {
+      this.pending[board] ??= '';
+      this.dropped[board] ??= 0;
+    }
+    this.bench = bench;
+    this.doc = next.doc;
+    this.boards = next.boards;
+    this.listenSerial();
+    this.addTables(Object.fromEntries(Object.entries(next.images).filter(([b]) => started.includes(b))), next.tables ?? {});
+    const unwatched: string[] = [];
+    const watched = this.watches.splice(0).map((w) => w.key);
+    for (const key of watched) {
+      try {
+        this.addWatch(key);
+      } catch {
+        unwatched.push(key);
+      }
+    }
+    const ids = new Set(next.doc.parts.map((p) => p.id));
+    for (const part of [...this.latest.keys()]) if (!ids.has(part)) this.latest.delete(part);
     this.collect();
+    return { kept, started, removed, unwatched };
   }
 
   /** Where a board's PC is: the address, the function and offset, the source line (as far as its tables tell). */

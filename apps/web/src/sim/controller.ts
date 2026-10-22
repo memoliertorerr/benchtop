@@ -1,15 +1,20 @@
 /**
  * Run controls for the UI: load the current document (with each board's stored firmware) into
- * the worker when it changed, run at the chosen speed, pause, reset. Any edit while running
- * pauses, reloads the bench (same firmware) and resumes — simple and correct; smarter hot-swap
- * is in the plan's Later list. Editing an inline sketch's code (BT42) is not a bench edit: the
- * worker runs the compiled bytes, so only Compile & Run reaches it.
+ * the worker when it changed, run at the chosen speed, pause, reset. An edit that changes the
+ * circuit while a bench is loaded (running or paused) reaches the worker as an `edit` (BT79,
+ * debounced 150 ms): it rebuilds the bench keeping time, the boards running and unchanged parts'
+ * state. A cosmetic edit (BT77: a wire's color or waypoints, moving a part whose pins touch
+ * nothing new) leaves the bench alone — `benchSignature` tells them apart. Editing an inline
+ * sketch's code (BT42) is not a bench edit either: the worker runs the compiled bytes, so only
+ * Compile & Run reaches it. New firmware bytes under the same document still reload.
  */
 
-import type { FirmwareImage, ProjectDoc } from '@benchtop/core';
+import { benchSignature, type FirmwareImage, type ProjectDoc } from '@benchtop/core';
+import { CATALOG, envSpecFor } from '@benchtop/parts';
 import { effect, signal } from '@preact/signals';
 import { editor } from '../editor/app-store.ts';
 import { firmwareStore, toImage } from '../editor/firmware-store.ts';
+import { editorNetlist } from '../editor/wiring.ts';
 import { sim, simLoaded, simRunning } from './host.ts';
 import { liveViews } from './live-views.ts';
 
@@ -29,6 +34,8 @@ let loadedDoc: ProjectDoc | null = null;
 let firmwareVersion = 0;
 let loadedFirmwareVersion = -1;
 let reloadTimer = -1;
+/** What the debounce timer will do: rebuild with carry-over, or load afresh (which wins). */
+let pending: 'edit' | 'reload' | null = null;
 
 /** Each board's stored bytes: a dropped file, or a sketch folder's latest successful compile. */
 function firmwareImages(doc: ProjectDoc): Record<string, FirmwareImage> {
@@ -50,19 +57,24 @@ function debugElfs(doc: ProjectDoc): Record<string, Uint8Array> {
   return elfs;
 }
 
-/** The same bench: the same parts and wires, and firmware refs equal but for inline sources. */
+const signatures = new WeakMap<ProjectDoc, string>();
+
+/** What the bench depends on in `doc` (BT77), computed once per document object. */
+function signatureOf(doc: ProjectDoc): string {
+  let signature = signatures.get(doc);
+  if (signature === undefined) {
+    signature = benchSignature(doc, editorNetlist(doc), { envSpecFor, defaults: (type) => CATALOG.get(type)?.defaults });
+    signatures.set(doc, signature);
+  }
+  return signature;
+}
+
+/**
+ * The same bench: equal signatures — the same parts and props, nets, firmware refs (an inline
+ * sketch by its FQBN) and, with an environment, the positions it uses.
+ */
 export function sameBench(a: ProjectDoc, b: ProjectDoc): boolean {
-  if (a === b) return true;
-  if (a.parts !== b.parts || a.wires !== b.wires) return false;
-  const boards = Object.keys(a.firmware);
-  if (boards.length !== Object.keys(b.firmware).length) return false;
-  return boards.every((board) => {
-    const x = a.firmware[board];
-    const y = b.firmware[board];
-    if (y === undefined) return false;
-    if (x.kind === 'inline' && y.kind === 'inline') return x.fqbn === y.fqbn;
-    return JSON.stringify(x) === JSON.stringify(y);
-  });
+  return a === b || signatureOf(a) === signatureOf(b);
 }
 
 function stale(): boolean {
@@ -78,7 +90,16 @@ function load(): void {
   loadedFirmwareVersion = firmwareVersion;
 }
 
+/** BT79: the document as it is now, rebuilt in the worker with carry-over. */
+function edit(): void {
+  const doc = editor.doc.value;
+  testRecording.value = false; // a recording runs on one document
+  sim.edit(doc, firmwareImages(doc), debugElfs(doc));
+  loadedDoc = doc;
+}
+
 export function run(): void {
+  flushPending();
   if (stale()) load();
   sim.run(speed.value);
 }
@@ -89,6 +110,7 @@ export function pause(): void {
 
 /** Starts recording a test: (re)loads if needed, resets to t = 0 and runs, logging every input. */
 export function recordTest(): void {
+  flushPending();
   if (stale()) load();
   sim.recordStart();
   sim.run(speed.value);
@@ -108,6 +130,7 @@ export function loadedProject(): ProjectDoc | null {
 
 export function reset(): void {
   testRecording.value = false; // the worker's reset ends a recording
+  flushPending();
   if (stale()) load();
   else sim.reset();
 }
@@ -120,7 +143,7 @@ export function setSpeed(value: number): void {
 /** Call after a board's firmware bytes changed (the document may not have). */
 export function firmwareChanged(): void {
   firmwareVersion++;
-  if (simRunning.peek()) scheduleReload();
+  if (simRunning.peek()) schedule('reload');
 }
 
 /**
@@ -139,25 +162,45 @@ export function firmwareCompiled(board: string): boolean {
     return true;
   }
   if (simRunning.peek()) {
-    scheduleReload();
+    schedule('reload');
     return true;
   }
   return false;
 }
 
-function scheduleReload(): void {
+function schedule(kind: 'edit' | 'reload'): void {
+  if (pending !== 'reload') pending = kind;
   window.clearTimeout(reloadTimer);
-  reloadTimer = window.setTimeout(() => {
-    if (!simRunning.peek()) return;
-    load();
-    sim.run(speed.value);
-  }, 150);
+  reloadTimer = window.setTimeout(flushPending, 150);
 }
 
-// Edits while running reload the bench and keep running; code edits don't touch the bench.
+/** Does what the debounce timer would, now (a run or reset must not overtake an edit). */
+function flushPending(): void {
+  window.clearTimeout(reloadTimer);
+  const kind = pending;
+  pending = null;
+  if (kind === 'reload') {
+    if (!simRunning.peek()) return; // stale: the next run loads
+    load();
+    sim.run(speed.value);
+  } else if (kind === 'edit') {
+    if (!simLoaded.peek() || loadedDoc === null || sameBench(loadedDoc, editor.doc.peek())) return;
+    if (loadedFirmwareVersion !== firmwareVersion) {
+      // New bytes under the same refs: only a fresh load takes them.
+      const running = simRunning.peek();
+      load();
+      if (running) sim.run(speed.value);
+      return;
+    }
+    edit();
+  }
+}
+
+// Edits that change the circuit reach a loaded bench as hot edits (running or paused); cosmetic
+// and code edits don't touch it (the controller just holds the newer document).
 effect(() => {
   const doc = editor.doc.value;
   if (loadedDoc === null || doc === loadedDoc) return;
   if (sameBench(loadedDoc, doc)) loadedDoc = doc;
-  else if (simRunning.peek()) scheduleReload();
+  else if (simLoaded.peek()) schedule('edit');
 });

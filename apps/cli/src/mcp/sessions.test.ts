@@ -77,6 +77,37 @@ describe('live sessions', () => {
     expect(run.serial.pico).toMatch(/^tick 0\r\ntick 1\r\ntick 2/);
   }, 30_000);
 
+  it('sim_update (BT79): an LED added to a running blink — no reboot, the watch goes on; a re-flash restarts the board', async () => {
+    const server = testServer();
+    const { session } = (await tool(server, 'sim_open', { ...blink, watch: ['uno:13'] })).value as { session: string };
+    await tool(server, 'sim_run', { session, duration: '1200ms' });
+    const doc = JSON.parse(readFileSync(join(REPO_ROOT, blink.project), 'utf8')) as { parts: object[]; wires: object[] };
+    const edited = {
+      ...doc,
+      parts: [...doc.parts, { id: 'ledx', type: 'led', x: 340, y: 200, rotation: 0, props: { color: 'red' } }, { id: 'rx', type: 'resistor', x: 300, y: 200, rotation: 0, props: { ohms: 220 } }],
+      wires: [
+        ...doc.wires,
+        { id: 'wx1', from: { part: 'uno', pin: '13' }, to: { part: 'rx', pin: '1' }, waypoints: [], color: 'green' },
+        { id: 'wx2', from: { part: 'rx', pin: '2' }, to: { part: 'ledx', pin: 'A' }, waypoints: [], color: 'green' },
+        { id: 'wx3', from: { part: 'ledx', pin: 'C' }, to: { part: 'uno', pin: 'GND.2' }, waypoints: [], color: 'black' },
+      ],
+    };
+    const update = (await tool(server, 'sim_update', { session, projectJson: edited })).value as { now: string; kept: string[]; started: string[]; removed: string[]; unwatched: string[]; parts: { id: string }[] };
+    expect(update).toMatchObject({ now: '1200ms', kept: ['uno'], started: [], removed: [], unwatched: [] });
+    expect(update.parts.map((p) => p.id)).toContain('ledx');
+    const run = (await tool(server, 'sim_run', { session, duration: '1s' })).value as Run;
+    expect(run.serial.uno).toBe(''); // no second "hello": the sketch never restarted
+    expect(run.watched?.['uno:13']).toMatchObject({ edges: 2 }); // 1.5 s and 2 s, on schedule
+    const state = (await tool(server, 'sim_state', { session, parts: ['ledx'] })).value as { now: string; parts: { ledx: { brightness: number } } };
+    expect(state.now).toBe('2200ms');
+    expect(state.parts.ledx.brightness).toBeGreaterThan(0.5); // on 2 s → 2.5 s
+    // Naming the board's firmware re-flashes it: it boots again ("hello").
+    const again = (await tool(server, 'sim_update', { session, projectJson: edited, firmware: blink.firmware })).value as { kept: string[]; started: string[] };
+    expect(again).toMatchObject({ kept: [], started: ['uno'] });
+    expect(((await tool(server, 'sim_run', { session, duration: '100ms' })).value as Run).serial.uno).toBe('hello\r\n');
+    expect((await tool(server, 'sim_update', { session, projectJson: { ...edited, parts: [{ id: 'BAD', type: 'led' }] } })).text).toMatch(/invalid project/);
+  }, 30_000);
+
   it('limits: the session count, the duration and the wall-clock budget', async () => {
     const server = testServer({ maxSessions: 2, maxSimNs: 5e9 });
     await tool(server, 'sim_open', blink);

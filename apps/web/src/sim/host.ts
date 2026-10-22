@@ -112,6 +112,13 @@ export const sim = {
     simRunning.value = false;
     send({ type: 'load', doc, firmware, debugElf });
   },
+  /**
+   * BT79: the loaded bench's document changed: the worker rebuilds it keeping time, running
+   * boards and unchanged parts (`firmware` reaches only new boards). Keeps running if it was.
+   */
+  edit(doc: ProjectDoc, firmware: Record<string, FirmwareImage>, debugElf: Record<string, Uint8Array> = {}): void {
+    send({ type: 'edit', doc, firmware, debugElf });
+  },
   /** Swaps one board's firmware on the loaded bench (load + reset of that board only). */
   setFirmware(board: string, image: FirmwareImage, debugElf?: Uint8Array): void {
     send(debugElf === undefined ? { type: 'setFirmware', board, image } : { type: 'setFirmware', board, image, debugElf });
@@ -176,6 +183,10 @@ function receive(message: FromSim): void {
       return;
     case 'loaded':
       simLoaded.value = true;
+      simError.value = null;
+      simProblems.value = message.problems;
+      return;
+    case 'edited':
       simError.value = null;
       simProblems.value = message.problems;
       return;

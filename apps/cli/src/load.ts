@@ -9,7 +9,7 @@ import { avrMcuFactory } from '@benchtop/avr';
 import { esp32McuFactory } from '@benchtop/esp32';
 import { rp2040McuFactory } from '@benchtop/rp2040';
 import { rp2350McuFactory } from '@benchtop/rp2350';
-import { assembleBench, type Bench, type BenchEnv, type FirmwareImage, isMicroPythonFqbn, type Mcu, type ProjectDoc, validateProject } from '@benchtop/core';
+import { assembleBench, type Bench, type BenchCarry, type BenchEnv, type FirmwareImage, isMicroPythonFqbn, type Mcu, type ProjectDoc, validateProject } from '@benchtop/core';
 import { analogSpecFor, benchEnvParts, envSpecFor } from '@benchtop/parts';
 
 export class UsageError extends Error {
@@ -119,8 +119,17 @@ export function loadFirmware(io: CliIo, doc: ProjectDoc, boards: readonly string
   return images;
 }
 
-/** The bench, reset, with the MCUs it created (for the simulated clock rate). */
-export function buildBench(doc: ProjectDoc, images: Readonly<Record<string, FirmwareImage>>, roms: BenchRoms = {}): { bench: Bench; mcus: Mcu[] } {
+/**
+ * The bench, reset, with the MCUs it created (for the simulated clock rate). BT79: with `carry`
+ * (the previous bench's `carry()`), a rebuild that keeps time, running boards (but those in
+ * `restart`) and unchanged parts; `images` then reach only the boards that start afresh.
+ */
+export function buildBench(
+  doc: ProjectDoc,
+  images: Readonly<Record<string, FirmwareImage>>,
+  roms: BenchRoms = {},
+  carry?: { carry: BenchCarry; restart: readonly string[] },
+): { bench: Bench; mcus: Mcu[] } {
   const mcus: Mcu[] = [];
   const esp32 = esp32McuFactory(roms.esp32Rom);
   const env: BenchEnv = {
@@ -131,7 +140,7 @@ export function buildBench(doc: ProjectDoc, images: Readonly<Record<string, Firm
       return mcu;
     },
   };
-  return { bench: assembleBench(doc, env, images, { analogSpecFor, envSpecFor }), mcus };
+  return { bench: assembleBench(doc, env, images, { analogSpecFor, envSpecFor, ...carry }), mcus };
 }
 
 /** A board part's pin name as the definition spells it (13 ↔ D13 on boards), or undefined. */

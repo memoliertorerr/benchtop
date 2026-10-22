@@ -29,12 +29,17 @@ export function validateProject(doc: unknown): ProjectDoc {
  * A bench for `doc` with `firmware` (board part id → image) attached and reset. Throws
  * ProjectError for an invalid document; firmware errors (a bad .hex) propagate as thrown by
  * the MCU.
+ *
+ * BT78: with `options.carry` (the previous bench's `carry()`), the bench continues instead: the
+ * boards that came over keep running what they ran (`firmware` is loaded only into the new
+ * ones, which start at the carried time) and nothing is reset. A caller whose firmware bytes
+ * changed under the same ref builds from scratch instead.
  */
 export function assembleBench(doc: unknown, env: BenchEnv, firmware: Readonly<Record<string, FirmwareImage>>, options: BenchOptions = {}): Bench {
   const bench = new Bench(validateProject(doc), env, options);
   try {
-    for (const [board, image] of Object.entries(firmware)) bench.attachFirmware(board, image);
-    bench.reset();
+    for (const [board, image] of Object.entries(firmware)) if (!bench.carriedBoard(board)) bench.attachFirmware(board, image);
+    if (options.carry === undefined) bench.reset();
   } catch (error) {
     bench.dispose();
     throw error;

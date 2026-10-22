@@ -22,6 +22,7 @@ import {
   assembleBench,
   beginStepOver,
   type Bench,
+  discardCarry,
   endStepOver,
   type FirmwareImage,
   type LineTable,
@@ -120,8 +121,9 @@ export class SimSession {
   /** Per board: the firmware key, and its parsed tables (also what breakpoints resolve against). */
   private readonly debugTables = new Map<string, { key: string; symbols: SymbolTable | null; lines: LineTable | null }>();
   private stepOver: { board: string; plan: StepOverPlan } | null = null;
-  /** This bench's frame ring, when visual state goes over shared memory. */
+  /** This bench's frame ring, when visual state goes over shared memory, and its parts. */
   private ring: FrameRingWriter | null = null;
+  private ringParts = '';
   /** The loaded project (for a recording's proposals). */
   private doc: ProjectDoc | null = null;
   /** Each part's latest visual state, as frames collected it. */
@@ -153,6 +155,9 @@ export class SimSession {
         return;
       case 'load':
         this.load(message.doc, message.firmware, message.debugElf ?? {});
+        return;
+      case 'edit':
+        this.edit(message.doc, message.firmware, message.debugElf ?? {});
         return;
       case 'setFirmware': {
         const bench = this.requireBench();
@@ -292,23 +297,12 @@ export class SimSession {
     // every view's state and nothing keeps showing what a previous bench left on screen.
     const project = validateProject(doc);
     const bench = assembleBench(project, this.env, firmware, { analogSpecFor, envSpecFor });
-    for (const board of this.env.mcus.keys()) {
-      bench.onSerial(board, (bytes) => {
-        this.recording?.serialOut(bench.now(), board, bytes);
-        let chunks = this.serial.get(board);
-        if (chunks === undefined) this.serial.set(board, (chunks = []));
-        chunks.push(bytes);
-      });
-    }
+    this.listenSerial(bench);
     this.bench = bench;
     this.doc = project;
     this.ring = null;
-    if (this.deps.sharedMemory === true) {
-      const parts = project.parts.map((p) => p.id);
-      const buffer = createFrameRingBuffer(parts.length) as SharedArrayBuffer;
-      this.ring = new FrameRingWriter(buffer, parts);
-      this.post({ type: 'frameRing', buffer, parts });
-    }
+    this.ringParts = '';
+    this.makeRing(project);
     for (const probe of this.probes.values()) {
       probe.id = bench.addProbe(probe.pin);
       probe.since = 0;
@@ -324,6 +318,94 @@ export class SimSession {
       this.applyBreakpoints(board);
       this.postDebugStopped(board, 'pause');
     }
+  }
+
+  /**
+   * BT79: the document changed while loaded. The bench is rebuilt with carry-over (BT78): time,
+   * running boards, unchanged parts' state, the serial history, breakpoints and symbols of kept
+   * boards, probes (their history continues) and the run state stay; new boards get `firmware`
+   * and their debug info. If carrying over fails, the document is loaded afresh instead.
+   */
+  private edit(doc: unknown, firmware: Record<string, FirmwareImage>, debugElf: Record<string, Uint8Array>): void {
+    const old = this.bench;
+    if (old === null) {
+      this.load(doc, firmware, debugElf);
+      return;
+    }
+    const project = validateProject(doc); // an invalid document leaves the bench as it was
+    this.abandonStepOver(); // its temporary breakpoint lives in an MCU that may carry over
+    this.recording = null; // a recording runs on one document
+    const carry = old.carry();
+    let bench: Bench;
+    try {
+      bench = assembleBench(project, this.env, firmware, { analogSpecFor, envSpecFor, carry });
+    } catch {
+      discardCarry(carry);
+      const running = this.running;
+      this.load(project, firmware, debugElf);
+      this.post({ type: 'edited', problems: [...(this.bench?.problems() ?? [])], reloaded: true });
+      if (running) this.resume();
+      return;
+    }
+    // Boards that left the document leave the env's list (it names the boards serial and the
+    // debugger follow); new boards were added to it as they were created.
+    const boards = new Set(project.parts.filter((p) => this.env.part(p.type)?.board !== undefined).map((p) => p.id));
+    for (const board of [...this.env.mcus.keys()]) if (!boards.has(board)) this.env.mcus.delete(board);
+    for (const board of [...this.serial.keys()]) if (!bench.carriedBoard(board)) this.serial.delete(board);
+    for (const board of [...this.cycleMarks.keys()]) if (!bench.carriedBoard(board)) this.cycleMarks.delete(board);
+    const ids = new Set(project.parts.map((p) => p.id));
+    for (const part of [...this.latest.keys()]) if (!ids.has(part)) this.latest.delete(part);
+    this.listenSerial(bench);
+    this.bench = bench;
+    this.doc = project;
+    this.makeRing(project);
+    for (const probe of this.probes.values()) {
+      // Nets were renumbered: probe again. The new ring starts with the state now; the UI
+      // appends it to what it holds (no restart).
+      probe.id = bench.addProbe(probe.pin);
+      probe.since = 0;
+    }
+    this.post({ type: 'edited', problems: [...bench.problems()], reloaded: false });
+    this.postProblems(false);
+    this.postFrame();
+    for (const board of this.env.mcus.keys()) {
+      if (bench.carriedBoard(board)) continue; // its MCU, breakpoints and symbols came along
+      this.postDebugInfo(board, firmware[board], debugElf[board]);
+      this.applyBreakpoints(board);
+      if (!this.running) this.postDebugStopped(board, 'pause');
+    }
+  }
+
+  /** Runs again at the last speed (an edit that had to load afresh stopped the run). */
+  private resume(): void {
+    this.pacer.setSpeed(this.speed);
+    this.pacer.start(this.deps.now());
+    this.running = true;
+    this.queueTick();
+  }
+
+  /** Collects every board's UART 0 output (and records it while a test is recorded). */
+  private listenSerial(bench: Bench): void {
+    for (const board of this.env.mcus.keys()) {
+      bench.onSerial(board, (bytes) => {
+        this.recording?.serialOut(bench.now(), board, bytes);
+        let chunks = this.serial.get(board);
+        if (chunks === undefined) this.serial.set(board, (chunks = []));
+        chunks.push(bytes);
+      });
+    }
+  }
+
+  /** With shared memory: a frame ring for the document's parts, unless the current one has them. */
+  private makeRing(project: ProjectDoc): void {
+    if (this.deps.sharedMemory !== true) return;
+    const parts = project.parts.map((p) => p.id);
+    const key = parts.join('\n');
+    if (this.ring !== null && this.ringParts === key) return;
+    const buffer = createFrameRingBuffer(parts.length) as SharedArrayBuffer;
+    this.ring = new FrameRingWriter(buffer, parts);
+    this.ringParts = key;
+    this.post({ type: 'frameRing', buffer, parts });
   }
 
   /** Bench reset: time 0, every MCU and part; probes and serial restart. Keeps running if it was. */
