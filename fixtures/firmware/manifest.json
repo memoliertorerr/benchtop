@@ -1282,6 +1282,19 @@
     },
     {
       "board": "pico",
+      "name": "i2c-scan",
+      "fqbn": "rp2040:rp2040:rpipico",
+      "file": "pico/i2c-scan.uf2",
+      "sha256": "db0f4e775b70aadf487dbcf3776d45c77b6906fd58d7c7a4f86ff5593f8f3d50",
+      "bytes": 153088,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {
+        "Wire": "1.0"
+      },
+      "source": "0e420725e9fe6b370d0c62c0795cbc34c17b25fdecc8414eab114bf773ad8cb1"
+    },
+    {
+      "board": "pico",
       "name": "multicore",
       "fqbn": "rp2040:rp2040:rpipico",
       "file": "pico/multicore.uf2",
@@ -1461,6 +1474,19 @@
         "Wire": "1.0"
       },
       "source": "ab962689ff15b594c95705ceeba421ca720ba4d43f196709e24eb33630afffaf"
+    },
+    {
+      "board": "pico2",
+      "name": "i2c-scan",
+      "fqbn": "rp2040:rp2040:rpipico2:arch=riscv",
+      "file": "pico2/i2c-scan.uf2",
+      "sha256": "e4b95071d60f893cf025b4f07bead0c246f4475aa15fc50bb0c2cbf76f6932db",
+      "bytes": 195584,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {
+        "Wire": "1.0"
+      },
+      "source": "6547a5600257c19372ea44bc4d9bd39579e9b9a4dcb77f119c9ea0387162b621"
     },
     {
       "board": "pico2",

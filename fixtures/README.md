@@ -27,7 +27,9 @@ fixtures/firmware/pico/<name>.uf2             Raspberry Pi Pico firmware (arduin
 fixtures/firmware/pico2/<name>.uf2            Raspberry Pi Pico 2 firmware for the RP2350's RISC-V
                                               cores (arduino-pico 6.2.0, arch=riscv; the Pico's
                                               analog-read, pwm-fade, i2c-oled, spi-tft, button-irq
-                                              and neopixel rebuilt for it)
+                                              and neopixel rebuilt for it; i2c-scan, the Pico's
+                                              bus scan, for both: a write to an empty address
+                                              must end at once)
 fixtures/rp2040/<name>.c, .ld → .elf, .lst    freestanding RP2040 test programs (romcalls: every bootrom
                                               function through the lookup tables; core1: both cores)
 fixtures/xtensa/<name>.S → <name>.bin, .lst   Xtensa test programs (harness.inc: conventions)

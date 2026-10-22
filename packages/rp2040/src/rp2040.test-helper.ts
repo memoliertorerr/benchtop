@@ -1,8 +1,9 @@
 /**
  * Test helpers for the RP2040 (BT60): fixture UF2s, a booted Mcu, edge timing on a pin and
- * collected serial text.
+ * collected serial text; an I2C part and the i2c-scan fixture's lines (the Pico 2's tests too).
  */
 
+import type { I2cDevice } from '@benchtop/core';
 import { readFixture } from '../../core/src/firmware/fixtures.test-helper.ts';
 import { createRp2040Mcu, RP2040_CLOCK_HZ, type Rp2040Mcu } from './rp2040-mcu.ts';
 
@@ -29,6 +30,30 @@ export function runMs(mcu: Rp2040Mcu, ms: number, each?: () => void): void {
     if (result.reason !== 'target') throw new Error(`run stopped: ${result.reason} ${result.detail ?? ''}`);
     each?.();
   }
+}
+
+/** An I2C part at `address` that ACKs everything; `log` is what the bus did ("W"/"R" start, "w<byte>", "P" stop). */
+export function ackingPart(address: number): I2cDevice & { log: string[] } {
+  const log: string[] = [];
+  return {
+    address,
+    log,
+    start: (read) => (log.push(read ? 'R' : 'W'), true),
+    write: (byte) => (log.push(`w${byte}`), true),
+    read: () => (log.push('r'), 0),
+    stop: () => void log.push('P'),
+  };
+}
+
+/** The i2c-scan fixture's lines (pico and pico2): what each scan found and how long it took. */
+export function scanLines(text: string): { found: string; codes: string; read: string; timeout: string; us: number }[] {
+  return [...text.matchAll(/scan \d+:(.*?) \| codes ([\d ]+) \| read (\d+) \| timeout (\d) \| (\d+) us\r\n/g)].map((m) => ({
+    found: m[1],
+    codes: m[2],
+    read: m[3],
+    timeout: m[4],
+    us: Number(m[5]),
+  }));
 }
 
 /** Records the times (ms) a pin's output level changes. */

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readFixture } from '../../core/src/firmware/fixtures.test-helper.ts';
 import { buildUf2, UF2_FAMILY } from '@benchtop/core';
 import { createRp2040Mcu, RP2040_CLOCK_HZ } from './rp2040-mcu.ts';
-import { bootPico, edgeTimes, runMs } from './rp2040.test-helper.ts';
+import { ackingPart, bootPico, edgeTimes, runMs, scanLines } from './rp2040.test-helper.ts';
 
 // BT60: the RP2040 Mcu on real arduino-pico 6.2.0 firmware (fixtures/sketches/pico).
 
@@ -74,6 +74,34 @@ describe('RP2040 Mcu', () => {
     const highs = window.slice(0, -1).map((r) => (falls.find((f) => f > r) as number) - r);
     const duty = highs.reduce((a, b) => a + b, 0) / highs.length / period;
     expect(Math.abs(duty - 64 / 255)).toBeLessThan(0.01);
+  });
+
+  it('i2c-scan: one-byte writes to 0x08–0x77 find the one part at once; empty addresses NACK, also once it is gone', () => {
+    // An address NACK used to leave TX_EMPTY low, so every empty address waited out Wire's 1 s
+    // timeout inside the pico-sdk's write loop: a scan took 111 s and endTransmission returned 5.
+    const { mcu, serial, problems } = bootPico('i2c-scan');
+    const part = ackingPart(0x3c);
+    mcu.i2c(0)?.attach(part);
+    runMs(mcu, 400);
+    const present = scanLines(serial[0]);
+    expect(present.length).toBeGreaterThanOrEqual(2); // one every 100 ms; those before USB enumerates are lost
+    for (const scan of present) {
+      // endTransmission: 0 from the part, 4 from the 111 empty addresses (arduino-pico's answer to
+      // the pico-sdk's PICO_ERROR_GENERIC, not 2); requestFrom(0x22, 1): nothing; no timeout.
+      expect(scan).toMatchObject({ found: ' 0x3C', codes: '1 0 0 0 111 0', read: '0', timeout: '0' });
+      expect(scan.us).toBeLessThan(2000);
+    }
+    expect(part.log.join(' ')).toMatch(/^W w0 P( W w0 P)*$/);
+    mcu.i2c(0)?.detach(part); // the part taken off the bus
+    const seen = serial[0].length;
+    runMs(mcu, 400);
+    const gone = scanLines(serial[0].slice(seen)).slice(1); // the first may straddle the detach
+    expect(gone.length).toBeGreaterThanOrEqual(2);
+    for (const scan of gone) {
+      expect(scan).toMatchObject({ found: '', codes: '0 0 0 0 112 0', read: '0', timeout: '0' });
+      expect(scan.us).toBeLessThan(2000);
+    }
+    expect(problems.filter((p) => !p.startsWith('rp2040-unimplemented'))).toEqual([]);
   });
 
   it('loads an ELF, keeps flash across reset, and reports an empty board as BOOTSEL', () => {

@@ -1329,10 +1329,20 @@ sequence, files matched by basename or trailing path.
   adapter uses too. rp2040js's
   warnings about registers it doesn't model become one `info` Problem (`rp2040-unimplemented`).
 
-  Two rp2040js gaps the adapter covers: core 1 (below); and its PWM
+  Three rp2040js gaps the adapter covers: core 1 (below); its PWM
   compare alarms, which reschedule themselves with a zero delay while a slice
   counts with its 32-bit reset TOP — our clock defers an alarm that re-fires at the same instant
-  by one 8 ns reference cycle, so the core keeps running.
+  by one 8 ns reference cycle, so the core keeps running; and its I2C abort, which flushes the
+  TX FIFO but raises TX_EMPTY only when a data byte goes out. After an address NACK (a bus
+  scan's empty address, a part taken off the bus) TX_EMPTY stayed low, and the pico-sdk's
+  `i2c_write_blocking_internal`, which waits for TX_EMPTY before it reads TX_ABRT, spun until
+  Wire's timeout (Stream's 1 s) ended it: a one-byte-write scan of 0x08–0x77 took 111 s and
+  `endTransmission` returned 5. `I2cBridge.wire` gives each controller an `abort` that raises
+  TX_EMPTY after the flush, as the DW_apb_i2c does with TX_EMPTY_CTRL (`raiseTxEmptyOnAbort`;
+  the RP2350 shares it). The scan now takes ≈350 µs of simulated time (the bus is transaction
+  level, so no 100 kHz bit time) and an empty address gives 4 — arduino-pico 6.2.0's
+  `endTransmission` maps the SDK's PICO_ERROR_GENERIC to 4, not the AVR core's 2. The
+  `i2c-scan` fixtures (pico, pico2) test it, with a part attached, detached and on a bench.
 
   **Core 1 (`core1.ts`).** rp2040js emulates one Cortex-M0+ and reads `rp.core` (and
   `rp.ppb`) wherever a core matters. `DualCore` puts a second core of the same kind on the chip

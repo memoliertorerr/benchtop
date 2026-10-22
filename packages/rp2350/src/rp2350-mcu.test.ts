@@ -1,5 +1,6 @@
 import { buildUf2, UF2_FAMILY } from '@benchtop/core';
 import { describe, expect, it } from 'vitest';
+import { ackingPart, scanLines } from '../../rp2040/src/rp2040.test-helper.ts';
 import { CODE_ROM_MISSING, createRp2350Mcu, RP2350_CLOCK_HZ } from './rp2350-mcu.ts';
 import { bootPico2, edgeTimes, runMs } from './rp2350.test-helper.ts';
 
@@ -43,6 +44,34 @@ describe('RP2350 Mcu', () => {
     mcu.reset();
     runMs(mcu, 300);
     expect(serial[0]).toBe('boot 0\nsaved 1 ok\nboot 1\nsaved 2 ok\n');
+  });
+
+  it('i2c-scan: one-byte writes to 0x08–0x77 find the one part at once; empty addresses NACK, also once it is gone', () => {
+    // rp2040js's I2C through the shared bridge: an address NACK used to leave TX_EMPTY low, so
+    // every empty address waited out Wire's 1 s timeout (endTransmission 5, a scan 111 s).
+    const { mcu, problems } = bootPico2('i2c-scan');
+    let usb = '';
+    mcu.uart(0)?.onTransmit((b) => (usb += String.fromCharCode(b)));
+    const part = ackingPart(0x3c);
+    mcu.i2c(0)?.attach(part);
+    runMs(mcu, 400);
+    const present = scanLines(usb);
+    expect(present.length).toBeGreaterThanOrEqual(2); // one every 100 ms; those before USB enumerates are lost
+    for (const scan of present) {
+      expect(scan).toMatchObject({ found: ' 0x3C', codes: '1 0 0 0 111 0', read: '0', timeout: '0' });
+      expect(scan.us).toBeLessThan(2000);
+    }
+    expect(part.log.join(' ')).toMatch(/^W w0 P( W w0 P)*$/);
+    mcu.i2c(0)?.detach(part);
+    const seen = usb.length;
+    runMs(mcu, 400);
+    const gone = scanLines(usb.slice(seen)).slice(1); // the first may straddle the detach
+    expect(gone.length).toBeGreaterThanOrEqual(2);
+    for (const scan of gone) {
+      expect(scan).toMatchObject({ found: '', codes: '0 0 0 0 112 0', read: '0', timeout: '0' });
+      expect(scan.us).toBeLessThan(2000);
+    }
+    expect(problems.filter((p) => !p.startsWith('rp2350-unimplemented'))).toEqual([]);
   });
 
   it('reports simulated MIPS on a busy loop, whose sum matches the host\'s', () => {

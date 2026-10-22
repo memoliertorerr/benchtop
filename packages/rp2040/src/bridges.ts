@@ -3,7 +3,8 @@
  * the RP2040 and the RP2350, whose I2C, SPI and USB blocks are the same IP):
  *
  * - `I2cBridge`: an I2C controller (rp2040js's RPI2C, DW_apb_i2c) as the bench's I2cController —
- *   its callbacks completed at once by the attached devices.
+ *   its callbacks completed at once by the attached devices; an address nobody answers is NACKed,
+ *   and the abort raises TX_EMPTY as the chip does (`raiseTxEmptyOnAbort`).
  * - `SpiBridge`: an SPI controller (PL022) as the bench's SpiController — a frame of up to 16 bits
  *   (SSPCR0.DSS) reaches the byte-wide devices MSB first: one byte for ≤ 8 bits, two above.
  * - `UsbSerialBridge`: USB serial (arduino-pico's `Serial`, MicroPython's REPL) as a UartPort —
@@ -20,7 +21,7 @@
  */
 
 import type { I2cController, I2cDevice, SpiController, SpiDevice, UartPort } from '@benchtop/core';
-import { I2CMode, type RPI2C, type RPUSBController, USBCDC } from 'rp2040js';
+import { I2CMode, RPI2C, type RPUSBController, USBCDC } from 'rp2040js';
 import type { MicroPythonInstaller } from './micropython.ts';
 
 export const FUNC_SPI = 1;
@@ -40,6 +41,34 @@ export interface BridgeClock {
   createAlarm(callback: () => void): { schedule(deltaNanos: number): void; cancel(): void };
 }
 
+/** The members of rp2040js's RPI2C the abort fix calls and wraps (protected in its typings). */
+interface I2cInternals {
+  abort(reason: number): void;
+  setInterrupts(mask: number): void;
+}
+
+/** IC_RAW_INTR_STAT.TX_EMPTY. */
+const R_TX_EMPTY = 1 << 4;
+const rpI2cAbort = (RPI2C.prototype as unknown as I2cInternals).abort;
+
+function abortThenTxEmpty(this: I2cInternals, reason: number): void {
+  rpI2cAbort.call(this, reason);
+  this.setInterrupts(R_TX_EMPTY);
+}
+
+/**
+ * An abort flushes the TX FIFO, and the DW_apb_i2c then raises TX_EMPTY (with IC_CON.TX_EMPTY_CTRL:
+ * the FIFO is at or below its threshold and the shift register is done). rp2040js raises TX_EMPTY
+ * only after a data byte goes out, so an address NACK (ABRT_7B_ADDR_NOACK — a scan's empty
+ * address, a part taken off the bus) left it low, and the pico-sdk's write loop, which waits for
+ * TX_EMPTY before it looks at TX_ABRT, spun until Wire's timeout (Stream's 1 s) ended it: a scan
+ * of 0x08–0x77 took 111 s. The instance's own `abort` shadows the prototype's, so wiring the same
+ * controller again changes nothing.
+ */
+export function raiseTxEmptyOnAbort(i2c: RPI2C): void {
+  (i2c as unknown as I2cInternals).abort = abortThenTxEmpty;
+}
+
 export class I2cBridge implements I2cController {
   readonly index: number;
   private readonly peripheral: () => RPI2C;
@@ -57,6 +86,7 @@ export class I2cBridge implements I2cController {
   wire(): void {
     const i2c = this.peripheral();
     this.current = null;
+    raiseTxEmptyOnAbort(i2c);
     i2c.onStart = () => {
       this.current = null;
       i2c.completeStart();

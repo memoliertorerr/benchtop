@@ -75,6 +75,19 @@ describe('Raspberry Pi Pico circuits (BT61)', () => {
     expect(oledPixel(bytes, 40, 0) + oledPixel(bytes, 40, 4) + oledPixel(bytes, 40, 8)).toBe(3);
   }, 30_000);
 
+  it('i2c-scan: one-byte writes to 0x08–0x77 find the SSD1306 alone, within a millisecond', () => {
+    // An address NACK used to wait out Wire's 1 s timeout per empty address (a 111 s scan).
+    const t = load('pico-i2c-oled', 'i2c-scan');
+    t.runTo(400);
+    const scans = [...t.serial().matchAll(/scan \d+:(.*?) \| codes ([\d ]+) \| read (\d+) \| timeout (\d) \| (\d+) us\r\n/g)];
+    expect(scans.length).toBeGreaterThanOrEqual(2);
+    for (const [, found, codes, read, timeout, us] of scans) {
+      expect({ found, codes, read, timeout }).toEqual({ found: ' 0x3C', codes: '1 0 0 0 111 0', read: '0', timeout: '0' });
+      expect(Number(us)).toBeLessThan(2000);
+    }
+    expect(t.bench.problems().filter((p) => p.severity !== 'info')).toEqual([]);
+  }, 30_000);
+
   it('spi-tft: the sketch-local driver on SPI0 draws the TFT demo picture', () => {
     const t = load('pico-spi-tft', 'spi-tft');
     t.runTo(1600);
