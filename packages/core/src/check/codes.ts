@@ -30,6 +30,10 @@ export const PROBLEM_CODES: Readonly<Record<string, ProblemCodeInfo>> = {
     title: 'Two supplies tied together',
     hint: 'Two supplies at different volts share a net (a 9 V battery on a 5 V rail): one would push current back into the other. Keep one supply per rail, or put a regulator between them.',
   },
+  'sd-card-files': {
+    title: 'microSD card files',
+    hint: 'The card\'s power-up files (the part\'s `files`: a JSON object of path → text, or { "b64": … } for binary, 256 KB at most) couldn\'t all go on the card. Fix the names or contents in the Inspector.',
+  },
   'regulator-dropout': {
     title: 'Regulator input too low',
     hint: 'A linear regulator needs its input above its output by its dropout (2 V for a 7805, 1.1 V for an AMS1117); below that the output sags with the input. Use a higher input or a low-dropout regulator.',

@@ -15,11 +15,12 @@ import type {
   PinRef,
   Problem,
   ProjectDoc,
+  StoredFile,
   SymbolTableData,
   VisualState,
 } from '@benchtop/core';
 
-export const PROTOCOL_VERSION = 13;
+export const PROTOCOL_VERSION = 14;
 
 export type ToSim =
   | { type: 'hello'; protocol: number }
@@ -62,6 +63,11 @@ export type ToSim =
    * worker decoded since the previous frame (from the log's oldest record when it turns on).
    */
   | { type: 'busWatch'; on: boolean }
+  /**
+   * BT91: a part's files (a microSD card's, `bench.storage`): list them, read one, write one
+   * (bytes transferred), remove one. Answered by a `storage` message with the same `id`.
+   */
+  | ({ type: 'storage'; id: number; part: string } & StorageRequest)
   /** Debugger (BT24). Pause stops the run and reports where each debuggable board is. */
   | { type: 'debugPause' }
   | { type: 'debugStep'; board: string }
@@ -80,6 +86,22 @@ export type ToSim =
   | { type: 'recordStart' }
   /** Pauses, runs on to the next whole millisecond, and posts `recorded`. */
   | { type: 'recordStop' };
+
+/** BT91: what a `storage` request asks of a part's files. */
+export type StorageRequest = { op: 'list' } | { op: 'read'; path: string } | { op: 'write'; path: string; bytes: Uint8Array } | { op: 'remove'; path: string };
+
+/** BT91: the answer to a `storage` request: its files (list), bytes (read, transferred), or why not. */
+export interface StorageReply {
+  type: 'storage';
+  id: number;
+  part: string;
+  ok: boolean;
+  /** The storage's version after the request (it moves with every write, the firmware's too). */
+  version: number;
+  files?: StoredFile[];
+  bytes?: Uint8Array;
+  error?: string;
+}
 
 /** A recorded step (BT50): a part input, or text typed into a board's serial monitor. */
 export type RecordedStep = { at: Nanos; part: string; input: PartInput } | { at: Nanos; board: string; serial: string };
@@ -182,4 +204,5 @@ export type FromSim =
   | { type: 'problems'; list: Problem[]; counts: ProblemCounts }
   /** A test recording ended (BT50). */
   | { type: 'recorded'; test: RecordedTest }
+  | StorageReply
   | { type: 'error'; message: string };

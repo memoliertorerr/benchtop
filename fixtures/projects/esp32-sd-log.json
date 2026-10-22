@@ -1,0 +1,111 @@
+{
+  "format": 1,
+  "name": "esp32-sd-log",
+  "parts": [
+    {
+      "id": "esp",
+      "type": "esp32-devkit-v1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "sd",
+      "type": "microsd-card",
+      "x": 45,
+      "y": 10,
+      "rotation": 0,
+      "props": {
+        "files": "{\"config.txt\": \"rate=10\\n\"}"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "sd",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "3V3"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "sd",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "sd",
+        "pin": "CS"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "D5"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "sd",
+        "pin": "DI"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "D23"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "sd",
+        "pin": "DO"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "D19"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "sd",
+        "pin": "SCK"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "D18"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    }
+  ],
+  "firmware": {
+    "esp": {
+      "kind": "file",
+      "name": "sd-log.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "example: sd-datalogger",
+  "project": "../../projects/sd-datalogger.json",
+  "firmware": {
+    "uno": "../../firmware/uno/sd-datalogger.hex"
+  },
+  "steps": [
+    {
+      "at": "700ms",
+      "part": "pot1",
+      "input": {
+        "kind": "value",
+        "value": 1
+      }
+    }
+  ],
+  "expect": [
+    "serial contains \"New DATALOG.CSV\" by 500ms",
+    "serial matches /logged \\d+,512\\r\\n/ by 600ms",
+    "serial matches /logged \\d+,1023\\r\\n/ by 1300ms",
+    "file sd DATALOG.CSV contains \"ms,value\" by 100ms",
+    "file sd DATALOG.CSV contains \",1023\" by 1300ms"
+  ]
+}

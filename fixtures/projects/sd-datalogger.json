@@ -1,0 +1,156 @@
+{
+  "format": 1,
+  "name": "sd-datalogger",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "sd",
+      "type": "microsd-card",
+      "x": 85,
+      "y": 10,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "pot1",
+      "type": "potentiometer",
+      "x": 85,
+      "y": 42,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "sd",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "sd",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "sd",
+        "pin": "CS"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "10"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "sd",
+        "pin": "DI"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "11"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "sd",
+        "pin": "DO"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "12"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "sd",
+        "pin": "SCK"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "13"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "pot1",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w8",
+      "from": {
+        "part": "pot1",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.3"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w9",
+      "from": {
+        "part": "pot1",
+        "pin": "SIG"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "A0"
+      },
+      "waypoints": [],
+      "color": "purple"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "sd-datalogger.hex",
+      "format": "hex"
+    }
+  }
+}

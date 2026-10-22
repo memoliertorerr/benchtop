@@ -51,7 +51,7 @@ import {
 import { analogSpecFor, envSpecFor } from '@benchtop/parts';
 import { createBenchEnv, type RecordingEnv } from './env.ts';
 import { createFrameRingBuffer, FrameRingWriter } from './frame-ring.ts';
-import { type BusChunk, type BusRow, type DebugStopReason, type FromSim, type ProbeChunk, PROTOCOL_VERSION, type ToSim } from './protocol.ts';
+import { type BusChunk, type BusRow, type DebugStopReason, type FromSim, type ProbeChunk, PROTOCOL_VERSION, type StorageReply, type ToSim } from './protocol.ts';
 import { TestRecording } from './recording.ts';
 
 /** Most bus records decoded per frame (the newest; the rest are counted as lost). */
@@ -291,6 +291,9 @@ export class SimSession {
         this.busDecoder.reset();
         this.busRestart = true;
         if (this.busWatch) this.postFrame();
+        return;
+      case 'storage':
+        this.answerStorage(message);
         return;
       case 'removeProbe': {
         const probe = this.probes.get(message.key);
@@ -768,6 +771,35 @@ export class SimSession {
     const counts = { error: 0, warning: 0, info: 0 };
     for (const p of list) counts[p.severity]++;
     this.post({ type: 'problems', list, counts });
+  }
+
+  /** BT91: a part's files, from `bench.storage()`. */
+  private answerStorage(message: Extract<ToSim, { type: 'storage' }>): void {
+    const storage = this.bench?.storage(message.part);
+    const reply = (ok: boolean, more: Partial<StorageReply> = {}): void => {
+      const bytes = more.bytes;
+      this.deps.post({ type: 'storage', id: message.id, part: message.part, ok, version: storage?.version ?? 0, ...more }, bytes === undefined ? [] : [bytes.buffer as ArrayBuffer]);
+    };
+    if (storage === undefined) {
+      reply(false, { error: this.bench === null ? 'nothing is loaded' : `"${message.part}" keeps no files` });
+      return;
+    }
+    switch (message.op) {
+      case 'list':
+        reply(true, { files: storage.list() });
+        return;
+      case 'read': {
+        const bytes = storage.read(message.path);
+        reply(bytes !== undefined, bytes === undefined ? { error: `no file "${message.path}"` } : { bytes: bytes.slice() });
+        return;
+      }
+      case 'write':
+        reply(storage.write(message.path, message.bytes), {});
+        return;
+      case 'remove':
+        reply(storage.remove(message.path), {});
+        return;
+    }
   }
 
   private requireBench(): Bench {

@@ -426,6 +426,33 @@ longer hold. OUT is the first power pin listed: a part's logic supply — what i
 otherwise call its 3.3 V a 0). Their PCB footprints are standard ones (TO-220-3, TO-92 inline,
 a 1×3 header) with the datasheet's pad numbers. Loads aren't modeled: no current limit, no heat.
 
+**microSD card (`packages/parts/src/storage/`).** The `microsd-card` module (CS, SCK, DI,
+DO, VCC, GND, CD; the Wokwi element's drawing) holds an SD card in SPI mode (`sd-card.ts`, an
+`SpiDevice`): an 8 GB SDHC card — block addressed, CMD8 answered, OCR's CCS set, CSD 2.0 — over
+`SparseBlocks` (`blocks.ts`: 512-byte blocks in a map, unwritten ones read as zeros, so the card
+costs what its files do). Silent until a CMD0 with its CRC; responses follow one fill byte;
+CRC7 checked on CMD0 (SD mode) and CMD8, on everything once CMD59 turns it on, CRC16 on written
+blocks then too and always sent on reads; ACMD41 with HCS leaves idle on the second poll;
+CMD9/10/17/18/24/25/12/13/16/32/33/38/58/59/6 and ACMD13/22/23/41/42/51; a block write answers
+0x05 on the next byte and holds MISO low for 250 µs of simulated time; CS rising drops a
+half-sent command, nothing else. The transfer path doesn't allocate (one response queue). Each
+model build is a power-up: `formatFat32` (an MBR partition at 4 MiB, 32 KiB clusters, FSInfo,
+label BENCHTOP), then the `files` prop's files (JSON path → text or `{ "b64" }`, 256 KB; what
+can't go on reports `sd-card-files`). A bench reset resets the card's SPI state only — files
+stay, as on a real card. `inserted` (prop; a `value` input while running) empties the socket:
+MISO reads 0xFF and the card needs CMD0 again; CD is grounded while a card is in (the common
+breakout), open otherwise. `fat.ts` is a small FAT16/FAT32 library (mount an MBR's first
+partition or a bare volume, list, read, write with 8.3 names, NT lower-case flags or long-name
+entries, make directories, remove recursively, FSInfo kept). **Part storage** (core
+`bench/storage.ts`, not a contract): a model may carry `storage` — `PartStorage`: `version`,
+`list`, `read`, `write`, `remove` — and `bench.storage(partId)` returns it; the card's mounts the
+FAT afresh each call, since firmware changes the blocks under it. DO rests high through the
+module's pull-up (a weak drive: the SD spec asks for one on DAT0), so MISO isn't a floating input.
+Real firmware (`sd-log` for each board): the Uno's SD library, the ESP32 core's SD library
+(FatFs over its own SPI driver, CRC on) and arduino-pico's (SdFat) list, read, append, make
+directories and write long names on it, unchanged — the boards' SPI models needed nothing.
+The gallery's Storage category has an SD datalogger (an Uno logging a potentiometer).
+
 ### Problems
 
 Sources, all gathered by `Bench.problems()` (one problem per code and sorted part set; the newest
@@ -1725,10 +1752,14 @@ sequence, files matched by basename or trailing path.
 ## Worker protocol
 
 `apps/web/src/sim/protocol.ts` defines `ToSim` (UI → worker) and `FromSim` (worker → UI)
-messages, versioned by `PROTOCOL_VERSION` (13: the debug ELF beside a load's images and the MCU
+messages, versioned by `PROTOCOL_VERSION` (14: the debug ELF beside a load's images and the MCU
 kind and register names in `debugInfo`, then `edit`/`edited`, then `busWatch` and a frame's `bus`
-chunk). UI → worker: `busWatch` (on/off: the Bus tab is open — while on, every frame carries the
-bus transactions decoded since the previous one, see "Bus tab"), `hello`, `load` (a
+chunk, then `storage`). UI → worker: `busWatch` (on/off: the Bus tab is open — while on, every frame carries the
+bus transactions decoded since the previous one, see "Bus tab"), `storage`
+(`id`, a part, and `list`, `read`, `write` (bytes transferred) or `remove` of its files —
+`bench.storage()`, a microSD card's; answered by a `storage` message with the same id: `ok`, the
+storage's `version`, the files or the bytes, or an `error`; `sim.storage()` returns a promise),
+`hello`, `load` (a
 project plus firmware images per board), `edit` (the loaded bench's new document; the worker
 rebuilds it with carry-over, keeps the serial history, breakpoints and symbols of the boards that
 carried over, re-probes the probes without restarting their history — the UI appends — and
@@ -2043,6 +2074,19 @@ The worker gets the interpreter UF2s (the Pico's and the Pico 2's) from the dev 
 `/micropython/` (like the ESP32 ROM; never bundled). The CLI runs an inline MicroPython sketch with no `--firmware`, and takes
 `--firmware pico=<file>.py` as a one-file sketch.
 
+### microSD card in the Inspector
+
+Selecting a `microsd-card` part shows its own section (`apps/web/src/ui/card/`, lazy-loaded;
+the generic prop fields skip `files` and `inserted`): **Card in the socket** (the `inserted`
+prop while nothing is loaded, a `value` input to the running card otherwise); **On the card
+now**, while a bench is loaded — the files from `sim.storage(part, { op: 'list' })`, listed again
+(at most every 300 ms) when the card's visual `writes` count moves; a name opens a preview (UTF-8
+text up to 4 KB, else a hex dump), ⤓ downloads, ✕ deletes; **Upload…** writes files onto the
+card, **Download all** zips them (`@benchtop/pcb`'s `zip`), **Keep as power-up files** copies
+them into the `files` prop (256 KB at most — the edit restarts the card with them); **At
+power-up** — the `files` prop's files with ✕, a new text file (name and contents) and
+**Upload…** (`card-files.ts`: `withFiles`, `withoutFile`, `previewOf`, Node-tested).
+
 ### Bus tab
 
 The Bus tab (`apps/web/src/ui/bus/`; lazy-loaded) shows the I2C, SPI and UART traffic of
@@ -2165,6 +2209,7 @@ nothing from `apps/web`.
   | `digits <p> show "<text>" at <t>` | the digits (`sevenSegmentText` from @benchtop/parts: 0–9, '-', ' ' dark, '?' other) | `shows "1234"` |
   | `env <gas\|temperature\|humidity\|light\|sound> at <p> is <v> ±<tol> at <t>` (or `>`, `<`, `>=`, `<=` `<v>`) | the room's value at a part placed in it (`bench.envSample`); a usage error without an environment part or on a part with no place in it | `gas 812.40 ppm` |
   | `bus i2c <p> wrote\|read <hex bytes> by <t>`, `bus spi <p> sent <hex bytes> by <t>` | some transaction with that part in the bus log — an I2C write or read, an SPI frame's MOSI — carried those bytes in a row by then (when the transaction ended); read every 50 ms so the log's ring can't wrap; a transaction still open at the end counts | `seen at 31.402 ms` |
+  | `file <p> <path> contains "<text>" by <t>` | the part's file (a microSD card's, through `bench.storage`; the path matched without case) held the text by then — read at every stop and every 50 ms while the card's version moved; failures say whether the file was missing or what it held | `seen at 50 ms` |
 
   Visual forms read the part's latest visual state at `t` (frames are collected at every stop)
   and check the part's type up front (an LED, a servo, an LCD and its row count, a NeoPixel, a
@@ -2298,7 +2343,9 @@ Model Context Protocol on stdio — one more front end over the headless runner,
   framebuffers — summarized unless `full`) and pin levels and volts; `sim_bus` (the I2C,
   SPI and UART transactions decoded since the last call — I2C address, R/W, bytes, NACKs; SPI
   frames' MOSI and MISO; UART bursts as text — the newest `max` after a bus-kind or part filter,
-  open ones marked, with how many more and what the log lost); `sim_update` (a new
+  open ones marked, with how many more and what the log lost); `sim_files` (a card part's
+  files as the sketch left them — list them; read one as text when it is UTF-8, else base64, 64 KB
+  at most; write one from `write` text or `writeBase64`; `remove` one or a directory); `sim_update` (a new
   project document for a live session, rebuilt with carry-over like an edit in the app — boards
   keep running unless `firmware`/`micropython` names them, which re-flashes them; returns the
   boards kept, started and removed and the watched pins that went; if the rebuild fails the

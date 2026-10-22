@@ -586,6 +586,19 @@
     "description": "A bench supply feeds an LM7805; the Uno measures its output through a 10 kΩ/10 kΩ divider and prints it. Turn the supply below 7 V in the Inspector: the regulator drops out, the reading sags and the Problems tab says why."
   },
   {
+    "id": "sd-datalogger",
+    "title": "SD card datalogger",
+    "category": "Storage",
+    "project": "sd-datalogger",
+    "boards": {
+      "uno": {
+        "firmware": "uno/sd-datalogger.hex",
+        "sketch": "uno/sd-datalogger"
+      }
+    },
+    "description": "An Uno logs a potentiometer to DATALOG.CSV on a microSD card twice a second. Select the card to read the file in the Inspector, download it, or keep it as the card's starting files; a reset carries the log on."
+  },
+  {
     "id": "esp32-blink",
     "title": "ESP32 blink",
     "category": "ESP32",

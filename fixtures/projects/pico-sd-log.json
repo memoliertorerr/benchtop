@@ -1,0 +1,111 @@
+{
+  "format": 1,
+  "name": "pico-sd-log",
+  "parts": [
+    {
+      "id": "pico",
+      "type": "raspberry-pi-pico",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "sd",
+      "type": "microsd-card",
+      "x": 45,
+      "y": 10,
+      "rotation": 0,
+      "props": {
+        "files": "{\"config.txt\": \"rate=10\\n\"}"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "sd",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "pico",
+        "pin": "3V3"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "sd",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "pico",
+        "pin": "GND.5"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "sd",
+        "pin": "CS"
+      },
+      "to": {
+        "part": "pico",
+        "pin": "GP17"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "sd",
+        "pin": "DI"
+      },
+      "to": {
+        "part": "pico",
+        "pin": "GP19"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "sd",
+        "pin": "DO"
+      },
+      "to": {
+        "part": "pico",
+        "pin": "GP16"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "sd",
+        "pin": "SCK"
+      },
+      "to": {
+        "part": "pico",
+        "pin": "GP18"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    }
+  ],
+  "firmware": {
+    "pico": {
+      "kind": "file",
+      "name": "sd-log.uf2",
+      "format": "uf2"
+    }
+  }
+}

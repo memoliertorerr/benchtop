@@ -13,7 +13,7 @@
 import type { FirmwareImage, MemorySpace, Nanos, PartInput, PinRef, Problem, ProjectDoc, VisualState } from '@benchtop/core';
 import { signal } from '@preact/signals';
 import { FrameRingReader } from './frame-ring.ts';
-import { type FrameStats, type FromSim, PROTOCOL_VERSION, type RecordedTest, type ToSim } from './protocol.ts';
+import { type FrameStats, type FromSim, PROTOCOL_VERSION, type RecordedTest, type StorageReply, type StorageRequest, type ToSim } from './protocol.ts';
 
 export type SimStatus = 'starting' | 'ready' | 'error';
 export type SimFrame = Extract<FromSim, { type: 'frame' }>;
@@ -37,6 +37,9 @@ const visualListeners = new Set<(parts: readonly (readonly [string, VisualState]
 const debugListeners = new Set<(message: SimDebugMessage) => void>();
 const serialListeners = new Map<string, Set<(bytes: Uint8Array) => void>>();
 const anySerialListeners = new Set<(board: string, bytes: Uint8Array, t: Nanos) => void>();
+/** BT91: `storage` requests waiting for their answer, by id. */
+const storageWaiters = new Map<number, (reply: StorageReply) => void>();
+let storageId = 0;
 let worker: Worker | null = null;
 let ring: FrameRingReader | null = null;
 let ringFrame = 0;
@@ -144,6 +147,21 @@ export const sim = {
   removeProbe(key: string): void {
     send({ type: 'removeProbe', key });
   },
+  /**
+   * BT91: a part's files on the loaded bench (a microSD card's): list, read, write or remove.
+   * Resolves with the worker's answer (`ok` false when there is no bench or no such file).
+   */
+  storage(part: string, request: StorageRequest): Promise<StorageReply> {
+    if (worker === null) return Promise.resolve({ type: 'storage', id: 0, part, ok: false, version: 0, error: 'the simulator is not running' });
+    const id = ++storageId;
+    return new Promise((resolve) => {
+      storageWaiters.set(id, resolve);
+      if (request.op === 'write') {
+        const bytes = request.bytes.slice();
+        send({ type: 'storage', id, part, op: 'write', path: request.path, bytes }, [bytes.buffer]);
+      } else send({ type: 'storage', id, part, ...request });
+    });
+  },
   /** BT87: the Bus tab opened (frames carry decoded bus transactions) or closed. */
   busWatch(on: boolean): void {
     send({ type: 'busWatch', on });
@@ -214,6 +232,10 @@ function receive(message: FromSim): void {
       return;
     case 'recorded':
       simRecorded.value = message.test;
+      return;
+    case 'storage':
+      storageWaiters.get(message.id)?.(message);
+      storageWaiters.delete(message.id);
       return;
     case 'debugInfo':
     case 'debugStopped':

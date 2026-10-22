@@ -127,6 +127,7 @@ export function Inspector() {
       )}
       <PartControls part={part} defaults={def.defaults} />
       {Object.entries(def.defaults).map(([key, fallback]) => {
+        if (OWN_SECTION[part.type]?.includes(key)) return null;
         const value = part.props[key] ?? fallback;
         const label = <span class="field-label">{key}</span>;
         if (typeof fallback === 'boolean') {
@@ -164,6 +165,9 @@ export function Inspector() {
     </aside>
   );
 }
+
+/** Props a part's own Inspector section edits (BT91: the microSD card's files and socket). */
+const OWN_SECTION: Readonly<Record<string, readonly string[]>> = { 'microsd-card': ['files', 'inserted'] };
 
 const isPython = (ref: FirmwareRef | undefined): boolean => ref?.kind === 'inline' && isMicroPythonFqbn(ref.fqbn);
 

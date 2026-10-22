@@ -24,3 +24,8 @@ export { ENVIRONMENT_PARTS, OVERLAY_NAMES } from './environment/parts.ts';
 export { PART_INPUTS, type PartInputSpec, partInputs } from './part-inputs.ts';
 export { BATTERY_VOLTS, BENCH_SUPPLY_MAX, POWER_SOURCES } from './power/sources.ts';
 export { POWER_REGULATORS, REGULATORS } from './power/regulators.ts';
+export { BLOCK, SparseBlocks } from './storage/blocks.ts';
+export { FatVolume, type FormatOptions, formatFat32 } from './storage/fat.ts';
+export { crc7, crc16, SD_BLOCKS, SdCard } from './storage/sd-card.ts';
+export { cardFilesProp, parseCardFiles, SD_FILES_MAX } from './storage/microsd-card.ts';
+export { base64Decode, base64Encode, utf8Encode, utf8Text } from './storage/text.ts';

@@ -7,7 +7,7 @@
  */
 
 import { type DebugTables, type FirmwareImage, lineTableFromElf, parseElf32, type ProjectDoc, SymbolTable, type VisualState } from '@benchtop/core';
-import { benchEnvParts } from '@benchtop/parts';
+import { base64Decode, base64Encode, benchEnvParts, utf8Text } from '@benchtop/parts';
 import { cachedRoms, loadFirmware, projectFromJson } from '../../load.ts';
 import { parseScript, parseTime } from '../../run.ts';
 import { levelText, type Session, Sessions } from '../sessions.ts';
@@ -373,6 +373,68 @@ export const simBus: Tool<SimContext> = {
   },
 };
 
+/** Most bytes `sim_files` returns of one file, and takes in one write. */
+const MAX_FILE_BYTES = 64 * 1024;
+const MAX_WRITE_BYTES = 256 * 1024;
+
+export const simFiles: Tool<SimContext> = {
+  name: 'sim_files',
+  title: 'Read or change a card\'s files',
+  description:
+    'The files on a part that keeps them — a microSD card — in an open session, as the sketch left them. Without "path": every file and directory (path, size, last write). With "path": that file — as text when it is UTF-8, else base64 — at most 64 KB ("truncated" says when there was more). With "path" and "write" (text) or "writeBase64": creates or replaces the file, making directories on the way. With "path" and "remove": true: deletes it (a directory with everything in it). A sketch holding the volume open may not notice outside changes, as with a real card swapped under it.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      session: SESSION,
+      part: { type: 'string', maxLength: 64, description: 'The card\'s part id.' },
+      path: { type: 'string', maxLength: 512, description: 'From the card\'s root, "/" between directories: "LOG.TXT", "data/run1.csv". Matched without case.' },
+      write: { type: 'string', maxLength: MAX_WRITE_BYTES, description: 'New contents, as text (UTF-8).' },
+      writeBase64: { type: 'string', maxLength: Math.ceil(MAX_WRITE_BYTES / 3) * 4, description: 'New contents, base64.' },
+      remove: { type: 'boolean' },
+    },
+    required: ['session', 'part'],
+    additionalProperties: false,
+  },
+  annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
+  run(args, context) {
+    const session = context.sessions.get(args.session as string);
+    const part = args.part as string;
+    if (!session.doc.parts.some((p) => p.id === part)) throw new ToolError(`no part "${part}" in the session`);
+    const storage = session.bench.storage(part);
+    if (storage === undefined) throw new ToolError(`"${part}" keeps no files (only a microSD card does)`);
+    const path = args.path as string | undefined;
+    const changes = [args.write, args.writeBase64, args.remove].filter((v) => v !== undefined).length;
+    if (changes > 1) throw new ToolError('give at most one of "write", "writeBase64" or "remove"');
+    if (path === undefined) {
+      if (changes > 0) throw new ToolError('say which file ("path")');
+      return { session: session.id, part, files: storage.list().map((f) => ({ path: f.path, ...(f.dir ? { dir: true } : { size: f.size }), modified: f.modified })) };
+    }
+    if (args.remove === true) {
+      if (!storage.remove(path)) throw new ToolError(`no file "${path}" on the card`);
+      return { session: session.id, part, removed: path };
+    }
+    if (args.write !== undefined || args.writeBase64 !== undefined) {
+      const bytes = args.write !== undefined ? new TextEncoder().encode(args.write as string) : base64Decode(args.writeBase64 as string);
+      if (bytes === null) throw new ToolError('"writeBase64" is not base64');
+      if (bytes.length > MAX_WRITE_BYTES) throw new ToolError(`a write takes at most ${MAX_WRITE_BYTES} bytes`);
+      if (!storage.write(path, bytes)) throw new ToolError(`"${path}" couldn't be written (a bad name, a directory in the way, or the card is full)`);
+      return { session: session.id, part, wrote: path, size: bytes.length };
+    }
+    const bytes = storage.read(path);
+    if (bytes === undefined) throw new ToolError(`no file "${path}" on the card`);
+    const shown = bytes.subarray(0, MAX_FILE_BYTES);
+    const text = utf8Text(shown);
+    return {
+      session: session.id,
+      part,
+      path,
+      size: bytes.length,
+      ...(text !== null ? { text } : { base64: base64Encode(shown) }),
+      ...(bytes.length > shown.length ? { truncated: true } : {}),
+    };
+  },
+};
+
 export const simClose: Tool<SimContext> = {
   name: 'sim_close',
   title: 'Close a live simulation',
@@ -396,4 +458,4 @@ export const simList: Tool<SimContext> = {
   },
 };
 
-export const SIM_TOOLS: readonly Tool<SimContext>[] = [simOpen, simRun, simInput, simSerial, simState, simBus, simUpdate, simReset, simClose, simList];
+export const SIM_TOOLS: readonly Tool<SimContext>[] = [simOpen, simRun, simInput, simSerial, simState, simBus, simFiles, simUpdate, simReset, simClose, simList];

@@ -654,6 +654,51 @@
     },
     {
       "board": "esp32",
+      "name": "sd-log",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/sd-log.bin",
+      "sha256": "e3c2388dff6f0f7551efe922a294328252d8eff743ab9b92db8b10f42dfd9879",
+      "bytes": 321536,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "FS": "2.0.0",
+        "SD": "2.0.0",
+        "SPI": "2.0.0"
+      },
+      "source": "1431772eb1cf6129a555961c0822a0c4e86142b5823c6e1dcb4d32577bb5764f"
+    },
+    {
+      "board": "esp32",
+      "name": "sd-log",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/sd-log.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "FS": "2.0.0",
+        "SD": "2.0.0",
+        "SPI": "2.0.0"
+      },
+      "source": "1431772eb1cf6129a555961c0822a0c4e86142b5823c6e1dcb4d32577bb5764f"
+    },
+    {
+      "board": "esp32",
+      "name": "sd-log",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/sd-log.syms.tsv",
+      "sha256": "ffee6ab4d570f035357f407485931382747daa7f50dfbbffb309c4650f910a14",
+      "bytes": 133280,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "FS": "2.0.0",
+        "SD": "2.0.0",
+        "SPI": "2.0.0"
+      },
+      "source": "1431772eb1cf6129a555961c0822a0c4e86142b5823c6e1dcb4d32577bb5764f"
+    },
+    {
+      "board": "esp32",
       "name": "serial-echo",
       "fqbn": "esp32:esp32:esp32",
       "file": "esp32/serial-echo.bin",
@@ -1278,6 +1323,22 @@
       "core": "rp2040:rp2040@6.2.0",
       "libraries": {},
       "source": "91f39a076f1c8902d01407206bac8e775ab38ff42b47851d98d0c9232d86aa14"
+    },
+    {
+      "board": "pico",
+      "name": "sd-log",
+      "fqbn": "rp2040:rp2040:rpipico",
+      "file": "pico/sd-log.uf2",
+      "sha256": "4e0bab250914259b70bc7f0b86162dc44536856506340e3453510efdc25767fc",
+      "bytes": 239616,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {
+        "SD": "2.0.0",
+        "SDFS": "0.1.0",
+        "SPI": "1.0",
+        "SdFat": "2.3.1"
+      },
+      "source": "5a145c5daf040a43a5f6f6a0c2e95c5e29cd63bd322837f553ef0117b08cef40"
     },
     {
       "board": "pico",
@@ -2517,6 +2578,62 @@
       "core": "arduino:avr@1.8.7",
       "libraries": {},
       "source": "9768e8114455b56b2b090a6caac6204e76538588ce62c691ae487c69bb72735a"
+    },
+    {
+      "board": "uno",
+      "name": "sd-datalogger",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/sd-datalogger.elf",
+      "sha256": "2f4ace6d12c7da61dc807c3309ed8e9907c7f6906262a4e5550d6137db3e4ffd",
+      "bytes": 91140,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "SD": "1.3.0",
+        "SPI": "1.0"
+      },
+      "source": "4b8d5ee509516118a3588245aa92fafeda73a4669db9565fd96979dd09c37157"
+    },
+    {
+      "board": "uno",
+      "name": "sd-datalogger",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/sd-datalogger.hex",
+      "sha256": "f5720d197ad1b3e193f1760c10a60bc6a298fb09152125bedcb38cfa290a97f0",
+      "bytes": 31907,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "SD": "1.3.0",
+        "SPI": "1.0"
+      },
+      "source": "4b8d5ee509516118a3588245aa92fafeda73a4669db9565fd96979dd09c37157"
+    },
+    {
+      "board": "uno",
+      "name": "sd-log",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/sd-log.elf",
+      "sha256": "ba1a6589b9691a6ac1c197ce84dffeb2684b9668cf159afb89144fb67b628d30",
+      "bytes": 100980,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "SD": "1.3.0",
+        "SPI": "1.0"
+      },
+      "source": "d22eeb992dd81e46dfd1bbe3c6be5f99dd2f0b8f2893b8e67253e766d6d27230"
+    },
+    {
+      "board": "uno",
+      "name": "sd-log",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/sd-log.hex",
+      "sha256": "d488e9fb9284c9d994663bedc5d2e579376dacb104dd535a2bf3bf686b9750c0",
+      "bytes": 35531,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "SD": "1.3.0",
+        "SPI": "1.0"
+      },
+      "source": "d22eeb992dd81e46dfd1bbe3c6be5f99dd2f0b8f2893b8e67253e766d6d27230"
     },
     {
       "board": "uno",

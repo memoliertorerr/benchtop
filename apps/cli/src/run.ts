@@ -117,7 +117,8 @@ export type Assertion =
   | { kind: 'frequency'; text: string; part: string; pin: string; hz: number; percent: number; from: number; to: number }
   | { kind: 'duty'; text: string; part: string; pin: string; percent: number; tolerance: number; from: number; to: number }
   | { kind: 'env'; text: string; field: EnvField; part: string; op: EnvOp; value: number; tolerance: number; at: number }
-  | { kind: 'bus'; text: string; bus: 'i2c' | 'spi'; part: string; how: 'wrote' | 'read' | 'sent'; bytes: number[]; by: number };
+  | { kind: 'bus'; text: string; bus: 'i2c' | 'spi'; part: string; how: 'wrote' | 'read' | 'sent'; bytes: number[]; by: number }
+  | { kind: 'file'; text: string; part: string; path: string; needle: string; by: number };
 
 type EnvField = 'gas' | 'temperature' | 'humidity' | 'light' | 'sound';
 type EnvOp = 'is' | '>' | '<' | '>=' | '<=';
@@ -125,7 +126,7 @@ const ENV_UNITS: Readonly<Record<EnvField, string>> = { gas: 'ppm', temperature:
 
 /** The time an assertion is decided at: its `at`, its `by`, or the end of its window. */
 export function decidedAt(a: Assertion): number {
-  if (a.kind === 'serial' || a.kind === 'match' || a.kind === 'bus') return a.by;
+  if (a.kind === 'serial' || a.kind === 'match' || a.kind === 'bus' || a.kind === 'file') return a.by;
   if (a.kind === 'frequency' || a.kind === 'duty') return a.to;
   return a.at;
 }
@@ -155,6 +156,7 @@ const FORMS = [
   'env <gas|temperature|humidity|light|sound> at <part> is <v> ±<tol> at <time> (or > < >= <= <v>)',
   'bus i2c <part> wrote|read <hex bytes> by <time>',
   'bus spi <part> sent <hex bytes> by <time>',
+  'file <part> <path> contains "<text>" by <time>',
 ];
 
 const NUM = String.raw`(\d+(?:\.\d+)?)`;
@@ -174,6 +176,7 @@ const GRAMMAR = {
   digits: re(String.raw`digits\s+(\S+)\s+shows?\s+${QUOTED}\s+at\s+(\S+)`),
   env: re(String.raw`env\s+(gas|temperature|humidity|light|sound)\s+at\s+(\S+)\s+(?:is\s+(-?\d+(?:\.\d+)?)${PM}${NUM}|(>=|<=|>|<)\s*(-?\d+(?:\.\d+)?))\s+at\s+(\S+)`),
   bus: re(String.raw`bus\s+(i2c|spi)\s+(\S+)\s+(wrote|read|sent)\s+((?:[0-9a-fA-F]{2}\s+)*[0-9a-fA-F]{2})\s+by\s+(\S+)`),
+  file: re(String.raw`file\s+(\S+)\s+(\S+)\s+contains\s+${QUOTED}\s+by\s+(\S+)`),
 };
 
 /** A regex from `serial matches /…/flags`: i, m, s and u only (g and y would make it stateful). */
@@ -226,6 +229,7 @@ export function parseAssertion(text: string): Assertion {
     if (bus === 'spi' && how !== 'sent') throw new UsageError(`${t}: an SPI frame "sent" its bytes`);
     return { kind: 'bus', text: t, bus, part: m[2], how, bytes: m[4].split(/\s+/).map((h) => Number.parseInt(h, 16)), by: parseTime(m[5]) };
   }
+  if ((m = GRAMMAR.file.exec(t)) !== null) return { kind: 'file', text: t, part: m[1], path: m[2], needle: unescape(m[3], t), by: parseTime(m[4]) };
   throw new UsageError(`not an assertion: ${t} (expected one of: ${FORMS.join(' · ')})`);
 }
 
@@ -373,6 +377,9 @@ const VISUAL_TYPES: Readonly<Record<'led' | 'servo' | 'lcd' | 'pixel' | 'digits'
   digits: { test: (t) => t.startsWith('seven-segment'), what: 'a 7-segment display' },
 };
 
+/** BT91: parts whose files `file` assertions read (`bench.storage`). */
+const FILE_TYPES: ReadonlySet<string> = new Set(['microsd-card']);
+
 /** Checks an assertion's parts, pins and boards against the project (and resolves pin names). */
 function checkAgainstProject(a: Assertion, doc: ProjectDoc, boards: readonly string[]): void {
   if (a.kind === 'serial' || a.kind === 'match') {
@@ -385,6 +392,10 @@ function checkAgainstProject(a: Assertion, doc: ProjectDoc, boards: readonly str
   const part = doc.parts.find((p) => p.id === a.part);
   if (part === undefined) throw new UsageError(`${a.text}: no part "${a.part}"`);
   if (a.kind === 'bus') return;
+  if (a.kind === 'file') {
+    if (!FILE_TYPES.has(part.type)) throw new UsageError(`${a.text}: "${a.part}" is a ${part.type}, not a part that keeps files (a microSD card)`);
+    return;
+  }
   if (a.kind === 'pin' || a.kind === 'frequency' || a.kind === 'duty') {
     const name = resolvePin(doc, a.part, a.pin);
     if (name === undefined) throw new UsageError(`${a.text}: "${a.part}" has no pin "${a.pin}"`);
@@ -633,6 +644,31 @@ export function runHeadless(options: RunOptions, io: RunIo): RunReport {
     };
     if (busAssertions.length > 0) for (let t = DRAIN_NS; t < duration; t += DRAIN_NS) drains.push(t);
 
+    // BT91: file assertions read their part's files (a microSD card's) at every stop and every
+    // 50 ms — again only when the storage changed — each satisfied when its file first holds the text.
+    const fileAssertions = assertions.filter((a): a is Extract<Assertion, { kind: 'file' }> => a.kind === 'file');
+    const fileSeen = new Map<Assertion, number>();
+    const fileNotes = new Map<Assertion, string>();
+    const fileVersions = new Map<Assertion, number>();
+    const utf8 = new TextDecoder();
+    const checkFiles = (): void => {
+      for (const a of fileAssertions) {
+        if (fileSeen.has(a)) continue;
+        const storage = bench.storage(a.part);
+        if (storage === undefined) {
+          fileNotes.set(a, `"${a.part}" keeps no files`);
+          continue;
+        }
+        if (fileVersions.get(a) === storage.version) continue;
+        fileVersions.set(a, storage.version);
+        const bytes = storage.read(a.path);
+        if (bytes === undefined) fileNotes.set(a, `no file ${a.path}`);
+        else if (utf8.decode(bytes).includes(a.needle)) fileSeen.set(a, bench.now());
+        else fileNotes.set(a, `${a.path} (${bytes.length} bytes) doesn't hold it`);
+      }
+    };
+    if (fileAssertions.length > 0) for (let t = DRAIN_NS; t < duration; t += DRAIN_NS) drains.push(t);
+
     // The timeline: at each distinct time, drain the windows, apply the steps (file order),
     // collect what parts show, then check what is due then.
     const encoder = new TextEncoder();
@@ -658,6 +694,7 @@ export function runHeadless(options: RunOptions, io: RunIo): RunReport {
       advance(t);
       for (const w of windows) drainWindow(bench, w);
       drainBus();
+      checkFiles();
       for (const step of script.steps) {
         if (step.at !== t) continue;
         if (step.kind === 'serial') bench.sendSerial(step.board, encoder.encode(step.text));
@@ -665,7 +702,7 @@ export function runHeadless(options: RunOptions, io: RunIo): RunReport {
       }
       collect();
       for (const a of assertions) {
-        if (a.kind === 'serial' || a.kind === 'match' || a.kind === 'bus' || decidedAt(a) !== t) continue;
+        if (a.kind === 'serial' || a.kind === 'match' || a.kind === 'bus' || a.kind === 'file' || decidedAt(a) !== t) continue;
         if (a.kind === 'frequency' || a.kind === 'duty') {
           const w = windows.find((x) => x.a === a) as Window;
           results.set(a, { text: a.text, atNs: t, ...closeWindow(w) });
@@ -685,6 +722,13 @@ export function runHeadless(options: RunOptions, io: RunIo): RunReport {
     if (busAssertions.length > 0) {
       drainBus();
       checkBus(busDecoder.pending()); // a transaction still open at the end counts too
+    }
+    for (const a of fileAssertions) {
+      const at = fileSeen.get(a);
+      const ok = at !== undefined && at <= a.by;
+      const why = fileNotes.get(a) ?? 'not checked';
+      const detail = at === undefined ? `not seen by ${formatNs(a.by)}: ${why}` : ok ? `seen at ${formatNs(at)}` : `seen at ${formatNs(at)}, after ${formatNs(a.by)}`;
+      results.set(a, { text: a.text, ok, atNs: at ?? null, detail });
     }
     for (const a of busAssertions) {
       const at = busSeen.get(a);

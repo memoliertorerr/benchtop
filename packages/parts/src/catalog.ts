@@ -40,6 +40,7 @@ import { slidePotentiometer } from './inputs/slide-potentiometer.ts';
 import { tiltSwitch } from './inputs/tilt-switch.ts';
 import { dht22 } from './sensors/dht22.ts';
 import { ds1307 } from './sensors/ds1307.ts';
+import { microsdCard } from './storage/microsd-card.ts';
 import { hcSr04 } from './sensors/hc-sr04.ts';
 import { microphone } from './sensors/microphone.ts';
 import { mpu6050 } from './sensors/mpu6050.ts';
@@ -99,6 +100,7 @@ const ALL: readonly PartDefinition[] = [
   hcSr04,
   ds1307,
   mpu6050,
+  microsdCard,
   servo,
   stepper28byj48,
   stepperBipolar,

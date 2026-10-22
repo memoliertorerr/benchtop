@@ -129,6 +129,33 @@ describe('live sessions', () => {
     expect(capped.more).toBeGreaterThan(0);
   }, 30_000);
 
+  it('sim_files (BT91): a card\'s files as the sketch left them; read, write and remove', async () => {
+    const server = testServer();
+    const { session } = (await tool(server, 'sim_open', { project: 'fixtures/projects/sd-log.json', firmware: { uno: 'fixtures/firmware/uno/sd-log.hex' } })).value as { session: string };
+    type Listing = { files: { path: string; size?: number; dir?: boolean; modified: string }[] };
+    expect(((await tool(server, 'sim_files', { session, part: 'sd' })).value as Listing).files).toEqual([{ path: 'CONFIG.TXT', size: 8, modified: '2026-01-01 00:00:00' }]);
+    await tool(server, 'sim_run', { session, duration: '1s' });
+    const listing = (await tool(server, 'sim_files', { session, part: 'sd' })).value as Listing;
+    expect(listing.files.map((f) => [f.path, f.size ?? 'dir'])).toEqual([
+      ['CONFIG.TXT', 8],
+      ['LOG.TXT', 24],
+      ['DATA', 'dir'],
+      ['DATA/A.CSV', 12],
+    ]);
+    expect((await tool(server, 'sim_files', { session, part: 'sd', path: 'log.txt' })).value).toMatchObject({ path: 'log.txt', size: 24, text: 'line 0\r\nline 1\r\nline 2\r\n' });
+    expect((await tool(server, 'sim_files', { session, part: 'sd', path: 'blob.bin', writeBase64: 'AAEC/w==' })).value).toMatchObject({ wrote: 'blob.bin', size: 4 });
+    expect((await tool(server, 'sim_files', { session, part: 'sd', path: 'blob.bin' })).value).toMatchObject({ size: 4, base64: 'AAEC/w==' });
+    expect((await tool(server, 'sim_files', { session, part: 'sd', path: 'CONFIG.TXT', write: 'rate=99\n' })).value).toMatchObject({ size: 8 });
+    expect((await tool(server, 'sim_files', { session, part: 'sd', path: 'DATA', remove: true })).value).toMatchObject({ removed: 'DATA' });
+    expect((await tool(server, 'sim_files', { session, part: 'sd', path: 'DATA/A.CSV' })).text).toMatch(/no file "DATA\/A.CSV"/);
+    expect((await tool(server, 'sim_files', { session, part: 'uno' })).text).toMatch(/keeps no files/);
+    expect((await tool(server, 'sim_files', { session, part: 'sd', write: 'x' })).text).toMatch(/say which file/);
+    // the sketch reads the new config after a reset
+    await tool(server, 'sim_reset', { session });
+    const again = (await tool(server, 'sim_run', { session, duration: '1s' })).value as Run;
+    expect(again.serial.uno).toContain('config: rate=99');
+  }, 30_000);
+
   it('limits: the session count, the duration and the wall-clock budget', async () => {
     const server = testServer({ maxSessions: 2, maxSimNs: 5e9 });
     await tool(server, 'sim_open', blink);

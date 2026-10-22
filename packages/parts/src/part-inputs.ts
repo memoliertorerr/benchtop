@@ -76,6 +76,7 @@ export const PART_INPUTS: Readonly<Record<string, readonly PartInputSpec[]>> = {
   dht22: [channel('temperature', 'air temperature', '°C', -40, 80), channel('humidity', 'relative humidity', '%', 0, 100)],
   'hc-sr04': [value('distance to the object (≤ 0 or > 400: no echo)', 'cm'), channel('distance', 'the same, as a channel', 'cm')],
   mpu6050: MPU_CHANNELS.map((c) => (c === 'temp' ? channel(c, 'die temperature', '°C') : c.startsWith('a') ? channel(c, `acceleration along ${c[1]}`, 'g') : channel(c, `rotation rate about ${c[1]}`, '°/s'))),
+  'microsd-card': [value('the card in the socket: 1 inserted, 0 removed (it loses power)', 'boolean', 0, 1)],
   'ntc-temperature-sensor': [value('temperature', '°C', -55, 150)],
   'photoresistor-sensor': [value('illuminance', 'lux', 0)],
   'pir-motion-sensor': [press('motion: OUT goes high for the hold time')],

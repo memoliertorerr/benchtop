@@ -32,6 +32,15 @@ export const UNO_CHECKS: Record<string, (r: ExampleRun) => void> = {
     expect(r.serial('uno').trimEnd().split('\r\n').at(-1)).toBe('OUT = 4.00 V');
     expect(r.bench.problems().map((p) => p.code)).toContain('regulator-dropout');
   },
+  'sd-datalogger'(r) {
+    // BT90: a new log, a line every 500 ms with the pot's value; the card holds them
+    r.runTo(1100);
+    const serial = r.serial('uno');
+    expect(serial).toContain('New DATALOG.CSV');
+    expect(serial.match(/logged \d+,512\r\n/g)).toHaveLength(3);
+    const log = r.bench.storage('sd')?.read('DATALOG.CSV');
+    expect(log === undefined ? '' : new TextDecoder().decode(log)).toMatch(/^ms,value\r\n(\d+,512\r\n){3}$/);
+  },
   blink(r) {
     r.runTo(2000);
     expect(flips(r, 'led1')).toBeGreaterThanOrEqual(3);

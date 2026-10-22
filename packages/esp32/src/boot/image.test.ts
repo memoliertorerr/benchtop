@@ -9,7 +9,7 @@ const load = (name: string): Uint8Array => readFixture(`fixtures/firmware/esp32/
 
 describe('parseEspImage', () => {
   it('accepts every committed ESP32 app image: magic, chip 0, entry in IRAM, checksum, appended SHA-256', () => {
-    expect(BINS.sort()).toEqual(['adc-read.bin', 'blink.bin', 'crc-bench.bin', 'dac-sine.bin', 'debug-demo.bin', 'gpio-input.bin', 'gpio-interrupt.bin', 'i2c-ds1307.bin', 'i2c-remap.bin', 'i2c-scan.bin', 'ledc-fade.bin', 'mic-level.bin', 'neopixel.bin', 'oled-clock.bin', 'pwm-fader.bin', 'rainbow-ring.bin', 'restart-loop.bin', 'rmt-long.bin', 'serial-echo.bin', 'serial-hello.bin', 'spi-loopback.bin', 'tft-demo.bin', 'timekeeping.bin', 'uart-chat.bin', 'uart-relay.bin', 'wdt-trip.bin']);
+    expect(BINS.sort()).toEqual(['adc-read.bin', 'blink.bin', 'crc-bench.bin', 'dac-sine.bin', 'debug-demo.bin', 'gpio-input.bin', 'gpio-interrupt.bin', 'i2c-ds1307.bin', 'i2c-remap.bin', 'i2c-scan.bin', 'ledc-fade.bin', 'mic-level.bin', 'neopixel.bin', 'oled-clock.bin', 'pwm-fader.bin', 'rainbow-ring.bin', 'restart-loop.bin', 'rmt-long.bin', 'sd-log.bin', 'serial-echo.bin', 'serial-hello.bin', 'spi-loopback.bin', 'tft-demo.bin', 'timekeeping.bin', 'uart-chat.bin', 'uart-relay.bin', 'wdt-trip.bin']);
     for (const name of BINS) {
       const bytes = load(name);
       const parsed = parseEspImage(bytes);

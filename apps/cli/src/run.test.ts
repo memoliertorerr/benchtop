@@ -186,6 +186,30 @@ describe('grammar', () => {
     expect(nobody.error).toMatch(/no part "nobody"/);
   }, 30_000);
 
+  it('file assertions (BT91): the form, usage errors, a pass and the failures on a microSD card', () => {
+    expect(parseAssertion('file sd LOG.TXT contains "line 2\\n" by 1s')).toMatchObject({ kind: 'file', part: 'sd', path: 'LOG.TXT', needle: 'line 2\n', by: 1e9 });
+    const card = runHeadless(
+      {
+        project: 'fixtures/projects/sd-log.json',
+        firmware: { uno: 'fixtures/firmware/uno/sd-log.hex' },
+        expect: ['file sd log.txt contains "line 2" by 1s', 'file sd DATA/A.CSV contains "0,512" by 1s', 'file sd LOG.TXT contains "line 3" by 1s', 'file sd MISSING.TXT contains "x" by 1s', 'file sd LOG.TXT contains "line 0" by 1ms'],
+        duration: '1s',
+      },
+      io(),
+    );
+    expect(card.exitCode).toBe(1);
+    expect(card.assertions.map((a) => [a.ok, a.detail.replace(/[\d.]+ (ms|µs|ns|s)/g, 'T')])).toEqual([
+      [true, 'seen at T'],
+      [true, 'seen at T'],
+      [false, "not seen by T: LOG.TXT (24 bytes) doesn't hold it"],
+      [false, 'not seen by T: no file MISSING.TXT'],
+      [false, 'seen at T, after T'],
+    ]);
+    const notCard = runHeadless({ project: 'fixtures/projects/sd-log.json', firmware: { uno: 'fixtures/firmware/uno/sd-log.hex' }, expect: ['file uno LOG.TXT contains "x" by 1s'] }, io());
+    expect(notCard.exitCode).toBe(2);
+    expect(notCard.error).toMatch(/not a part that keeps files/);
+  }, 30_000);
+
   it('run arguments', () => {
     expect(parseRunArgs(['p.json', '--firmware', 'uno=a.hex', '--expect', 'x', '--expect', 'y', '--duration', '1s', '--report', 'r.json'])).toEqual({
       project: 'p.json',

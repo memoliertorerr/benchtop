@@ -5,6 +5,9 @@ import { editor } from '../editor/app-store.ts';
 import { sim, simRunning } from '../sim/host.ts';
 import { CONTROLS, roundToStep, type SliderControl, sliderToValue, valueToSlider } from '../views/controls.ts';
 import { micState, startMic, stopMic } from './audio/mic.ts';
+import { lazyComponent } from './lazy.tsx';
+
+const CardControls = lazyComponent(() => import('./card/CardControls.tsx').then((m) => m.CardControls));
 
 /** The microphone's control (BT41): feed it from the computer's microphone while running. */
 function MicControl({ part }: { part: PartInstance }) {
@@ -50,6 +53,7 @@ function EnvSensorNote({ part }: { part: PartInstance }) {
 /** The Inspector's live controls for a part (light, temperature, motion …), if it has any. */
 export function PartControls({ part, defaults }: { part: PartInstance; defaults: Record<string, unknown> }) {
   if (part.type === 'microphone') return <MicControl part={part} />;
+  if (part.type === 'microsd-card') return <CardControls part={part} />;
   if (ENV_SENSOR_TYPES.has(part.type) && part.props.followEnvironment !== false && editor.doc.value.parts.some((p) => p.type === 'environment')) {
     return <EnvSensorNote part={part} />;
   }

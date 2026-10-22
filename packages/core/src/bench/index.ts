@@ -3,3 +3,4 @@ export * from './pacer.ts';
 export * from './scheduler.ts';
 export * from './assemble.ts';
 export * from './signature.ts';
+export * from './storage.ts';

@@ -81,6 +81,7 @@ import { buildNetlist, type Netlist } from '../netlist/netlist.ts';
 import { type ResolverLink, SignalResolver } from '../signals/resolver.ts';
 import { Scheduler } from './scheduler.ts';
 import { firmwareKey, propsKey } from './signature.ts';
+import { type PartStorage, storageOf } from './storage.ts';
 
 /** What the bench needs from outside core: part definitions and MCU implementations. */
 /** How `runUntil`/`runFor` ended: at the requested time, or at a debugger breakpoint. */
@@ -995,6 +996,15 @@ export class Bench {
     const slot = this.mcuSlot(boardPartId);
     slot.mcu.uart(0)?.receive(bytes);
     for (const byte of bytes) this.logUart(slot, 0, BUS.UART_RX, byte);
+  }
+
+  /**
+   * BT89: the files a part holds (a microSD card's), or undefined when its model keeps none
+   * (see storage.ts: a model carries `storage`).
+   */
+  storage(partId: string): PartStorage | undefined {
+    const slot = this.parts.get(partId);
+    return slot === undefined ? undefined : storageOf(slot.model);
   }
 
   /** BT86: the I2C, SPI and UART traffic this bench carried (`decodeBus` groups it). */

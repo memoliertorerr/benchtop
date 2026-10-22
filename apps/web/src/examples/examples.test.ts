@@ -31,7 +31,7 @@ const manifest = JSON.parse(readFileSync(join(REPO_ROOT, 'fixtures', 'firmware',
 describe('examples gallery (BT38, BT43, BT45, BT47, BT56)', () => {
   it('has unique ids, the planned categories and examples', () => {
     expect(new Set(EXAMPLES.map((e) => e.id)).size).toBe(EXAMPLES.length);
-    expect([...CATEGORIES]).toEqual(['Basics', 'Displays', 'Sensors', 'Motors', 'Sound', 'Power', 'Environment', 'ESP32', 'Raspberry Pi Pico', 'Raspberry Pi Pico 2', 'Mega', 'Two boards']);
+    expect([...CATEGORIES]).toEqual(['Basics', 'Displays', 'Sensors', 'Motors', 'Sound', 'Power', 'Storage', 'Environment', 'ESP32', 'Raspberry Pi Pico', 'Raspberry Pi Pico 2', 'Mega', 'Two boards']);
     for (const e of EXAMPLES) expect(CATEGORIES).toContain(e.category);
     const planned = [
       'blink', 'button', 'fade', 'serial-echo', 'potentiometer', 'lcd1602', 'oled', 'servo', 'neopixel', 'dht22', 'hc-sr04', 'esp32-blink', 'esp32-serial-hello',

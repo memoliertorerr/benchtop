@@ -75,7 +75,7 @@ sleep and PSRAM; WiFi and Bluetooth are out of scope.
 and ~40 parts: LEDs, RGB LEDs, buttons, switches, potentiometers, LCD1602/2004 (parallel and
 I2C), SSD1306 OLED, an ILI9341 color TFT (SPI), 7-segment displays, LED bar graph, keypad, rotary encoder, joystick, DIP
 switches, an IR remote and receiver, PIR/LDR/NTC/sound sensors, DHT22, HC-SR04, DS1307,
-MPU-6050, a load cell with an HX711, flame and MQ-2 gas modules, servo, steppers and an A4988
+MPU-6050, a microSD card module, a load cell with an HX711, flame and MQ-2 gas modules, servo, steppers and an A4988
 driver (microstepping),
 NeoPixel strips/rings/matrices, buzzers, a speaker and a microphone, a relay, and power parts —
 9 V, AA, LiPo and coin-cell batteries, a bench supply you turn while it runs, a ground symbol and
@@ -110,6 +110,11 @@ and the ESP32's APP_CPU (breakpoints, stepping, registers, memory, source lines 
 remote stub for the Uno; and a headless runner for CI that runs a circuit with scripted inputs
 and asserts on serial output and pins.
 
+**microSD card** — a card module the boards' SD libraries (Arduino's SD, the ESP32 core's SD,
+arduino-pico's SdFat) read and write as a real 8 GB SDHC card: FAT32, long names, directories.
+Select it to see the files a sketch wrote — preview, download, delete, upload — and to choose the
+files it starts with, which travel with the project.
+
 ## Getting started
 
 Requires **Node 24**.
@@ -119,7 +124,7 @@ npm install
 npm run dev          # the editor at http://localhost:5173
 ```
 
-**Examples…** opens 79 ready-to-run circuits, each with its sketch, which you can change and
+**Examples…** opens 80 ready-to-run circuits, each with its sketch, which you can change and
 run again (Basics: blink, button, fade, traffic light, a Simon game, serial echo, a Nano on a
 breadboard; Displays: LCDs,
 an LCD thermometer, OLED and an OLED clock, a color TFT, 7-segment, bar graph, NeoPixels; Sensors: DHT22,
@@ -127,7 +132,7 @@ HC-SR04 and a distance meter, DS1307, MPU-6050, an IR remote, a kitchen scale, a
 gas meter, keypad, rotary encoder; Motors: servo sweep, a
 servo knob, a keypad lock, a stepper, an A4988 stepper driver, a relay; Sound: buzzers, a speaker melody, PCM through PWM,
 a microphone pitch meter, a VU meter; Power: a regulator meter (turn the bench supply and watch a
-7805 drop out); Environment: a gas alarm with an extractor fan, a PIR
+7805 drop out); Storage: an SD card datalogger; Environment: a gas alarm with an extractor fan, a PIR
 hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, a PWM fader, NeoPixel, a
 rainbow ring, an OLED clock, a color TFT, the DAC, the microphone, an I2C scan; Raspberry Pi Pico:
 blink, a potentiometer, PWM steps, an OLED, a color TFT, both cores at once; Raspberry Pi Pico 2: the same, NeoPixels
@@ -260,7 +265,8 @@ Other clients take the same command in their JSON configuration:
 
 The tools: the part catalog (`list_parts`, `describe_part`), `validate_project`,
 `run_simulation`, `run_tests`, live sessions (`sim_open`, `sim_run`, `sim_input`, `sim_serial`,
-`sim_state`, `sim_bus` — the decoded I2C/SPI/UART traffic, `sim_update` — edit the circuit while
+`sim_state`, `sim_bus` — the decoded I2C/SPI/UART traffic, `sim_files` — a microSD card's
+files, `sim_update` — edit the circuit while
 it runs, `sim_reset`, `sim_close`, `sim_list`), the gallery (`list_examples`,
 `open_example`, and each example as a resource), debugging any board in a session (`debug_registers`,
 `debug_memory`, `debug_breakpoints`, `debug_step`), `compile_sketch` (with your arduino-cli)

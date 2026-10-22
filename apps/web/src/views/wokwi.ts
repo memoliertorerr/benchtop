@@ -360,6 +360,7 @@ const SPECS: Readonly<Record<string, WokwiSpec>> = {
   'hc-sr04': { tag: 'wokwi-hc-sr04', load: () => import('@wokwi/elements/dist/esm/hc-sr04-element.js') },
   ds1307: { tag: 'wokwi-ds1307', load: () => import('@wokwi/elements/dist/esm/ds1307-element.js') },
   mpu6050: { tag: 'wokwi-mpu6050', load: () => import('@wokwi/elements/dist/esm/mpu6050-element.js') },
+  'microsd-card': { tag: 'wokwi-microsd-card', load: () => import('@wokwi/elements/dist/esm/microsd-card-element.js') },
   'led-bar-graph': {
     tag: 'wokwi-led-bar-graph',
     load: () => import('@wokwi/elements/dist/esm/led-bar-graph-element.js'),
