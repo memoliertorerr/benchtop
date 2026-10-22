@@ -1,5 +1,6 @@
 export * from './analog/index.ts';
 export * from './bench/index.ts';
+export * from './bus-log/index.ts';
 export * from './check/index.ts';
 export * from './contracts/index.ts';
 export * from './debug/index.ts';

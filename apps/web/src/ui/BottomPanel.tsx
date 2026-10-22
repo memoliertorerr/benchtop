@@ -16,7 +16,7 @@ import { drcViolations, viewMode } from '../pcb/mode.ts';
 import { lazyComponent } from './lazy.tsx';
 import { SerialPlotter } from './plotter/SerialPlotter.tsx';
 
-const TABS = ['Serial', 'Plotter', 'Code', 'Problems', 'Logic analyzer', 'Debugger'] as const;
+const TABS = ['Serial', 'Plotter', 'Code', 'Problems', 'Logic analyzer', 'Bus', 'Debugger'] as const;
 
 /** The Code tab is open (the shell gives the panel more height for it). */
 export const codeTabOpen = signal(false);
@@ -38,6 +38,8 @@ function copyLocation(text: string): void {
 
 /** BT59: the PCB's design rule check rows (pcb/DrcRows.tsx), loaded with the PCB view's chunk. */
 const DrcRows = lazyComponent(() => import('../pcb/DrcRows.tsx').then((m) => m.DrcRows));
+/** BT87: the Bus tab, in its own chunk (it loads the decoder's store with it). */
+const BusPanel = lazyComponent(() => import('./bus/BusPanel.tsx').then((m) => m.BusPanel));
 
 function ProblemsList() {
   const problems = simProblems.value;
@@ -126,6 +128,7 @@ export function BottomPanel() {
       {tab === 'Code' && <CodePanel />}
       {tab === 'Problems' && <ProblemsList />}
       {tab === 'Logic analyzer' && <LogicAnalyzer />}
+      {tab === 'Bus' && <BusPanel />}
       {tab === 'Debugger' && <Debugger />}
     </section>
   );

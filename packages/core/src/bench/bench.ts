@@ -42,9 +42,16 @@
  * timers cancelled with the old bench's own (scheduler owner tags). While a carried bench
  * builds, net changes reach nobody; once it settled, every MCU pin and listener sees its net's
  * state once, so kept MCUs and models see the edit, not the build.
+ *
+ * The bus log (BT86). Every I2C and SPI device is attached through a logging proxy made once per
+ * attachment (it records each call with `now()`, then forwards it); an SPI device's chip-select
+ * edges come from a listener on its CS net; every byte a board's UART sends, or is handed
+ * (`sendSerial`, a UART on the other board), is recorded too. `busLog()` holds them; a rebuilt
+ * bench starts a new log.
  */
 
 import { buildIslands } from '../analog/islands.ts';
+import { BUS, BusLog, type BusSource } from '../bus-log/log.ts';
 import { type CheckedBoardPin, type CheckedPart, DynamicChecks } from '../check/dynamic.ts';
 import { staticProblems } from '../check/static.ts';
 import { LEVEL_X, LEVEL_Z, MAX_PROBES, ProbeRing } from '../probe/ring.ts';
@@ -372,6 +379,72 @@ interface McuSlot {
   readonly serialListeners: ((bytes: Uint8Array) => void)[];
   /** The bus controllers' pins as last seen ("sda,scl" / "sck,mosi,miso"), by I2C then SPI index. */
   readonly busPins: string[];
+  /** BT86: each UART port's bus-log sources (−1: no such port), TX then RX. */
+  readonly uartTx: Int32Array;
+  readonly uartRx: Int32Array;
+}
+
+/** BT86: an I2C device as its controller sees it — every call recorded, then forwarded. */
+class LoggedI2c implements I2cDevice {
+  private readonly inner: I2cDevice;
+  private readonly bench: Bench;
+  private readonly log: BusLog;
+  readonly source: BusSource;
+
+  constructor(inner: I2cDevice, bench: Bench, log: BusLog, source: BusSource) {
+    this.inner = inner;
+    this.bench = bench;
+    this.log = log;
+    this.source = source;
+  }
+
+  get address(): number {
+    return this.inner.address;
+  }
+
+  start(read: boolean): boolean {
+    const ack = this.inner.start(read);
+    this.log.push(this.bench.now(), BUS.I2C_START, this.source.id, (this.inner.address & 0x7f) | (read ? 0x80 : 0), ack ? 1 : 0);
+    return ack;
+  }
+
+  write(byte: number): boolean {
+    const ack = this.inner.write(byte);
+    this.log.push(this.bench.now(), BUS.I2C_WRITE, this.source.id, byte & 0xff, ack ? 1 : 0);
+    return ack;
+  }
+
+  read(ack: boolean): number {
+    const value = this.inner.read(ack);
+    this.log.push(this.bench.now(), BUS.I2C_READ, this.source.id, value & 0xff, ack ? 1 : 0);
+    return value;
+  }
+
+  stop(): void {
+    this.inner.stop();
+    this.log.push(this.bench.now(), BUS.I2C_STOP, this.source.id, 0, 0);
+  }
+}
+
+/** BT86: an SPI device as its controller sees it. */
+class LoggedSpi implements SpiDevice {
+  private readonly inner: SpiDevice;
+  private readonly bench: Bench;
+  private readonly log: BusLog;
+  readonly source: BusSource;
+
+  constructor(inner: SpiDevice, bench: Bench, log: BusLog, source: BusSource) {
+    this.inner = inner;
+    this.bench = bench;
+    this.log = log;
+    this.source = source;
+  }
+
+  transfer(mosi: number): number {
+    const miso = this.inner.transfer(mosi);
+    this.log.push(this.bench.now(), BUS.SPI_XFER, this.source.id, mosi & 0xff, miso & 0xff);
+    return miso;
+  }
 }
 
 interface ProbeSlot {
@@ -392,6 +465,8 @@ interface I2cAttachment {
   readonly sda: number;
   readonly scl: number;
   readonly device: I2cDevice;
+  /** What the controller gets (BT86). */
+  readonly proxy: LoggedI2c;
 }
 
 interface SpiAttachment {
@@ -401,6 +476,7 @@ interface SpiAttachment {
   readonly miso: number;
   readonly cs: number;
   readonly device: SpiDevice;
+  readonly proxy: LoggedSpi;
 }
 
 export class Bench {
@@ -415,6 +491,8 @@ export class Bench {
   private carriedOver = false;
   /** Boards whose MCU came over from the previous bench, running. */
   private readonly keptBoards = new Set<string>();
+  /** BT86: the I2C, SPI and UART traffic. */
+  private readonly log = new BusLog();
   private current: McuSlot | null = null;
   /** The MCU whose run just stopped at a breakpoint (read and cleared by the run loop). */
   private breakSlot: McuSlot | null = null;
@@ -914,7 +992,20 @@ export class Bench {
 
   /** Sends bytes to a board's UART 0 receiver. */
   sendSerial(boardPartId: string, bytes: Uint8Array): void {
-    this.mcuSlot(boardPartId).mcu.uart(0)?.receive(bytes);
+    const slot = this.mcuSlot(boardPartId);
+    slot.mcu.uart(0)?.receive(bytes);
+    for (const byte of bytes) this.logUart(slot, 0, BUS.UART_RX, byte);
+  }
+
+  /** BT86: the I2C, SPI and UART traffic this bench carried (`decodeBus` groups it). */
+  busLog(): BusLog {
+    return this.log;
+  }
+
+  /** A byte on a board's UART port, into the bus log. */
+  private logUart(slot: McuSlot, port: number, kind: number, byte: number): void {
+    const source = kind === BUS.UART_TX ? slot.uartTx[port] : slot.uartRx[port];
+    if (source >= 0) this.log.push(this.now(), kind, source, byte & 0xff, 0);
   }
 
   /** Visual states of the parts that called `invalidate()` since the previous frame. */
@@ -999,8 +1090,8 @@ export class Bench {
     if (this.running) throw new Error('carry() inside a run');
     if (this.carriedOver) throw new Error('this bench was already carried over');
     this.flushSerial();
-    for (const [attachment, controller] of this.i2cAttached) controller.detach(attachment.device);
-    for (const [attachment, controller] of this.spiAttached) controller.detach(attachment.device);
+    for (const [attachment, controller] of this.i2cAttached) controller.detach(attachment.proxy);
+    for (const [attachment, controller] of this.spiAttached) controller.detach(attachment.proxy);
     this.i2cAttached.clear();
     this.spiAttached.clear();
     this.i2cBuses.clear();
@@ -1049,7 +1140,17 @@ export class Bench {
       serialLen: 0,
       serialListeners: [],
       busPins: [],
+      uartTx: new Int32Array(MAX_UARTS).fill(-1),
+      uartRx: new Int32Array(MAX_UARTS).fill(-1),
     };
+    for (let i = 0; i < MAX_UARTS; i++) {
+      const uart = mcu.uart(i);
+      if (uart === undefined) continue;
+      const name = i === 0 ? 'Serial' : `Serial${i}`;
+      const baud = (): number => uart.baud?.() ?? 0;
+      slot.uartTx[i] = this.log.addSource({ bus: 'uart', board: partId, part: null, label: `${partId} ${name} TX`, baud, direction: 'tx' }).id;
+      slot.uartRx[i] = this.log.addSource({ bus: 'uart', board: partId, part: null, label: `${partId} ${name} RX`, baud, direction: 'rx' }).id;
+    }
     port.bench = this;
     port.slot = slot;
     const logicVolts = MCU_LOGIC_VOLTS[board.mcu];
@@ -1128,7 +1229,10 @@ export class Bench {
       });
       for (let i = 0; i < MAX_UARTS; i++) {
         const uart = mcu.uart(i);
-        if (uart?.pins !== undefined) uart.onTransmit((byte) => port.bench.forwardUart(port.slot as McuSlot, uart, byte));
+        if (uart === undefined) continue;
+        const index = i;
+        uart.onTransmit((byte) => port.bench.logUart(port.slot as McuSlot, index, BUS.UART_TX, byte));
+        if (uart.pins !== undefined) uart.onTransmit((byte) => port.bench.forwardUart(port.slot as McuSlot, uart, byte));
       }
     }
     this.mcus.push(slot);
@@ -1194,7 +1298,9 @@ export class Bench {
   }
 
   private addI2c(partId: string, sda: string, scl: string, device: I2cDevice): void {
-    const attachment = { partId, sda: this.netOfPart(partId, sda), scl: this.netOfPart(partId, scl), device };
+    const source = this.log.addSource({ bus: 'i2c', board: '', part: partId, label: `${partId} (I2C)` });
+    const proxy = new LoggedI2c(device, this, this.log, source);
+    const attachment: I2cAttachment = { partId, sda: this.netOfPart(partId, sda), scl: this.netOfPart(partId, scl), device, proxy };
     this.i2c.push(attachment);
     if (!this.building) this.attachI2cDevice(attachment);
   }
@@ -1207,7 +1313,18 @@ export class Bench {
       miso: this.netOfPart(partId, pins.miso),
       cs: this.netOfPart(partId, pins.cs),
       device,
+      proxy: new LoggedSpi(device, this, this.log, this.log.addSource({ bus: 'spi', board: '', part: partId, label: `${partId} (SPI)` })),
     };
+    // Its chip-select edges frame its transfers in the log.
+    const log = this.log;
+    const id = attachment.proxy.source.id;
+    let selected = false;
+    (this.netListeners[attachment.cs] ??= []).push((state) => {
+      const low = state.level === 0;
+      if (low === selected) return;
+      selected = low;
+      log.push(this.now(), low ? BUS.SPI_SELECT : BUS.SPI_DESELECT, id, 0, 0);
+    });
     this.spi.push(attachment);
     if (!this.building) this.attachSpiDevice(attachment);
   }
@@ -1248,8 +1365,12 @@ export class Bench {
             );
           }
           onBus.push(attachment);
-          controller.attach(attachment.device);
+          controller.attach(attachment.proxy);
           this.i2cAttached.set(attachment, controller);
+          const source = attachment.proxy.source;
+          source.board = slot.partId;
+          source.label = `${attachment.partId} (I2C 0x${address.toString(16).padStart(2, '0')})`;
+          this.log.renamed();
           return;
         }
       }
@@ -1271,8 +1392,10 @@ export class Bench {
         const misoUnwired = this.netlist.pinsOfNet(attachment.miso).length <= 1;
         if (nets.get(sck) === attachment.sck && nets.get(mosi) === attachment.mosi && (misoUnwired || nets.get(miso) === attachment.miso)) {
           const cs = this.resolver.state(attachment.cs);
-          controller.attach(attachment.device, () => cs.level === 0);
+          controller.attach(attachment.proxy, () => cs.level === 0);
           this.spiAttached.set(attachment, controller);
+          attachment.proxy.source.board = slot.partId;
+          this.log.renamed();
           return;
         }
       }
@@ -1332,8 +1455,8 @@ export class Bench {
 
   /** Detaches every bus device and attaches it again where its nets now meet a controller. */
   private rebindBuses(): void {
-    for (const [attachment, controller] of this.i2cAttached) controller.detach(attachment.device);
-    for (const [attachment, controller] of this.spiAttached) controller.detach(attachment.device);
+    for (const [attachment, controller] of this.i2cAttached) controller.detach(attachment.proxy);
+    for (const [attachment, controller] of this.spiAttached) controller.detach(attachment.proxy);
     this.i2cAttached.clear();
     this.spiAttached.clear();
     this.i2cBuses.clear();
@@ -1463,7 +1586,11 @@ export class Bench {
             problem('warning', 'uart-baud-mismatch', `${from.partId} sends at ${Math.round(a)} baud but ${to.partId} receives at ${Math.round(b)}: real UARTs would read garbage.`, [from.partId, to.partId]),
           );
         }
-        this.scheduler.schedule(this.now(), () => rxPort.receive(Uint8Array.of(byte)));
+        const index = j;
+        this.scheduler.schedule(this.now(), () => {
+          rxPort.receive(Uint8Array.of(byte));
+          this.logUart(to, index, BUS.UART_RX, byte);
+        });
       }
     }
   }

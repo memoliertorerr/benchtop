@@ -5,6 +5,7 @@
     "uno": "../../firmware/uno/lcd-i2c.hex"
   },
   "expect": [
-    "lcd lcd1 row 0 is \"Hello, Benchtop!\" at 1200ms"
+    "lcd lcd1 row 0 is \"Hello, Benchtop!\" at 1200ms",
+    "bus i2c lcd1 wrote 3c by 200ms"
   ]
 }

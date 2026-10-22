@@ -108,6 +108,27 @@ describe('live sessions', () => {
     expect((await tool(server, 'sim_update', { session, projectJson: { ...edited, parts: [{ id: 'BAD', type: 'led' }] } })).text).toMatch(/invalid project/);
   }, 30_000);
 
+  it('sim_bus (BT88): the I2C LCD\'s writes and the serial text since the last call, filtered and capped', async () => {
+    const server = testServer();
+    const { session } = (await tool(server, 'sim_open', { project: 'fixtures/projects/lcd-i2c.json', firmware: { uno: 'fixtures/firmware/uno/lcd-i2c.hex' } })).value as { session: string };
+    await tool(server, 'sim_run', { session, duration: '200ms' });
+    type Tx = { t: string; bus: string; source: string; part?: string; address?: string; read?: boolean; bytes?: string; direction?: string; text?: string; count: number };
+    const all = (await tool(server, 'sim_bus', { session, max: 1000 })).value as { transactions: Tx[]; more?: number };
+    const i2c = all.transactions.filter((t) => t.bus === 'i2c');
+    expect(i2c.length).toBeGreaterThan(20);
+    expect(i2c[0]).toMatchObject({ source: 'lcd1 (I2C 0x27)', part: 'lcd1', address: '0x27', read: false, count: 1 });
+    expect(all.transactions.filter((t) => t.bus === 'uart').map((t) => t.text).join('')).toContain('nack=2\\r\\n');
+    // nothing new without running; then only what the next run made
+    expect(((await tool(server, 'sim_bus', { session })).value as { transactions: Tx[] }).transactions).toEqual([]);
+    await tool(server, 'sim_run', { session, duration: '100ms' });
+    const uart = (await tool(server, 'sim_bus', { session, bus: 'uart' })).value as { transactions: Tx[] };
+    expect(uart.transactions.every((t) => t.bus === 'uart')).toBe(true);
+    await tool(server, 'sim_run', { session, duration: '900ms' }); // the sketch writes "t=1" at 1 s
+    const capped = (await tool(server, 'sim_bus', { session, part: 'lcd1', max: 3 })).value as { transactions: Tx[]; more?: number };
+    expect(capped.transactions).toHaveLength(3);
+    expect(capped.more).toBeGreaterThan(0);
+  }, 30_000);
+
   it('limits: the session count, the duration and the wall-clock budget', async () => {
     const server = testServer({ maxSessions: 2, maxSimNs: 5e9 });
     await tool(server, 'sim_open', blink);

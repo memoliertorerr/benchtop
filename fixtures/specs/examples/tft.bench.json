@@ -6,6 +6,7 @@
   },
   "expect": [
     "serial contains \"drawn\" by 1s",
-    "serial matches /^0\\r?$/m by 1100ms"
+    "serial matches /^0\\r?$/m by 1100ms",
+    "bus spi tft sent 2a by 500ms"
   ]
 }

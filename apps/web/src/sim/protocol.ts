@@ -6,6 +6,7 @@
  */
 
 import type {
+  BusTransaction,
   FirmwareImage,
   LineTableData,
   MemorySpace,
@@ -18,7 +19,7 @@ import type {
   VisualState,
 } from '@benchtop/core';
 
-export const PROTOCOL_VERSION = 12;
+export const PROTOCOL_VERSION = 13;
 
 export type ToSim =
   | { type: 'hello'; protocol: number }
@@ -56,6 +57,11 @@ export type ToSim =
   /** Record a pin's net under `key` (kept across reloads until removed). */
   | { type: 'addProbe'; key: string; pin: PinRef }
   | { type: 'removeProbe'; key: string }
+  /**
+   * BT87: the Bus tab is open (on) or closed: while on, frames carry the bus transactions the
+   * worker decoded since the previous frame (from the log's oldest record when it turns on).
+   */
+  | { type: 'busWatch'; on: boolean }
   /** Debugger (BT24). Pause stops the run and reports where each debuggable board is. */
   | { type: 'debugPause' }
   | { type: 'debugStep'; board: string }
@@ -106,6 +112,21 @@ export interface ProbeChunk {
   restart: boolean;
 }
 
+/** BT87: a decoded bus transaction with its source's names (resolved in the worker). */
+export type BusRow = BusTransaction & { label: string; board: string; part: string | null; direction?: 'tx' | 'rx' };
+
+/** BT87: what a frame carries for the Bus tab. */
+export interface BusChunk {
+  /** Transactions completed since the previous frame, in order. */
+  rows: BusRow[];
+  /** Transactions still open (they replace the previous frame's). */
+  pending: BusRow[];
+  /** Records the worker's log overwrote before they were decoded. */
+  lost: number;
+  /** Time restarted (a load or reset): drop what was shown. */
+  restart: boolean;
+}
+
 export interface ProblemCounts {
   error: number;
   warning: number;
@@ -135,7 +156,7 @@ export type FromSim =
    * ring). A speaker's state carries its audio blocks (`audio`, `audioT`): a stream, never put
    * in the ring, which keeps only each part's latest state.
    */
-  | { type: 'frame'; t: Nanos; parts: [string, VisualState][]; stats: FrameStats; running: boolean; probes: ProbeChunk[] }
+  | { type: 'frame'; t: Nanos; parts: [string, VisualState][]; stats: FrameStats; running: boolean; probes: ProbeChunk[]; bus?: BusChunk }
   /** Bytes a board's UART 0 sent; `t` is the simulated time (ns) when they were flushed. */
   | { type: 'serial'; board: string; bytes: Uint8Array; t: Nanos }
   /**

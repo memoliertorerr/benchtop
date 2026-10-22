@@ -5,6 +5,7 @@
     "uno": "../../firmware/uno/ssd1306-adafruit.hex"
   },
   "expect": [
-    "serial contains \"FB:\" by 2s"
+    "serial contains \"FB:\" by 2s",
+    "bus i2c oled wrote 00 ae by 300ms"
   ]
 }

@@ -12,7 +12,7 @@
  * with carry-over (time, boards that keep running, unchanged parts' state), as the app does.
  */
 
-import { type Bench, type BenchRunResult, type DebugTables, discardCarry, type FirmwareImage, lineTableFromElf, type NetState, parseElf32, type Problem, type ProjectDoc, SymbolTable, type VisualState } from '@benchtop/core';
+import { type Bench, type BenchRunResult, BusDecoder, type BusLog, type BusTransaction, type DebugTables, discardCarry, type FirmwareImage, lineTableFromElf, type NetState, parseElf32, type Problem, type ProjectDoc, SymbolTable, type VisualState } from '@benchtop/core';
 import { type BenchRoms, buildBench, resolvePin, UsageError } from '../load.ts';
 
 /** Simulated time per run slice. */
@@ -91,6 +91,10 @@ export class Session {
   private readonly reported = new Set<string>();
   /** BT70: symbols and source lines per board whose firmware is an ELF. */
   readonly tables = new Map<string, DebugTables>();
+  /** BT88: bus transactions decoded since the last `takeBus`, and where the log was read to. */
+  private readonly busDecoder = new BusDecoder();
+  private busLog: BusLog | null = null;
+  private busSince = 0;
 
   constructor(init: SessionInit) {
     this.id = init.id;
@@ -339,8 +343,33 @@ export class Session {
     return fresh;
   }
 
+  /**
+   * BT88: the bus transactions completed since the last call (and those still open, `open`
+   * true), with their sources, and the records the log overwrote first. A new bench (an update)
+   * has a new log, read from its start.
+   */
+  takeBus(): { transactions: { tx: BusTransaction; label: string; board: string; part: string | null; direction?: 'tx' | 'rx'; open: boolean }[]; lost: number } {
+    const log = this.bench.busLog();
+    if (log !== this.busLog) {
+      this.busDecoder.reset();
+      this.busLog = log;
+      this.busSince = log.first;
+    }
+    const records = log.read(this.busSince);
+    this.busSince = records.from + records.times.length;
+    const done = this.busDecoder.feed(records, log.sources);
+    done.push(...this.busDecoder.flush(this.bench.now(), log.sources));
+    const view = (tx: BusTransaction, open: boolean) => {
+      const source = log.sources[tx.source];
+      return { tx, label: source?.label ?? `source ${tx.source}`, board: source?.board ?? '', part: source?.part ?? null, ...(source?.direction === undefined ? {} : { direction: source.direction }), open };
+    };
+    return { transactions: [...done.map((tx) => view(tx, false)), ...this.busDecoder.pending().map((tx) => view(tx, true))], lost: records.lost };
+  }
+
   reset(): void {
     this.bench.reset();
+    this.busSince = this.bench.busLog().written; // time starts over: what came before is gone
+    this.busDecoder.reset();
     for (const board of this.boards) {
       this.pending[board] = '';
       this.dropped[board] = 0;

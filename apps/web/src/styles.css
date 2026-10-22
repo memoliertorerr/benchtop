@@ -1908,6 +1908,95 @@ wokwi-ks2e-m-dc5[data-contacts='no'] {
   }
 }
 
+/* ── Bus tab (BT87) ──────────────────────────────────────────────────────────────────── */
+.bus {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.bus-list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--bg-sunken);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.bus-line {
+  display: grid;
+  grid-template-columns: 92px 44px minmax(120px, 220px) 1fr;
+  gap: 10px;
+  align-items: baseline;
+  width: 100%;
+  padding: 3px 10px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.bus-line:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.bus-open .bus-line {
+  opacity: 0.65;
+}
+
+.bus-time {
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.bus-kind {
+  border-radius: 3px;
+  padding: 0 4px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.bus-kind-i2c {
+  background: color-mix(in srgb, #2f6fd8 25%, transparent);
+}
+
+.bus-kind-spi {
+  background: color-mix(in srgb, #e9842c 25%, transparent);
+}
+
+.bus-kind-uart {
+  background: color-mix(in srgb, #2ea55a 25%, transparent);
+}
+
+.bus-source {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+
+.bus-summary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bus-dump {
+  margin: 0;
+  padding: 6px 10px 8px 146px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 11px;
+  white-space: pre;
+  overflow-x: auto;
+}
+
 /* ── Serial plotter (BT44) ───────────────────────────────────────────────────────────── */
 .plotter {
   display: flex;

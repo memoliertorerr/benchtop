@@ -329,6 +329,50 @@ export const simUpdate: Tool<SimContext> = {
   },
 };
 
+const hexBytes = (bytes: readonly number[]): string => bytes.map((v) => v.toString(16).padStart(2, '0')).join(' ');
+const uartText = (bytes: readonly number[]): string => bytes.map((v) => (v >= 0x20 && v < 0x7f ? String.fromCharCode(v) : v === 10 ? '\\n' : v === 13 ? '\\r' : `\\x${v.toString(16).padStart(2, '0')}`)).join('');
+
+export const simBus: Tool<SimContext> = {
+  name: 'sim_bus',
+  title: 'Read the bus traffic',
+  description:
+    'The I2C, SPI and UART transactions an open session\'s sketch made with the parts since the last call (or since it opened), decoded from the bench\'s bus log: I2C — address, read or write, the bytes and how many the device NACKed; SPI — one frame per chip-select, MOSI and MISO bytes; UART — each burst of bytes a board sent (tx) or was handed (rx), as text. Times are simulated. Returns the newest "max" (default 100) after the filters ("bus": i2c, spi or uart; "part": a device\'s part id or a board id), with how many more there were. Only traffic that reaches a part on the bench is seen: an I2C address nothing answers (a scan\'s NACKs) isn\'t.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      session: SESSION,
+      bus: { type: 'string', enum: ['i2c', 'spi', 'uart'] },
+      part: { type: 'string', maxLength: 64, description: 'Only this device\'s transactions (or, for UART, this board\'s).' },
+      max: { type: 'integer', minimum: 1, maximum: 1000 },
+    },
+    required: ['session'],
+    additionalProperties: false,
+  },
+  annotations: { readOnlyHint: true, openWorldHint: false },
+  run(args, context) {
+    const session = context.sessions.get(args.session as string);
+    const { transactions, lost } = session.takeBus();
+    const max = (args.max ?? 100) as number;
+    const shown = transactions.filter(({ tx, part, board }) => (args.bus === undefined || tx.bus === args.bus) && (args.part === undefined || part === args.part || (part === null && board === args.part)));
+    const kept = shown.slice(Math.max(0, shown.length - max));
+    return {
+      session: session.id,
+      now: timeText(session.bench.now()),
+      transactions: kept.map(({ tx, label, board, part, direction, open }) => {
+        const base = { t: timeText(tx.t), bus: tx.bus, source: label, board, ...(part === null ? {} : { part }), count: tx.count, ...(open ? { open: true } : {}) };
+        if (tx.bus === 'i2c') {
+          const nacks = tx.read ? 0 : tx.acks.filter((a) => !a).length;
+          return { ...base, address: tx.address < 0 ? null : `0x${tx.address.toString(16).padStart(2, '0')}`, read: tx.read, ack: tx.ack, bytes: hexBytes(tx.bytes), ...(nacks > 0 ? { nacks } : {}) };
+        }
+        if (tx.bus === 'spi') return { ...base, mosi: hexBytes(tx.mosi), miso: hexBytes(tx.miso), framed: tx.framed };
+        return { ...base, direction, text: uartText(tx.bytes) };
+      }),
+      ...(shown.length > kept.length ? { more: shown.length - kept.length } : {}),
+      ...(lost > 0 ? { lost } : {}),
+    };
+  },
+};
+
 export const simClose: Tool<SimContext> = {
   name: 'sim_close',
   title: 'Close a live simulation',
@@ -352,4 +396,4 @@ export const simList: Tool<SimContext> = {
   },
 };
 
-export const SIM_TOOLS: readonly Tool<SimContext>[] = [simOpen, simRun, simInput, simSerial, simState, simUpdate, simReset, simClose, simList];
+export const SIM_TOOLS: readonly Tool<SimContext>[] = [simOpen, simRun, simInput, simSerial, simState, simBus, simUpdate, simReset, simClose, simList];

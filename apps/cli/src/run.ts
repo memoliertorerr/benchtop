@@ -19,6 +19,9 @@
  * - BT55: `env <gas|temperature|humidity|light|sound> at <part> is <v> ±<tol> at <time>` (or
  *   `>`, `<`, `>=`, `<=` <v>): the environment's value at a part that sits in it (a sensor, a
  *   source, a body) — ppm, °C, %RH, lux, dB.
+ * - BT88: `bus i2c <part> wrote|read <hex bytes> by <time>` and `bus spi <part> sent <hex bytes>
+ *   by <time>`: some transaction with that part (BT86's bus log) carried those bytes in a row —
+ *   an I2C write or read, an SPI frame's MOSI — by that time (when the transaction ended).
  * - Script: an array of steps or { steps: [...], expect: [...] }. A step is { at, part, input }
  *   (a part input), { at, part, set: { <channel>: <number|boolean>, … } } (BT55: channel inputs
  *   `set:<channel>=<v>`, booleans as 1/0 — an environment source's rate or on/off, a DHT22's
@@ -29,7 +32,7 @@
  * Exit codes: 0 every assertion passed, 1 one failed, 2 usage, load or run error.
  */
 
-import { type Bench, MAX_PROBES, type Mcu, type NetState, type PartInput, type Problem, type ProjectDoc, type VisualState } from '@benchtop/core';
+import { type Bench, BusDecoder, type BusTransaction, MAX_PROBES, type Mcu, type NetState, type PartInput, type Problem, type ProjectDoc, type VisualState } from '@benchtop/core';
 import { envSpecFor, sevenSegmentText } from '@benchtop/parts';
 import { buildBench, cachedRoms, type CliIo, loadFirmware, loadProject, parseJson, projectFromJson, readText, resolvePin, UsageError } from './load.ts';
 
@@ -113,7 +116,8 @@ export type Assertion =
   | { kind: 'digits'; text: string; part: string; expected: string; at: number }
   | { kind: 'frequency'; text: string; part: string; pin: string; hz: number; percent: number; from: number; to: number }
   | { kind: 'duty'; text: string; part: string; pin: string; percent: number; tolerance: number; from: number; to: number }
-  | { kind: 'env'; text: string; field: EnvField; part: string; op: EnvOp; value: number; tolerance: number; at: number };
+  | { kind: 'env'; text: string; field: EnvField; part: string; op: EnvOp; value: number; tolerance: number; at: number }
+  | { kind: 'bus'; text: string; bus: 'i2c' | 'spi'; part: string; how: 'wrote' | 'read' | 'sent'; bytes: number[]; by: number };
 
 type EnvField = 'gas' | 'temperature' | 'humidity' | 'light' | 'sound';
 type EnvOp = 'is' | '>' | '<' | '>=' | '<=';
@@ -121,7 +125,7 @@ const ENV_UNITS: Readonly<Record<EnvField, string>> = { gas: 'ppm', temperature:
 
 /** The time an assertion is decided at: its `at`, its `by`, or the end of its window. */
 export function decidedAt(a: Assertion): number {
-  if (a.kind === 'serial' || a.kind === 'match') return a.by;
+  if (a.kind === 'serial' || a.kind === 'match' || a.kind === 'bus') return a.by;
   if (a.kind === 'frequency' || a.kind === 'duty') return a.to;
   return a.at;
 }
@@ -149,6 +153,8 @@ const FORMS = [
   'pixel <part>[<i>] is #rrggbb at <time>',
   'digits <part> show "<text>" at <time>',
   'env <gas|temperature|humidity|light|sound> at <part> is <v> ±<tol> at <time> (or > < >= <= <v>)',
+  'bus i2c <part> wrote|read <hex bytes> by <time>',
+  'bus spi <part> sent <hex bytes> by <time>',
 ];
 
 const NUM = String.raw`(\d+(?:\.\d+)?)`;
@@ -167,6 +173,7 @@ const GRAMMAR = {
   pixel: re(String.raw`pixel\s+([^\s[]+)\[(\d+)\]\s+is\s+#([0-9a-fA-F]{6})\s+at\s+(\S+)`),
   digits: re(String.raw`digits\s+(\S+)\s+shows?\s+${QUOTED}\s+at\s+(\S+)`),
   env: re(String.raw`env\s+(gas|temperature|humidity|light|sound)\s+at\s+(\S+)\s+(?:is\s+(-?\d+(?:\.\d+)?)${PM}${NUM}|(>=|<=|>|<)\s*(-?\d+(?:\.\d+)?))\s+at\s+(\S+)`),
+  bus: re(String.raw`bus\s+(i2c|spi)\s+(\S+)\s+(wrote|read|sent)\s+((?:[0-9a-fA-F]{2}\s+)*[0-9a-fA-F]{2})\s+by\s+(\S+)`),
 };
 
 /** A regex from `serial matches /…/flags`: i, m, s and u only (g and y would make it stateful). */
@@ -212,7 +219,31 @@ export function parseAssertion(text: string): Assertion {
     if (m[3] !== undefined) return { kind: 'env', text: t, field, part: m[2], op: 'is', value: Number(m[3]), tolerance: Number(m[4]), at: parseTime(m[7]) };
     return { kind: 'env', text: t, field, part: m[2], op: m[5] as EnvOp, value: Number(m[6]), tolerance: 0, at: parseTime(m[7]) };
   }
+  if ((m = GRAMMAR.bus.exec(t)) !== null) {
+    const bus = m[1] as 'i2c' | 'spi';
+    const how = m[3] as 'wrote' | 'read' | 'sent';
+    if (bus === 'i2c' && how === 'sent') throw new UsageError(`${t}: an I2C transaction "wrote" or "read" its bytes`);
+    if (bus === 'spi' && how !== 'sent') throw new UsageError(`${t}: an SPI frame "sent" its bytes`);
+    return { kind: 'bus', text: t, bus, part: m[2], how, bytes: m[4].split(/\s+/).map((h) => Number.parseInt(h, 16)), by: parseTime(m[5]) };
+  }
   throw new UsageError(`not an assertion: ${t} (expected one of: ${FORMS.join(' · ')})`);
+}
+
+/** Whether `bytes` holds `seq` in a row. */
+function containsRun(bytes: readonly number[], seq: readonly number[]): boolean {
+  outer: for (let i = 0; i + seq.length <= bytes.length; i++) {
+    for (let k = 0; k < seq.length; k++) if (bytes[i + k] !== seq[k]) continue outer;
+    return true;
+  }
+  return false;
+}
+
+/** BT88: whether a transaction with `part` (the source's part) satisfies a bus assertion. */
+function busMatches(a: Extract<Assertion, { kind: 'bus' }>, tx: BusTransaction, part: string | null): boolean {
+  if (part !== a.part || tx.bus !== a.bus) return false;
+  if (tx.bus === 'i2c') return tx.read === (a.how === 'read') && containsRun(tx.bytes, a.bytes);
+  if (tx.bus === 'spi') return containsRun(tx.mosi, a.bytes);
+  return false;
 }
 
 export type ScriptStep = { kind: 'input'; at: number; part: string; input: PartInput } | { kind: 'serial'; at: number; board: string; text: string };
@@ -353,6 +384,7 @@ function checkAgainstProject(a: Assertion, doc: ProjectDoc, boards: readonly str
   }
   const part = doc.parts.find((p) => p.id === a.part);
   if (part === undefined) throw new UsageError(`${a.text}: no part "${a.part}"`);
+  if (a.kind === 'bus') return;
   if (a.kind === 'pin' || a.kind === 'frequency' || a.kind === 'duty') {
     const name = resolvePin(doc, a.part, a.pin);
     if (name === undefined) throw new UsageError(`${a.text}: "${a.part}" has no pin "${a.pin}"`);
@@ -579,6 +611,28 @@ export function runHeadless(options: RunOptions, io: RunIo): RunReport {
     const drains: number[] = [];
     for (const w of windows) for (let t = w.a.from; t < w.a.to; t += DRAIN_NS) drains.push(t);
 
+    // BT88: bus assertions read the bench's bus log at every stop (and every 50 ms, so its ring
+    // of 65,536 records doesn't wrap between reads), each satisfied by the first transaction
+    // that carries its bytes.
+    const busAssertions = assertions.filter((a): a is Extract<Assertion, { kind: 'bus' }> => a.kind === 'bus');
+    const busSeen = new Map<Assertion, number>();
+    const busDecoder = new BusDecoder();
+    let busSince = 0;
+    const checkBus = (txs: readonly BusTransaction[]): void => {
+      const sources = bench.busLog().sources;
+      for (const tx of txs) {
+        for (const a of busAssertions) if (!busSeen.has(a) && busMatches(a, tx, sources[tx.source]?.part ?? null)) busSeen.set(a, tx.end);
+      }
+    };
+    const drainBus = (): void => {
+      if (busAssertions.length === 0) return;
+      const log = bench.busLog();
+      const records = log.read(busSince);
+      busSince = records.from + records.times.length;
+      checkBus(busDecoder.feed(records, log.sources));
+    };
+    if (busAssertions.length > 0) for (let t = DRAIN_NS; t < duration; t += DRAIN_NS) drains.push(t);
+
     // The timeline: at each distinct time, drain the windows, apply the steps (file order),
     // collect what parts show, then check what is due then.
     const encoder = new TextEncoder();
@@ -603,6 +657,7 @@ export function runHeadless(options: RunOptions, io: RunIo): RunReport {
     for (const t of stops) {
       advance(t);
       for (const w of windows) drainWindow(bench, w);
+      drainBus();
       for (const step of script.steps) {
         if (step.at !== t) continue;
         if (step.kind === 'serial') bench.sendSerial(step.board, encoder.encode(step.text));
@@ -610,7 +665,7 @@ export function runHeadless(options: RunOptions, io: RunIo): RunReport {
       }
       collect();
       for (const a of assertions) {
-        if (a.kind === 'serial' || a.kind === 'match' || decidedAt(a) !== t) continue;
+        if (a.kind === 'serial' || a.kind === 'match' || a.kind === 'bus' || decidedAt(a) !== t) continue;
         if (a.kind === 'frequency' || a.kind === 'duty') {
           const w = windows.find((x) => x.a === a) as Window;
           results.set(a, { text: a.text, atNs: t, ...closeWindow(w) });
@@ -627,6 +682,16 @@ export function runHeadless(options: RunOptions, io: RunIo): RunReport {
       }
     }
     report.simulatedNs = bench.now();
+    if (busAssertions.length > 0) {
+      drainBus();
+      checkBus(busDecoder.pending()); // a transaction still open at the end counts too
+    }
+    for (const a of busAssertions) {
+      const at = busSeen.get(a);
+      const ok = at !== undefined && at <= a.by;
+      const detail = at === undefined ? `not seen by ${formatNs(a.by)}` : ok ? `seen at ${formatNs(at)}` : `seen at ${formatNs(at)}, after ${formatNs(a.by)}`;
+      results.set(a, { text: a.text, ok, atNs: at ?? null, detail });
+    }
     containsAssertions.forEach((a, i) => {
       const at = seen[i].at;
       const ok = at !== null && at <= a.by;

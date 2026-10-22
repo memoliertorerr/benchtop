@@ -144,6 +144,10 @@ export const sim = {
   removeProbe(key: string): void {
     send({ type: 'removeProbe', key });
   },
+  /** BT87: the Bus tab opened (frames carry decoded bus transactions) or closed. */
+  busWatch(on: boolean): void {
+    send({ type: 'busWatch', on });
+  },
   debugPause(): void {
     send({ type: 'debugPause' });
   },

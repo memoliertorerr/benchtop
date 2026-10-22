@@ -164,6 +164,28 @@ describe('grammar', () => {
     expect(() => parseAssertion('serial contains "\\t" by 1s')).toThrow(/unknown escape/);
   });
 
+  it('bus assertions (BT88): forms, usage errors, a pass and a failure on real I2C and SPI', () => {
+    expect(parseAssertion('bus i2c lcd1 wrote 3c 08 by 200ms')).toMatchObject({ kind: 'bus', bus: 'i2c', part: 'lcd1', how: 'wrote', bytes: [0x3c, 0x08], by: 200e6 });
+    expect(parseAssertion('bus spi tft sent 2A by 1s')).toMatchObject({ bus: 'spi', how: 'sent', bytes: [0x2a] });
+    expect(() => parseAssertion('bus i2c lcd1 sent 3c by 1s')).toThrow(/"wrote" or "read"/);
+    expect(() => parseAssertion('bus spi tft wrote 2a by 1s')).toThrow(/"sent"/);
+    expect(() => parseAssertion('bus i2c lcd1 wrote 3 by 1s')).toThrow(/not an assertion/);
+    const lcd = runHeadless(
+      { project: 'fixtures/projects/lcd-i2c.json', firmware: { uno: 'fixtures/firmware/uno/lcd-i2c.hex' }, expect: ['bus i2c lcd1 wrote 3c by 200ms', 'bus i2c lcd1 read 3c by 200ms'], duration: '250ms' },
+      io(),
+    );
+    expect(lcd.exitCode).toBe(1);
+    expect(lcd.assertions.map((a) => [a.ok, a.detail.replace(/[\d.]+ (ms|us|ns|s)/, 'T')])).toEqual([
+      [true, 'seen at T'],
+      [false, 'not seen by T'],
+    ]);
+    const tft = runHeadless({ project: 'fixtures/projects/tft-demo.json', firmware: { uno: 'fixtures/firmware/uno/tft-demo.hex' }, expect: ['bus spi tft sent 2a by 500ms'], duration: '500ms' }, io());
+    expect(tft.exitCode).toBe(0);
+    const nobody = runHeadless({ project: 'fixtures/projects/lcd-i2c.json', firmware: { uno: 'fixtures/firmware/uno/lcd-i2c.hex' }, expect: ['bus i2c nobody wrote 00 by 1ms'] }, io());
+    expect(nobody.exitCode).toBe(2);
+    expect(nobody.error).toMatch(/no part "nobody"/);
+  }, 30_000);
+
   it('run arguments', () => {
     expect(parseRunArgs(['p.json', '--firmware', 'uno=a.hex', '--expect', 'x', '--expect', 'y', '--duration', '1s', '--report', 'r.json'])).toEqual({
       project: 'p.json',

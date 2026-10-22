@@ -22,6 +22,9 @@ import {
   assembleBench,
   beginStepOver,
   type Bench,
+  BusDecoder,
+  type BusLog,
+  type BusTransaction,
   discardCarry,
   endStepOver,
   type FirmwareImage,
@@ -48,9 +51,11 @@ import {
 import { analogSpecFor, envSpecFor } from '@benchtop/parts';
 import { createBenchEnv, type RecordingEnv } from './env.ts';
 import { createFrameRingBuffer, FrameRingWriter } from './frame-ring.ts';
-import { type DebugStopReason, type FromSim, type ProbeChunk, PROTOCOL_VERSION, type ToSim } from './protocol.ts';
+import { type BusChunk, type BusRow, type DebugStopReason, type FromSim, type ProbeChunk, PROTOCOL_VERSION, type ToSim } from './protocol.ts';
 import { TestRecording } from './recording.ts';
 
+/** Most bus records decoded per frame (the newest; the rest are counted as lost). */
+const MAX_BUS_RECORDS = 1 << 16;
 /** Most edges one frame carries per probe (the newest; the rest are counted as lost). */
 export const MAX_FRAME_EDGES = 65_536;
 /** Largest debugReadMemory answered, and most breakpoints per board. */
@@ -130,6 +135,16 @@ export class SimSession {
   private readonly latest = new Map<string, VisualState>();
   /** A test being recorded (BT50). */
   private recording: TestRecording | null = null;
+  /** BT87: the Bus tab watches: frames carry decoded transactions. */
+  private busWatch = false;
+  private readonly busDecoder = new BusDecoder();
+  /** The log being read (a rebuilt bench has a new one) and the next record to read. */
+  private busLog: BusLog | null = null;
+  private busSince = 0;
+  /** The next bus chunk tells the UI to drop what it shows (a load or reset). */
+  private busRestart = false;
+  /** Open transactions the last chunk showed (a chunk with none clears them). */
+  private busPendingShown = 0;
 
   constructor(deps: SimSessionDeps) {
     this.deps = deps;
@@ -270,6 +285,13 @@ export class SimSession {
         if (this.bench !== null) probe.id = this.bench.addProbe(message.pin);
         return;
       }
+      case 'busWatch':
+        this.busWatch = message.on === true;
+        this.busLog = null; // from the oldest record held, next frame
+        this.busDecoder.reset();
+        this.busRestart = true;
+        if (this.busWatch) this.postFrame();
+        return;
       case 'removeProbe': {
         const probe = this.probes.get(message.key);
         if (probe === undefined) return;
@@ -284,6 +306,8 @@ export class SimSession {
 
   private load(doc: unknown, firmware: Record<string, FirmwareImage>, debugElf: Record<string, Uint8Array>): void {
     this.running = false;
+    this.busLog = null; // the new bench's log, from its start
+    this.busRestart = true;
     this.stepOver = null; // its breakpoint lived in the old bench's MCU
     this.pacer.setSpeed(this.speed);
     this.bench?.dispose();
@@ -414,6 +438,10 @@ export class SimSession {
     this.abandonStepOver();
     this.recording = null;
     bench.reset();
+    // Time restarts: the log keeps its records, the Bus tab starts over from here.
+    this.busSince = bench.busLog().written;
+    this.busDecoder.reset();
+    this.busRestart = true;
     for (const probe of this.probes.values()) {
       probe.since = 0;
       probe.restart = true;
@@ -657,6 +685,7 @@ export class SimSession {
     // Audio blocks and TFT updates are streams: they always travel in the message (the ring keeps
     // only each part's latest state).
     const parts = ring === null ? frame.parts : frame.parts.filter(([id, visual]) => 'audio' in visual || 'tftPixels' in visual || !ring.write(id, visual));
+    const bus = this.busWatch ? this.collectBus(bench) : undefined;
     this.deps.post(
       {
         type: 'frame',
@@ -665,11 +694,40 @@ export class SimSession {
         stats: { ratio: this.running ? this.pacer.ratio() : 0, mhz: this.measureMhz(wall) },
         running: this.running,
         probes,
+        ...(bus === undefined ? {} : { bus }),
       },
       transfer,
     );
     this.lastFrameWall = wall;
     this.postProblems(false);
+  }
+
+  /**
+   * BT87: the bus transactions completed since the previous frame and those still open, decoded
+   * here (the worker knows each UART's baud now). Undefined when there's nothing new to say.
+   */
+  private collectBus(bench: Bench): BusChunk | undefined {
+    const log = bench.busLog();
+    if (log !== this.busLog) {
+      // A new log (turning the tab on, a load, an edit's rebuilt bench): from its oldest record.
+      this.busDecoder.reset();
+      this.busSince = log.first;
+      this.busLog = log;
+    }
+    const records = log.read(this.busSince, MAX_BUS_RECORDS);
+    this.busSince = records.from + records.times.length;
+    const done = this.busDecoder.feed(records, log.sources);
+    done.push(...this.busDecoder.flush(bench.now(), log.sources));
+    const pending = this.busDecoder.pending();
+    const restart = this.busRestart;
+    if (done.length === 0 && pending.length === 0 && this.busPendingShown === 0 && records.lost === 0 && !restart) return undefined;
+    this.busRestart = false;
+    this.busPendingShown = pending.length;
+    const row = (tx: BusTransaction): BusRow => {
+      const source = log.sources[tx.source];
+      return { ...tx, label: source?.label ?? `source ${tx.source}`, board: source?.board ?? '', part: source?.part ?? null, ...(source?.direction === undefined ? {} : { direction: source.direction }) };
+    };
+    return { rows: done.map(row), pending: pending.map(row), lost: records.lost, restart };
   }
 
   /** Executed MHz per board since the previous frame (kept while paused). */

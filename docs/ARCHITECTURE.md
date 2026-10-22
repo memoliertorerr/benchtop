@@ -103,6 +103,25 @@ once. Bus devices that parts register with `attachI2c`/`attachSpi` are attached 
 the MCU controller whose current pins share their nets; SPI `selected()` reads the CS net (low =
 selected).
 
+**The bus log (`packages/core/src/bus-log/`).** Every I2C and SPI device is attached to its
+controller through a logging proxy the bench makes once per attachment (`LoggedI2c`,
+`LoggedSpi`): each call — I2C start/write/read/stop with its ACK, SPI transfer with MOSI and
+MISO — is recorded with `now()` (the MCU's own cycle time) and forwarded; an SPI device's
+chip-select edges come from a listener on its CS net; every byte a board's UART sends, or is
+handed (`sendSerial`, the other board's UART), is recorded per port and direction. `BusLog` is
+one preallocated ring of 65,536 records (time, kind, source, two values — no allocation per
+record; the oldest are overwritten and counted), plus a table of sources ("lcd1 (I2C 0x27)",
+"uno Serial TX", each with its board and, for a UART, its baud). `bench.busLog()` exposes it; a
+rebuilt bench starts a new one. `BusDecoder` turns records into transactions incrementally —
+I2C from START to STOP (a repeated START splits; address, R/W, bytes, ACKs), SPI from CS fall
+to rise (transfers outside a frame group by 100 µs gaps), UART bursts split at two byte-times
+of silence — keeping 4,096 bytes of each and counting the rest; `describeTransaction` prints one
+line. Only traffic that reaches an attached device is seen: an address nobody answers (an I2C
+scan's NACKs) and SPI with nothing selected aren't, since the controllers have no observer hook
+(contracts/bus.ts). Tested on FakeMcu buses and on real firmware: the Uno's I2C LCD (one-byte
+PCF8574 writes at 0x27), an SSD1306 frame in AVR Wire's 32-byte chunks, the ILI9341's commands
+over SPI, the ESP32's OLED and the Pico's TFT.
+
 **Rebuilds that carry over.** `bench.carry()` ends a bench and hands the next one
 (`new Bench(doc, env, { carry })`, `assembleBench(…, { carry })`) its time, its `Scheduler` and
 its MCUs and part models — the next bench decides what it keeps. A board whose part id, MCU kind
@@ -1706,8 +1725,10 @@ sequence, files matched by basename or trailing path.
 ## Worker protocol
 
 `apps/web/src/sim/protocol.ts` defines `ToSim` (UI → worker) and `FromSim` (worker → UI)
-messages, versioned by `PROTOCOL_VERSION` (12: the debug ELF beside a load's images and the MCU
-kind and register names in `debugInfo`, then `edit`/`edited`). UI → worker: `hello`, `load` (a
+messages, versioned by `PROTOCOL_VERSION` (13: the debug ELF beside a load's images and the MCU
+kind and register names in `debugInfo`, then `edit`/`edited`, then `busWatch` and a frame's `bus`
+chunk). UI → worker: `busWatch` (on/off: the Bus tab is open — while on, every frame carries the
+bus transactions decoded since the previous one, see "Bus tab"), `hello`, `load` (a
 project plus firmware images per board), `edit` (the loaded bench's new document; the worker
 rebuilds it with carry-over, keeps the serial history, breakpoints and symbols of the boards that
 carried over, re-probes the probes without restarting their history — the UI appends — and
@@ -2022,6 +2043,21 @@ The worker gets the interpreter UF2s (the Pico's and the Pico 2's) from the dev 
 `/micropython/` (like the ESP32 ROM; never bundled). The CLI runs an inline MicroPython sketch with no `--firmware`, and takes
 `--firmware pico=<file>.py` as a one-file sketch.
 
+### Bus tab
+
+The Bus tab (`apps/web/src/ui/bus/`; lazy-loaded) shows the I2C, SPI and UART traffic of
+the bench's bus log as transactions. Decoding happens in the worker (it knows each UART's
+baud now) and only while the tab is open (`busWatch`): turning it on reads the log from its oldest
+record (the last 65,536), and each frame then carries `bus: { rows, pending, lost, restart }` —
+transactions completed since the previous frame with their source's label, board and part,
+those still open (replacing the previous frame's), the records the log overwrote first, and
+`restart` after a load or reset (time started over). An edit's rebuilt bench brings a new log; the
+decoder starts over on it and the tab keeps what it has. The store (`bus-store.ts`) keeps the
+newest 2,000 rows (the rest counted), filters by kind (I2C, SPI, UART) and source, and the panel
+draws the newest 400: time, kind, source and a summary ("W 0x27  08 0c", "MOSI 2a 00 … / MISO
+…", "→ \"hello\r\n\""), a click opening a hex and ASCII dump; it follows the newest unless you
+scroll up, and Copy puts the shown rows on the clipboard as tab-separated text.
+
 ### Logic analyzer
 
 Probes record net edges in the worker. `Bench.addProbe(pin)` probes the pin's net (a
@@ -2128,6 +2164,7 @@ nothing from `apps/web`.
   | `pixel <p>[<i>] is #rrggbb at <t>` | the pixel's 0xRRGGBB | `#38b748`, or the pixel count |
   | `digits <p> show "<text>" at <t>` | the digits (`sevenSegmentText` from @benchtop/parts: 0–9, '-', ' ' dark, '?' other) | `shows "1234"` |
   | `env <gas\|temperature\|humidity\|light\|sound> at <p> is <v> ±<tol> at <t>` (or `>`, `<`, `>=`, `<=` `<v>`) | the room's value at a part placed in it (`bench.envSample`); a usage error without an environment part or on a part with no place in it | `gas 812.40 ppm` |
+  | `bus i2c <p> wrote\|read <hex bytes> by <t>`, `bus spi <p> sent <hex bytes> by <t>` | some transaction with that part in the bus log — an I2C write or read, an SPI frame's MOSI — carried those bytes in a row by then (when the transaction ended); read every 50 ms so the log's ring can't wrap; a transaction still open at the end counts | `seen at 31.402 ms` |
 
   Visual forms read the part's latest visual state at `t` (frames are collected at every stop)
   and check the part's type up front (an LED, a servo, an LCD and its row count, a NeoPixel, a
@@ -2258,7 +2295,10 @@ Model Context Protocol on stdio — one more front end over the headless runner,
   frequency (from rising edges), duty and final level over that run; `sim_input` checks the part
   and input through the spec parser (`parseScript`) and sends it at the current time;
   `sim_serial`; `sim_state` returns every part's latest visual state (arrays over 32 entries —
-  framebuffers — summarized unless `full`) and pin levels and volts; `sim_update` (a new
+  framebuffers — summarized unless `full`) and pin levels and volts; `sim_bus` (the I2C,
+  SPI and UART transactions decoded since the last call — I2C address, R/W, bytes, NACKs; SPI
+  frames' MOSI and MISO; UART bursts as text — the newest `max` after a bus-kind or part filter,
+  open ones marked, with how many more and what the log lost); `sim_update` (a new
   project document for a live session, rebuilt with carry-over like an edit in the app — boards
   keep running unless `firmware`/`micropython` names them, which re-flashes them; returns the
   boards kept, started and removed and the watched pins that went; if the rebuild fails the

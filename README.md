@@ -102,7 +102,9 @@ divider) carries the bytes, and a baud mismatch is reported.
 
 **Debugging** — a serial monitor and a serial plotter (numbers or `label:value` lines, graphed
 live); a Problems panel (shorts, drive fights, floating inputs, LED, pin and pin-group
-overcurrent, unpowered parts, 5 V on 3.3 V pins); a logic analyzer with VCD export; a CPU
+overcurrent, unpowered parts, 5 V on 3.3 V pins); a logic analyzer with VCD export; a Bus tab
+that decodes every I2C, SPI and UART transaction the sketch makes with a part (addresses, bytes,
+ACKs, chip-select frames, timestamps); a CPU
 debugger for every board — the Uno, Nano and Mega, the Pico's core 0, the Pico 2's RISC-V hart
 and the ESP32's APP_CPU (breakpoints, stepping, registers, memory, source lines from DWARF); a GDB
 remote stub for the Uno; and a headless runner for CI that runs a circuit with scripted inputs
@@ -258,7 +260,8 @@ Other clients take the same command in their JSON configuration:
 
 The tools: the part catalog (`list_parts`, `describe_part`), `validate_project`,
 `run_simulation`, `run_tests`, live sessions (`sim_open`, `sim_run`, `sim_input`, `sim_serial`,
-`sim_state`, `sim_update` — edit the circuit while it runs, `sim_reset`, `sim_close`, `sim_list`), the gallery (`list_examples`,
+`sim_state`, `sim_bus` — the decoded I2C/SPI/UART traffic, `sim_update` — edit the circuit while
+it runs, `sim_reset`, `sim_close`, `sim_list`), the gallery (`list_examples`,
 `open_example`, and each example as a resource), debugging any board in a session (`debug_registers`,
 `debug_memory`, `debug_breakpoints`, `debug_step`), `compile_sketch` (with your arduino-cli)
 and the PCB pair `pcb_check` and `pcb_export`.

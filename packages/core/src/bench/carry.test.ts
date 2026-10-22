@@ -220,9 +220,10 @@ describe('Bench.carry', () => {
     ]);
     const bench1 = new Bench(doc1, e);
     const controller = (e.made.get('uno')?.[0] as FakeMcu).i2cControllers[0];
-    expect(controller.attached).toEqual([device]);
+    // the controller holds the bench's logging proxy (BT86) for the device
+    expect(controller.attached.map((d) => d.address)).toEqual([0x3c]);
     const bench2 = rebuilt({ ...doc1, parts: [...doc1.parts, ...testDoc({ p: 'probe' }).parts.map((p) => ({ ...p, x: 100 }))] }, e, bench1);
-    expect(controller.attached).toEqual([device]);
+    expect(controller.attached.map((d) => d.address)).toEqual([0x3c]); // the old proxy went
     expect(bench2.problems().some((p) => p.code === 'i2c-unattached')).toBe(false);
   });
 
