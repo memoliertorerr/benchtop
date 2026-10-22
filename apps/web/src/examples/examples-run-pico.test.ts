@@ -72,6 +72,23 @@ export const PICO_CHECKS: Record<string, (r: ExampleRun) => void> = {
     const hz = 1e9 / ((rises.at(-1)! - rises[0]) / (rises.length - 1));
     expect(Math.abs(hz - 10_000)).toBeLessThan(50);
   },
+  'pico-multicore'(r) {
+    // BT82: core 1's LED (GP15, every 250 ms) and core 0's (GP25, every 500 ms), the FIFO talk
+    r.runTo(2000);
+    expect(r.serial('pico')).toContain('core1 on 1\r\nfifo 1 -> 10\r\nfifo 2 -> 20\r\nfifo 3 -> 30\r\n');
+    const flips = (part: string, key: string): number => {
+      let count = 0;
+      let last: boolean | undefined;
+      for (const { visual } of r.history(part)) {
+        const on = (visual[key] as number) > 0.3;
+        if (last !== undefined && on !== last) count++;
+        last = on;
+      }
+      return count;
+    };
+    expect(flips('led1', 'brightness')).toBeGreaterThanOrEqual(6);
+    expect(flips('pico', 'led')).toBeGreaterThanOrEqual(3);
+  },
 };
 
 describe('Raspberry Pi Pico examples run (BT61)', () => {

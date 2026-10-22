@@ -59,7 +59,12 @@ function lockstep(p: Pair, count: number): number {
   return executed;
 }
 
-const PICO_FIRMWARE = readdirSync(join(REPO_ROOT, 'fixtures/firmware/pico')).filter((f) => f.endsWith('.uf2'));
+/**
+ * Firmware that launches core 1 is left out: once core 1 runs, SEV wakes the other core's WFE
+ * (BT80), which rp2040js's core — the reference here — doesn't do (its SEV only logs).
+ */
+const DUAL_CORE = new Set(['multicore.uf2']);
+const PICO_FIRMWARE = readdirSync(join(REPO_ROOT, 'fixtures/firmware/pico')).filter((f) => f.endsWith('.uf2') && !DUAL_CORE.has(f));
 
 describe('FastM0Core decode table', () => {
   it('classifies every halfword as rp2040js\'s if-chain does', () => {

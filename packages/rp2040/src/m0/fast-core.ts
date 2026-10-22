@@ -230,8 +230,10 @@ let made: { base: StockCoreClass; fast: ReturnType<typeof makeFastCore> } | null
 
 /** A fast core for `rp`, to install as `rp.core` before the chip first runs (loadBootrom resets it). */
 export function createFastCore(rp: RP2040): StockCore {
-  const base = rp.core.constructor as StockCoreClass;
-  if (made === null || made.base !== base) made = { base, fast: makeFastCore(base) };
+  const cls = rp.core.constructor as StockCoreClass;
+  // BT80: core 1 is made after core 0 is installed: `rp.core` is already a fast core then.
+  if (made !== null && (made.base === cls || (made.fast as unknown) === cls)) return new made.fast(rp);
+  made = { base: cls, fast: makeFastCore(cls) };
   return new made.fast(rp);
 }
 
@@ -319,6 +321,11 @@ function makeFastCore(Base: StockCoreClass) {
       }
       this.writeUint32(address, value);
     }
+
+    /** BT80: the core sleeps in a WFE (an event from the other core wakes it), not a WFI. */
+    wfe = false;
+    /** BT80: called on SEV while core 1 runs (rp2040js's SEV only logs; one core keeps that). */
+    onSev: (() => void) | null = null;
 
     /** BT76: the loop runs while `retired` is below this; `cut` ends it after the instruction executing. */
     stopAt = 0;
@@ -822,6 +829,7 @@ function makeFastCore(Base: StockCoreClass) {
           }
           case 54 /* SEV */:
             this.logger.info(LOG_NAME, 'SEV');
+            this.onSev?.();
             break;
           case 55 /* STMIA */: {
             const Rn = (opcode >> 8) & 0x7;
@@ -927,12 +935,14 @@ function makeFastCore(Base: StockCoreClass) {
             if (this.eventRegistered) this.eventRegistered = false;
             else {
               this.waiting = true;
+              this.wfe = true;
               this.stopAt = 0;
             }
             break;
           case 75 /* WFI */:
             deltaCycles++;
             this.waiting = true;
+            this.wfe = false;
             this.stopAt = 0;
             break;
           case 76 /* YIELD */:

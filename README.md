@@ -29,7 +29,8 @@ EEPROM, interrupts; Mega sketches past 128 KB run. The Nano straddles a breadboa
 one.
 
 **Raspberry Pi Pico** (RP2040 via [rp2040js](https://github.com/wokwi/rp2040js)): the `.uf2` (or
-`.elf`) the Arduino-Pico core builds runs on core 0 with a bootrom written for Benchtop — GPIO,
+`.elf`) the Arduino-Pico core builds runs on both cores (`setup1()`/`loop1()`, the inter-core
+FIFO) with a bootrom written for Benchtop — GPIO,
 PWM, the ADC, UART0/UART1, USB serial (`Serial`), I2C (`Wire`), SPI, pin interrupts, PIO
 (your own `.pio` programs, at their clock dividers, with exact pin timing — NeoPixels through
 PIO work), DMA and the ROM's floating point; the Pico straddles a breadboard like the real
@@ -37,7 +38,7 @@ board, and the Code tab compiles for it through the bridge (`rp2040:rp2040:rpipi
 runs **MicroPython**: switch a Pico's Language to MicroPython in the Inspector, write `main.py`
 in the Code tab and press Run — nothing compiles; the stock MicroPython 1.29 firmware gets your
 files over USB serial the way an IDE puts them there, and `machine.Pin`, `ADC`, `PWM`, `I2C`,
-`SPI`, `neopixel` and the REPL work (see "MicroPython" below). Core 1 is the next step.
+`SPI`, `neopixel`, `_thread` (on core 1) and the REPL work (see "MicroPython" below).
 
 **Raspberry Pi Pico 2** (RP2350, its RISC-V side): a RISC-V core written for Benchtop (the
 Hazard3's RV32IMAC with its extensions) runs both harts through the chip's real bootrom, which
@@ -123,7 +124,7 @@ servo knob, a keypad lock, a stepper, an A4988 stepper driver, a relay; Sound: b
 a microphone pitch meter, a VU meter; Environment: a gas alarm with an extractor fan, a PIR
 hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, a PWM fader, NeoPixel, a
 rainbow ring, an OLED clock, a color TFT, the DAC, the microphone, an I2C scan; Raspberry Pi Pico:
-blink, a potentiometer, PWM steps, an OLED, a color TFT; Raspberry Pi Pico 2: the same, NeoPixels
+blink, a potentiometer, PWM steps, an OLED, a color TFT, both cores at once; Raspberry Pi Pico 2: the same, NeoPixels
 through PIO, a button interrupt and MicroPython blink; Mega: an LED chaser, four
 serial ports, a 16-input analog scanner; Two boards: an Uno ↔ ESP32
 chat and relay).

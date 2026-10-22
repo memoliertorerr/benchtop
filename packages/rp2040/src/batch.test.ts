@@ -52,7 +52,13 @@ function compare(batched: Rp2040Mcu, reference: Rp2040Mcu, us: number, step: num
   }
 }
 
-const PICO_FIRMWARE = readdirSync(join(REPO_ROOT, 'fixtures/firmware/pico')).filter((f) => f.endsWith('.uf2'));
+/**
+ * Firmware that launches core 1 is left out: with two cores, a breakpoint makes core 1 catch up
+ * after every core-0 instruction while a batched run interleaves 5 µs slices (BT81) — the same
+ * program, but not the same interleaving (core1.test.ts checks dual-core runs).
+ */
+const DUAL_CORE = new Set(['multicore.uf2']);
+const PICO_FIRMWARE = readdirSync(join(REPO_ROOT, 'fixtures/firmware/pico')).filter((f) => f.endsWith('.uf2') && !DUAL_CORE.has(f));
 
 describe('batched RP2040 runs equal one instruction at a time (BT76)', () => {
   for (const file of PICO_FIRMWARE) {

@@ -1,0 +1,14 @@
+{
+  "name": "example: pico-multicore",
+  "project": "../../projects/pico-multicore.json",
+  "firmware": {
+    "pico": "../../firmware/pico/multicore.uf2"
+  },
+  "expect": [
+    "serial contains \"core1 on 1\" by 1000ms",
+    "serial contains \"fifo 3 -> 30\" by 1000ms",
+    "pin pico:TP5 frequency is 1 Hz ±1% between 500ms and 3500ms",
+    "pin pico:GP15 frequency is 2 Hz ±1% between 500ms and 3500ms",
+    "pin pico:GP15 duty is 50% ±1 between 500ms and 3500ms"
+  ]
+}

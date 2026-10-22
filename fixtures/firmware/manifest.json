@@ -1237,6 +1237,17 @@
     },
     {
       "board": "pico",
+      "name": "multicore",
+      "fqbn": "rp2040:rp2040:rpipico",
+      "file": "pico/multicore.uf2",
+      "sha256": "1c2766f1ecd101871ce03106e1b6c75eac134ad8365dd694029e4605b72320c2",
+      "bytes": 143872,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {},
+      "source": "991c3e94dd6ea17ff7ad89d943cb5dc70f32f7457e1604fd19028eca015e72dd"
+    },
+    {
+      "board": "pico",
       "name": "neopixel",
       "fqbn": "rp2040:rp2040:rpipico",
       "file": "pico/neopixel.uf2",

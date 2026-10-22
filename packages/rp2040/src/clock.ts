@@ -67,10 +67,38 @@ export class Rp2040Clock implements IClock {
   private batchLimit = Infinity;
   /** BT76: an alarm came due before the running batch's limit: end the batch. */
   onEarlier: (() => void) | null = null;
+  /**
+   * BT81: while core 1 runs a batch, `nanos` is core 1's own time — `sideStart` plus its retired
+   * cycles since — which trails the clock by at most a slice. Alarms still fire as the clock
+   * (core 0) moves.
+   */
+  private side: CycleSource | null = null;
+  private sideStart = 0;
+  private sideRetired = 0;
 
   get nanos(): number {
+    const s = this.side;
+    if (s !== null) return this.sideStart + (s.retired - this.sideRetired) * this.npc;
     const b = this.batch;
     return b === null ? this.time : this.anchor + (this.count + b.retired - this.batchRetired) * this.npc;
+  }
+
+  /** BT81: core 1's batch from its own time `start`; an alarm scheduled before `limit` calls onEarlier. */
+  beginSide(core: CycleSource, start: number, limit: number): void {
+    this.sideStart = start;
+    this.sideRetired = core.retired;
+    this.batchLimit = limit;
+    this.side = core;
+  }
+
+  /** Ends core 1's batch; returns its time then (`charged`: a ROM call's extra cycles). */
+  endSide(charged: number): number {
+    const s = this.side;
+    if (s === null) return this.time;
+    const end = this.sideStart + (s.retired - this.sideRetired + charged) * this.npc;
+    this.side = null;
+    this.batchLimit = Infinity;
+    return end;
   }
 
   /** An instruction took `cycles` (a ROM call's charge included): time moves on, alarms due fire. */
@@ -87,6 +115,12 @@ export class Rp2040Clock implements IClock {
 
   /** clk_sys changed to `npc` ns a cycle — inside an instruction, whose cycles count at the new rate. */
   setRate(npc: number): void {
+    const s = this.side;
+    if (s !== null) {
+      // core 1 changed clk_sys: its time goes on from here at the new rate
+      this.sideStart = this.nanos;
+      this.sideRetired = s.retired;
+    }
     if (this.batch !== null) {
       this.anchor = this.nanos;
       this.batchRetired = this.batch.retired;

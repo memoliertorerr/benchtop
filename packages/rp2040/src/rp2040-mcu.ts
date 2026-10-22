@@ -28,6 +28,7 @@ import { I2cBridge, SpiBridge, UsbSerialBridge } from './bridges.ts';
 import { runRomCall } from './bootrom/handlers.ts';
 import { buildBootrom, ROM_SIZE } from './bootrom/layout.ts';
 import { Rp2040Clock } from './clock.ts';
+import { DualCore } from './core1.ts';
 import { Rp2040Debug } from './debug.ts';
 import { createFastCore, type FastCore, type StockCore } from './m0/fast-core.ts';
 import { CODE_MICROPYTHON_INSTALL, CODE_MICROPYTHON_MISSING, MICROPYTHON_MISSING_MESSAGE, MicroPythonInstaller, type MicroPythonSketch } from './micropython.ts';
@@ -242,6 +243,10 @@ export class Rp2040Mcu implements Mcu, Debuggable {
   private nanosPerCycle = 1e9 / 125e6;
   /** Extra cycles the current ROM call charged. */
   private charged = 0;
+  /** BT80: core 1 and the per-core state rp2040js keeps once (set by every new chip). */
+  dual!: DualCore;
+  /** BT80: core 1's own time, ns (it runs behind core 0, never ahead). */
+  private core1Nanos = 0;
   private haltReason: RunResult | null = null;
   /** Per PIO state machine (PIO0 SM0–3, PIO1 SM0–3): clk_sys cycles until its next step. */
   private readonly pioWait = new Float64Array(8);
@@ -332,7 +337,10 @@ export class Rp2040Mcu implements Mcu, Debuggable {
     this.flash = rp.flash;
     for (const { address, data } of this.image?.sram ?? []) rp.sram.set(data, address - SRAM_BASE);
     rp.adc.channelValues[4] = Math.round((TEMPERATURE_VOLTS / ADC_VREF) * 4095);
-    core1Bootrom(rp, (entry) => this.problem('warning', 'rp2040-core1', `the firmware launched core 1 (entry 0x${entry.toString(16)}), which Benchtop doesn't simulate yet: that code doesn't run`));
+    // BT80: core 1 — a second core of the same kind, its PPB, the FIFOs, the per-core SIO state.
+    const Stock = (rp.core.constructor as unknown) as new (chip: RP2040) => StockCore;
+    this.dual = new DualCore(rp, { createCore: () => (this.fastCore ? createFastCore(rp) : new Stock(rp)) });
+    this.core1Nanos = 0;
     // rp2040js runs PIO from setTimeout, apart from simulated time: the run loop steps it instead.
     // A machine starting ends a batch (BT76): from then on PIO steps in time with the core.
     for (const pio of rp.pio) pio.run = () => this.cutBatch();
@@ -346,6 +354,7 @@ export class Rp2040Mcu implements Mcu, Debuggable {
     rp.addClockListener((clkSys) => {
       this.nanosPerCycle = 1e9 / clkSys;
       this.clock.setRate(this.nanosPerCycle);
+      this.dual.setClock(clkSys);
       this.cutBatch(); // its end was computed at the old rate
     });
     this.rp = rp;
@@ -380,15 +389,36 @@ export class Rp2040Mcu implements Mcu, Debuggable {
     try {
       while (clock.nanos < targetNanos) {
         const pioOn = !pio0.stopped || !pio1.stopped;
+        const dual = this.dual.launched;
+        if (core.waiting) wake(core);
+        if (dual && this.fastCore && !pioOn && this.breakpointCount === 0) {
+          // BT81: both cores batched, in slices.
+          this.runSlice(targetNanos);
+          if (this.haltReason !== null) return this.haltReason;
+          continue;
+        }
         if (core.waiting) {
+          if (dual && this.core1Awake()) {
+            // BT80: core 0 sleeps, core 1 runs — time follows core 1.
+            const cycles = this.stepCore1();
+            if (pioOn) {
+              this.pioFresh = 0;
+              this.pumpPio(cycles, false);
+            }
+            clock.advance(cycles);
+            this.core1Nanos = clock.nanos;
+            if (this.haltReason !== null) return this.haltReason;
+            continue;
+          }
           if (pioOn) this.idlePio(targetNanos);
           else clock.tickTo(Math.min(clock.nextAt, targetNanos));
           clock.anchorHere();
+          this.core1Nanos = clock.nanos;
           continue;
         }
         if (this.breakpointCount !== 0) {
           if (this.atBreakpoint()) return BREAKPOINT;
-        } else if (!pioOn && this.fastCore) {
+        } else if (!pioOn && this.fastCore && !dual) {
           // BT76: no PIO, no breakpoint — many instructions up to the next alarm in one go.
           this.runBatch(Math.min(targetNanos, clock.nextAt));
           if (this.haltReason !== null) return this.haltReason;
@@ -401,12 +431,105 @@ export class Rp2040Mcu implements Mcu, Debuggable {
           this.pumpPio(cycles, false);
         }
         clock.advance(cycles);
+        if (dual) this.catchUpCore1();
         if (this.haltReason !== null) return this.haltReason;
       }
     } catch (error) {
       return this.halt('fault', error instanceof Error ? error.message : String(error));
+    } finally {
+      this.dual.switchTo(0);
     }
     return { reason: 'target' };
+  }
+
+  /** BT80: one instruction on core 1 (it is the executing core meanwhile); its cycles, ROM charge included. */
+  private stepCore1(): number {
+    const dual = this.dual;
+    dual.switchTo(1);
+    try {
+      const cycles = dual.cores[1].executeInstruction() + this.charged;
+      this.charged = 0;
+      return cycles;
+    } finally {
+      dual.switchTo(0);
+    }
+  }
+
+  /**
+   * BT81: one slice of both cores — core 0 batched up to the slice's end (≤ 5 µs, never past the
+   * next alarm or the target), then core 1 batched up to where core 0 got (or to the slice's end
+   * when core 0 fell asleep in it). Both asleep: straight to the next alarm.
+   */
+  private runSlice(targetNanos: number): void {
+    const clock = this.clock;
+    const core0 = this.rp.core;
+    const start = clock.nanos;
+    if (core0.waiting && !this.core1Awake()) {
+      clock.tickTo(Math.min(clock.nextAt, targetNanos));
+      clock.anchorHere();
+      this.core1Nanos = clock.nanos;
+      return;
+    }
+    const end = Math.min(targetNanos, clock.nextAt, start + SLICE_NS);
+    if (!core0.waiting) this.runBatch(end);
+    if (this.haltReason !== null) return;
+    // Core 0 asleep (from the start or since, inside the slice): time goes on to the slice's end.
+    const until = core0.waiting ? Math.max(end, clock.nanos) : clock.nanos;
+    this.runCore1(until);
+    if (clock.nanos < until) {
+      clock.tickTo(until);
+      clock.anchorHere();
+    }
+  }
+
+  /** BT81: core 1 batched up to `until` with its own time (the clock's side view); asleep, it just moves there. */
+  private runCore1(until: number): void {
+    const dual = this.dual;
+    const clock = this.clock;
+    while (this.core1Nanos < until && dual.launched && this.core1Awake() && this.haltReason === null) {
+      const core = dual.cores[1] as FastCore;
+      dual.switchTo(1);
+      clock.beginSide(core, this.core1Nanos, until);
+      try {
+        core.runCycles(core.retired + Math.max(1, Math.ceil((until - this.core1Nanos) / this.nanosPerCycle)));
+      } finally {
+        const charged = this.charged; // a ROM call (its BKPT ends the batch)
+        this.charged = 0;
+        this.core1Nanos = clock.endSide(charged);
+        dual.switchTo(0);
+      }
+    }
+    if (!dual.launched || dual.cores[1].waiting) this.core1Nanos = Math.max(this.core1Nanos, until);
+  }
+
+  /** BT80: core 1 runs up to core 0's time (asleep, it just moves there). */
+  private catchUpCore1(): void {
+    const target = this.clock.nanos;
+    if (this.fastCore) {
+      this.runCore1(target);
+      return;
+    }
+    const dual = this.dual;
+    while (dual.launched && this.core1Awake() && this.core1Nanos < target) {
+      this.core1Nanos += this.stepCore1() * this.nanosPerCycle;
+      if (this.haltReason !== null) return;
+    }
+    if (!dual.launched || dual.cores[1].waiting) this.core1Nanos = target;
+  }
+
+  /** Core 1 isn't asleep — or a pending exception (its SysTick) just woke it. */
+  private core1Awake(): boolean {
+    const dual = this.dual;
+    const core = dual.cores[1];
+    if (!core.waiting) return true;
+    if (!core.interruptsUpdated) return false;
+    dual.switchTo(1);
+    try {
+      wake(core);
+    } finally {
+      dual.switchTo(0);
+    }
+    return !core.waiting;
   }
 
   /**
@@ -487,10 +610,23 @@ export class Rp2040Mcu implements Mcu, Debuggable {
     const pioOn = !this.rp.pio[0].stopped || !this.rp.pio[1].stopped;
     this.resumePc = -1;
     try {
+      if (core.waiting) wake(core);
       if (core.waiting) {
+        if (this.dual.launched && this.core1Awake()) {
+          // core 1 runs up to core 0's next alarm meanwhile (BT80)
+          const end = clock.nextAt;
+          while (this.core1Awake() && clock.nanos < end && core.waiting && this.haltReason === null) {
+            const cycles = this.stepCore1();
+            if (pioOn) this.pumpPio(cycles, false);
+            clock.advance(cycles);
+            this.core1Nanos = clock.nanos;
+          }
+          return this.haltReason ?? { reason: 'target' };
+        }
         if (pioOn) this.idlePio(clock.nextAt);
         else clock.tickTo(clock.nextAt);
         clock.anchorHere();
+        this.core1Nanos = clock.nanos;
         return { reason: 'target' };
       }
       const cycles = core.executeInstruction() + this.charged;
@@ -500,6 +636,7 @@ export class Rp2040Mcu implements Mcu, Debuggable {
         this.pumpPio(cycles, false);
       }
       clock.advance(cycles);
+      if (this.dual.launched) this.catchUpCore1();
       return this.haltReason ?? { reason: 'target' };
     } catch (error) {
       return this.halt('fault', error instanceof Error ? error.message : String(error));
@@ -650,70 +787,17 @@ export class Rp2040Mcu implements Mcu, Debuggable {
   }
 }
 
-// SIO's inter-core FIFO (datasheet §2.3.1.7): FIFO_ST, FIFO_WR, FIFO_RD.
-const FIFO_ST = 0x50;
-const FIFO_WR = 0x54;
-const FIFO_RD = 0x58;
-/** FIFO_ST.VLD: core 0's RX FIFO holds data; RDY: its TX FIFO has room. */
-const FIFO_ST_VLD = 0x1;
-const FIFO_ST_RDY = 0x2;
-/** The PSM's FRCE_OFF register and its core 1 bit (datasheet §2.13). */
-const PSM_BASE = 0x40010000;
-const PSM_FRCE_OFF = 0x04;
-const PSM_PROC1 = 1 << 16;
-/** Core 1's FIFO is 8 words deep. */
-const FIFO_DEPTH = 8;
-
 /**
- * Core 1 isn't simulated, and rp2040js doesn't model the FIFO between the cores (it logs every
- * access to the console). Seen from core 0 here, core 1 sits in its bootrom's wait-for-launch
- * loop (datasheet §2.8.2): released from reset (the PSM's FRCE_OFF.proc1 cleared, as the SDK's
- * `multicore_reset_core1` does — MicroPython on every soft reboot) it pushes a 0; it echoes each
- * word of a launch sequence (0, 0, 1, vector table, stack pointer, entry), so
- * `multicore_launch_core1` returns — but the code launched doesn't run: `onLaunch` reports it.
+ * A sleeping core takes a pending exception now. `setInterrupt` wakes a core itself, but SysTick
+ * and PendSV only set the core's pending flags (rp2040js), so the run loop asks before it lets a
+ * core sleep on (BT80: core 1 waits in WFE with its SysTick running).
  */
-function core1Bootrom(rp: RP2040, onLaunch: (entry: number) => void): void {
-  const sio = rp.sio;
-  const read = sio.readUint32.bind(sio);
-  const write = sio.writeUint32.bind(sio);
-  const toCore0: number[] = [];
-  const sequence: number[] = [];
-  const push = (value: number): void => {
-    if (toCore0.length < FIFO_DEPTH) toCore0.push(value >>> 0);
-    rp.core.eventRegistered = true; // core 1 signals with SEV
-  };
-  sio.readUint32 = (offset: number) => {
-    if (offset === FIFO_ST) return FIFO_ST_RDY | (toCore0.length > 0 ? FIFO_ST_VLD : 0);
-    if (offset === FIFO_RD) return toCore0.shift() ?? 0;
-    return read(offset);
-  };
-  sio.writeUint32 = (offset: number, value: number) => {
-    if (offset === FIFO_WR) {
-      // The bootrom's launch protocol: a 0 restarts it; each word is echoed.
-      if (value === 0) sequence.length = 0;
-      else sequence.push(value >>> 0);
-      push(value);
-      if (sequence.length === 4 && sequence[0] === 1) {
-        onLaunch(sequence[3]);
-        sequence.length = 0;
-      }
-      return;
-    }
-    if (offset !== FIFO_ST) write(offset, value);
-  };
-  const psm = rp.findPeripheral(PSM_BASE);
-  const psmRead = psm.readUint32.bind(psm);
-  const psmWrite = psm.writeUint32.bind(psm);
-  psm.writeUint32 = (offset: number, value: number) => {
-    const wasOff = offset === PSM_FRCE_OFF && (psmRead(PSM_FRCE_OFF) & PSM_PROC1) !== 0;
-    psmWrite(offset, value);
-    if (wasOff && (psmRead(PSM_FRCE_OFF) & PSM_PROC1) === 0) {
-      toCore0.length = 0; // core 1's bootrom drains its FIFO, then pushes a 0
-      sequence.length = 0;
-      push(0);
-    }
-  };
+function wake(core: StockCore): void {
+  if (core.interruptsUpdated && core.checkForInterrupts()) core.waiting = false;
 }
+
+/** BT81: the longest stretch one core runs before the other catches up, ns. */
+const SLICE_NS = 5_000;
 
 /** Splits a firmware image into flash and RAM writes. Throws on anything that doesn't fit. */
 function loadImage(image: FirmwareImage): LoadedImage {

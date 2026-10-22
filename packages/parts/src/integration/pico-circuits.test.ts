@@ -126,3 +126,25 @@ describe('Raspberry Pi Pico PIO and DMA (BT62)', () => {
     expect(dma.tft.some((word) => word !== 0)).toBe(true);
   }, 60_000);
 });
+
+describe('Pico dual core (BT82)', () => {
+  it('multicore: setup1/loop1 run on core 1 — GP15 at 2 Hz beside GP25 at 1 Hz, the FIFO both ways', () => {
+    const t = load('pico-multicore', 'multicore');
+    const edges: Record<string, number[]> = { GP15: [], TP5: [] };
+    const last: Record<string, number | null | undefined> = {};
+    t.runTo(3000, 5, (ms) => {
+      for (const pin of Object.keys(edges)) {
+        const level = t.bench.pinState('pico', pin)?.level;
+        if (last[pin] !== undefined && level !== last[pin] && level === 1) edges[pin].push(ms);
+        last[pin] = level;
+      }
+    });
+    expect(t.serial()).toBe('core0 on 0\r\ncore1 on 1\r\nfifo 1 -> 10\r\nfifo 2 -> 20\r\nfifo 3 -> 30\r\n');
+    const period = (rises: number[]): number => (rises.at(-1)! - rises[0]) / (rises.length - 1);
+    expect(edges.GP15.length).toBeGreaterThanOrEqual(5);
+    expect(Math.abs(period(edges.GP15) - 500)).toBeLessThanOrEqual(5);
+    expect(Math.abs(period(edges.TP5) - 1000)).toBeLessThanOrEqual(5);
+    expect((t.latest.get('led1')?.brightness as number | undefined) ?? -1).toBeGreaterThanOrEqual(0);
+    expect(t.bench.problems().filter((p) => p.severity !== 'info')).toEqual([]);
+  }, 30_000);
+});

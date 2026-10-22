@@ -22,13 +22,14 @@ fixtures/firmware/esp32/<name>.syms.tsv       `nm -S -n --defined-only` of the f
 fixtures/firmware/pico*/debug-demo.syms.tsv   the same for the Pico and Pico 2 debug-demos only (the
                                               debugger's tests; `SYMBOL_SKETCHES` in fixture-boards.ts)
 fixtures/firmware/pico/<name>.uf2             Raspberry Pi Pico firmware (arduino-pico 6.2.0; the
-                                              ELF, 1.3 MB of mostly DWARF, isn't committed)
+                                              ELF, 1.3 MB of mostly DWARF, isn't committed;
+                                              multicore runs setup1/loop1 on core 1)
 fixtures/firmware/pico2/<name>.uf2            Raspberry Pi Pico 2 firmware for the RP2350's RISC-V
                                               cores (arduino-pico 6.2.0, arch=riscv; the Pico's
                                               analog-read, pwm-fade, i2c-oled, spi-tft, button-irq
                                               and neopixel rebuilt for it)
 fixtures/rp2040/<name>.c, .ld → .elf, .lst    freestanding RP2040 test programs (romcalls: every bootrom
-                                              function through the lookup tables)
+                                              function through the lookup tables; core1: both cores)
 fixtures/xtensa/<name>.S → <name>.bin, .lst   Xtensa test programs (harness.inc: conventions)
 fixtures/xtensa/corpus/                       objdump decode corpora for the decoder tests (manifest.json)
 fixtures/riscv/programs/<name>.S → .bin, .lst RISC-V test programs (harness.inc: conventions)
@@ -87,7 +88,10 @@ RISC-V cores; ~27 s a sketch).
 bootrom's direct boot looks), code in flash. `scripts/rp2040-programs.ts` builds them with the
 arduino-pico core's `arm-none-eabi-gcc -mcpu=cortex-m0plus -mthumb -O1` (no debug info) and
 `objdump -d`; the .c, .ld, .elf and .lst are committed. `romcalls` calls every bootrom function
-through the ROM's lookup tables, as the SDK does, and leaves the results at 0x20030000.
+through the ROM's lookup tables, as the SDK does, and leaves the results at 0x20030000. `core1`
+resets core 1 through the PSM, launches it with the bootrom's FIFO protocol and checks CPUID, the
+FIFOs, each core's SysTick, a TIMER interrupt on the core that enabled it, SEV/WFE, FIFO_ST's
+flags and a second launch (its results at 0x20030000 too; the layout is in its header).
 
 ## MicroPython sketches
 

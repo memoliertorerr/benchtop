@@ -1,0 +1,82 @@
+{
+  "format": 1,
+  "name": "pico-multicore",
+  "parts": [
+    {
+      "id": "pico",
+      "type": "raspberry-pi-pico",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "r1",
+      "type": "resistor",
+      "x": -30,
+      "y": 30,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led1",
+      "type": "led",
+      "x": -40,
+      "y": 20,
+      "rotation": 0,
+      "props": {
+        "color": "yellow"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "pico",
+        "pin": "GP15"
+      },
+      "to": {
+        "part": "r1",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "r1",
+        "pin": "1"
+      },
+      "to": {
+        "part": "led1",
+        "pin": "A"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "led1",
+        "pin": "C"
+      },
+      "to": {
+        "part": "pico",
+        "pin": "GND.4"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "pico": {
+      "kind": "file",
+      "name": "multicore.uf2",
+      "format": "uf2"
+    }
+  }
+}

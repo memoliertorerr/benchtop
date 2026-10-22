@@ -98,15 +98,26 @@ describe('MicroPython sketches on the Pico', () => {
     expect(CODE_MICROPYTHON_INSTALL).toBe('micropython-install');
   });
 
-  it('a launch of core 1 returns (the bootrom echoes it) and reports that core 1 code does not run', () => {
-    const problems: string[] = [];
-    const mcu = createRp2040Mcu({ micropython: cachedMicroPython(), onProblem: (p) => p.code === 'rp2040-core1' && problems.push(p.message) });
-    mcu.load({ format: 'micropython', files: { 'main.py': 'import _thread\n_thread.start_new_thread(lambda: None, ())\nprint("started")\n' }, main: 'main.py' });
+  it('_thread runs on core 1 (BT80): the thread prints while the main program sleeps', () => {
+    const mcu = createRp2040Mcu({ micropython: cachedMicroPython() });
+    const main = [
+      'import _thread, time, machine',
+      'def worker():',
+      '    for i in range(3):',
+      '        print("thread", i, machine.mem32[0xd0000000])',
+      '        time.sleep_ms(20)',
+      '_thread.start_new_thread(worker, ())',
+      'time.sleep_ms(150)',
+      'print("main", machine.mem32[0xd0000000])',
+    ].join('\n');
+    mcu.load({ format: 'micropython', files: { 'main.py': `${main}\n` }, main: 'main.py' });
     let serial = '';
     mcu.uart(0)?.onTransmit((b) => (serial += String.fromCharCode(b)));
-    runMs(mcu, 300);
-    expect(serial).toContain('started\r\n');
-    expect(problems.length).toBeGreaterThan(0);
-    expect(problems[0]).toMatch(/launched core 1 .* doesn't simulate/);
+    runMs(mcu, 600);
+    // SIO CPUID: the thread runs on core 1, the main program on core 0
+    expect(serial).toContain('thread 0 1\r\n');
+    expect(serial).toContain('thread 2 1\r\n');
+    expect(serial).toContain('main 0\r\n');
+    expect(serial.indexOf('thread 2 1')).toBeLessThan(serial.indexOf('main 0'));
   });
 });

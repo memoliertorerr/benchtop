@@ -1256,15 +1256,45 @@ sequence, files matched by basename or trailing path.
   adapter uses too. rp2040js's
   warnings about registers it doesn't model become one `info` Problem (`rp2040-unimplemented`).
 
-  Two rp2040js gaps the adapter covers: the inter-core FIFO (SIO 0x50–0x58), which it doesn't
-  model and logs to the console, is core 1's bootrom seen from core 0 (datasheet §2.8.2; modelled as
-  "core 1 asleep" before, MicroPython hung in its soft reboot): released from reset
-  (the PSM's FRCE_OFF.proc1 cleared, as the SDK's `multicore_reset_core1` does) it drains its
-  FIFO and pushes a 0; it echoes each word of a launch sequence, so `multicore_launch_core1`
-  returns — the launched code doesn't run, and `rp2040-core1` (a warning) says so; and its PWM
+  Two rp2040js gaps the adapter covers: core 1 (below); and its PWM
   compare alarms, which reschedule themselves with a zero delay while a slice
   counts with its 32-bit reset TOP — our clock defers an alarm that re-fires at the same instant
   by one 8 ns reference cycle, so the core keeps running.
+
+  **Core 1 (`core1.ts`).** rp2040js emulates one Cortex-M0+ and reads `rp.core` (and
+  `rp.ppb`) wherever a core matters. `DualCore` puts a second core of the same kind on the chip
+  and makes those per core (datasheet §2.3.1, §2.4.8). Each core has its own PPB — rp2040js's
+  `RPPPB` reads `this.rp2040.core`, so each PPB gets a view of the chip (`Object.create(rp)`)
+  whose `core` is its own, and SysTick fires into its own core. While a core executes,
+  `rp.core` and `rp.ppb` are its own and the SIO's divider and interpolator state is swapped in
+  (`switchTo`, preallocated). A peripheral's IRQ line goes to both NVICs (`rp.setInterrupt`
+  fanned out; each core enables its own); SIO_IRQ_PROC0/1 only to their core. The SIO: CPUID
+  reads the executing core; each core's RX FIFO (8 words, written by the other core) with
+  FIFO_ST's VLD/RDY and sticky WOF/ROE (write 1 to clear). Core 1 starts in its bootrom's wait
+  for a launch (§2.8.2), played in JS: released from reset (PSM FRCE_OFF.proc1 cleared, as
+  `multicore_reset_core1` does) it pushes a 0; it echoes each word of the launch sequence (0, 0,
+  1, vector table, SP, entry) and starts at the entry with that VTOR and SP; forced off again it
+  is a fresh core in the wait. Once core 1 runs, SEV on either core sets both event flags and
+  wakes a WFE (a fast-core hook; rp2040js's SEV only logs, and a one-core run keeps that, so
+  the lockstep test holds). A sleeping core takes a pending SysTick or PendSV before the run
+  loop lets it sleep on (rp2040js sets only the pending flag for those; core 1 waits in WFE with
+  its SysTick running). Not modeled: IO_BANK0's per-core interrupt enables (PROC1_INTE…), so
+  core 1 sees bank 0's line through PROC0's. Running: while core 1 runs, the run loop
+  alternates the cores in slices of at most 5 µs, never past the next alarm or the target —
+  core 0 batched as before (the clock follows it), then core 1 batched up to where core 0 got,
+  or to the slice's end when core 0 fell asleep in it (time goes on). Core 1 keeps its own time
+  (`core1Nanos`, at most a slice behind) and the clock shows it while core 1 runs
+  (`beginSide`/`endSide`: `nanos` = its start plus its retired cycles), so a timer it reads is
+  its own instruction's; alarms fire as the clock moves. A sleeping core costs nothing; both
+  asleep, time jumps to the next alarm. With PIO running or a breakpoint set, core 0 goes one
+  instruction at a time and core 1 catches up (batched) after each; core 0 asleep, core 1
+  drives time. One-core sketches never enter any of this. MicroPython busy on both cores
+  (`_thread` spinning beside the main loop) runs 0.5 s in 1.74 s on an M1, one core busy in
+  0.91 s: the second core costs what its instructions cost.
+  `fixtures/rp2040/core1.c` (freestanding) checks CPUID, the FIFOs both ways, each core's
+  SysTick at its own reload, a TIMER interrupt reaching only the core that enabled it, SEV
+  waking WFE, FIFO_ST's flags, and a reset and second launch (`core1.test.ts`); MicroPython's
+  `_thread` prints from core 1 (`micropython.test.ts`).
 
   **PIO and DMA.** rp2040js runs PIO from `setTimeout`, apart from simulated time and
   ignoring clock dividers and delays; the adapter turns that off and steps the eight state
@@ -1297,7 +1327,10 @@ sequence, files matched by basename or trailing path.
   host's to the printed digits; pwm-fade measures 1 kHz ±1 % at the duty given. On benches
   (packages/parts integration/pico-circuits.test.ts): a pot on GP26 reads 12-bit within ±8,
   Adafruit SSD1306 over Wire (GP4/GP5) and the ILI9341 driver over SPI0 draw their pictures, an
-  `attachInterrupt` on GP14 counts each button press once. `fixtures/rp2040/romcalls.c` (freestanding, built with
+  `attachInterrupt` on GP14 counts each button press once; multicore (`setup1()`/`loop1()`)
+  blinks GP15 at 2 Hz from core 1 beside GP25 at 1 Hz from core 0 and trades words through
+  `rp2040.fifo` (`core1 on 1`, `fifo 3 -> 30`), also a gallery example ("Pico dual core") and a
+  spec. `fixtures/rp2040/romcalls.c` (freestanding, built with
   arduino-pico's arm-none-eabi-gcc by scripts/rp2040-programs.ts, loaded as an ELF) calls every
   bootrom function through `rom_func_lookup`/`rom_data_lookup` as the SDK does. PIO and DMA
   (packages/rp2040 pio.test.ts and the integration tests): pio-square, a two-instruction
@@ -1639,7 +1672,7 @@ sequence, files matched by basename or trailing path.
   interpreter needed one more register: IO_QSPI's SS STATUS (OUTTOPAD is the flash's chip
   select, high while QMI is idle), which pico-sdk's flash code polls before it changes QMI's
   timing (`IoQspi` in `gpio.ts`; without it MicroPython hung in that loop). `_thread` runs its
-  function on core 1, launched through the bootrom: unlike on the Pico, core 1 code runs.
+  function on core 1, launched through the bootrom, as on the Pico.
   `machine.ADC`, `Pin`, `time.sleep_ms` and `neopixel` (`machine.bitstream`, timed by the cycle
   counter) work as on the Pico.
 

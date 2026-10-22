@@ -831,6 +831,19 @@
     "description": "A two-instruction PIO program toggles GP3 at exactly 10 kHz while the CPU sleeps: probe GP3 with the Probe tool."
   },
   {
+    "id": "pico-multicore",
+    "title": "Pico dual core",
+    "category": "Raspberry Pi Pico",
+    "project": "pico-multicore",
+    "boards": {
+      "pico": {
+        "firmware": "pico/multicore.uf2",
+        "sketch": "pico/multicore"
+      }
+    },
+    "description": "Both cores at work: setup()/loop() blink the onboard LED every half second while setup1()/loop1() blink GP15 twice as fast; the cores trade numbers through the inter-core FIFO and print them."
+  },
+  {
     "id": "pico2-blink",
     "title": "Pico 2 blink",
     "category": "Raspberry Pi Pico 2",
