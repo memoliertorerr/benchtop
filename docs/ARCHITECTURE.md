@@ -1278,6 +1278,45 @@ sequence, files matched by basename or trailing path.
   whose rectangles are DMA fills into SPI0 in 16-bit frames paced by its TX DREQ, draws exactly
   spi-tft's picture.
 
+  **The core.** rp2040js's `CortexM0Core` finds an instruction by testing its opcode against an
+  if-chain of ~90 patterns. `m0/fast-core.ts` subclasses it — the class is taken from an
+  RP2040's own core, since rp2040js doesn't export it — and replaces only `executeInstruction`:
+  `OP_OF` (built once, by the same tests in the same order, for all 65,536 first halfwords) names
+  the instruction and a switch runs it; 32-bit encodings (0xE800 and up) stay one case that tests
+  BL, DMB, DSB, ISB, MRS, MSR and UDF.W in rp2040js's order. Fetches and the common loads and
+  stores read SRAM and flash from the arrays rp2040js's bus uses, under the same range checks;
+  everything else goes through the bus. The exception model, the NVIC and SysTick fields the PPB
+  reads, `BXWritePC` and the special registers are inherited. Results, flags, PC, cycles and
+  warnings equal the stock core's, quirks included (the carry after a shift by 0 or by 32 and
+  more, PC + 2 for an unknown 32-bit instruction): `m0/m0.test.ts` runs both cores in lockstep on
+  every Pico fixture (≥ 100,000 instructions each), through MicroPython's boot and raw-REPL
+  install (≥ 1,000,000), and on 20,000 random instructions from random states, comparing
+  registers, flags, exception state, cycles and memory after each. `createRp2040Mcu({ core:
+  'stock' })` keeps rp2040js's core (the reference). Alone the table is ≈ 10 % faster: the call
+  per instruction and the run loop around it cost more than the decoding, which batching
+  addresses.
+
+  **Batched runs.** With no PIO machine running and no breakpoint set, the run loop hands the
+  core every instruction up to the next alarm (or the run's target) in one `runCycles` call: one
+  loop around the switch, the hot cases inline (conditions, CMP, literal loads, PUSH/POP on an
+  SRAM stack, BL/BX), `cycles` caught up when the loop returns. The clock (`clock.ts`) keeps
+  instruction time anchored — `anchor + count × ns per cycle`, never a running sum — so a batch
+  and one instruction at a time reach exactly the same times; sleeping, PIO idling and a
+  clk_sys change move the anchor. Inside a batch `nanos` follows the core's `retired` cycles (the
+  instructions' own counts: rp2040js's SIO divider adds 8 to `cycles` outside them), so a
+  peripheral reading the time sees its instruction's start. A batch ends after the instruction
+  that arms an alarm sooner than its end, starts a PIO machine (`pio.run`), changes clk_sys,
+  sleeps (WFI/WFE) or makes a ROM call (BKPT: the adapter charges its cycles); the bounds are
+  found with the very sums one instruction at a time makes (`cyclesUntil`). `batch.test.ts`
+  runs every Pico fixture and MicroPython's install batched and one at a time (a breakpoint no
+  code reaches forces the latter) and compares cycles and registers every 50 µs; RAM programs
+  show timer reads advancing inside one batch and an alarm armed mid-batch firing on time.
+  `perf.test.ts` (run alone, after the other tests) pins the busy loop: on an Apple M1
+  float-math's spinning `loop()` runs ≈ 165 MHz of its 200 MHz clk_sys per wall second against
+  rp2040js's ≈ 42 (3.9×); 2 s of it, boot and JIT warm-up included, takes 2.9 s instead of
+  10.3 s with rp2040js's core and a clock tick per instruction (3.5×). Sleeping sketches were
+  already fast (blink: 2 s in 0.05 s).
+
   **Debugger.** `Rp2040Mcu.debug()` (`debug.ts`) is core 0's `McuDebug`: r0–r12, sp,
   lr, pc, xpsr from rp2040js's core. Memory `data` reads our bootrom, flash (every XIP alias),
   SRAM and the USB DPRAM from their arrays — peripheral registers read 0, since rp2040js has no

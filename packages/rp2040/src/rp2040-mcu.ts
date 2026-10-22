@@ -29,6 +29,7 @@ import { runRomCall } from './bootrom/handlers.ts';
 import { buildBootrom, ROM_SIZE } from './bootrom/layout.ts';
 import { Rp2040Clock } from './clock.ts';
 import { Rp2040Debug } from './debug.ts';
+import { createFastCore, type FastCore, type StockCore } from './m0/fast-core.ts';
 import { CODE_MICROPYTHON_INSTALL, CODE_MICROPYTHON_MISSING, MICROPYTHON_MISSING_MESSAGE, MicroPythonInstaller, type MicroPythonSketch } from './micropython.ts';
 
 /** One PIO state machine (rp2040js exports the class only through its PIO block). */
@@ -213,6 +214,8 @@ export interface Rp2040McuOptions {
    * `{ format: 'micropython' }` sketch. Without it such a sketch reports `micropython-missing`.
    */
   micropython?: Uint8Array;
+  /** BT75: 'stock' keeps rp2040js's own core (the lockstep test's reference); default the fast one. */
+  core?: 'fast' | 'stock';
 }
 
 export class Rp2040Mcu implements Mcu, Debuggable {
@@ -232,6 +235,8 @@ export class Rp2040Mcu implements Mcu, Debuggable {
   /** BT63: the interpreter UF2, and the MicroPython sketch it runs (null: native firmware). */
   private readonly micropython: Uint8Array | undefined;
   private sketch: MicroPythonSketch | null = null;
+  /** BT75: run the predecoded core (rp2040js's own when false). */
+  private readonly fastCore: boolean;
   /** Flash as the firmware left it: survives resets. */
   private flash = new Uint8Array(FLASH_SIZE).fill(0xff);
   private nanosPerCycle = 1e9 / 125e6;
@@ -252,6 +257,7 @@ export class Rp2040Mcu implements Mcu, Debuggable {
   constructor(options: Rp2040McuOptions = {}) {
     this.onProblem = options.onProblem ?? null;
     this.micropython = options.micropython;
+    this.fastCore = options.core !== 'stock';
     const pins = new Map<string, McuPin>();
     for (let n = 0; n < 30; n++) {
       const pin = new Rp2040Pin(this, n);
@@ -264,7 +270,7 @@ export class Rp2040Mcu implements Mcu, Debuggable {
     const gpio = { count: 30, funcsel: (n: number) => this.rp.gpio[n].functionSelect };
     this.i2cs = [new I2cBridge(0, () => this.rp.i2c[0], gpio), new I2cBridge(1, () => this.rp.i2c[1], gpio)];
     this.spis = [new SpiBridge(0, () => this.rp.spi[0], gpio), new SpiBridge(1, () => this.rp.spi[1], gpio)];
-    this.clock = new Rp2040Clock();
+    this.clock = this.newClock();
     this.rp = this.newChip();
   }
 
@@ -291,7 +297,7 @@ export class Rp2040Mcu implements Mcu, Debuggable {
    */
   reset(): void {
     if (this.sketch !== null) this.flashImage();
-    this.clock = new Rp2040Clock();
+    this.clock = this.newClock();
     this.haltReason = null;
     this.charged = 0;
     this.rp = this.newChip();
@@ -311,6 +317,8 @@ export class Rp2040Mcu implements Mcu, Debuggable {
   /** A fresh chip: our bootrom, the persistent flash, RAM contents of a RAM image, every hook wired. */
   private newChip(): RP2040 {
     const rp = new RP2040(this.clock);
+    // BT75: the predecoded core in place of rp2040js's, before anything resets or runs it.
+    if (this.fastCore) (rp as { core: StockCore }).core = createFastCore(rp);
     rp.logger = {
       debug: () => {},
       info: () => {},
@@ -326,15 +334,19 @@ export class Rp2040Mcu implements Mcu, Debuggable {
     rp.adc.channelValues[4] = Math.round((TEMPERATURE_VOLTS / ADC_VREF) * 4095);
     core1Bootrom(rp, (entry) => this.problem('warning', 'rp2040-core1', `the firmware launched core 1 (entry 0x${entry.toString(16)}), which Benchtop doesn't simulate yet: that code doesn't run`));
     // rp2040js runs PIO from setTimeout, apart from simulated time: the run loop steps it instead.
-    for (const pio of rp.pio) pio.run = () => {};
+    // A machine starting ends a batch (BT76): from then on PIO steps in time with the core.
+    for (const pio of rp.pio) pio.run = () => this.cutBatch();
     this.pioWait.fill(0);
     this.pioMachines = rp.pio.flatMap((pio) => pio.machines);
     this.pioFresh = 0;
     this.pioEpoch = -1;
     rp.onBreak = (code) => this.onBreak(code);
     this.nanosPerCycle = 1e9 / rp.clkSys;
+    this.clock.setRate(this.nanosPerCycle);
     rp.addClockListener((clkSys) => {
       this.nanosPerCycle = 1e9 / clkSys;
+      this.clock.setRate(this.nanosPerCycle);
+      this.cutBatch(); // its end was computed at the old rate
     });
     this.rp = rp;
     for (const pin of this.pinList) {
@@ -371,23 +383,51 @@ export class Rp2040Mcu implements Mcu, Debuggable {
         if (core.waiting) {
           if (pioOn) this.idlePio(targetNanos);
           else clock.tickTo(Math.min(clock.nextAt, targetNanos));
+          clock.anchorHere();
           continue;
         }
-        if (this.breakpointCount !== 0 && this.atBreakpoint()) return BREAKPOINT;
-        const start = clock.nanos;
+        if (this.breakpointCount !== 0) {
+          if (this.atBreakpoint()) return BREAKPOINT;
+        } else if (!pioOn && this.fastCore) {
+          // BT76: no PIO, no breakpoint — many instructions up to the next alarm in one go.
+          this.runBatch(Math.min(targetNanos, clock.nextAt));
+          if (this.haltReason !== null) return this.haltReason;
+          continue;
+        }
         const cycles = core.executeInstruction() + this.charged;
         this.charged = 0;
         if (pioOn) {
           this.pioFresh = 0;
           this.pumpPio(cycles, false);
         }
-        clock.tickTo(start + cycles * this.nanosPerCycle);
+        clock.advance(cycles);
         if (this.haltReason !== null) return this.haltReason;
       }
     } catch (error) {
       return this.halt('fault', error instanceof Error ? error.message : String(error));
     }
     return { reason: 'target' };
+  }
+
+  /**
+   * BT76: core 0 instruction after instruction until the clock reaches `limit` (the target or
+   * the next alarm), the core sleeping, a halt or a cut — without a clock tick per instruction:
+   * the clock follows the core's retired cycles (each instruction sees its own start time), then
+   * the alarms due fire. The same instructions at the same times as the loop's one-at-a-time
+   * path, at a fraction of its cost.
+   */
+  private runBatch(limit: number): void {
+    const clock = this.clock;
+    const core = this.rp.core as FastCore;
+    const stop = core.retired + clock.cyclesUntil(limit);
+    clock.beginBatch(core, limit);
+    try {
+      core.runCycles(stop);
+    } finally {
+      const charged = this.charged; // a ROM call (its BKPT ends the batch)
+      this.charged = 0;
+      clock.endBatch(charged);
+    }
   }
 
   // ── Debugging (BT72): core 0 ───────────────────────────────────────────────────────────
@@ -397,6 +437,19 @@ export class Rp2040Mcu implements Mcu, Debuggable {
   /** The breakpoint the last run stopped at, which the next one executes unchecked (−1: none). */
   private resumePc = -1;
   private debugView: Rp2040Debug | null = null;
+
+  /** A clock whose earlier alarms end a batch (BT76). */
+  private newClock(): Rp2040Clock {
+    const clock = new Rp2040Clock();
+    clock.onEarlier = () => this.cutBatch();
+    return clock;
+  }
+
+  /** Ends a running batch after the instruction executing (no batch: nothing to do). */
+  private cutBatch(): void {
+    const rp = (this as { rp?: RP2040 }).rp; // undefined while the constructor builds the first clock
+    if (rp !== undefined && this.fastCore) (rp.core as FastCore).cut();
+  }
 
   private get breakpointCount(): number {
     return this.breakpoints.size;
@@ -437,16 +490,16 @@ export class Rp2040Mcu implements Mcu, Debuggable {
       if (core.waiting) {
         if (pioOn) this.idlePio(clock.nextAt);
         else clock.tickTo(clock.nextAt);
+        clock.anchorHere();
         return { reason: 'target' };
       }
-      const start = clock.nanos;
       const cycles = core.executeInstruction() + this.charged;
       this.charged = 0;
       if (pioOn) {
         this.pioFresh = 0;
         this.pumpPio(cycles, false);
       }
-      clock.tickTo(start + cycles * this.nanosPerCycle);
+      clock.advance(cycles);
       return this.haltReason ?? { reason: 'target' };
     } catch (error) {
       return this.halt('fault', error instanceof Error ? error.message : String(error));

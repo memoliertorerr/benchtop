@@ -13,6 +13,7 @@ const QUIET = [
   'packages/core/src/env/runtime-perf.test.ts', // BT54 the environment's cost per simulated second
   'packages/pcb/src/drc-perf.test.ts', // BT57 DRC on a dense board
   'apps/web/src/ui/plotter/parse.test.ts', // BT44 1,000 plotter lines in under 2 ms
+  'packages/rp2040/src/perf.test.ts', // BT76 the Pico's busy loop: fast core vs rp2040js's
 ];
 
 export default defineConfig({
