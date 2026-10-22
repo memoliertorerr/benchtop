@@ -380,6 +380,33 @@ every topology change, so this is re-evaluated then. The controller reads each d
 address at attach time give an `i2c-address-conflict` error naming both; the first attached
 answers. A device on no controller's pins is an `i2c-unattached` info problem.
 
+**Power parts (`packages/parts/src/power/`).** Batteries (`battery-9v`, `-2aa`, `-4aa`,
+`-lipo`, `-cr2032`: 9, 3, 6, 3.7, 3 V), a `bench-supply` (prop `volts`, 0–30 V; the Inspector's
+slider sends a `value` or `set:volts` input while running) and a `ground` symbol (one pin, a
+static 0 V supply). `PinDef.volts` is static, so a source whose volts depend on its type or a
+prop drives its own pins from its model — + at its volts, − at 0 V, both at supply strength, as
+the ESP32 DevKit drives VIN. The resolver counts a supply-strength driver as fixing its net
+whenever it drives (`isFixed` is live); the analog layer's islands are built before the models
+drive, so a net fixed at run time gets an identity row in its island's solve and is published
+at its fixed volts (before, such a net published the solver's 0 V, though currents through it
+were right). Two supplies on one net average their volts; the switch-level resolver sees two
+highs and no conflict, so a source watches its own terminals (`power/fight.ts`) and reports
+`supply-fight` while its net sits more than 0.1 V off its volts (a 9 V battery's + on a board's
+5 V reads 7 V). Volts are nominal and ideal (no internal resistance or discharge) and absolute
+against the bench's one ground — batteries in series are a fight, not a sum. Drawings are our
+own (`apps/web/src/views/power.ts`, every terminal at its pin); on a PCB the batteries are
+connectors (`BT` designators) and the supply and ground symbol stay off the board.
+
+Regulators (`power/regulators.ts`): `lm7805` (TO-220, 5 V, 2 V dropout, 35 V max in),
+`ams1117-3v3` (a breakout, 3.3 V, 1.1 V, 15 V) and `mcp1700-3v3` (TO-92, 3.3 V, 0.178 V, 6 V —
+the one a LiPo can feed). OUT follows IN: `min(Vout, VIN − dropout)` above GND at supply
+strength, released while IN or GND float; `regulator-dropout` (warning) while IN is below
+Vout + dropout, `regulator-overvoltage` (error) above the rating, both withdrawn when they no
+longer hold. OUT is the first power pin listed: a part's logic supply — what its drives call a
+1 — comes from its first power pin's net, and OUT's is what it makes (an AMS1117 fed 9 V would
+otherwise call its 3.3 V a 0). Their PCB footprints are standard ones (TO-220-3, TO-92 inline,
+a 1×3 header) with the datasheet's pad numbers. Loads aren't modeled: no current limit, no heat.
+
 ### Problems
 
 Sources, all gathered by `Bench.problems()` (one problem per code and sorted part set; the newest

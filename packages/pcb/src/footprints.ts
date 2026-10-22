@@ -55,8 +55,11 @@ const COURTYARD_MARGIN = 0.25;
 
 /** Part types that don't go on a PCB (besides parts with no pins). */
 export function isOffBoard(def: PartDefinition): boolean {
-  return def.pins.length === 0 || def.type.startsWith('breadboard') || def.category === 'environment';
+  return def.pins.length === 0 || def.type.startsWith('breadboard') || def.category === 'environment' || OFF_BOARD.has(def.type);
 }
+
+/** BT83: a bench supply stays on the bench, and a ground symbol is a symbol, not a component. */
+const OFF_BOARD = new Set(['bench-supply', 'ground']);
 
 const round = (v: number): number => Math.round(v * 1000) / 1000;
 
@@ -148,6 +151,22 @@ const pad = (number: string, pin: string, x: number, y: number, shape: PadShape,
 
 /** Standard footprints for the basic components (KiCad library geometry). */
 const STANDARD: Readonly<Record<string, () => Footprint>> = {
+  // TO-220-3_Vertical (BT84): pad 1 IN, 2 GND, 3 OUT, 2.54 mm apart; the tab behind them.
+  lm7805: () => {
+    const pads = [pad('1', 'IN', -2.54, 0, 'rect', 1.9, 1.1), pad('2', 'GND', 0, 0, 'circle', 1.9, 1.1), pad('3', 'OUT', 2.54, 0, 'circle', 1.9, 1.1)];
+    const silk: SilkShape[] = [...rectSilk(-5.2, -3.2, 5.2, 1.6), { kind: 'line', x1: -5.2, y1: -1.9, x2: 5.2, y2: -1.9 }];
+    return { name: 'TO-220-3_Vertical', pads, silk, courtyard: { x0: -5.45, y0: -3.45, x1: 5.45, y1: 1.85 } };
+  },
+  // TO-92_Inline (BT84): the MCP1700's TO-92 order, pad 1 GND, 2 VIN, 3 VOUT, 1.27 mm apart.
+  'mcp1700-3v3': () => {
+    const pads = [pad('1', 'GND', -1.27, 0, 'rect', 1.05, 0.75), pad('2', 'VIN', 0, 0, 'circle', 1.05, 0.75), pad('3', 'VOUT', 1.27, 0, 'circle', 1.05, 0.75)];
+    return { name: 'TO-92_Inline', pads, silk: [...rectSilk(-2.4, -1.6, 2.4, 1.0)], courtyard: { x0: -2.65, y0: -1.85, x1: 2.65, y1: 1.25 } };
+  },
+  // The AMS1117-3.3 breakout as a 3-pin header (BT84): pad 1 VIN, 2 GND, 3 VOUT.
+  'ams1117-3v3': () => {
+    const pads = [pad('1', 'VIN', -2.54, 0, 'rect', HEADER_PAD, HEADER_DRILL), pad('2', 'GND', 0, 0, 'circle', HEADER_PAD, HEADER_DRILL), pad('3', 'VOUT', 2.54, 0, 'circle', HEADER_PAD, HEADER_DRILL)];
+    return { name: 'PinHeader_1x03_P2.54mm', pads, silk: rectSilk(-6.35, -14.6, 6.35, 1.9), courtyard: { x0: -6.6, y0: -14.85, x1: 6.6, y1: 2.15 } };
+  },
   // R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal
   resistor: () => {
     const pads = [pad('1', '1', -5.08, 0, 'circle', 1.6, 0.8), pad('2', '2', 5.08, 0, 'circle', 1.6, 0.8)];
@@ -184,6 +203,11 @@ export function footprintOf(def: PartDefinition): Footprint | null {
 
 /** Reference designator prefixes by part type (IEEE 315 / KiCad habits); U for everything else. */
 const PREFIX: Readonly<Record<string, string>> = {
+  'battery-9v': 'BT',
+  'battery-2aa': 'BT',
+  'battery-4aa': 'BT',
+  'battery-lipo': 'BT',
+  'battery-cr2032': 'BT',
   resistor: 'R',
   led: 'D',
   'rgb-led': 'D',

@@ -77,7 +77,10 @@ I2C), SSD1306 OLED, an ILI9341 color TFT (SPI), 7-segment displays, LED bar grap
 switches, an IR remote and receiver, PIR/LDR/NTC/sound sensors, DHT22, HC-SR04, DS1307,
 MPU-6050, a load cell with an HX711, flame and MQ-2 gas modules, servo, steppers and an A4988
 driver (microstepping),
-NeoPixel strips/rings/matrices, buzzers, a speaker and a microphone, and a relay. Sound goes
+NeoPixel strips/rings/matrices, buzzers, a speaker and a microphone, a relay, and power parts —
+9 V, AA, LiPo and coin-cell batteries, a bench supply you turn while it runs, a ground symbol and
+7805, AMS1117 and MCP1700 regulators that drop out like the real ones.
+Sound goes
 both ways through your computer: a speaker plays the waveform its pin really makes — tone(),
 PWM-DAC samples, the ESP32's DAC — and a microphone part can listen to your microphone (only
 after you click **Use microphone**; nothing is recorded or stored). A nodal solver gives resistive
@@ -114,14 +117,15 @@ npm install
 npm run dev          # the editor at http://localhost:5173
 ```
 
-**Examples…** opens 69 ready-to-run circuits, each with its sketch, which you can change and
+**Examples…** opens 79 ready-to-run circuits, each with its sketch, which you can change and
 run again (Basics: blink, button, fade, traffic light, a Simon game, serial echo, a Nano on a
 breadboard; Displays: LCDs,
 an LCD thermometer, OLED and an OLED clock, a color TFT, 7-segment, bar graph, NeoPixels; Sensors: DHT22,
 HC-SR04 and a distance meter, DS1307, MPU-6050, an IR remote, a kitchen scale, a flame alarm, a
 gas meter, keypad, rotary encoder; Motors: servo sweep, a
 servo knob, a keypad lock, a stepper, an A4988 stepper driver, a relay; Sound: buzzers, a speaker melody, PCM through PWM,
-a microphone pitch meter, a VU meter; Environment: a gas alarm with an extractor fan, a PIR
+a microphone pitch meter, a VU meter; Power: a regulator meter (turn the bench supply and watch a
+7805 drop out); Environment: a gas alarm with an extractor fan, a PIR
 hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, a PWM fader, NeoPixel, a
 rainbow ring, an OLED clock, a color TFT, the DAC, the microphone, an I2C scan; Raspberry Pi Pico:
 blink, a potentiometer, PWM steps, an OLED, a color TFT, both cores at once; Raspberry Pi Pico 2: the same, NeoPixels

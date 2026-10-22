@@ -9,6 +9,7 @@ import { microphoneView, speakerView } from './audio-parts.ts';
 import { breadboardView } from './breadboard.ts';
 import { ENVIRONMENT_VIEW_TYPES, environmentView } from './environment.ts';
 import { fallbackView } from './fallback.ts';
+import { POWER_VIEW_TYPES, powerView } from './power.ts';
 import { raspberryPiPicoView } from './raspberry-pi-pico.ts';
 import { stepper28byj48View } from './stepper-28byj48.ts';
 import { hasWokwiView, wokwiView } from './wokwi.ts';
@@ -36,6 +37,7 @@ export function viewFor(type: string): ViewFactory {
   if (type === 'speaker') return speakerView;
   if (type === 'microphone') return microphoneView;
   if (ENVIRONMENT_VIEW_TYPES.has(type)) return environmentView;
+  if (POWER_VIEW_TYPES.has(type)) return powerView;
   if (hasWokwiView(type)) return wokwiView;
   return fallbackView;
 }

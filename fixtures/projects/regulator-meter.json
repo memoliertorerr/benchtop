@@ -1,0 +1,211 @@
+{
+  "format": 1,
+  "name": "regulator-meter",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "psu",
+      "type": "bench-supply",
+      "x": -80,
+      "y": 72,
+      "rotation": 0,
+      "props": {
+        "volts": 9
+      }
+    },
+    {
+      "id": "reg",
+      "type": "lm7805",
+      "x": 8,
+      "y": 78,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "r1",
+      "type": "resistor",
+      "x": 34,
+      "y": 72,
+      "rotation": 0,
+      "props": {
+        "ohms": 10000
+      }
+    },
+    {
+      "id": "r2",
+      "type": "resistor",
+      "x": 34,
+      "y": 86,
+      "rotation": 0,
+      "props": {
+        "ohms": 10000
+      }
+    },
+    {
+      "id": "r3",
+      "type": "resistor",
+      "x": 34,
+      "y": 100,
+      "rotation": 0,
+      "props": {
+        "ohms": 330
+      }
+    },
+    {
+      "id": "led1",
+      "type": "led",
+      "x": 62,
+      "y": 94,
+      "rotation": 0,
+      "props": {
+        "color": "green"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "psu",
+        "pin": "+"
+      },
+      "to": {
+        "part": "reg",
+        "pin": "IN"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "psu",
+        "pin": "-"
+      },
+      "to": {
+        "part": "reg",
+        "pin": "GND"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "reg",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "reg",
+        "pin": "OUT"
+      },
+      "to": {
+        "part": "r1",
+        "pin": "1"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "r1",
+        "pin": "2"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "A0"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "r1",
+        "pin": "2"
+      },
+      "to": {
+        "part": "r2",
+        "pin": "1"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "r2",
+        "pin": "2"
+      },
+      "to": {
+        "part": "reg",
+        "pin": "GND"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w8",
+      "from": {
+        "part": "reg",
+        "pin": "OUT"
+      },
+      "to": {
+        "part": "r3",
+        "pin": "1"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w9",
+      "from": {
+        "part": "r3",
+        "pin": "2"
+      },
+      "to": {
+        "part": "led1",
+        "pin": "A"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w10",
+      "from": {
+        "part": "led1",
+        "pin": "C"
+      },
+      "to": {
+        "part": "reg",
+        "pin": "GND"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "regulator-meter.hex",
+      "format": "hex"
+    }
+  }
+}

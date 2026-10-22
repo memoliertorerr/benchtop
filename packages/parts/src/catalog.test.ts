@@ -5,7 +5,7 @@ import { PART_CATEGORIES } from './categories.ts';
 const categories = new Set<string>(PART_CATEGORIES.map((c) => c.id));
 
 describe('part catalog', () => {
-  it('lists the BT9, BT16–BT20, BT34, BT41, BT45, BT47, BT51–BT53, BT55 and BT61 parts', () => {
+  it('lists the BT9, BT16–BT20, BT34, BT41, BT45, BT47, BT51–BT53, BT55, BT61, BT83 and BT84 parts', () => {
     expect([...CATALOG.keys()].sort()).toEqual(
       [
         'speaker',
@@ -64,6 +64,16 @@ describe('part catalog', () => {
         'neopixel-ring',
         'neopixel-matrix',
         'relay-ks2e-m-dc5',
+        'battery-9v',
+        'battery-2aa',
+        'battery-4aa',
+        'battery-lipo',
+        'battery-cr2032',
+        'bench-supply',
+        'ground',
+        'lm7805',
+        'ams1117-3v3',
+        'mcp1700-3v3',
         'environment',
         'gas-leak',
         'heater',

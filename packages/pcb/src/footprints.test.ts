@@ -28,7 +28,7 @@ describe('footprints for the catalog (BT57)', () => {
         expect(pad.y + pad.h / 2).toBeLessThanOrEqual(fp.courtyard.y1);
       }
     }
-    expect(off.sort()).toEqual(['breadboard', 'breadboard-half', 'breadboard-mini', 'environment', 'fan', 'flame', 'gas-leak', 'heater', 'ir-remote', 'lamp', 'object', 'person', 'sound-source']);
+    expect(off.sort()).toEqual(['bench-supply', 'breadboard', 'breadboard-half', 'breadboard-mini', 'environment', 'fan', 'flame', 'gas-leak', 'ground', 'heater', 'ir-remote', 'lamp', 'object', 'person', 'sound-source']);
   });
 
   it('snaps header runs to an exact 0.1″ pitch: the Uno, an LCD, a Nano', () => {

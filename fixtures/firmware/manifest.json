@@ -2454,6 +2454,28 @@
     },
     {
       "board": "uno",
+      "name": "regulator-meter",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/regulator-meter.elf",
+      "sha256": "6d00f01a61324f75a33d15d6c8f21241ccd92a90af73c0ca9d89db9ab0f582df",
+      "bytes": 28884,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "3e46921617e82d23dc1e1030725551a1dc7b7c62968cef712d9230b5045b647c"
+    },
+    {
+      "board": "uno",
+      "name": "regulator-meter",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/regulator-meter.hex",
+      "sha256": "937e9e40fd626b98c9277779fa2f5955b82a1c256983f33dea93e67749a49aa7",
+      "bytes": 9627,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "3e46921617e82d23dc1e1030725551a1dc7b7c62968cef712d9230b5045b647c"
+    },
+    {
+      "board": "uno",
       "name": "relay",
       "fqbn": "arduino:avr:uno",
       "file": "uno/relay.elf",

@@ -26,6 +26,18 @@ export const PROBLEM_CODES: Readonly<Record<string, ProblemCodeInfo>> = {
   'unpowered-part': { title: 'Part without power', hint: "Wire the part's power (VCC/VDD) and ground (GND/VSS) pins." },
   'unconnected-pins': { title: 'Unconnected pins', hint: 'Fine if the sketch never uses them.' },
   'unwired-part': { title: 'Unwired part', hint: 'The part has no connections yet.' },
+  'supply-fight': {
+    title: 'Two supplies tied together',
+    hint: 'Two supplies at different volts share a net (a 9 V battery on a 5 V rail): one would push current back into the other. Keep one supply per rail, or put a regulator between them.',
+  },
+  'regulator-dropout': {
+    title: 'Regulator input too low',
+    hint: 'A linear regulator needs its input above its output by its dropout (2 V for a 7805, 1.1 V for an AMS1117); below that the output sags with the input. Use a higher input or a low-dropout regulator.',
+  },
+  'regulator-overvoltage': {
+    title: 'Regulator input too high',
+    hint: 'The input is above the regulator\'s maximum rating; a real one would be damaged. Lower the input or pick a regulator rated for it.',
+  },
   'led-overcurrent': {
     title: 'LED current too high',
     hint: 'An LED needs a series resistor (220 Ω–1 kΩ at 5 V); without one it would burn out the LED or the pin.',

@@ -85,6 +85,7 @@ export const CONTROLS: Readonly<Record<string, readonly Control[]>> = {
   'flame-sensor': [{ kind: 'slider', label: 'Flame (infrared)', unit: '', min: 0, max: 1, step: 0.01, prop: 'intensity' }],
   'gas-sensor': [{ kind: 'slider', label: 'Gas', unit: 'ppm', min: 1, max: 10_000, step: 1, prop: 'ppm', log: true }],
   hx711: [{ kind: 'slider', label: 'Weight', unit: 'g', min: 0, max: 50_000, step: 1, prop: 'weight' }],
+  'bench-supply': [slider('Voltage', 'V', 0, 30, 0.1, 'volts')], // BT83
   'hc-sr04': [{ kind: 'slider', label: 'Distance', unit: 'cm', min: 2, max: 450, step: 1, prop: 'distance', channel: 'distance' }],
   // BT55: the room and its sources take channel inputs while running (the environment's own).
   environment: [

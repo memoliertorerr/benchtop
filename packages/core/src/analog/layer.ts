@@ -202,6 +202,14 @@ export class AnalogLayer {
       for (let i = 0; i < n; i++) if (this.reached[i] === 0) solver.conductance(i, -1, GMIN);
       for (let i = 0; i < n; i++) {
         const net = island.nets[i];
+        if (host.isFixed(net)) {
+          // A supply a part model drives (a battery, BT83): fixed at run time, after the islands
+          // were built. Its row pins it to its volts; its neighbours already see it as fixed.
+          const li = this.local[net];
+          solver.conductance(li, -1, 1);
+          solver.current(li, host.fixedVolts(net));
+          continue;
+        }
         const g = host.driverG(net);
         if (g > 0) {
           // Norton source: g to ground plus g·V injected.
@@ -264,6 +272,10 @@ export class AnalogLayer {
     for (let i = 0; i < n; i++) {
       const net = island.nets[i];
       const li = this.local[net];
+      if (host.isFixed(net)) {
+        host.publish(net, host.swLevel(net), host.swStrength(net), host.swConflict(net), host.fixedVolts(net));
+        continue;
+      }
       if (this.reached[li] === 0) {
         // Floating: its switch-level state, but the volts the solve gives it — 0 V through GMIN,
         // or what an off diode's GOFF leak lets it follow (an LED's cathode on an input pin sits

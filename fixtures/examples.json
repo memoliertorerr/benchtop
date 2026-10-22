@@ -573,6 +573,19 @@
     "description": "A microphone and a 10-LED bar graph: the louder it hears, the more bars light. Try “Use microphone”."
   },
   {
+    "id": "regulator-meter",
+    "title": "Regulator meter",
+    "category": "Power",
+    "project": "regulator-meter",
+    "boards": {
+      "uno": {
+        "firmware": "uno/regulator-meter.hex",
+        "sketch": "uno/regulator-meter"
+      }
+    },
+    "description": "A bench supply feeds an LM7805; the Uno measures its output through a 10 kΩ/10 kΩ divider and prints it. Turn the supply below 7 V in the Inspector: the regulator drops out, the reading sags and the Problems tab says why."
+  },
+  {
     "id": "esp32-blink",
     "title": "ESP32 blink",
     "category": "ESP32",

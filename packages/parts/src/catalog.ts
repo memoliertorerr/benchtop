@@ -48,6 +48,8 @@ import { photoresistorSensor } from './sensors/photoresistor-sensor.ts';
 import { pirMotionSensor } from './sensors/pir-motion-sensor.ts';
 import { bigSoundSensor, smallSoundSensor } from './sensors/sound-sensor.ts';
 import { ENVIRONMENT_PARTS } from './environment/parts.ts';
+import { POWER_REGULATORS } from './power/regulators.ts';
+import { POWER_SOURCES } from './power/sources.ts';
 
 const ALL: readonly PartDefinition[] = [
   arduinoUno,
@@ -104,6 +106,8 @@ const ALL: readonly PartDefinition[] = [
   neopixelRing,
   neopixelMatrix,
   relayKs2e,
+  ...POWER_SOURCES,
+  ...POWER_REGULATORS,
   ...ENVIRONMENT_PARTS,
 ];
 

@@ -23,6 +23,15 @@ function flips(r: ExampleRun, part: string): number {
 }
 
 export const UNO_CHECKS: Record<string, (r: ExampleRun) => void> = {
+  'regulator-meter'(r) {
+    // BT85: 5.00 V from the 7805 at 9 V in; at 6 V in it drops out to 4 V and says so
+    r.runTo(400);
+    expect(r.serial('uno')).toContain('OUT = 5.00 V');
+    r.input('psu', { kind: 'value', value: 6 });
+    r.runTo(900);
+    expect(r.serial('uno').trimEnd().split('\r\n').at(-1)).toBe('OUT = 4.00 V');
+    expect(r.bench.problems().map((p) => p.code)).toContain('regulator-dropout');
+  },
   blink(r) {
     r.runTo(2000);
     expect(flips(r, 'led1')).toBeGreaterThanOrEqual(3);

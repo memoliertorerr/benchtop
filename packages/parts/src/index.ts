@@ -22,3 +22,5 @@ export { bipolarPosition } from './actuators/stepper.ts';
 export { ENV_SENSOR_TYPES, envSpecFor, soundLevel } from './environment/specs.ts';
 export { ENVIRONMENT_PARTS, OVERLAY_NAMES } from './environment/parts.ts';
 export { PART_INPUTS, type PartInputSpec, partInputs } from './part-inputs.ts';
+export { BATTERY_VOLTS, BENCH_SUPPLY_MAX, POWER_SOURCES } from './power/sources.ts';
+export { POWER_REGULATORS, REGULATORS } from './power/regulators.ts';

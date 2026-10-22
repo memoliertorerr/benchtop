@@ -84,6 +84,7 @@ export const PART_INPUTS: Readonly<Record<string, readonly PartInputSpec[]>> = {
   'flame-sensor': [value('infrared from a flame', 'intensity', 0, 1)],
   'gas-sensor': [value('gas concentration', 'ppm', 0)],
   hx711: [value('weight on the load cell', 'g')],
+  'bench-supply': [value('output voltage (BT83)', 'V', 0, 30), channel('volts', 'output voltage', 'V', 0, 30)],
   microphone: [value('one audio sample; the module plays samples at 16 kHz in the order sent', 'fraction of full scale', -1, 1)],
   environment: [
     channel('temperature', 'ambient temperature', '°C'),

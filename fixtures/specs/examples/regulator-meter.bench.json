@@ -1,0 +1,22 @@
+{
+  "name": "example: regulator-meter",
+  "project": "../../projects/regulator-meter.json",
+  "firmware": {
+    "uno": "../../firmware/uno/regulator-meter.hex"
+  },
+  "steps": [
+    {
+      "at": "500ms",
+      "part": "psu",
+      "input": {
+        "kind": "value",
+        "value": 6
+      }
+    }
+  ],
+  "expect": [
+    "serial contains \"OUT = 5.00 V\" by 400ms",
+    "serial contains \"OUT = 4.00 V\" by 1000ms",
+    "led led1 is lit at 900ms"
+  ]
+}

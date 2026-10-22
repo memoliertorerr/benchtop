@@ -15,7 +15,7 @@ import type { ProjectDoc } from '@benchtop/core';
 import { CATALOG } from '@benchtop/parts';
 import examplesJson from '../../../../fixtures/examples.json';
 
-export const CATEGORIES = ['Basics', 'Displays', 'Sensors', 'Motors', 'Sound', 'Environment', 'ESP32', 'Raspberry Pi Pico', 'Raspberry Pi Pico 2', 'Mega', 'Two boards'] as const;
+export const CATEGORIES = ['Basics', 'Displays', 'Sensors', 'Motors', 'Sound', 'Power', 'Environment', 'ESP32', 'Raspberry Pi Pico', 'Raspberry Pi Pico 2', 'Mega', 'Two boards'] as const;
 export type Category = (typeof CATEGORIES)[number];
 
 export type ExampleBoard =
@@ -76,12 +76,12 @@ export const EXAMPLES: readonly Example[] = (examplesJson as unknown[]).map(pars
 // projects and sketches as text, AVR firmware (Uno, Nano, Mega) as text, ESP32 images and Pico
 // and Pico 2 UF2s as asset URLs.
 const PROJECTS = import.meta.glob(
-  '../../../../fixtures/projects/{blink-led,button-pullup,pwm-fade,traffic-light,simon,debug-demo,analog-pot,logic-demo,lcd-4bit,lcd-i2c,lcd-thermometer,ssd1306-adafruit,oled-clock,seven-seg-mux,bargraph,neopixel,dht22,hcsr04,distance-meter,ds1307,mpu6050,keypad,encoder,servo-sweep,servo-knob,keypad-lock,stepper-28byj48,relay,buzzer,speaker-melody,pcm-playback,mic-level,vu-meter,esp32-blink,esp32-serial,esp32-button,esp32-pwm-fader,esp32-neopixel,esp32-rainbow-ring,esp32-oled-clock,esp32-dac-sine,esp32-mic-level,esp32-i2c,uart-chat,uno-esp32-uart-divider,nano-analog,mega-chaser,mega-serial-ports,mega-analog,tft-demo,esp32-tft-demo,ir-remote,scale,flame-alarm,gas-meter,a4988-stepper,env-gas-fan,env-pir-hallway,env-parking,env-thermostat,pico-blink,pico-analog-read,pico-pwm-fade,pico-i2c-oled,pico-spi-tft,pico-neopixel,pico-pio-square,pico-multicore,pico2-blink,pico2-analog-read,pico2-pwm-fade,pico2-i2c-oled,pico2-spi-tft,pico2-neopixel,pico2-button-irq}.json',
+  '../../../../fixtures/projects/{regulator-meter,blink-led,button-pullup,pwm-fade,traffic-light,simon,debug-demo,analog-pot,logic-demo,lcd-4bit,lcd-i2c,lcd-thermometer,ssd1306-adafruit,oled-clock,seven-seg-mux,bargraph,neopixel,dht22,hcsr04,distance-meter,ds1307,mpu6050,keypad,encoder,servo-sweep,servo-knob,keypad-lock,stepper-28byj48,relay,buzzer,speaker-melody,pcm-playback,mic-level,vu-meter,esp32-blink,esp32-serial,esp32-button,esp32-pwm-fader,esp32-neopixel,esp32-rainbow-ring,esp32-oled-clock,esp32-dac-sine,esp32-mic-level,esp32-i2c,uart-chat,uno-esp32-uart-divider,nano-analog,mega-chaser,mega-serial-ports,mega-analog,tft-demo,esp32-tft-demo,ir-remote,scale,flame-alarm,gas-meter,a4988-stepper,env-gas-fan,env-pir-hallway,env-parking,env-thermostat,pico-blink,pico-analog-read,pico-pwm-fade,pico-i2c-oled,pico-spi-tft,pico-neopixel,pico-pio-square,pico-multicore,pico2-blink,pico2-analog-read,pico2-pwm-fade,pico2-i2c-oled,pico2-spi-tft,pico2-neopixel,pico2-button-irq}.json',
   { import: 'default' },
 ) as Record<string, () => Promise<unknown>>;
 const HEX = import.meta.glob(
   [
-    '../../../../fixtures/firmware/uno/{blink,button-pullup,pwm-fade,traffic-light,simon,serial-echo,analog-read,logic-demo,lcd-4bit,lcd-i2c,lcd-thermometer,ssd1306-adafruit,oled-clock,seven-seg-mux,bargraph,neopixel,dht22-adafruit,hcsr04,distance-meter,ds1307,mpu6050,keypad-scan,encoder-count,servo-sweep,servo-knob,keypad-lock,stepper-28byj48,relay,buzzer,speaker-melody,pcm-playback,mic-level,vu-meter,uart-chat,uart-ping,tft-demo,ir-decode,scale,flame-alarm,gas-meter,a4988-stepper,gas-fan,pir-hallway,parking,thermostat}.hex',
+    '../../../../fixtures/firmware/uno/{regulator-meter,blink,button-pullup,pwm-fade,traffic-light,simon,serial-echo,analog-read,logic-demo,lcd-4bit,lcd-i2c,lcd-thermometer,ssd1306-adafruit,oled-clock,seven-seg-mux,bargraph,neopixel,dht22-adafruit,hcsr04,distance-meter,ds1307,mpu6050,keypad-scan,encoder-count,servo-sweep,servo-knob,keypad-lock,stepper-28byj48,relay,buzzer,speaker-melody,pcm-playback,mic-level,vu-meter,uart-chat,uart-ping,tft-demo,ir-decode,scale,flame-alarm,gas-meter,a4988-stepper,gas-fan,pir-hallway,parking,thermostat}.hex',
     '../../../../fixtures/firmware/nano/analog-a6.hex',
     '../../../../fixtures/firmware/mega/{chaser,serial-ports,analog-hi}.hex',
   ],
@@ -97,7 +97,7 @@ const BIN = import.meta.glob(
 ) as Record<string, () => Promise<string>>;
 const SKETCHES = import.meta.glob(
   [
-    '../../../../fixtures/sketches/uno/{blink,button-pullup,pwm-fade,traffic-light,simon,serial-echo,analog-read,logic-demo,lcd-4bit,lcd-i2c,lcd-thermometer,ssd1306-adafruit,oled-clock,seven-seg-mux,bargraph,neopixel,dht22-adafruit,hcsr04,distance-meter,ds1307,mpu6050,keypad-scan,encoder-count,servo-sweep,servo-knob,keypad-lock,stepper-28byj48,relay,buzzer,speaker-melody,pcm-playback,mic-level,vu-meter,uart-chat,uart-ping,tft-demo,ir-decode,scale,flame-alarm,gas-meter,a4988-stepper,gas-fan,pir-hallway,parking,thermostat}/*.{ino,h,hpp,c,cpp}',
+    '../../../../fixtures/sketches/uno/{regulator-meter,blink,button-pullup,pwm-fade,traffic-light,simon,serial-echo,analog-read,logic-demo,lcd-4bit,lcd-i2c,lcd-thermometer,ssd1306-adafruit,oled-clock,seven-seg-mux,bargraph,neopixel,dht22-adafruit,hcsr04,distance-meter,ds1307,mpu6050,keypad-scan,encoder-count,servo-sweep,servo-knob,keypad-lock,stepper-28byj48,relay,buzzer,speaker-melody,pcm-playback,mic-level,vu-meter,uart-chat,uart-ping,tft-demo,ir-decode,scale,flame-alarm,gas-meter,a4988-stepper,gas-fan,pir-hallway,parking,thermostat}/*.{ino,h,hpp,c,cpp}',
     '../../../../fixtures/sketches/nano/analog-a6/*.{ino,h,hpp,c,cpp}',
     '../../../../fixtures/sketches/mega/{chaser,serial-ports,analog-hi}/*.{ino,h,hpp,c,cpp}',
     '../../../../fixtures/sketches/esp32/{blink,serial-hello,gpio-input,pwm-fader,neopixel,rainbow-ring,oled-clock,dac-sine,mic-level,i2c-scan,uart-chat,uart-relay,tft-demo}/*.{ino,h,hpp,c,cpp}',
