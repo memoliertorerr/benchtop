@@ -11,6 +11,8 @@ export const EM_AVR = 83;
 export const EM_XTENSA = 94;
 /** BT72: 32-bit Arm (the RP2040's Cortex-M0+; Thumb function symbols carry bit 0). */
 export const EM_ARM = 40;
+/** BT92: RISC-V (the ESP32-C3's ROM and apps). */
+export const EM_RISCV = 243;
 /** p_type of a loadable segment. */
 export const PT_LOAD = 1;
 /** sh_type of a section that occupies no file space (.bss). */

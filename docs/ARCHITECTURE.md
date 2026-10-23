@@ -37,6 +37,7 @@ simulation core has no DOM, the same code runs headless in Node for tests and CI
 | `@benchtop/rp2040` | the RP2040 `Mcu` (`createRp2040Mcu`, `rp2040McuFactory`) over rp2040js: the clean-room bootrom, UF2/ELF loading, pins, UARTs, USB serial, I2C/SPI controllers | know about parts or the UI |
 | `@benchtop/riscv` | the RISC-V RV32 core (Hazard3 profile: the RP2350's): decoder, objdump-exact disassembler, predecode cache, machine and user modes, the CSR hook a SoC plugs into | know about a SoC, parts or the UI |
 | `@benchtop/rp2350` | the RP2350 SoC (RISC-V side) on `@benchtop/riscv` with the real bootrom: memory map, Xh3irq, peripherals, QMI and flash, the `Mcu` (`createRp2350Mcu`, `rp2350McuFactory`) | know about parts or the UI |
+| `@benchtop/esp32c3` | the ESP32-C3 SoC on `@benchtop/riscv` with its mask ROM: memory map, flash MMU, interrupt matrix, peripherals, direct boot, the debugger view (headless for now: not a bench board yet) | know about parts or the UI |
 | `@benchtop/pcb` | the PCB document, footprints, nets from the bench, ratsnest, DRC, fabrication exports | touch DOM; run simulation |
 | `@benchtop/web` | the editor, part views, the worker host and the worker entry | run CPU emulation on the UI thread |
 | `@benchtop/bridge` | the local compile bridge: runs arduino-cli for the browser (Node, zero dependencies) | listen beyond loopback; write outside its temp build folders |
@@ -1563,7 +1564,7 @@ sequence, files matched by basename or trailing path.
   pmpcfg0–3 and pmpaddr0–15 hold their WARL values (R = 0/W = 1 cleared, 30-bit addresses, lock
   bits and the locked-TOR rule honored) but nothing is enforced yet. **The SoC seam:**
   `csrHook` (`readCsr`/`writeCsr`) answers every CSR the core doesn't implement — Hazard3's
-  Xh3irq and msleep, the ESP32-C3's interrupt-matrix CSRs later — after the core's own
+  Xh3irq and msleep, the ESP32-C3's performance counter — after the core's own
   privilege and read-only checks; its optional `accessCsr(csr, kind, operand, writes)`
   takes a whole CSR instruction, for CSRs whose value read depends on the same instruction's
   operand (Hazard3's indexed arrays). The SoC drives MEIP/MTIP/MSIP with `setInterruptLine`.
@@ -1573,6 +1574,11 @@ sequence, files matched by basename or trailing path.
   (`slt x0, x0, x1`) calls `unblockHook`, and the SoC's `unblock()` wakes a blocked hart or
   latches for its next block — the SDK's `__wfe`/`__sev` on RISC-V, so a sketch in `delay()`
   sleeps instead of spinning.
+  **External interrupt cause.** A SoC whose interrupt controller picks the line itself
+  (the ESP32-C3's) presents it with `setInterruptCause(cause)` (0 = none): while it is nonzero
+  the core treats an interrupt as pending, and with mstatus.MIE set takes it as cause
+  `0x80000000 | cause` — through vectored mtvec at base + 4 × cause, which is how IDF's C3 vector
+  table dispatches. mie/mip don't gate it (the controller has its own enables); WFI wakes on it.
 
   **Tests.** Hand-written programs in `fixtures/riscv/programs/` (scripts/riscv-programs.ts:
   the arduino-pico toolchain's `as` for the Hazard3 ISA, linked at 0x80000000; h3.bextm and
@@ -1585,29 +1591,8 @@ sequence, files matched by basename or trailing path.
   CSRs, PMP storage, the hook, vectored interrupts and their priority, WFI with and without
   MIE), each with and without the predecode cache where it matters.
 
-  **What the ESP32-C3 would add** (not planned yet; reviewed against the RP2350 work).
-  The core carries over as it is: decoder, disassembler, predecode cache, traps, the CSR hook.
-  Beyond it:
-  - **Profile.** A `RiscvProfile` from the C3's technical reference manual. It is RV32IMC, so
-    the profile needs a switch for A, which is always on today; none of Hazard3's extensions.
-  - **ROM.** Its mask ROM ELF from the same esp-rom-elfs release the ESP32 uses (an
-    `esp32c3_rev*_rom.elf`), fetched by the same script with its own pinned hashes, and booted
-    the way the ESP32's is (`packages/esp32/src/boot/`: the app image and partition table
-    parsers, the ROM's RAM data unpacked, a direct boot).
-  - **Memory map.** The C3's: 384 KB ROM, 400 KB SRAM seen through both the instruction and the
-    data bus at different addresses, the flash and its MMU/cache (like the ESP32's, with a
-    different page table), RTC fast memory, and the peripherals at 0x60000000.
-  - **Interrupts.** The interrupt matrix maps 62 sources onto 31 CPU interrupt lines, with a
-    priority and a threshold per line. It plugs into the core through `RiscvCsrHook` and the
-    mip lines, as Xh3irq does on the RP2350. Its CSRs and mtvec's vectored mode are already in
-    the core.
-  - **Console.** The USB-serial-JTAG controller: the Arduino core's `Serial` on boards without
-    a USB-UART chip. Its endpoint FIFOs are much simpler than the RP2350's USB controller, so a
-    byte-level model like the ESP32's UART fits better than rp2040js's USB host.
-  - **Peripherals.** Much of the ESP32's peripheral code (UART, LEDC, RMT, I2C, SPI, GPIO
-    matrix, timers, watchdogs) should carry over with register-map changes. The SoC shape
-    (time base, slices, WAITI-style idle — WFI here) follows `packages/esp32/src/soc/soc.ts`
-    more than the RP2350's.
+  **The ESP32-C3** carries the core over unchanged (its RV32IMAC profile, misa reporting
+  RV32IMC) and adds only the external interrupt cause above — see the ESP32-C3 entry below.
 
 - **RP2350, RISC-V side** — `@benchtop/rp2350`: the Raspberry Pi Pico 2's chip on two
   `@benchtop/riscv` harts with the Hazard3 profile, with the **real bootrom**: release A4 of
@@ -1758,6 +1743,133 @@ sequence, files matched by basename or trailing path.
   function on core 1, launched through the bootrom, as on the Pico.
   `machine.ADC`, `Pin`, `time.sleep_ms` and `neopixel` (`machine.bitstream`, timed by the cycle
   counter) work as on the Pico.
+
+- **ESP32-C3** — `@benchtop/esp32c3`: Espressif's RISC-V chip on one `@benchtop/riscv`
+  core, running Arduino-ESP32 2.0.17 images (FQBN `esp32:esp32:esp32c3`) booted directly with
+  its mask ROM. It shares what isn't Xtensa with `@benchtop/esp32`: the event table, the
+  app-image and partition parsers (`parseEspImage(bytes, chip)`, `buildFlash(app, partitions,
+  chip)` — the C3 is chip id 5 with its own segment regions), the Problem log, sha256. It
+  isn't a bench board yet: no `Mcu` adapter and no board part.
+
+  **ROM.** `esp32c3_rev3_rom.elf` (ECO3 — Arduino-ESP32 2.0.17 links against
+  `esp32c3.rom.eco3.ld`, CONFIG_ESP32C3_REV_MIN_3) from the same pinned esp-rom-elfs-20241011
+  tarball as the ESP32's ROM: `npm run fetch:esp32-rom` extracts it into `.cache/esp32c3-rom`
+  and checks its SHA-256 (`rom-manifest.ts`); with the tarball cached it downloads nothing.
+  `parseC3Rom` takes its PROGBITS sections at ROM addresses (0x4000_0000 code, and 0x3FF0_0000,
+  the data bus's view of the ROM's top 128 KB, for .rodata) as code, those at DRAM addresses as
+  the RAM its reset path would leave (function tables, interface pointers, .data — each at its
+  address; no store table to unpack as on the ESP32), and its symbols.
+
+  **Memory map** (`soc/memory.ts`, TRM §3): ROM 0x4000_0000–0x4005_FFFF (the data bus sees its
+  last 128 KB at 0x3FF0_0000); 400 KB SRAM as IRAM 0x4037_C000–0x403D_FFFF and DRAM
+  0x3FC8_0000–0x3FCD_FFFF (one array: IRAM = DRAM + 0x70_0000, both views of the same bytes);
+  8 KB RTC fast memory at 0x5000_0000; flash through the cache at IROM 0x4200_0000 and DROM
+  0x3C00_0000, 8 MB windows mapped in 64 KB pages by one 128-entry table at 0x600C_5000 (bits
+  7:0 the flash page, bit 8 invalid; the two windows share the table, so an index serves both —
+  a read through an invalid entry is a bus error); peripherals 0x6000_0000–0x600D_0FFF. Code
+  runs predecoded from ROM, IRAM and mapped flash; a store into an IRAM page the core
+  predecoded, an MMU table write and any flash program/erase drop the affected code.
+
+  **Time and the run loop** (`soc/soc.ts`) follow the ESP32's: reference cycles at 160 MHz (the
+  crystal is 4 a CPU cycle, SYSTIMER's 16 MHz tick 10); an instruction costs 160 MHz / the CPU
+  clock (SYSTEM's SYSCLK_CONF and CPU_PER_CONF: the 40 MHz crystal at reset, 160 MHz after
+  esp_clk_init). The loop runs slices of at most 256 reference cycles up to the next event, or
+  sleeps through to it in WFI. A load or store to the peripheral space yields first and runs as
+  that one instruction with exact time, so peripherals read `now()` as the instruction's own
+  time. The CSR hook answers the C3's performance counter (mpccr 0x7E2 counts CPU cycles — IDF's
+  cycle count; 0x802 is its user view, which the ROM's `ets_delay_us` reads), and keeps the debug
+  trigger (0x7A0–0x7A5) and dedicated-GPIO (0x803–0x805) CSRs as written.
+
+  **Interrupts** (`soc/intmatrix.ts`, TRM §8): 62 sources, each mapped to one of 31 CPU lines
+  (INTERRUPT_CORE0 at 0x600C_2000); per line an enable, a type (level, or edge — latched on a
+  rising source until CPU_INT_CLEAR) and a priority 1–15; one threshold. The controller
+  presents the enabled pending line with the highest priority **at or above** the threshold
+  (the lowest number on a tie; priority 0 never interrupts) as the core's external cause. IDF
+  runs at threshold 1 with its interrupts at priority 1, and raises the threshold in critical
+  sections — so "above" would mask everything, which is how FreeRTOS's first yield (FROM_CPU0,
+  source 50, through SYSTEM's CPU_INTR_FROM_CPU_0) got lost before the rule was fixed.
+
+  **Peripherals: the boot set.** Every block answers with its reset values (`reg-defaults.generated.ts`
+  from the IDF 4.4 headers, `node scripts/gen-esp32-reg-defaults.ts --chip esp32c3`); an access
+  to one not modeled reads back what was written and logs an info Problem
+  (`esp32c3-unimplemented-register`). Modeled:
+  - SYSTIMER (`systimer.ts`): two 52-bit units at 16 MHz, three comparators (one-shot target or
+    period, on unit 0 or 1). The target and period latch on COMPn_LOAD; UNIT_SEL and
+    PERIOD_MODE act as written — IDF's `vPortSetupTimer` loads the period and *then* sets
+    PERIOD_MODE (`systimer_hal_select_alarm_mode`), and the tick must still run. IDF 4.4 uses
+    unit 1 / comparator 0 for the 1 kHz FreeRTOS tick and unit 0 / comparator 2 for esp_timer.
+  - TIMG0/1 (`timg.ts`): the 54-bit timer with alarm and autoreload, the MWDT's stages, the
+    RTC slow-clock calibration (`rtc_clk_cal`).
+  - UART0/1 (`uart.ts`): TX FIFO drained one frame at a time at the baud (sclk from
+    CLK_CONF, CLKDIV with its fraction, CONF0's frame), RX queue, the usual interrupts.
+  - RTC_CNTL (`rtc-cntl.ts`): the RTC timer's latch, RESET_STATE's cause, software reset; the
+    eFuse block (MAC 34:85:18:00:C3:01, wafer version 3) idle with its reads done.
+  - SYSTEM and EXTMEM (`system.ts`): clocks; FROM_CPU 0–3 as sources 50–53; cache operations
+    (invalidate, preload, lock, autoload, freeze) complete at once.
+  - SPI0/SPI1 and the flash (`spi-mem.ts`): a 4 MB GigaDevice-style chip (JEDEC C8 40 16) with
+    three status registers — esp_flash sets SR2's QE for QIO and reads it back, and asserts if
+    it doesn't stick —, page program (AND), sector/block/chip erase, user commands and the ROM's
+    direct ones; SPI0's registers only configure timing.
+  - APB_SARADC (`saradc.ts`): the one-shot conversion startup's self-calibration polls for
+    (`read_cal_channel`), completing at once with a sample from a hook (the pins' volts, below).
+
+  **Peripherals: pins and buses.**
+  - GPIO, the GPIO matrix and IO_MUX (`gpio.ts`, 22 pads): OUT/ENABLE with their W1TS/W1TC
+    aliases, IN while FUN_IE is set, PINn's open drain and interrupt types (edges latched in
+    STATUS, levels held; PCPU_INT → source 16), FUNC_IN_SEL (5-bit pad, 0x1E constant 1, 0x1F
+    constant 0) and FUNC_OUT_SEL (signal 128 = the GPIO_OUT bit, inversion, output-enable source).
+    IO_MUX function 1 is the GPIO everywhere; function 0 is too on 0–3, 8–11, 18, 19, U0RXD/U0TXD
+    on 20/21 (pads that drive or feed a peripheral directly, as FSPI on function 2). The pad
+    resolver (`Pads`) gives each pad a mode and level as the ESP32's does; an ADC pad (GPIO0–5) a
+    conversion used, with its input and pulls off, reads `analog`.
+  - LEDC (`ledc.ts`): the ESP32's low-speed group alone — six channels on four timers, edges at
+    exact times, DUTY_START at a period boundary. Arduino-ESP32 2.0.17 clocks it from the 40 MHz
+    crystal on the C3 (`LEDC_USE_XTAL_CLK`), so 5 kHz tops out at 12 bits: a sketch asking for 13
+    gets IDF's "can not be achieved" error, as on a board.
+  - USB-Serial-JTAG (`usb-serial-jtag.ts`), its CDC side: the 64-byte IN FIFO sent on WR_DONE or
+    when full, a host that reads each packet 50 µs (plus 0.75 µs a byte) later — `onTx` hears the
+    bytes, SERIAL_IN_EMPTY rises —, host→device bytes in packets of up to 64 (SERIAL_OUT_RECV_PKT),
+    and a start-of-frame every millisecond once the firmware touches the block: Arduino's HWCDC
+    calls the port unplugged when SOF stops for 5 ms, so its tick hook needs them.
+  - I2C (`i2c.ts`): the ESP32's transaction-level command engine with the C3's eight command
+    slots and op codes (RESTART 6, WRITE 1, READ 3, STOP 2, END 4), the bus clock from CLK_CONF
+    (crystal or RC_FAST, divided), and SCL_SP_CONF's bus-clear bit reading back 0 — IDF resets
+    the FSM and clears the bus after every NACK and waits for that bit.
+  - SPI2 (`spi.ts`): the ESP32's transaction-level master with the C3's layout (USR bit 24, the
+    UPDATE handshake, one MS_DLEN for both directions, W0 at 0x98).
+  - RMT (`rmt.ts`): TX channels 0–1 of the C3's second-generation RMT (per-channel TX_CONF0, its
+    RAM at +0x400 with 48 items a channel, the clock from SYS_CONF), half items at exact times —
+    `neopixelWrite` and the core's `LED_BUILTIN` (a WS2812 on GPIO8) decode with WS2812 timing.
+  - The SAR ADC's samples come from `padVolts` (the bench's net volts): ADC1 channels 0–4 are
+    GPIO0–4, ADC2 channel 0 GPIO5, an idealized linear 12-bit code over the attenuation's range —
+    0.75, 1.05, 1.3 and 2.5 V, the C3 datasheet's.
+
+  **Debugging.** `Esp32c3Debug` is the core's `McuDebug`, as `Rp2350Debug` is hart 0's:
+  ABI registers, pc, mstatus/mepc/mcause; `data` reads through `Esp32c3Soc.peek` (memory, the
+  flash through the MMU, a block's stored registers — never a FIFO pop), writes reach SRAM and RTC
+  fast memory only; `flash` is the chip. While breakpoints are set the run loop executes one
+  instruction at a time, stopping before one at a breakpoint (`atBreakpoint`; the next run
+  executes it); `step` runs one instruction and fires the events it passed.
+
+  **Arduino's own timing, seen through it:** on a single-core chip Arduino-ESP32's `loopTask`
+  calls `yieldIfNecessary()` — a `vTaskDelay(5)` whenever 2 s have passed — so a 500 ms blink
+  has one 505 ms interval every two seconds, on a board as here.
+
+  **What the bootloader leaves** (`boot/direct-boot.ts`; the IDF 4.4 bootloader and the ROM's
+  reset path): the partition table at 0x8000 and the app at its partition; the MMU entries for
+  each IROM/DROM segment's pages and every other entry invalid; RAM segments copied; the ROM's
+  RAM sections placed and `s_ticks_per_us` = 40 (the ROM startup's `ets_update_cpu_frequency`);
+  RTC_CNTL STORE4 = 0x0028_0028 (a 40 MHz crystal, read by `rtc_clk_xtal_freq_get`); the RTC
+  and TIMG watchdogs off (no CONFIG_BOOTLOADER_WDT handover); the power-on reset cause; the core
+  in machine mode at the image's entry with sp at the top of the ROM's `.stack_pro`
+  (0x3FCD_E710), where the bootloader runs, and the CPU on the crystal.
+
+  **Measured** (serial-hello, plain Node, Apple M1): the greeting's first byte leaves 19 ms of
+  simulated time after the entry (≈ 1.07 M instructions, mostly startup's self-calibration and
+  heap init); idle in `delay()` the core sleeps in WFI between ticks, ≈ 575 instructions a
+  millisecond, so 10 s of simulated time take ≈ 0.34 s of wall time (≈ 30× real time). `node scripts/esp32c3-trace.ts
+  <fixture>` is the boot debugger: UART0, the core's state, where the time went (symbolized),
+  the Problems, the last samples' PCs and the stop PC's function disassembled.
 
 ## Worker protocol
 

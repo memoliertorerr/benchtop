@@ -7,7 +7,7 @@
  */
 
 import { md5 } from '../util/md5.ts';
-import { type EspImage, parseEspImage } from './image.ts';
+import { ESP32_CHIP, type EspChip, type EspImage, parseEspImage } from './image.ts';
 import { appPartition, DEFAULT_PARTITIONS, type Partition, PARTITION_MAGIC, PARTITION_MD5_MAGIC, type PartitionTable, parsePartitionTable } from './partitions.ts';
 
 export const PARTITION_TABLE_OFFSET = 0x8000;
@@ -42,8 +42,8 @@ export function serializePartitions(table: PartitionTable): Uint8Array {
   return bytes;
 }
 
-export function buildFlash(app: Uint8Array, partitionsBin?: Uint8Array): BuiltFlash {
-  const parsed = parseEspImage(app);
+export function buildFlash(app: Uint8Array, partitionsBin?: Uint8Array, chip: EspChip = ESP32_CHIP): BuiltFlash {
+  const parsed = parseEspImage(app, chip);
   if (!parsed.ok) return { ok: false, error: `app image: ${parsed.error.message}` };
   const image = parsed.image;
   const megabytes = FLASH_SIZES[image.spiSize];

@@ -13,6 +13,7 @@ export * from './boot/rom-manifest.ts';
 export * from './boot/rom.ts';
 export * from './esp32.ts';
 export * from './soc/bus.ts';
+export * from './soc/events.ts';
 export * from './soc/memory.ts';
 export * from './soc/mmu.ts';
 export * from './soc/periph.ts';

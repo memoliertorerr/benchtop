@@ -4,7 +4,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { ADDR2LINE_ORACLES, FIXTURE_BOARDS, type Manifest, sketchOutputs } from './fixture-boards.ts';
+import { ADDR2LINE_ORACLES, FIXTURE_BOARDS, fixtureFqbn, type Manifest, sketchOutputs } from './fixture-boards.ts';
 
 // Checks the committed fixture firmware against its manifest. Never runs the compiler:
 // `npm run fixtures` (and `npm run fixtures -- --check`) is the only thing that does.
@@ -33,7 +33,7 @@ describe('fixture firmware manifest', () => {
       const bytes = readFileSync(path);
       expect(bytes.length, output.file).toBe(output.bytes);
       expect(createHash('sha256').update(bytes).digest('hex'), output.file).toBe(output.sha256);
-      expect(output.fqbn).toBe(FIXTURE_BOARDS[output.board]?.fqbn);
+      expect(output.fqbn).toBe(fixtureFqbn(output.board, output.name));
       const core = output.fqbn.split(':').slice(0, 2).join(':');
       expect(output.core, output.file).toBe(`${core}@${manifest.cores[core]}`);
       expect(typeof output.libraries).toBe('object');

@@ -9,7 +9,9 @@
  * Integrity: the tarball's SHA-256 must equal BOTH the release's published checksum asset and
  * ROM_TARBALL_SHA256; only ROM_ELF_NAME is extracted (gunzip + a ustar reader that validates
  * headers) and checked against ROM_ELF_SHA256. Everything is written under ROM_CACHE_DIR
- * (git-ignored) — nothing ROM-derived is ever committed. With the Xtensa toolchain present it
+ * (git-ignored) — nothing ROM-derived is ever committed. BT92: the same tarball also yields the
+ * ESP32-C3's ROM (packages/esp32c3/src/rom-manifest.ts) into C3_ROM_CACHE_DIR — from the cached
+ * tarball when there is one (no download), else from the download. With the Xtensa toolchain present it
  * also writes rom-corpus.tsv.gz there (the decode-corpus format of scripts/xtensa-corpus.ts).
  */
 
@@ -30,6 +32,7 @@ import {
   ROM_TARBALL_URL,
 } from '../packages/esp32/src/boot/rom-manifest.ts';
 import { readTar } from '../packages/esp32/src/util/ustar.ts';
+import { C3_ROM_CACHE_DIR, C3_ROM_ELF_NAME, C3_ROM_ELF_SHA256 } from '../packages/esp32c3/src/rom-manifest.ts';
 import { findXtensaTool } from './arduino-cli.ts';
 import { decodeElfSections } from './xtensa-corpus.ts';
 
@@ -38,6 +41,7 @@ const CACHE = join(ROOT, ROM_CACHE_DIR);
 const ELF_PATH = join(CACHE, ROM_ELF_NAME);
 const TARBALL_PATH = join(CACHE, ROM_TARBALL_NAME);
 const MAX_TARBALL = 32 * 1024 * 1024;
+const C3_ELF_PATH = join(ROOT, C3_ROM_CACHE_DIR, C3_ROM_ELF_NAME);
 
 const sha256 = (bytes: Uint8Array): string => createHash('sha256').update(bytes).digest('hex');
 
@@ -65,6 +69,38 @@ function publishedHash(text: string): { hash: string; line: string } | undefined
   return undefined;
 }
 
+const c3Cached = (): boolean => existsSync(C3_ELF_PATH) && sha256(readFileSync(C3_ELF_PATH)) === C3_ROM_ELF_SHA256;
+
+/** BT92: the ESP32-C3 ROM from a verified tarball's entries. False when it's missing or doesn't verify. */
+function writeC3Rom(entries: { name: string; type: string; data: Uint8Array }[]): boolean {
+  const entry = entries.find((e) => e.type === '0' && basename(e.name) === C3_ROM_ELF_NAME);
+  if (entry === undefined) {
+    console.error(`${C3_ROM_ELF_NAME} is not in the tarball`);
+    return false;
+  }
+  const hash = sha256(entry.data);
+  if (hash !== C3_ROM_ELF_SHA256) {
+    console.error(`${C3_ROM_ELF_NAME} SHA-256 ${hash} does not match the pinned C3_ROM_ELF_SHA256 ${C3_ROM_ELF_SHA256}`);
+    return false;
+  }
+  mkdirSync(dirname(C3_ELF_PATH), { recursive: true });
+  writeFileSync(C3_ELF_PATH, entry.data);
+  console.info(`wrote ${C3_ROM_CACHE_DIR}/${C3_ROM_ELF_NAME} (${entry.data.length} bytes, SHA-256 ${hash})`);
+  return true;
+}
+
+/** BT92: the C3 ROM from the cached tarball (pinned hash checked; nothing downloaded). */
+function c3FromCachedTarball(): boolean {
+  if (c3Cached()) return true;
+  if (!existsSync(TARBALL_PATH)) return false;
+  const tarball = new Uint8Array(readFileSync(TARBALL_PATH));
+  if (sha256(tarball) !== ROM_TARBALL_SHA256) {
+    console.error(`the cached ${ROM_TARBALL_NAME} does not match ROM_TARBALL_SHA256`);
+    return false;
+  }
+  return writeC3Rom(readTar(new Uint8Array(gunzipSync(tarball, { maxOutputLength: 256 * 1024 * 1024 }))));
+}
+
 /** The ROM's executable sections through objdump, as rom-corpus.tsv.gz (BT28's ROM decode check). */
 function writeRomCorpus(): void {
   if (findXtensaTool('xtensa-esp32-elf-objdump') === undefined) {
@@ -89,8 +125,9 @@ async function main(): Promise<number> {
     return 1;
   }
 
-  if (!record && existsSync(ELF_PATH) && sha256(readFileSync(ELF_PATH)) === ROM_ELF_SHA256) {
+  if (!record && existsSync(ELF_PATH) && sha256(readFileSync(ELF_PATH)) === ROM_ELF_SHA256 && (c3Cached() || c3FromCachedTarball())) {
     console.info(`${ROM_CACHE_DIR}/${ROM_ELF_NAME} is cached and verified (SHA-256 ${ROM_ELF_SHA256}).`);
+    console.info(`${C3_ROM_CACHE_DIR}/${C3_ROM_ELF_NAME} is cached and verified (SHA-256 ${C3_ROM_ELF_SHA256}).`);
     if (!existsSync(join(CACHE, 'rom-corpus.tsv.gz')) || args.includes('--corpus')) writeRomCorpus();
     return 0;
   }
@@ -148,6 +185,8 @@ async function main(): Promise<number> {
   }
   writeFileSync(ELF_PATH, entry.data);
   console.info(`wrote ${ROM_CACHE_DIR}/${ROM_ELF_NAME} (${entry.data.length} bytes, SHA-256 ${elfHash})`);
+  writeFileSync(TARBALL_PATH, tarball); // kept (≈3.4 MB): later runs extract other chips' ROMs without downloading
+  if (!writeC3Rom(entries)) return 1;
   writeRomCorpus();
   return 0;
 }

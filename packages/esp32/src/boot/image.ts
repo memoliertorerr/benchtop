@@ -22,7 +22,10 @@ const MAX_SEGMENTS = 16;
 export type MemoryRegion = 'DROM' | 'DRAM' | 'IROM' | 'IRAM' | 'RTC_FAST' | 'RTC_SLOW';
 
 /** Where an image segment may load: [start, end] inclusive. */
-export const IMAGE_REGIONS: readonly { region: MemoryRegion; start: number; end: number }[] = [
+export type ImageRegions = readonly { region: MemoryRegion; start: number; end: number }[];
+
+/** The ESP32's regions. */
+export const IMAGE_REGIONS: ImageRegions = [
   { region: 'DROM', start: 0x3f400000, end: 0x3f7fffff },
   { region: 'DRAM', start: 0x3ffae000, end: 0x3fffffff },
   { region: 'IRAM', start: 0x40070000, end: 0x400bffff },
@@ -61,23 +64,33 @@ export type ImageErrorCode = 'truncated' | 'magic' | 'segments' | 'chip' | 'addr
 
 export type ParsedImage = { ok: true; image: EspImage } | { ok: false; error: { code: ImageErrorCode; message: string } };
 
+/** BT92: a chip an image may be built for — its header chip id and where its segments may load. */
+export interface EspChip {
+  name: string;
+  /** esp_chip_id_t: 0 ESP32, 5 ESP32-C3. */
+  chipId: number;
+  regions: ImageRegions;
+}
+
+export const ESP32_CHIP: EspChip = { name: 'ESP32', chipId: 0, regions: IMAGE_REGIONS };
+
 /** The region holding [address, address + length), or undefined. */
-export function regionOf(address: number, length: number): MemoryRegion | undefined {
+export function regionOf(address: number, length: number, regions: ImageRegions = IMAGE_REGIONS): MemoryRegion | undefined {
   const last = address + Math.max(length, 1) - 1;
-  return IMAGE_REGIONS.find((r) => address >= r.start && last <= r.end)?.region;
+  return regions.find((r) => address >= r.start && last <= r.end)?.region;
 }
 
 const fail = (code: ImageErrorCode, message: string): ParsedImage => ({ ok: false, error: { code, message } });
 const hex = (n: number): string => `0x${n.toString(16).padStart(8, '0')}`;
 
-export function parseEspImage(bytes: Uint8Array): ParsedImage {
+export function parseEspImage(bytes: Uint8Array, chip: EspChip = ESP32_CHIP): ParsedImage {
   if (bytes.length < HEADER_BYTES) return fail('truncated', `${bytes.length} bytes is shorter than the ${HEADER_BYTES}-byte image header`);
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   if (bytes[0] !== ESP_IMAGE_MAGIC) return fail('magic', `magic byte is 0x${bytes[0].toString(16)}, not 0xe9`);
   const segmentCount = bytes[1];
   if (segmentCount < 1 || segmentCount > MAX_SEGMENTS) return fail('segments', `${segmentCount} segments (expected 1–${MAX_SEGMENTS})`);
   const chipId = view.getUint16(12, true);
-  if (chipId !== 0) return fail('chip', `chip id ${chipId} is not an ESP32 (0)`);
+  if (chipId !== chip.chipId) return fail('chip', `chip id ${chipId} is not an ${chip.name} (${chip.chipId})`);
   const entry = view.getUint32(4, true);
   const segments: ImageSegment[] = [];
   let offset = HEADER_BYTES;
@@ -88,14 +101,14 @@ export function parseEspImage(bytes: Uint8Array): ParsedImage {
     const length = view.getUint32(offset + 4, true);
     const dataStart = offset + SEGMENT_HEADER_BYTES;
     if (length > bytes.length - dataStart) return fail('truncated', `segment ${i} (${length} bytes at ${dataStart}) runs past the end of the file`);
-    const region = regionOf(loadAddress, length);
-    if (region === undefined) return fail('address', `segment ${i} at ${hex(loadAddress)} (+${length}) is outside every ESP32 memory region`);
+    const region = regionOf(loadAddress, length, chip.regions);
+    if (region === undefined) return fail('address', `segment ${i} at ${hex(loadAddress)} (+${length}) is outside every ${chip.name} memory region`);
     const data = bytes.subarray(dataStart, dataStart + length);
     for (let k = 0; k < data.length; k++) checksum ^= data[k];
     segments.push({ loadAddress, data, region, fileOffset: dataStart });
     offset = dataStart + length;
   }
-  if (regionOf(entry, 1) !== 'IRAM') return fail('entry', `entry point ${hex(entry)} is not in IRAM`);
+  if (regionOf(entry, 1, chip.regions) !== 'IRAM') return fail('entry', `entry point ${hex(entry)} is not in IRAM`);
   // Zero padding so the checksum is the last byte of a 16-byte block.
   const checksumAt = offset + (15 - (offset % 16));
   if (checksumAt >= bytes.length) return fail('truncated', 'the file ends before the checksum byte');

@@ -4,6 +4,7 @@
  * ;default: N'hV ; *\/`), as {address → value} for the nonzero ones. Run by hand when the
  * headers change:
  *   node scripts/gen-esp32-reg-defaults.ts
+ *   node scripts/gen-esp32-reg-defaults.ts --chip esp32c3   (BT92: packages/esp32c3's table)
  * Sources: the installed esp32 Arduino core's ESP-IDF headers (Apache-2.0, Espressif),
  * SDK/include/soc/esp32/include/soc/<name>_reg.h with the DR_REG_* bases of soc.h. Register
  * macros with an instance parameter (`UART_CLKDIV_REG(i)`) expand for every instance. The
@@ -16,12 +17,20 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const SDK = join(homedir(), 'Library/Arduino15/packages/esp32/hardware/esp32/2.0.17/tools/sdk/esp32');
-const SOC = join(SDK, 'include/soc/esp32/include/soc');
-const OUT = join(ROOT, 'packages/esp32/src/soc/reg-defaults.generated.ts');
+const SDK_ROOT = join(homedir(), 'Library/Arduino15/packages/esp32/hardware/esp32/2.0.17/tools/sdk');
 
-/** Header → instances of its `(i)` register macros. */
-const HEADERS: [string, number][] = [
+interface Chip {
+  title: string;
+  /** soc headers folder under the SDK root. */
+  soc: string;
+  out: string;
+  /** Header → instances of its `(i)` register macros. */
+  headers: [string, number][];
+  /** The peripheral register space (aliases outside it name the same registers). */
+  space: [number, number];
+}
+
+const ESP32_HEADERS: [string, number][] = [
   ['dport_reg.h', 1],
   ['rtc_cntl_reg.h', 1],
   ['efuse_reg.h', 1],
@@ -37,6 +46,42 @@ const HEADERS: [string, number][] = [
   ['rmt_reg.h', 1],
 ];
 
+/** BT92: the ESP32-C3's peripherals, 0x6000_0000–0x600D_0FFF (soc.h). */
+const ESP32C3_HEADERS: [string, number][] = [
+  ['system_reg.h', 1],
+  ['sensitive_reg.h', 1],
+  ['interrupt_core0_reg.h', 1],
+  ['extmem_reg.h', 1],
+  ['rtc_cntl_reg.h', 1],
+  ['efuse_reg.h', 1],
+  ['apb_ctrl_reg.h', 1],
+  ['timer_group_reg.h', 2],
+  ['uart_reg.h', 2],
+  ['gpio_reg.h', 1],
+  ['ledc_reg.h', 1],
+  ['i2c_reg.h', 1],
+  ['spi_reg.h', 3],
+  ['spi_mem_reg.h', 2],
+  ['rmt_reg.h', 1],
+  ['systimer_reg.h', 1],
+  ['apb_saradc_reg.h', 1],
+  ['usb_serial_jtag_reg.h', 1],
+  ['assist_debug_reg.h', 1],
+];
+
+const CHIPS: Record<string, Chip> = {
+  esp32: { title: 'ESP32', soc: 'esp32/include/soc/esp32/include/soc', out: 'packages/esp32/src/soc/reg-defaults.generated.ts', headers: ESP32_HEADERS, space: [0x3ff00000, 0x3ff80000] },
+  esp32c3: { title: 'ESP32-C3', soc: 'esp32c3/include/soc/esp32c3/include/soc', out: 'packages/esp32c3/src/soc/reg-defaults.generated.ts', headers: ESP32C3_HEADERS, space: [0x60000000, 0x600d1000] },
+};
+
+const chipFlag = process.argv.indexOf('--chip');
+const chipName = chipFlag >= 0 ? (process.argv[chipFlag + 1] ?? '') : 'esp32';
+const chip = CHIPS[chipName];
+if (chip === undefined) throw new Error(`--chip must be one of ${Object.keys(CHIPS).join(', ')}`);
+const SOC = join(SDK_ROOT, chip.soc);
+const OUT = join(ROOT, chip.out);
+const HEADERS = chip.headers;
+
 // ── Macros ────────────────────────────────────────────────────────────────────────────────
 
 interface Macro {
@@ -49,7 +94,7 @@ const macros = new Map<string, Macro>();
 function collectMacros(text: string): void {
   // Join continuation lines, then read `#define NAME body` and `#define NAME(p) body`.
   for (const line of text.replace(/\\\r?\n/g, ' ').split(/\r?\n/)) {
-    const m = /^\s*#define\s+([A-Za-z_]\w*)(\(\s*([A-Za-z_]\w*)\s*\))?\s+(.*?)\s*(\/\*.*)?$/.exec(line);
+    const m = /^\s*#define\s+([A-Za-z_]\w*)(\(\s*([A-Za-z_]\w*)\s*\))?\s+(.*?)\s*(\/\*.*)?$/.exec(line.replace(/\/\/.*$/, ''));
     if (m === null) continue;
     macros.set(m[1], { param: m[3] ?? null, body: m[4] });
   }
@@ -167,8 +212,14 @@ function evaluate(source: string, env: ReadonlyMap<string, number>, depth = 0): 
 
 // ── Field annotations ─────────────────────────────────────────────────────────────────────
 
-/** `N'hV` / `N'bV` / `N'dV` / plain numbers → value masked to N bits. */
+/** `N'hV` / `N'bV` / `N'dV` / plain numbers → value masked to N bits; a leading `~` (the C3's headers) inverts it within N bits. */
 function parseDefault(text: string): number | undefined {
+  const inverted = /^~\s*(\d+)'/.exec(text.trim());
+  if (inverted !== null) {
+    const v = parseDefault(text.trim().slice(1));
+    const width = Number(inverted[1]);
+    return v === undefined ? undefined : (~v >>> 0) % 2 ** Math.min(width, 32);
+  }
   const m = /^(\d+)?'([hHbBdD])([0-9a-fA-F_]+)$/.exec(text.trim());
   if (m === null) {
     const n = /^(0x[0-9a-fA-F]+|\d+)$/.exec(text.trim());
@@ -239,8 +290,8 @@ collectMacros(readFileSync(join(SOC, 'soc.h'), 'utf8'));
 for (const [file] of HEADERS) collectMacros(readFileSync(join(SOC, file), 'utf8'));
 macros.set('BIT', { param: 'nr', body: '(1 << (nr))' }); // esp_bit_defs.h
 
-/** Peripheral register space (the AHB alias 0x6000_0000+ names the same registers). */
-const isRegisterAddress = (a: number): boolean => a >= 0x3ff00000 && a < 0x3ff80000;
+/** Peripheral register space (on the ESP32 the AHB alias 0x6000_0000+ names the same registers). */
+const isRegisterAddress = (a: number): boolean => a >= chip.space[0] && a < chip.space[1];
 
 const defaults = new Map<number, number>();
 let registerCount = 0;
@@ -258,7 +309,7 @@ const body = entries.map(([a, v]) => `  ${hex(a)}, ${hex(v)},`).join('\n');
 writeFileSync(
   OUT,
   `/**
- * GENERATED by scripts/gen-esp32-reg-defaults.ts — do not edit. Reset values of the ESP32
+ * GENERATED by scripts/gen-esp32-reg-defaults.ts${chipName === 'esp32' ? '' : ` --chip ${chipName}`} — do not edit. Reset values of the ${chip.title}
  * peripheral registers whose fields carry \`default:\` annotations in ESP-IDF v4.4's headers
  * (${HEADERS.map(([f]) => f).join(', ')}; Apache-2.0, Espressif Systems), as flat
  * [address, value] pairs for the nonzero ones (${entries.length} of ${registerCount} registers).

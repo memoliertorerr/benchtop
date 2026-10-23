@@ -195,6 +195,12 @@ export class RiscvCore {
   readonly writeMtval: boolean;
   /** Interrupt lines (mip bits) the SoC drives. */
   lines = 0;
+  /**
+   * BT92: the interrupt a SoC's own controller has ready (the ESP32-C3's: 31 lines with
+   * priorities and a threshold, memory-mapped, mie/mip unused): its number 1–31, taken as mcause
+   * 0x8000000n when mstatus.MIE allows, or 0 for none. Wakes WFI like an enabled mip line.
+   */
+  cause = 0;
   /** The LR.W reservation's address, or −1. */
   reservation = -1;
   /** Cycles since construction (instructions + trap entries + cycles asleep in WFI). */
@@ -309,6 +315,12 @@ export class RiscvCore {
   /** An interrupt line (traps.IRQ: MSI, MTI, MEI) goes high or low. */
   setInterruptLine(irq: number, high: boolean): void {
     this.lines = high ? this.lines | (1 << irq) : this.lines & ~(1 << irq);
+    this.updateIrq();
+  }
+
+  /** BT92: the SoC's controller has interrupt `cause` (1–31) ready, or none (0). */
+  setInterruptCause(cause: number): void {
+    this.cause = cause;
     this.updateIrq();
   }
 
@@ -1073,14 +1085,17 @@ export class RiscvCore {
    */
   private service(end: number): boolean {
     if (this.stopRequested) return false;
-    const pending = this.mie & this.lines & IRQ_MASK;
+    const pending = (this.mie & this.lines & IRQ_MASK) | (this.cause !== 0 ? 1 : 0);
     if (pending !== 0 && (this.mode === MODE_U || (this.mstatus & MIE) !== 0)) {
       this.waiting = false;
-      for (let i = 0; i < IRQ_PRIORITY.length; i++) {
-        const irq = IRQ_PRIORITY[i];
-        if ((pending & (1 << irq)) !== 0) {
-          this.trap((INTERRUPT_BIT | irq) >>> 0, 0);
-          break;
+      if (this.cause !== 0) this.trap((INTERRUPT_BIT | this.cause) >>> 0, 0);
+      else {
+        for (let i = 0; i < IRQ_PRIORITY.length; i++) {
+          const irq = IRQ_PRIORITY[i];
+          if ((pending & (1 << irq)) !== 0) {
+            this.trap((INTERRUPT_BIT | irq) >>> 0, 0);
+            break;
+          }
         }
       }
       if (this.stopOnTrap) {
@@ -1105,7 +1120,7 @@ export class RiscvCore {
 
   /** Recomputes `attention` after mie, mip, mstatus, the mode, WFI or the code changed. */
   private updateIrq(): void {
-    const pending = this.mie & this.lines & IRQ_MASK;
+    const pending = (this.mie & this.lines & IRQ_MASK) | (this.cause !== 0 ? 1 : 0);
     const deliverable = pending !== 0 && (this.mode === MODE_U || (this.mstatus & MIE) !== 0);
     this.attention = deliverable || this.waiting || this.stopRequested || this.codeChanged;
   }

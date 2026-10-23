@@ -38,6 +38,8 @@ export interface FixtureBoard {
   symbols?: string;
   /** BT71: the nm that writes `<name>.syms.tsv` for this board's `SYMBOL_SKETCHES` only (the debugger's tests). */
   debugSymbols?: string;
+  /** BT93: board menu options for single sketches, appended to the FQBN (`{ 'cdc-hello': 'CDCOnBoot=cdc' }`). */
+  options?: Readonly<Record<string, string>>;
 }
 
 export const FIXTURE_BOARDS: Readonly<Record<string, FixtureBoard>> = {
@@ -69,6 +71,19 @@ export const FIXTURE_BOARDS: Readonly<Record<string, FixtureBoard>> = {
       { from: 'partitions.bin', ext: 'partitions.bin' },
     ],
     symbols: 'xtensa-esp32-elf-nm',
+  },
+  // BT92: the ESP32-C3 (RISC-V) with the esp32 core (2.0.17), its Dev Module defaults: Serial on
+  // UART0 (CDC on boot off), QIO 80 MHz flash, 160 MHz. Like the ESP32: the app image and the
+  // partition table, symbols from the ELF (any RV32 nm reads it).
+  esp32c3: {
+    fqbn: 'esp32:esp32:esp32c3',
+    outputs: [
+      { from: 'bin', ext: 'bin' },
+      { from: 'partitions.bin', ext: 'partitions.bin' },
+    ],
+    symbols: 'riscv32-unknown-elf-nm',
+    // BT93: Serial over the C3's own USB (USB-Serial-JTAG), as on boards without a USB-UART chip.
+    options: { 'cdc-hello': 'CDCOnBoot=cdc' },
   },
   // BT60: the Raspberry Pi Pico with the arduino-pico core (6.2.0). The UF2 is what a user drops
   // on the board; the ELF (1.3 MB, mostly DWARF) isn't committed.
@@ -131,4 +146,12 @@ export interface Manifest {
   /** Every library installed in the sketchbook, name → version. */
   libraries: Record<string, string>;
   outputs: ManifestOutput[];
+}
+
+/** The FQBN a fixture sketch builds with: its board's, plus the sketch's menu options (BT93). */
+export function fixtureFqbn(board: string, name: string): string {
+  const b = FIXTURE_BOARDS[board];
+  if (b === undefined) throw new Error(`unknown fixture board ${board}`);
+  const options = b.options?.[name];
+  return options === undefined ? b.fqbn : `${b.fqbn}:${options}`;
 }

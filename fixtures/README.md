@@ -19,6 +19,11 @@ fixtures/firmware/esp32/<name>.bin|.partitions.bin  ESP32 app image and partitio
 fixtures/firmware/esp32/<name>.syms.tsv       `nm -S -n --defined-only` of the full ELF
                                               ("addr\tsize\ttype\tname"); the ELF itself (6 MB,
                                               mostly DWARF), .map and bootloader are never committed
+fixtures/firmware/esp32c3/<name>.bin|.partitions.bin|.syms.tsv  the same for the ESP32-C3
+                                              (serial-hello, blink, gpio-interrupt, adc-read,
+                                              ledc-fade, i2c-scan, spi-loopback, rgb-blink,
+                                              serial-echo, and cdc-hello built with
+                                              CDCOnBoot=cdc — Serial on the C3's own USB)
 fixtures/firmware/pico*/debug-demo.syms.tsv   the same for the Pico and Pico 2 debug-demos only (the
                                               debugger's tests; `SYMBOL_SKETCHES` in fixture-boards.ts)
 fixtures/firmware/pico/<name>.uf2             Raspberry Pi Pico firmware (arduino-pico 6.2.0; the
@@ -71,7 +76,9 @@ build takes ~30 s per sketch; later builds hit arduino-cli's caches.
 
 Board folders map to FQBNs in `scripts/fixture-boards.ts` (`uno` → `arduino:avr:uno`, `nano` →
 `arduino:avr:nano` (.hex + .elf like the Uno), `mega` → `arduino:avr:mega` (the
-ATmega2560; `far-code`'s .hex is ~370 KB: its 130 KB of tables push code past 128 KiB), `esp32` → `esp32:esp32:esp32`, core 2.0.17). An ESP32 sketch builds in ~35 s and its build folder takes
+ATmega2560; `far-code`'s .hex is ~370 KB: its 130 KB of tables push code past 128 KiB), `esp32` → `esp32:esp32:esp32`, core 2.0.17; `esp32c3` → `esp32:esp32:esp32c3`, the same core's
+RISC-V chip with its defaults — Serial on UART0; a sketch can add board menu options —
+`options` in scripts/fixture-boards.ts, as `cdc-hello`: `esp32:esp32:esp32c3:CDCOnBoot=cdc`). An ESP32 sketch builds in ~35 s and its build folder takes
 ~25 MB. The app image embeds the ELF's SHA-256 (app descriptor, 0xb0–0xcf), so the fixed build
 folders matter here too: `--check` proves the .bin is byte-identical across builds. `pico` →
 `rp2040:rp2040:rpipico` (the arduino-pico core 6.2.0, installed with

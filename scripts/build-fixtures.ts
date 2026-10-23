@@ -32,7 +32,7 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findSection, parseElf32 } from '../packages/core/src/firmware/elf.ts';
 import { arduinoCliCandidates, findArduinoCli, findArmTool, findAvrTool, findRiscvTool, findXtensaTool, runArduinoCli } from './arduino-cli.ts';
-import { ADDR2LINE_ORACLES, FIXTURE_BOARDS, type Manifest, type ManifestOutput, sketchSourceSha256, symbolsTool } from './fixture-boards.ts';
+import { ADDR2LINE_ORACLES, FIXTURE_BOARDS, fixtureFqbn, type Manifest, type ManifestOutput, sketchSourceSha256, symbolsTool } from './fixture-boards.ts';
 import { writeRiscvCorpora } from './riscv-corpus.ts';
 import { buildRiscvPrograms } from './riscv-programs.ts';
 import { writeCorpora } from './xtensa-corpus.ts';
@@ -102,13 +102,14 @@ async function main(): Promise<number> {
   let totalMs = 0;
   for (const sketch of sketches) {
     const board = FIXTURE_BOARDS[sketch.board];
+    const fqbn = fixtureFqbn(sketch.board, sketch.name);
     const outDir = mkdtempSync(join(tmpdir(), 'benchtop-fixture-'));
     const start = performance.now();
     try {
       const result = await runArduinoCli(cli, [
         'compile',
         '--fqbn',
-        board.fqbn,
+        fqbn,
         '--build-path',
         join(BUILD, sketch.board, sketch.name),
         '--output-dir',
@@ -137,7 +138,7 @@ async function main(): Promise<number> {
         built.push({
           board: sketch.board,
           name: sketch.name,
-          fqbn: board.fqbn,
+          fqbn,
           file,
           sha256: sha256(bytes),
           bytes: bytes.length,
@@ -158,7 +159,7 @@ async function main(): Promise<number> {
         built.push({
           board: sketch.board,
           name: sketch.name,
-          fqbn: board.fqbn,
+          fqbn,
           file,
           sha256: sha256(bytes),
           bytes: bytes.length,
@@ -175,7 +176,7 @@ async function main(): Promise<number> {
         built.push({
           board: sketch.board,
           name: sketch.name,
-          fqbn: board.fqbn,
+          fqbn,
           file,
           sha256: sha256(bytes),
           bytes: bytes.length,
