@@ -320,9 +320,16 @@ You can also record a test by using the app: **Record test** in the toolbar rest
 and records every button press, knob turn, keypad key and serial input at its exact simulated
 time; **Stop** proposes expectations from where it ended (serial lines, lit LEDs, LCD rows,
 servo angles) — tick the ones you want, name the firmware files, and download the spec. Every
-example in the gallery has such a spec in `fixtures/specs/examples/`. In a
-GitHub Actions job, after `npm ci`, compiling your sketches with `arduino-cli` and (for ESP32
-boards) `npm run fetch:esp32-rom -- --yes` (for MicroPython sketches `npm run fetch:micropython -- --yes`):
+example in the gallery has such a spec in `fixtures/specs/examples/`.
+
+This repository's own CI, [.github/workflows/verify.yml](.github/workflows/verify.yml), runs the
+whole `npm run verify` on every push to main and every pull request: it installs what the tests
+need beyond `npm ci` (arduino-cli with the AVR core, the Xtensa toolchain, the ROMs and
+MicroPython firmware through the fetch scripts — every download checked against a pinned
+SHA-256), with every action pinned to a commit and read-only permissions. To test your own
+sketches the same way, compile them with `arduino-cli`, fetch what your boards need (`npm run
+fetch:esp32-rom -- --yes` for ESP32 boards, `npm run fetch:micropython -- --yes` for MicroPython
+sketches) and add:
 
 ```yaml
 - run: npm run bench -- test specs --junit results.xml --markdown summary.md

@@ -1,0 +1,96 @@
+# The whole `npm run verify` — typechecks, every test, the spec suite and the build — on every
+# push to main and every pull request, exactly as it gates a commit locally. Beyond `npm ci` it
+# needs what the tests read but the repository doesn't hold: Espressif's ESP32 and ESP32-C3 ROMs,
+# the RP2350 bootrom and the MicroPython UF2s (each fetch script checks its pinned SHA-256);
+# arduino-cli with the AVR core (the compile tests compare against the committed blink.hex); and
+# the Xtensa toolchain the ESP32 core 2.0.17 uses (its objdump writes the ROM decode corpus).
+# Every download is checked against a SHA-256 pinned here or in the repository before use.
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ARDUINO_CLI_VERSION: 1.5.1
+  # arduino-cli_1.5.1_Linux_64bit.tar.gz, from the release's 1.5.1-checksums.txt
+  ARDUINO_CLI_SHA256: 28a8e119c498a25607821c36cb2dc49e8463941b261a0d99091baa7bc692dd2b
+  ARDUINO_AVR_CORE: arduino:avr@1.8.7
+  # xtensa-esp32-elf-gcc esp-2021r2-patch5-8.4.0 for x86_64 Linux, as esp32:esp32@2.0.17's
+  # package_esp32_index.json lists it (url and checksum)
+  XTENSA_URL: https://github.com/espressif/crosstool-NG/releases/download/esp-2021r2-patch5/xtensa-esp32-elf-gcc8_4_0-esp-2021r2-patch5-linux-amd64.tar.gz
+  XTENSA_SHA256: 8ef14e0409c2011b41e504a30f70d3e35287313a795d1f2462ad2cd0e2052d37
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.18.0
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache the ROMs and firmware the tests read
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache
+          key: roms-${{ hashFiles('packages/esp32/src/boot/rom-manifest.ts', 'packages/esp32c3/src/rom-manifest.ts', 'packages/rp2350/src/rom-manifest.ts', 'packages/rp2040/src/micropython-manifest.ts') }}-${{ env.XTENSA_SHA256 }}
+
+      - name: Cache arduino-cli, the AVR core and the Xtensa toolchain
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.local/bin/arduino-cli
+            ~/.arduino15
+            ~/xtensa-esp32-elf
+          key: tools-${{ env.ARDUINO_CLI_SHA256 }}-${{ env.ARDUINO_AVR_CORE }}-${{ env.XTENSA_SHA256 }}
+
+      - name: Install arduino-cli and the AVR core
+        run: |
+          set -eu
+          mkdir -p "$HOME/.local/bin"
+          if [ ! -x "$HOME/.local/bin/arduino-cli" ]; then
+            curl -fsSL -o /tmp/arduino-cli.tar.gz "https://github.com/arduino/arduino-cli/releases/download/v${ARDUINO_CLI_VERSION}/arduino-cli_${ARDUINO_CLI_VERSION}_Linux_64bit.tar.gz"
+            echo "${ARDUINO_CLI_SHA256}  /tmp/arduino-cli.tar.gz" | sha256sum -c -
+            tar -xzf /tmp/arduino-cli.tar.gz -C "$HOME/.local/bin" arduino-cli
+          fi
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/arduino-cli" core update-index
+          "$HOME/.local/bin/arduino-cli" core install "$ARDUINO_AVR_CORE"
+
+      - name: Install the Xtensa toolchain
+        run: |
+          set -eu
+          if [ ! -x "$HOME/xtensa-esp32-elf/bin/xtensa-esp32-elf-objdump" ]; then
+            curl -fsSL -o /tmp/xtensa.tar.gz "$XTENSA_URL"
+            echo "${XTENSA_SHA256}  /tmp/xtensa.tar.gz" | sha256sum -c -
+            tar -xzf /tmp/xtensa.tar.gz -C "$HOME"
+          fi
+          echo "BENCHTOP_XTENSA_BIN=$HOME/xtensa-esp32-elf/bin" >> "$GITHUB_ENV"
+
+      - name: Fetch the ROMs and the MicroPython firmware
+        run: |
+          npm run fetch:esp32-rom -- --yes
+          npm run fetch:rp2350-rom -- --yes
+          npm run fetch:micropython -- --yes
+
+      - name: Verify
+        run: npm run verify
