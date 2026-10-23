@@ -20,6 +20,7 @@ void setup() {
   Serial.begin(115200);
   pinMode(TRIG, OUTPUT);
   pinMode(ECHO, INPUT);
+  pinMode(BUZZER, OUTPUT); // driven from the start, not floating until the first tone()
 }
 
 void loop() {

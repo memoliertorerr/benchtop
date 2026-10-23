@@ -28,7 +28,8 @@ export interface StaticCheckInput {
   supplyVolts: (net: number) => number | undefined;
 }
 
-const isBreadboard = (type: string): boolean => type.startsWith('breadboard');
+/** A breadboard: a passive interconnect, not a part a pin is "wired to". */
+export const isBreadboard = (type: string): boolean => type.startsWith('breadboard');
 
 export function staticProblems({ doc, defOf, netlist, supplyVolts }: StaticCheckInput): Problem[] {
   const problems: Problem[] = [];

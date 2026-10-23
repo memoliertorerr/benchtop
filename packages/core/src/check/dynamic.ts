@@ -6,7 +6,9 @@
  *   reaches at least one other part, for two consecutive checks with no mode change between
  *   them (so a keypad's scan lines, INPUT between scans, aren't flagged). Decided approximation:
  *   the Mcu contract can't say whether firmware read the pin, so wired floating inputs are
- *   flagged.
+ *   flagged. Breadboards (`interconnects`) don't count as the other part (BT96): a Nano on a
+ *   breadboard has every pin in a strip, and an unused pin whose strip holds nothing else isn't
+ *   wired to anything.
  * - esp32-overvoltage (error): an ESP32 board pin's net above 3.6 V.
  * - pin-overcurrent (error, BT47): an MCU pin driving its net (output, peripheral or a DAC) with
  *   more than its absolute maximum current, (drive − net volts) / STRONG_OHMS — only on nets the
@@ -94,6 +96,8 @@ export class DynamicChecks {
   private readonly slotAmps: Float64Array;
   private readonly slotHold: Uint8Array;
   private readonly slotProblems: (Problem | null)[];
+  /** Parts that only connect (breadboards): reaching one isn't being wired to a part. */
+  private readonly interconnects: ReadonlySet<string>;
 
   constructor(
     boardPins: readonly CheckedBoardPin[],
@@ -101,7 +105,9 @@ export class DynamicChecks {
     netlist: Netlist,
     state: (net: number) => NetState,
     solved: (net: number) => boolean = () => false,
+    interconnects: ReadonlySet<string> = new Set(),
   ) {
+    this.interconnects = interconnects;
     this.boardPins = boardPins;
     this.parts = parts;
     this.netlist = netlist;
@@ -142,7 +148,7 @@ export class DynamicChecks {
     this.boardPins.forEach((p, i) => {
       const s = this.state(p.net);
       const others = this.otherParts(p.net, p.board);
-      const floating = p.pin.mode() === 'input' && s.level === null && s.strength === Strength.hiz && others.length > 0;
+      const floating = p.pin.mode() === 'input' && s.level === null && s.strength === Strength.hiz && others.some((part) => !this.interconnects.has(part));
       const steady = p.changes === this.seenChanges[i];
       this.seenChanges[i] = p.changes;
       this.floating[i] = floating ? (steady ? Math.min(2, this.floating[i] + 1) : 1) : 0;

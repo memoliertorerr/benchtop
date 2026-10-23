@@ -53,7 +53,7 @@
 import { buildIslands } from '../analog/islands.ts';
 import { BUS, BusLog, type BusSource } from '../bus-log/log.ts';
 import { type CheckedBoardPin, type CheckedPart, DynamicChecks } from '../check/dynamic.ts';
-import { staticProblems } from '../check/static.ts';
+import { isBreadboard, staticProblems } from '../check/static.ts';
 import { LEVEL_X, LEVEL_Z, MAX_PROBES, ProbeRing } from '../probe/ring.ts';
 import { AnalogLayer, type DiodeInstance } from '../analog/layer.ts';
 import { MAX_NODES } from '../analog/solve.ts';
@@ -771,12 +771,20 @@ export class Bench {
       const groundNets = nets('ground');
       if (powerNets.length > 0 || groundNets.length > 0) checkedParts.push({ part: part.id, powerNets, groundNets });
     }
-    this.checks = new DynamicChecks(this.checkedBoardPins, checkedParts, netlist, (net) => resolver.state(net), (net) => {
-      const analog = this.analog;
-      if (analog === null) return false;
-      const island = analog.netIsland[net];
-      return island >= 0 && analog.tooLarge[island] === 0;
-    });
+    const breadboards = new Set(doc.parts.filter((part) => isBreadboard(part.type)).map((part) => part.id));
+    this.checks = new DynamicChecks(
+      this.checkedBoardPins,
+      checkedParts,
+      netlist,
+      (net) => resolver.state(net),
+      (net) => {
+        const analog = this.analog;
+        if (analog === null) return false;
+        const island = analog.netIsland[net];
+        return island >= 0 && analog.tooLarge[island] === 0;
+      },
+      breadboards,
+    );
     this.scheduler.schedule(this.time + CHECK_INTERVAL_NS, this.checkTick);
 
     // The environment (BT54): a world feeding the sensors, when the document has an ambient part.

@@ -10,7 +10,7 @@
  *   BT41); listeners fire when any of them changes. Inputs apply
  *   3.3 V CMOS thresholds with hysteresis (VIH 0.75·VDD = 2.475 V, VIL 0.25·VDD = 0.825 V — the
  *   ESP32 datasheet's DC characteristics); a floating net keeps the pad at 0, and the firmware
- *   reading such a pad is reported once per pin.
+ *   reading such a pad — one it configured itself (BT96) — is reported once per pin.
  * - `load` takes `esp32-bin` images (app + optional partition table) and boots them directly
  *   (boot/direct-boot.ts); `reset` builds a fresh SoC and boots again (`cycles` back to 0, pin
  *   objects and listeners kept). `uart(0..2)` are the three UARTs (`receive` queues bytes on the
@@ -398,11 +398,15 @@ export class Esp32Mcu implements Mcu, Debuggable {
     for (let i = 0; i < pin.listeners.length; i++) pin.listeners[i]();
   }
 
-  /** The firmware read GPIO_IN while pad `g` was floating with its input enabled. */
+  /**
+   * The firmware read GPIO_IN while pad `g` was floating with its input enabled. A read covers
+   * every pad, so only pads the firmware configured itself count (BT96: GPIO16–23 come out of
+   * reset as inputs without pulls, and every digitalRead flagged the unused ones).
+   */
   private floatingRead(g: number): void {
     const pin = this.byGpio[g];
     if (pin === undefined || !pin.floating || this.floatingReported[g] !== 0) return;
-    if (this.soc.pads.mode[g] !== PAD_MODE.INPUT) return;
+    if (this.soc.pads.mode[g] !== PAD_MODE.INPUT || this.soc.iomux.configured[g] === 0) return;
     this.floatingReported[g] = 1;
     this.report('warning', CODE_FLOATING_INPUT, g, `GPIO${g} is read while floating (nothing drives it and it has no pull): it reads 0. Add a pull-up/pull-down or drive it.`);
   }

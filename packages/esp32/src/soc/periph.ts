@@ -3,7 +3,8 @@
  * block is a Peripheral; until a real model replaces it, a RegisterFile — header reset values
  * (reg-defaults.generated.ts) and plain read-back — answers, and every access to it is an
  * unknown-register access: the first 32 distinct addresses become `esp32-unimplemented-register`
- * Problems (with the value, R/W and the PC), and a counter keeps the total. Nothing throws.
+ * Problems (info, with the value, R/W and the PC — BT96: as the other chips report them, since a
+ * firmware that runs fine still touches a few), and a counter keeps the total. Nothing throws.
  */
 
 import { REG_DEFAULT_PAIRS } from './reg-defaults.generated.ts';
@@ -196,6 +197,6 @@ export class PeripheralMap {
   private unknown(access: 'read' | 'write', address: number, value: number, pc: number): void {
     if (!this.problems.admit(CODE_UNIMPLEMENTED, address)) return;
     const offset = `0x${(address & 0xfff).toString(16).toUpperCase().padStart(3, '0')}`;
-    this.problems.add('warning', CODE_UNIMPLEMENTED, address, `${access} ${hex(address)} (${blockName(address)}+${offset}) = ${hex(value)} at PC ${hex(pc)}`);
+    this.problems.add('info', CODE_UNIMPLEMENTED, address, `${access} ${hex(address)} (${blockName(address)}+${offset}) = ${hex(value)} at PC ${hex(pc)}`);
   }
 }

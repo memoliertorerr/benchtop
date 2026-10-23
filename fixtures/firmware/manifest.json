@@ -2214,7 +2214,7 @@
       "bytes": 20600,
       "core": "arduino:avr@1.8.7",
       "libraries": {},
-      "source": "7d6e866232faeb8fb992d5b26aa5ba637fe64982fbffaf99e7c4228f4869ab01"
+      "source": "13546ddffa7b4eab12623120285441bcaed009e98f95cbc331d3d0dd90a8e5d6"
     },
     {
       "board": "uno",
@@ -2225,7 +2225,7 @@
       "bytes": 4448,
       "core": "arduino:avr@1.8.7",
       "libraries": {},
-      "source": "7d6e866232faeb8fb992d5b26aa5ba637fe64982fbffaf99e7c4228f4869ab01"
+      "source": "13546ddffa7b4eab12623120285441bcaed009e98f95cbc331d3d0dd90a8e5d6"
     },
     {
       "board": "uno",
@@ -2306,44 +2306,44 @@
       "name": "flame-alarm",
       "fqbn": "arduino:avr:uno",
       "file": "uno/flame-alarm.elf",
-      "sha256": "87d4a781b3f8bb4fae75ce3bc397c03553f0ce196b172526725c18a63a6b55b7",
-      "bytes": 34172,
+      "sha256": "4758b80df36eeee004ea693c7314e86619c3ce9feb56c60fd8637d2b4459634f",
+      "bytes": 34212,
       "core": "arduino:avr@1.8.7",
       "libraries": {},
-      "source": "148b8f16357f81b8e138dde3fd1aa9a75f8d36cc1b38b43e7b1cdd8cd31e81b0"
+      "source": "3dcf78533f52399efcfa160ba54ba8a6d0d4983c09ee59e07ffdce91c4e88759"
     },
     {
       "board": "uno",
       "name": "flame-alarm",
       "fqbn": "arduino:avr:uno",
       "file": "uno/flame-alarm.hex",
-      "sha256": "56076f0e09a36711c41ec0cc7a4e219f28a4ff955761a03af96fbf7494806f8b",
-      "bytes": 8842,
+      "sha256": "4b879edcbe1c224a66f97c2c1dab6ee14c0465a0d5c5e58d7d6e4539479fd828",
+      "bytes": 8858,
       "core": "arduino:avr@1.8.7",
       "libraries": {},
-      "source": "148b8f16357f81b8e138dde3fd1aa9a75f8d36cc1b38b43e7b1cdd8cd31e81b0"
+      "source": "3dcf78533f52399efcfa160ba54ba8a6d0d4983c09ee59e07ffdce91c4e88759"
     },
     {
       "board": "uno",
       "name": "gas-fan",
       "fqbn": "arduino:avr:uno",
       "file": "uno/gas-fan.elf",
-      "sha256": "d22299c619c8ccd762215f5e3b7a6503e2cac6a1e30d5f0361854f191bf22a84",
-      "bytes": 33960,
+      "sha256": "df3a6d7eaf9635afb79ce6be65ec2b1b80116721f10b2dfd3633a61430dffb55",
+      "bytes": 33992,
       "core": "arduino:avr@1.8.7",
       "libraries": {},
-      "source": "4e06915b94705c4af93539774aa6172eb0695a0ea64fdd54bb7dbd107ccda8b9"
+      "source": "b92102e31a4cc13fc04e1dfe8f448e70ded9b9635f870323807cbf38e8a3399e"
     },
     {
       "board": "uno",
       "name": "gas-fan",
       "fqbn": "arduino:avr:uno",
       "file": "uno/gas-fan.hex",
-      "sha256": "40d42e4a7e5b54490fb062bf01a4dfdc6e62e143344d91f8ce66129178abc2f1",
-      "bytes": 8649,
+      "sha256": "1ed76fbbd46550b400eaaa2a3f139d2aae2322824975216ea8cad9da1f9cc352",
+      "bytes": 8674,
       "core": "arduino:avr@1.8.7",
       "libraries": {},
-      "source": "4e06915b94705c4af93539774aa6172eb0695a0ea64fdd54bb7dbd107ccda8b9"
+      "source": "b92102e31a4cc13fc04e1dfe8f448e70ded9b9635f870323807cbf38e8a3399e"
     },
     {
       "board": "uno",
@@ -2486,26 +2486,26 @@
       "name": "keypad-lock",
       "fqbn": "arduino:avr:uno",
       "file": "uno/keypad-lock.elf",
-      "sha256": "df0e2b35a7097e6c4cffead6bb27cfd2ba74b3256e59c91400777f66c44b87da",
-      "bytes": 43316,
+      "sha256": "ff9438633252d78b4120b32d156dc97fa88e90b0dcf0ce7037758099d6e5dfa9",
+      "bytes": 43352,
       "core": "arduino:avr@1.8.7",
       "libraries": {
         "Servo": "1.3.0"
       },
-      "source": "1df90464e54d8b02aaebfb59ae6a2fce5c2f2104d30ab26ba9eb1a222323ca40"
+      "source": "60ff3d4039116e985efa19050463517c0d1a7915efa04713f9269a2938594236"
     },
     {
       "board": "uno",
       "name": "keypad-lock",
       "fqbn": "arduino:avr:uno",
       "file": "uno/keypad-lock.hex",
-      "sha256": "d82ddec9e5d80fe701c9fed0a1e5fe64c7efed8f26ba517c38558e3c1258c4aa",
-      "bytes": 13293,
+      "sha256": "bcaf0461ee29dc5ff5dfab04e9864a7db4abe3e9f853914f2627490805cf7261",
+      "bytes": 13322,
       "core": "arduino:avr@1.8.7",
       "libraries": {
         "Servo": "1.3.0"
       },
-      "source": "1df90464e54d8b02aaebfb59ae6a2fce5c2f2104d30ab26ba9eb1a222323ca40"
+      "source": "60ff3d4039116e985efa19050463517c0d1a7915efa04713f9269a2938594236"
     },
     {
       "board": "uno",
@@ -2798,22 +2798,22 @@
       "name": "parking",
       "fqbn": "arduino:avr:uno",
       "file": "uno/parking.elf",
-      "sha256": "9b3b03e601dd0dc187a1f435df69105f3de7035017e89a3ca4c1454602675a00",
-      "bytes": 37008,
+      "sha256": "f67d1faf137ae49c18376ec2e995496340dee3d80b189703d2c39bb88e5e48ed",
+      "bytes": 37044,
       "core": "arduino:avr@1.8.7",
       "libraries": {},
-      "source": "7a57bf6bb2a5b0c77499c6f51f1e27f9f0f9c24ca78c11bc7c561d4cb44dffae"
+      "source": "55015c3701e2b0de15bff61422595c47cf42549eb4e8932ab39f525a7f6f3e19"
     },
     {
       "board": "uno",
       "name": "parking",
       "fqbn": "arduino:avr:uno",
       "file": "uno/parking.hex",
-      "sha256": "572318db240d3eee42211addb05a5ab853341f86227d7239a0f830c7c7660cef",
-      "bytes": 9909,
+      "sha256": "0185114b86c3a618c8ddfb7d03f5e867ea13587aca2e9b69930cfd7d48c0cfab",
+      "bytes": 9938,
       "core": "arduino:avr@1.8.7",
       "libraries": {},
-      "source": "7a57bf6bb2a5b0c77499c6f51f1e27f9f0f9c24ca78c11bc7c561d4cb44dffae"
+      "source": "55015c3701e2b0de15bff61422595c47cf42549eb4e8932ab39f525a7f6f3e19"
     },
     {
       "board": "uno",
@@ -3082,11 +3082,11 @@
       "name": "seven-seg-mux",
       "fqbn": "arduino:avr:uno",
       "file": "uno/seven-seg-mux.elf",
-      "sha256": "f47aa12caf646bfbd4af500481ce96c6712fcbfd147ff5c614092df386c7ffeb",
+      "sha256": "ad62b7e74f26287ba3912869dd1a4f493e4c85db8ec26ff3d4d026999103e6d4",
       "bytes": 15724,
       "core": "arduino:avr@1.8.7",
       "libraries": {},
-      "source": "5bf17f23b6b98c8c77f575b9f5d479ddca23c6ac1f3a13eb45388107ffd66df1"
+      "source": "d49a853e3a166e44a0f040da0fd5facd6b3431ae1cd4d004b46ec47c6fcd76e7"
     },
     {
       "board": "uno",
@@ -3097,7 +3097,7 @@
       "bytes": 2718,
       "core": "arduino:avr@1.8.7",
       "libraries": {},
-      "source": "5bf17f23b6b98c8c77f575b9f5d479ddca23c6ac1f3a13eb45388107ffd66df1"
+      "source": "d49a853e3a166e44a0f040da0fd5facd6b3431ae1cd4d004b46ec47c6fcd76e7"
     },
     {
       "board": "uno",

@@ -57,6 +57,8 @@ export const FUNC_GPIO = 2;
 export class IoMux extends RegisterFile {
   /** Called after any pad register write (the pad resolver recomputes). */
   onChange: (() => void) | null = null;
+  /** BT96: pads (by GPIO) whose register the firmware wrote since the reset — pinMode does. */
+  readonly configured = new Uint8Array(40);
 
   constructor() {
     super(IO_MUX_BASE);
@@ -70,6 +72,7 @@ export class IoMux extends RegisterFile {
   override systemReset(_rtcDomain: boolean): void {
     this.reset();
     this.resetPads();
+    this.configured.fill(0);
     this.onChange?.();
   }
 
@@ -111,6 +114,8 @@ export class IoMux extends RegisterFile {
 
   override write32(offset: number, value: number): void {
     super.write32(offset, value);
+    const gpio = IO_MUX_OFFSET.indexOf(offset);
+    if (gpio >= 0) this.configured[gpio] = 1;
     this.onChange?.();
   }
 }

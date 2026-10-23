@@ -468,8 +468,9 @@ message wins; codes, titles and hints in `packages/core/src/check/codes.ts`):
 - **Live** (recomputed, gone when fixed): resolver conflicts — `drive-fight` when the net holds a
   supply (an output wired to 5V/GND), `short` between outputs —, oscillations, stopped MCUs, and
   the dynamic checks (`check/dynamic.ts`), run every 10 ms of simulated time on a bench timer:
-  `floating-input` (an INPUT pin, no pull, wired to another part, floating for two checks with
-  no mode change between them), `esp32-overvoltage` (an ESP32 pin's net above 3.6 V),
+  `floating-input` (an INPUT pin, no pull, wired to another part — a breadboard alone doesn't
+  count: a Nano's unused pins sit in strips —, floating for two checks with no mode change
+  between them), `esp32-overvoltage` (an ESP32 pin's net above 3.6 V),
   `pin-overcurrent` (a pin driving its net — output, peripheral or DAC — with more than its
   absolute maximum, 40 mA on all three MCUs, computed as (drive − net volts)/25 Ω on nets the
   analog layer solves; held for 1 s after the last check that saw it, so blinking and PWM pins
@@ -896,7 +897,8 @@ sequence, files matched by basename or trailing path.
   `RegisterFile` answers with the IDF headers' reset values (`reg-defaults.generated.ts`, from
   `scripts/gen-esp32-reg-defaults.ts`) and reads back what was written. Accesses to blocks (or
   offsets, for the partly modeled DPORT) without a model are logged: the first 32 distinct
-  addresses become `esp32-unimplemented-register` warnings ("read 0x3FF5A0B0 (EFUSE+0x0B0) =
+  addresses become `esp32-unimplemented-register` notes (info, as the other chips' are: a
+  firmware that runs fine still touches a few) ("read 0x3FF5A0B0 (EFUSE+0x0B0) =
   0x00000000 at PC 0x400D1234"), and `problems.totals` counts every access. Sub-word register
   accesses read, or merge into, the containing word. Nothing in the address space throws
   except a real CPU exception or a named emulator fault.
@@ -1118,7 +1120,9 @@ sequence, files matched by basename or trailing path.
   its level holds. *The adapter* (`esp32.ts`): `clockHz` is the 240 MHz reference clock, `cycles`
   the SoC's time; one McuPin `GPIO<n>` per GPIO (0–19, 21–23, 25–27, 32–39); inputs use VIH
   2.475 V / VIL 0.825 V with hysteresis, a floating input reads 0 and the firmware reading it is
-  reported once (`esp32-floating-input`); `load` takes `esp32-bin` and direct-boots it, `reset`
+  reported once (`esp32-floating-input`) — for pads the firmware configured itself (a GPIO_IN
+  read covers every pad, and GPIO16–23 leave reset as inputs without pulls); `load` takes
+  `esp32-bin` and direct-boots it, `reset`
   builds a fresh SoC and boots again (pins and listeners kept); `uart(0..2)` transmit (receiving is
   below); `i2c`/`spi` are below too. The ROM is checked against rom-manifest's SHA-256 and parsed once
   per byte array. `esp32McuFactory(rom)` is the bench factory; it folds the adapter's Problems
@@ -2044,11 +2048,14 @@ elements (pushbutton, potentiometer, slide switch) take the pointer and their ow
 become part input. The serial monitor (`ui/SerialMonitor.tsx`) keeps the newest ~1 MB per
 board (`ui/serial-buffer.ts`: lines split across chunks, UTF-8 streamed, simulated-time stamps)
 and appends DOM nodes rather than re-rendering; autoscroll pauses while you read further up.
+A full load of the bench (a new project or example, a rebuild from t = 0) empties every board's
+output, as the plotter's (the boards of every example share ids like `uno`, so an opened example
+showed the previous one's lines); Reset and hot-swap edits keep it.
 Examples: **Examples…** opens a gallery (`ui/ExamplesGallery.tsx`, a
 modal dialog) of the entries in `fixtures/examples.json` (`examples/manifest.ts` reads and
-checks it — the MCP server reads it too) — 77 circuits in eleven categories (Basics,
-Displays, Sensors, Motors, Sound, Environment, ESP32, Raspberry Pi Pico, Raspberry Pi Pico 2, Mega,
-Two boards; Environment has four: a gas alarm whose fan clears the room, a PIR hallway light, a
+checks it — the MCP server reads it too) — 80 circuits in thirteen categories (Basics,
+Displays, Sensors, Motors, Environment, Sound, Power, Storage, ESP32, Raspberry Pi Pico, Raspberry
+Pi Pico 2, Mega, Two boards; Environment has four: a gas alarm whose fan clears the room, a PIR hallway light, a
 parking sensor with a car driving in, a thermostat; the Pico has nine: blink, a potentiometer,
 PWM steps, an OLED, a color TFT, NeoPixels through PIO, a PIO square wave, and MicroPython blink
 and NeoPixel, whose firmware is the sketch itself; the Pico 2 has eight: the Pico's first five,

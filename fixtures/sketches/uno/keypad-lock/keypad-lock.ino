@@ -36,6 +36,7 @@ void setup() {
   Serial.begin(115200);
   for (uint8_t c = 0; c < 4; c++) pinMode(COLS[c], INPUT_PULLUP);
   for (uint8_t r = 0; r < 4; r++) pinMode(ROWS[r], INPUT);
+  pinMode(BUZZER, OUTPUT); // driven from the start, not floating until the first tone()
   latch.attach(10);
   latch.write(0);
   Serial.println("locked");

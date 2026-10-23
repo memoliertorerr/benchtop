@@ -85,6 +85,20 @@ describe('ESP32 pins (BT34)', () => {
     expect((r(GPIO + 0x40) >>> 4) & 1).toBe(1);
   });
 
+  it('BT96: a GPIO_IN read reports floating pads the firmware configured, not reset-state ones', () => {
+    const { mcu, w, r, problems } = setup();
+    // GPIO16 and GPIO18 leave reset as inputs without pulls; nothing drives either net.
+    mcu.pins.get('GPIO16')!.setInput(net(null, 0));
+    mcu.pins.get('GPIO18')!.setInput(net(null, 0));
+    r(GPIO + 0x3c);
+    expect(problems.filter((p) => p.code === 'esp32-floating-input')).toEqual([]);
+    // pinMode(18, INPUT) writes GPIO18's pad: now a read of GPIO_IN tells about it, once.
+    w(IO_MUX + 0x70, ioMuxGpio(0x70, 1 << 9));
+    r(GPIO + 0x3c);
+    r(GPIO + 0x3c);
+    expect(problems.filter((p) => p.code === 'esp32-floating-input').map((p) => p.address)).toEqual([18]);
+  });
+
   it('maps IO_MUX FUN_PU/FUN_PD to input-pullup/input-pulldown, and RTC IO RUE/RDE on RTC pads', () => {
     const { mcu, w } = setup();
     const p18 = mcu.pins.get('GPIO18')!;

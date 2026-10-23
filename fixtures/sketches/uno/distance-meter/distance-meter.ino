@@ -1,6 +1,6 @@
 // distance-meter — tests assert (BT43): an HC-SR04 (TRIG on D9, ECHO on D10) measured five times
 // a second; the distance in cm shown right-aligned on a 4-digit common-cathode 7-segment display
-// (segments A..G on D2..D8 through 220 Ω, digits DIG1..DIG4 on A0..A3, active low, multiplexed
+// (segments A..G on D2..D8 through 470 Ω, digits DIG1..DIG4 on A0..A3, active low, multiplexed
 // 2 ms per digit). 100 cm shows " 100".
 const uint8_t TRIG = 9;
 const uint8_t ECHO = 10;

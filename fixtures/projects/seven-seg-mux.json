@@ -17,7 +17,7 @@
       "y": -15.5,
       "rotation": 90,
       "props": {
-        "ohms": 220
+        "ohms": 470
       }
     },
     {
@@ -27,7 +27,7 @@
       "y": -31.5,
       "rotation": 90,
       "props": {
-        "ohms": 220
+        "ohms": 470
       }
     },
     {
@@ -37,7 +37,7 @@
       "y": -15.5,
       "rotation": 90,
       "props": {
-        "ohms": 220
+        "ohms": 470
       }
     },
     {
@@ -47,7 +47,7 @@
       "y": -31.5,
       "rotation": 90,
       "props": {
-        "ohms": 220
+        "ohms": 470
       }
     },
     {
@@ -57,7 +57,7 @@
       "y": -15.5,
       "rotation": 90,
       "props": {
-        "ohms": 220
+        "ohms": 470
       }
     },
     {
@@ -67,7 +67,7 @@
       "y": -31.5,
       "rotation": 90,
       "props": {
-        "ohms": 220
+        "ohms": 470
       }
     },
     {
@@ -77,7 +77,7 @@
       "y": -15.5,
       "rotation": 90,
       "props": {
-        "ohms": 220
+        "ohms": 470
       }
     },
     {
@@ -87,7 +87,7 @@
       "y": -31.5,
       "rotation": 90,
       "props": {
-        "ohms": 220
+        "ohms": 470
       }
     },
     {

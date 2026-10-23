@@ -1,6 +1,7 @@
 // seven-seg-mux — tests assert: a 4-digit common-cathode 7-segment display multiplexed at
-// ~120 Hz shows "1234". Segments A, B, C, D, E, F, G, DP on D2..D9 (through 220 ohm), digit
-// commons DIG1..DIG4 on A0..A3 (active low). Each digit is lit for 2 ms in turn and every digit
+// ~120 Hz shows "1234". Segments A, B, C, D, E, F, G, DP on D2..D9 (through 470 ohm, so a digit
+// with every segment lit stays under its common pin's 40 mA), digit commons DIG1..DIG4 on
+// A0..A3 (active low). Each digit is lit for 2 ms in turn and every digit
 // is off while the segments change, so a lit segment's brightness is ~0.25 and no segment of a
 // digit ghosts into another.
 const uint8_t SEGMENT_PINS[8] = {2, 3, 4, 5, 6, 7, 8, 9};

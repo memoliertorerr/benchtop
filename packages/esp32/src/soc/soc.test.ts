@@ -241,7 +241,7 @@ describe('unimplemented registers', () => {
     const problems = soc.problems.problems.filter((p) => p.code === CODE_UNIMPLEMENTED);
     expect(problems).toHaveLength(32);
     expect(soc.problems.totals.get(CODE_UNIMPLEMENTED)).toBe(41);
-    expect(problems[0]).toMatchObject({ severity: 'warning', message: `read 0x3FF57000 (PCNT+0x000) = ${hex8(registerDefault(0x3ff57000))} at PC 0x400D1234` });
+    expect(problems[0]).toMatchObject({ severity: 'info', message: `read 0x3FF57000 (PCNT+0x000) = ${hex8(registerDefault(0x3ff57000))} at PC 0x400D1234` });
     expect(problems[1].message).toBe('write 0x3FF57004 (PCNT+0x004) = 0x00000001 at PC 0x400D1234');
     // The modeled DPORT cache registers and MMU tables are not unknown; other DPORT registers are.
     pro.write32(0x3ff00040, 0);

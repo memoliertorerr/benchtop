@@ -9,6 +9,7 @@ bool fan = false;
 void setup() {
   Serial.begin(115200);
   pinMode(FAN, OUTPUT);
+  pinMode(BUZZER, OUTPUT); // driven from the start, not floating until the first tone()
 }
 
 void loop() {

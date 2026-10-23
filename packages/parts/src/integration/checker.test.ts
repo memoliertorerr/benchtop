@@ -134,4 +134,30 @@ describe('circuit checker', () => {
     runTo(1000);
     console.info(`problems-demo at 1 s: ${JSON.stringify(bench.problems())}`);
   });
+
+  it('(g) BT96: a Nano on a breadboard — an unused input alone in its strip is not floating-input; a button in that strip is', () => {
+    const nano = (doc: ProjectDoc) => {
+      const parsed = parseProject(doc);
+      if (!parsed.ok) throw new Error(JSON.stringify(parsed.errors));
+      const bench = new Bench(parsed.doc, env, { analogSpecFor });
+      bench.attachFirmware('nano', { format: 'hex', text: readFixtureText('fixtures/firmware/nano/analog-a6.hex') });
+      bench.runUntil(100 * NS_PER_MS);
+      return bench;
+    };
+    const doc = project('nano-analog');
+    const plain = nano(doc);
+    expect(plain.problems().filter((p) => p.code === 'floating-input')).toEqual([]);
+    // D13 (an INPUT the sketch never sets) shares its strip with breadboard holes only.
+    const d13 = plain.netlist.netOf('nano', '13');
+    const hole = plain.netlist.pinsOfNet(d13).find((p) => p.part === 'bb');
+    expect(hole).toBeDefined();
+    const withButton: ProjectDoc = {
+      ...doc,
+      parts: [...doc.parts, { id: 'btn1', type: 'pushbutton', x: 80, y: 60, rotation: 0, props: {} }],
+      wires: [...doc.wires, { id: 'wb', from: { part: 'bb', pin: (hole as { pin: string }).pin }, to: { part: 'btn1', pin: '1.l' }, waypoints: [], color: 'green' }],
+    };
+    const wired = nano(withButton).problems().filter((p) => p.code === 'floating-input');
+    expect(wired.map((p) => p.message)).toEqual(['nano:13 is an INPUT with nothing driving it (floating).']);
+    expect(wired[0].parts).toContain('btn1');
+  });
 });

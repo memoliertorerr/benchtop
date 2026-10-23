@@ -61,6 +61,6 @@ got pong 2
 ping 3
 got pong 3
 </system-out>
-    <system-err>warning esp32-unimplemented-register [esp]: read 0x3FF00468 (DPORT+0x468) = 0x00000100 at PC 0x40083DA3 · read 0x3FF005A0 (DPORT+0x5A0) = 0x00000000 at PC 0x40083DA3 · read 0x3FF48030 (RTC_CNTL+0x030) = 0x00800000 at PC 0x400F0DD8 (+21 more)</system-err>
+    <system-err>info esp32-unimplemented-register [esp]: read 0x3FF00468 (DPORT+0x468) = 0x00000100 at PC 0x40083DA3 · read 0x3FF005A0 (DPORT+0x5A0) = 0x00000000 at PC 0x40083DA3 · read 0x3FF48030 (RTC_CNTL+0x030) = 0x00800000 at PC 0x400F0DD8 (+21 more)</system-err>
   </testsuite>
 </testsuites>

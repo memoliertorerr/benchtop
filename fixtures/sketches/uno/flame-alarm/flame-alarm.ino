@@ -8,6 +8,7 @@ void setup() {
   Serial.begin(115200);
   pinMode(DOUT, INPUT);
   pinMode(LED, OUTPUT);
+  pinMode(BUZZER, OUTPUT); // driven from the start, not floating until the first tone()
 }
 
 void loop() {
