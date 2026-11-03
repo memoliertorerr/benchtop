@@ -974,6 +974,168 @@
       "source": "61b4a4c95f79fec581d14ca41e7ea2c9dec60fff60f742b3d27bc92b1dbd788f"
     },
     {
+      "board": "esp32",
+      "name": "wifi-connect",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/wifi-connect.bin",
+      "sha256": "7fdd12b1f28ba1ba19814c2201c66ee24159d5738c4ab6d5a5295184672ad459",
+      "bytes": 721168,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "WiFi": "2.0.0"
+      },
+      "source": "bb9e9211147bc366aed69016c255caf923155c1a728e3ff095c0f3f7f7581e36"
+    },
+    {
+      "board": "esp32",
+      "name": "wifi-connect",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/wifi-connect.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "WiFi": "2.0.0"
+      },
+      "source": "bb9e9211147bc366aed69016c255caf923155c1a728e3ff095c0f3f7f7581e36"
+    },
+    {
+      "board": "esp32",
+      "name": "wifi-connect",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/wifi-connect.syms.tsv",
+      "sha256": "2ec31f1cde24575d2ca629720f8bc1ab8364b4e6a993ae91bcb6d96c145423cc",
+      "bytes": 256256,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "WiFi": "2.0.0"
+      },
+      "source": "bb9e9211147bc366aed69016c255caf923155c1a728e3ff095c0f3f7f7581e36"
+    },
+    {
+      "board": "esp32",
+      "name": "wifi-http-get",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/wifi-http-get.bin",
+      "sha256": "eaa0fe7a5e5c5cf33f1cb3b24e0beb422c132f63acf78a27593e37aa3148cc05",
+      "bytes": 900912,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "HTTPClient": "2.0.0",
+        "WiFi": "2.0.0",
+        "WiFiClientSecure": "2.0.0"
+      },
+      "source": "d18138519d6eb97c2a80318795a4a2f4b42c72f461faf2fde8e611b2550e5e88"
+    },
+    {
+      "board": "esp32",
+      "name": "wifi-http-get",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/wifi-http-get.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "HTTPClient": "2.0.0",
+        "WiFi": "2.0.0",
+        "WiFiClientSecure": "2.0.0"
+      },
+      "source": "d18138519d6eb97c2a80318795a4a2f4b42c72f461faf2fde8e611b2550e5e88"
+    },
+    {
+      "board": "esp32",
+      "name": "wifi-http-get",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/wifi-http-get.syms.tsv",
+      "sha256": "d0c81f216ad05e07a12b2cf813ba69c12100145e555c4b5b5271a48711fa53d6",
+      "bytes": 295698,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "HTTPClient": "2.0.0",
+        "WiFi": "2.0.0",
+        "WiFiClientSecure": "2.0.0"
+      },
+      "source": "d18138519d6eb97c2a80318795a4a2f4b42c72f461faf2fde8e611b2550e5e88"
+    },
+    {
+      "board": "esp32",
+      "name": "wifi-ping",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/wifi-ping.bin",
+      "sha256": "4115b6e16252cb7a0b6781a973e894e09f59f748ceebdd445b85b74b930024c7",
+      "bytes": 724400,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "WiFi": "2.0.0"
+      },
+      "source": "96228ff90e375064b562005bc857deae27a64a12eaab1c62695d55b6037d9111"
+    },
+    {
+      "board": "esp32",
+      "name": "wifi-ping",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/wifi-ping.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "WiFi": "2.0.0"
+      },
+      "source": "96228ff90e375064b562005bc857deae27a64a12eaab1c62695d55b6037d9111"
+    },
+    {
+      "board": "esp32",
+      "name": "wifi-ping",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/wifi-ping.syms.tsv",
+      "sha256": "c098f7059d7c10cd151fbe3486b84b0daa270a8517f1619a9c38d16b64fa5175",
+      "bytes": 256659,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "WiFi": "2.0.0"
+      },
+      "source": "96228ff90e375064b562005bc857deae27a64a12eaab1c62695d55b6037d9111"
+    },
+    {
+      "board": "esp32",
+      "name": "wifi-scan",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/wifi-scan.bin",
+      "sha256": "99f259d9e52a7042939ebcaa4c1c612600b5d9aca439115ec0c10153edc136c2",
+      "bytes": 720848,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "WiFi": "2.0.0"
+      },
+      "source": "9916a2f6759c18300fd1114853cce4a821440bc62c5940feb0268a6b44ca50d2"
+    },
+    {
+      "board": "esp32",
+      "name": "wifi-scan",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/wifi-scan.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "WiFi": "2.0.0"
+      },
+      "source": "9916a2f6759c18300fd1114853cce4a821440bc62c5940feb0268a6b44ca50d2"
+    },
+    {
+      "board": "esp32",
+      "name": "wifi-scan",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/wifi-scan.syms.tsv",
+      "sha256": "db2bf6c32e26e81c61d5daff4ed5931c8468a420121036dd89aea0acf18b5fdc",
+      "bytes": 256314,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "WiFi": "2.0.0"
+      },
+      "source": "9916a2f6759c18300fd1114853cce4a821440bc62c5940feb0268a6b44ca50d2"
+    },
+    {
       "board": "esp32c3",
       "name": "adc-read",
       "fqbn": "esp32:esp32:esp32c3",
@@ -1176,6 +1338,90 @@
       "core": "esp32:esp32@2.0.17",
       "libraries": {},
       "source": "47c1c115ee04416ff88fd7ede1c47426d02041f923d1b426469ecee335d69bf2"
+    },
+    {
+      "board": "esp32c3",
+      "name": "oled-clock",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/oled-clock.bin",
+      "sha256": "ccbff6e0e28a0dea9b47b1d573ccf31c4fedcc55cbae160b103198efdd05c600",
+      "bytes": 290032,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "2.0.0",
+        "Wire": "2.0.0"
+      },
+      "source": "73cbc00c40c8d5b2fd0e12c2331dff74669c990e59f29585bbce70ab6f6b7eee"
+    },
+    {
+      "board": "esp32c3",
+      "name": "oled-clock",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/oled-clock.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "2.0.0",
+        "Wire": "2.0.0"
+      },
+      "source": "73cbc00c40c8d5b2fd0e12c2331dff74669c990e59f29585bbce70ab6f6b7eee"
+    },
+    {
+      "board": "esp32c3",
+      "name": "oled-clock",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/oled-clock.syms.tsv",
+      "sha256": "e1a6abea68c3563317e53501d9c8dab232d1e6219e80e2c98e41563d568f85af",
+      "bytes": 163520,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "2.0.0",
+        "Wire": "2.0.0"
+      },
+      "source": "73cbc00c40c8d5b2fd0e12c2331dff74669c990e59f29585bbce70ab6f6b7eee"
+    },
+    {
+      "board": "esp32c3",
+      "name": "pot-led",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/pot-led.bin",
+      "sha256": "27e73ddc7d0533bee94cbf31b70446cb973ad95d45291fea0f49c04b3ba1a736",
+      "bytes": 262912,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "eeb61a256f00b7a7321cc9279f05cd737ff1f52fc894f0e563a22a15c5eb005c"
+    },
+    {
+      "board": "esp32c3",
+      "name": "pot-led",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/pot-led.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "eeb61a256f00b7a7321cc9279f05cd737ff1f52fc894f0e563a22a15c5eb005c"
+    },
+    {
+      "board": "esp32c3",
+      "name": "pot-led",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/pot-led.syms.tsv",
+      "sha256": "0cf98d2b34d675a4e828487fda02e533f9c379c85972044890f8fb682813a3a9",
+      "bytes": 156122,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "eeb61a256f00b7a7321cc9279f05cd737ff1f52fc894f0e563a22a15c5eb005c"
     },
     {
       "board": "esp32c3",

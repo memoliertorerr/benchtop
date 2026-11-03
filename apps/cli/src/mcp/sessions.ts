@@ -102,7 +102,7 @@ export class Session {
     this.doc = init.doc;
     this.boards = init.boards;
     this.serialChars = init.serialChars;
-    this.bench = buildBench(init.doc, init.images, init.roms).bench;
+    this.bench = buildBench(init.doc, init.images, init.roms, undefined, init.tables).bench;
     for (const board of init.boards) {
       this.pending[board] = '';
       this.dropped[board] = 0;
@@ -144,7 +144,7 @@ export class Session {
     const carry = this.bench.carry(); // flushes serial output to this session first
     let bench: Bench;
     try {
-      bench = buildBench(next.doc, next.images, next.roms, { carry, restart: next.restart }).bench;
+      bench = buildBench(next.doc, next.images, next.roms, { carry, restart: next.restart }, next.tables).bench;
     } catch (error) {
       discardCarry(carry);
       throw error;

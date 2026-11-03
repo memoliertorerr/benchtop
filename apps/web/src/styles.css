@@ -252,6 +252,16 @@ input {
   background: var(--bg-sunken);
 }
 
+.field textarea.field-text {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-sunken);
+  font: 12px/1.4 var(--font-mono, ui-monospace, monospace);
+  resize: vertical;
+  white-space: pre;
+}
+
 .field-check {
   display: flex;
   align-items: center;

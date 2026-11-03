@@ -23,6 +23,7 @@ const FQBN_BY_MCU: Readonly<Record<string, string>> = {
   esp32: 'esp32:esp32:esp32',
   rp2040: 'rp2040:rp2040:rpipico',
   rp2350: 'rp2040:rp2040:rpipico2:arch=riscv',
+  esp32c3: 'esp32:esp32:esp32c3',
 };
 
 export function fqbnOfBoard(type: string): string | undefined {

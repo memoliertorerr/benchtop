@@ -31,6 +31,12 @@
  * already set — DEPC and the double-exception vector. A bus error (XtensaBusError) becomes the
  * exception its `exccause` names. BREAK raises the debug exception (level 6) unless `breakHook`
  * claims it (the bare test machine halts on `break 1, 15`).
+ *
+ * High-level emulation (BT97, hle/): `setHle` hands the core a table of addresses TypeScript
+ * answers. Decoding an instruction at one of them (the predecode cache's fill and the uncached
+ * paths both pack through pack()) yields OP_HLE instead, so ordinary code pays nothing; an
+ * HLE_RETURN address decodes as RETW. hleEntry/hleCall are the window mechanics a handler that
+ * calls back into the firmware needs (an ENTRY of its own, a CALL8 out).
  */
 
 import type { XtensaBus } from './bus.ts';
@@ -89,6 +95,28 @@ const mulsh = muldiv.mulsh;
 
 /** Why the core stopped. */
 export const HALT = { RUNNING: 0, BREAK: 1, FAULT: 2 } as const;
+
+/**
+ * BT97: the op an address the HLE answers decodes to — not an Xtensa instruction, so past the
+ * ISA table's ids (an entry's op field holds op + 1 in 10 bits: 1022 is the last id it fits).
+ */
+export const OP_HLE = 1022;
+if (OPS.length >= OP_HLE) throw new Error('the Xtensa op table has grown into OP_HLE');
+
+/** What an address is to the HLE (XtensaHle.kind). */
+export const HLE_KIND = { NONE: 0, CALL: 1, RESUME: 2, RETURN: 3 } as const;
+
+/**
+ * BT97: high-level emulation (hle/). `kind` is asked when an instruction is decoded at `pc`
+ * (a predecode cache fill, or every instruction without the cache); CALL and RESUME addresses
+ * run `run`, a RETURN address decodes as RETW (hle/'s handlers return through it, so a window
+ * underflow before the return runs it again, as it would a real RETW).
+ */
+export interface XtensaHle {
+  kind(pc: number): number;
+  /** Runs the TypeScript at `pc` (kind CALL or RESUME); returns the PC execution continues at. */
+  run(core: XtensaCore, pc: number, kind: number): number;
+}
 
 /** Shift helpers for shift counts 0–63 (SAR is 6 bits): JS shifts use only the low 5 bits. */
 const shl = (v: number, n: number): number => (n >= 32 ? 0 : (v << n) >>> 0);
@@ -265,6 +293,8 @@ export class XtensaCore {
   readonly icache = new ICache();
   /** Run through the predecode cache when the bus supports it (false: fetch and decode every instruction — A/B tests, the bench script). */
   predecode = true;
+  /** BT97: addresses TypeScript answers (setHle), or null. */
+  private hleTable: XtensaHle | null = null;
   private readonly codeBus: CodeBus | null;
   private readonly d = new Int32Array(DESCRIPTOR_SIZE);
   /** One packed entry (icache.ts layout) for instructions run without the cache. */
@@ -324,6 +354,16 @@ export class XtensaCore {
     this.updateTimers();
     this.updatePs();
     if (this.bus.protectionChanged !== undefined) this.bus.protectionChanged(this.itlb, this.dtlb);
+  }
+
+  /** BT97: the HLE table (null: none). Decoded code is dropped, so every address decodes afresh against it. */
+  setHle(hle: XtensaHle | null): void {
+    this.hleTable = hle;
+    this.icache.invalidateAll();
+  }
+
+  get hle(): XtensaHle | null {
+    return this.hleTable;
   }
 
   /** Instructions executed since construction. */
@@ -470,6 +510,10 @@ export class XtensaCore {
    * from r and t; BREAK's second operand is t.) Returns word 0.
    */
   private pack(entries: Int32Array, e: number, pc: number): number {
+    if (this.hleTable !== null) {
+      const kind = this.hleTable.kind(pc);
+      if (kind !== 0) return this.packHle(entries, e, kind);
+    }
     const d = this.d;
     const op = d[D_OP];
     let w0 = d[D_LEN] << 10;
@@ -485,6 +529,19 @@ export class XtensaCore {
       w0 |= (op + 1) | (r << 12) | (s << 16) | (t << 20) | (q << 24);
     }
     entries[e + 1] = op === OP_INVALID ? 0 : TARGETED[op] !== 0 ? target(d, pc) : op === OP.EXTUI ? d[D_IMM] | (d[D_IMM2] << 8) : d[D_IMM];
+    entries[e] = w0;
+    return w0;
+  }
+
+  /**
+   * BT97: the entry at an HLE address. CALL: OP_HLE with the kind as its immediate and no window
+   * quarter (a handler that needs a frame checks as ENTRY does, hleEntry). RESUME: OP_HLE touching
+   * quarter 3 — the handler writes a8–a15 for its next call out, so a live frame there spills
+   * first and RESUME runs again. RETURN: a RETW. All three are 3 bytes long.
+   */
+  private packHle(entries: Int32Array, e: number, kind: number): number {
+    const w0 = kind === HLE_KIND.RETURN ? (OP.RETW + 1) | (3 << 10) : (OP_HLE + 1) | (3 << 10) | (kind === HLE_KIND.RESUME ? 3 << 24 : 0);
+    entries[e + 1] = kind;
     entries[e] = w0;
     return w0;
   }
@@ -548,6 +605,45 @@ export class XtensaCore {
   requestStop(): void {
     this.stopRequested = true;
     this.stopAt = this.cycles;
+  }
+
+  /**
+   * BT97 (hle/): ENTRY for a function TypeScript runs at `pc` — a frame of `size` bytes below the
+   * caller's stack pointer, the window rotated by PS.CALLINC, as `entry a1, size` would. Returns
+   * 1 when entered; 0 when it raised a window overflow first (the HLE op runs again after the
+   * spill, as ENTRY would); −1 when the call can't have a frame (CALL0, PS.WOE = 0, PS.EXCM = 1).
+   */
+  hleEntry(size: number, pc: number): number {
+    const ps = this.ps;
+    const callinc = (ps & PS_CALLINC) >>> exc.PS.CALLINC_SHIFT;
+    if (callinc === 0 || (ps & PS_WOE) === 0 || (ps & PS_EXCM) !== 0) return -1;
+    if (this.windowLimit <= callinc) {
+      this.windowOverflow(this.windowLimit, pc);
+      return 0;
+    }
+    const sp = this.ar[((this.windowBase << 2) + 1) & 63];
+    const nwb = (this.windowBase + callinc) & 15;
+    this.ar[((nwb << 2) + 1) & 63] = sp - size;
+    this.windowBase = nwb;
+    this.windowStart |= 1 << nwb;
+    this.updateWindow();
+    return 1;
+  }
+
+  /**
+   * BT97 (hle/): a CALL8 from the current frame to `to` that returns to `ret` (in `to`'s 1 GB
+   * region, as RETW requires): a8 = the return address, a10–a15 = the first six arguments, the
+   * rest on the stack at a1 (the callee finds them above its frame). Returns `to` (the next PC).
+   */
+  hleCall(to: number, args: ArrayLike<number>, ret: number): number {
+    const ar = this.ar;
+    const wb = this.windowBase << 2;
+    ar[(wb + 8) & 63] = ((2 << 30) | (ret & 0x3fffffff)) >>> 0;
+    for (let i = 0; i < args.length && i < 6; i++) ar[(wb + 10 + i) & 63] = args[i];
+    const sp = ar[(wb + 1) & 63];
+    for (let i = 6; i < args.length; i++) this.bus.write32((sp + (i - 6) * 4) >>> 0, args[i] >>> 0);
+    this.ps = (this.ps & ~PS_CALLINC) | (2 << exc.PS.CALLINC_SHIFT);
+    return to >>> 0;
   }
 
   /** Stops the core with a fault (an emulator limit, not an Xtensa exception). */
@@ -1423,6 +1519,11 @@ export class XtensaCore {
         case 110 /* OP.MEMW */:
         case 69 /* OP.EXTW */:
         case 67 /* OP.EXCW */:
+          break;
+        case 1022 /* OP_HLE */:
+          // BT97: TypeScript answers this address (hle/) and says where execution continues.
+          npc = this.hleTable === null ? next : this.hleTable.run(this, pc, imm);
+          jumped = true;
           break;
         case 47 /* OP.BREAK */:
         case 48 /* OP.BREAK_N */: {

@@ -2,7 +2,7 @@
  * Static circuit checks: run when the bench is built (on every topology or prop change), from
  * the project, the part definitions and the netlist only.
  * - esp32-overvoltage (error): a board header pin whose net holds a supply above the MCU's
- *   maximum input voltage (≥ 4.5 V on an ESP32's 3.3 V logic).
+ *   maximum input voltage (above 3.6 V on an ESP32's or ESP32-C3's 3.3 V logic).
  * - unpowered-part (warning): a part whose power pins, or whose ground pins, are all unconnected
  *   (a module with both 3V3 and VIN needs only one).
  * - unconnected-pins (info): one per wired part, listing its unconnected digital and analog
@@ -18,7 +18,7 @@ import type { Netlist } from '../netlist/netlist.ts';
  * Highest voltage an MCU's GPIO accepts, by kind. The RP2040's GPIO aren't 5 V tolerant
  * (IOVDD + 0.3 V at 3.3 V); the RP2350's are, while IOVDD is powered (datasheet, GPIO).
  */
-export const MAX_INPUT_VOLTS: Readonly<Record<BoardSpec['mcu'], number>> = { atmega328p: 5.5, atmega2560: 5.5, esp32: 3.6, rp2040: 3.6, rp2350: 5.5 };
+export const MAX_INPUT_VOLTS: Readonly<Record<BoardSpec['mcu'], number>> = { atmega328p: 5.5, atmega2560: 5.5, esp32: 3.6, rp2040: 3.6, rp2350: 5.5, esp32c3: 3.6 };
 
 export interface StaticCheckInput {
   doc: ProjectDoc;
@@ -46,12 +46,12 @@ export function staticProblems({ doc, defOf, netlist, supplyVolts }: StaticCheck
       for (const header of Object.keys(board.pinMap)) {
         const net = netlist.netOf(part.id, header);
         const volts = net < 0 ? undefined : supplyVolts(net);
-        if (volts === undefined || volts <= MAX_INPUT_VOLTS[board.mcu] || board.mcu !== 'esp32') continue;
+        if (volts === undefined || volts <= MAX_INPUT_VOLTS[board.mcu] || (board.mcu !== 'esp32' && board.mcu !== 'esp32c3')) continue;
         const sources = netlist.pinsOfNet(net).filter((p) => p.part !== part.id);
         problems.push({
           severity: 'error',
           code: 'esp32-overvoltage',
-          message: `${part.id}:${header} is wired to ${volts} V (${sources.map((p) => `${p.part}:${p.pin}`).join(', ')}); ESP32 pins take at most ${MAX_INPUT_VOLTS.esp32} V.`,
+          message: `${part.id}:${header} is wired to ${volts} V (${sources.map((p) => `${p.part}:${p.pin}`).join(', ')}); ${board.mcu === 'esp32c3' ? 'ESP32-C3' : 'ESP32'} pins take at most ${MAX_INPUT_VOLTS[board.mcu]} V.`,
           parts: [part.id, ...new Set(sources.map((p) => p.part))],
         });
       }

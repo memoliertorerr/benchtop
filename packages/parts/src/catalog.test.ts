@@ -5,7 +5,7 @@ import { PART_CATEGORIES } from './categories.ts';
 const categories = new Set<string>(PART_CATEGORIES.map((c) => c.id));
 
 describe('part catalog', () => {
-  it('lists the BT9, BT16–BT20, BT34, BT41, BT45, BT47, BT51–BT53, BT55, BT61, BT83, BT84 and BT89 parts', () => {
+  it('lists the BT9, BT16–BT20, BT34, BT41, BT45, BT47, BT51–BT53, BT55, BT61, BT83, BT84, BT89, BT94, BT98 and BT99 parts', () => {
     expect([...CATALOG.keys()].sort()).toEqual(
       [
         'speaker',
@@ -14,6 +14,7 @@ describe('part catalog', () => {
         'arduino-nano',
         'arduino-mega',
         'esp32-devkit-v1',
+        'esp32-c3-devkitm-1',
         'raspberry-pi-pico',
         'raspberry-pi-pico-2',
         'breadboard',
@@ -84,6 +85,8 @@ describe('part catalog', () => {
         'fan',
         'person',
         'object',
+        'wifi-ap',
+        'http-server',
       ].sort(),
     );
     expect(benchEnvParts('led')).toBe(CATALOG.get('led'));

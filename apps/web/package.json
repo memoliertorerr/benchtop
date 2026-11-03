@@ -13,6 +13,7 @@
     "@benchtop/avr": "0.0.0",
     "@benchtop/core": "0.0.0",
     "@benchtop/esp32": "0.0.0",
+    "@benchtop/esp32c3": "0.0.0",
     "@benchtop/parts": "0.0.0",
     "@benchtop/pcb": "0.0.0",
     "@benchtop/rp2040": "0.0.0",

@@ -43,6 +43,11 @@
  * builds, net changes reach nobody; once it settled, every MCU pin and listener sees its net's
  * state once, so kept MCUs and models see the edit, not the build.
  *
+ * The virtual network (BT98). With `netSpecFor`, the bench builds a NetRuntime (net/): an
+ * access point part gets a LAN and a gateway; every MCU that has WiFi (`usesWifi`) gets its radio
+ * whenever a bench builds, and a station's frames travel through the scheduler at bench time.
+ * A rebuild keeps the APs' leases and on/off states; a reset forgets them.
+ *
  * The bus log (BT86). Every I2C and SPI device is attached through a logging proxy made once per
  * attachment (it records each call with `now()`, then forwards it); an SPI device's chip-select
  * edges come from a listener on its CS net; every byte a board's UART sends, or is handed
@@ -77,6 +82,9 @@ import { type Level, type NetState, Strength } from '../contracts/signal.ts';
 import { cyclesToNanos, nanosToCycles, NS_PER_MS, NS_PER_US, type Nanos } from '../contracts/time.ts';
 import { ENV_PERIOD_NS, EnvRuntime } from '../env/runtime.ts';
 import type { EnvSpecFor, PointField } from '../env/spec.ts';
+import { usesWifi } from '../net/radio.ts';
+import { NetRuntime } from '../net/runtime.ts';
+import type { NetSpecFor } from '../net/spec.ts';
 import { buildNetlist, type Netlist } from '../netlist/netlist.ts';
 import { type ResolverLink, SignalResolver } from '../signals/resolver.ts';
 import { Scheduler } from './scheduler.ts';
@@ -116,6 +124,11 @@ export interface BenchOptions {
    */
   envSpecFor?: EnvSpecFor;
   /**
+   * Network roles per part type (BT98; `@benchtop/parts` has `netSpecFor`). With it, the bench
+   * has a virtual network: a LAN per access point, and every MCU with WiFi gets its radio.
+   */
+  netSpecFor?: NetSpecFor;
+  /**
    * BT78: what the previous bench handed over (`Bench.carry()`): this bench starts at its time
    * and keeps its scheduler, unchanged boards' MCUs and unchanged parts' models.
    */
@@ -142,6 +155,8 @@ interface CarryState {
   readonly parts: Map<string, PartBinding>;
   /** Every model handed over, for `discardCarry`. */
   readonly models: PartModel[];
+  /** BT98: the network, for its leases and on/off states. */
+  readonly net: NetRuntime | null;
 }
 
 interface CarriedMcu {
@@ -177,12 +192,13 @@ export interface Frame {
 /** UARTs per MCU the bench links over wires (BT39): the ESP32 has 3, the ATmega2560 4 (BT46). */
 const MAX_UARTS = 4;
 /** Logic supply of each MCU kind: what its output pins carry for level 1. */
-export const MCU_LOGIC_VOLTS: Readonly<Record<BoardSpec['mcu'], number>> = { atmega328p: 5, atmega2560: 5, esp32: 3.3, rp2040: 3.3, rp2350: 3.3 };
+export const MCU_LOGIC_VOLTS: Readonly<Record<BoardSpec['mcu'], number>> = { atmega328p: 5, atmega2560: 5, esp32: 3.3, rp2040: 3.3, rp2350: 3.3, esp32c3: 3.3 };
 /**
  * Internal pull-up/pull-down resistance per MCU, ohms (datasheet typicals; the analog layer). The
- * RP2040 and RP2350 datasheets give 50 kΩ (pad electrical specifications).
+ * RP2040 and RP2350 datasheets give 50 kΩ (pad electrical specifications), the ESP32-C3's 45 kΩ
+ * like the ESP32's (DC characteristics, R_PU/R_PD).
  */
-export const MCU_PULL_OHMS: Readonly<Record<BoardSpec['mcu'], number>> = { atmega328p: 35_000, atmega2560: 35_000, esp32: 45_000, rp2040: 50_000, rp2350: 50_000 };
+export const MCU_PULL_OHMS: Readonly<Record<BoardSpec['mcu'], number>> = { atmega328p: 35_000, atmega2560: 35_000, esp32: 45_000, rp2040: 50_000, rp2350: 50_000, esp32c3: 45_000 };
 /** Logic supply assumed for a part whose power pin isn't on a powered net. */
 export const DEFAULT_PART_VOLTS = 5;
 /** I2C/SPI controller indexes probed per MCU when attaching devices. */
@@ -535,6 +551,8 @@ export class Bench {
   private readonly switchLevelParts = new Set<string>();
   /** The environment (BT54), or null without an ambient part or `envSpecFor`. */
   private readonly env: EnvRuntime | null = null;
+  /** The virtual network (BT98), or null without `netSpecFor`. */
+  private readonly net: NetRuntime | null = null;
 
   constructor(doc: ProjectDoc, env: BenchEnv, options: BenchOptions = {}) {
     const carried = options.carry === undefined ? null : (options.carry.state as CarryState);
@@ -817,6 +835,15 @@ export class Bench {
         this.scheduler.schedule(this.time + ENV_PERIOD_NS, this.envTick);
       }
     }
+    // The virtual network (BT98): access points' LANs, and every MCU with WiFi gets its radio
+    // (null without one: a WiFi board then sees no access point).
+    if (options.netSpecFor !== undefined) {
+      // Roles see the type's defaults under the instance's props, as models do.
+      const parts = doc.parts.map((p) => ({ id: p.id, type: p.type, props: { ...defOf(p.type)?.defaults, ...p.props } }));
+      this.net = NetRuntime.build(parts, options.netSpecFor, { now: () => this.now(), schedule: (at, fn) => this.scheduler.schedule(at, fn) }, carried?.net ?? null);
+      this.buildProblems.push(...this.net.problems());
+    }
+    for (const slot of this.mcus) if (usesWifi(slot.mcu)) slot.mcu.joinWifi(this.net?.radio ?? null);
     // A carried bench isn't reset: every part shows its state in the next frame.
     if (carried !== null) for (const slot of this.partList) this.invalidate(slot);
   }
@@ -964,6 +991,7 @@ export class Bench {
       this.env.reset();
       this.scheduler.schedule(ENV_PERIOD_NS, this.envTick);
     }
+    this.net?.reset();
     // Probes restart with time: the state at 0, then changes.
     for (const slot of this.probes) {
       if (slot === null) continue;
@@ -978,6 +1006,7 @@ export class Bench {
     const slot = this.parts.get(partId);
     if (slot === undefined) throw new Error(`no part "${partId}" on the bench`);
     if (this.env?.owns(partId)) this.env.input(partId, event);
+    else if (this.net?.owns(partId)) this.net.input(partId, event);
     else slot.model?.input?.(event);
   }
 
@@ -987,6 +1016,11 @@ export class Bench {
    */
   envSample(partId: string, field: PointField): number | undefined {
     return this.env?.sampleAt(partId, field);
+  }
+
+  /** BT98: the virtual network (access points, their LANs), or null without `netSpecFor`. */
+  get network(): NetRuntime | null {
+    return this.net;
   }
 
   /** True when the bench has an environment (an ambient part and `envSpecFor`). */
@@ -1038,6 +1072,7 @@ export class Bench {
     }
     this.dirtyParts.splice(0, count);
     this.env?.collect(parts, this.time);
+    this.net?.collect(parts);
     return { t: this.time, parts };
   }
 
@@ -1123,7 +1158,8 @@ export class Bench {
       models.push(slot.model);
     }
     this.carriedOver = true;
-    const state: CarryState = { scheduler: this.scheduler, boards, parts, models };
+    this.net?.dispose();
+    const state: CarryState = { scheduler: this.scheduler, boards, parts, models, net: this.net };
     return { time: this.time, state };
   }
 

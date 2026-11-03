@@ -13,7 +13,8 @@ import type { CliIo } from '../../load.ts';
 import type { SuiteIo } from '../../suite.ts';
 import type { ResourceProvider } from '../server.ts';
 import { type Tool, ToolError } from '../server.ts';
-import { nmTables, openSession, type SimContext } from './sim.ts';
+import { nmTables } from '../../load.ts';
+import { openSession, type SimContext } from './sim.ts';
 
 export type ExampleBoard = { firmware: string; sketch: string } | { micropython: string };
 

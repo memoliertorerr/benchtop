@@ -7,6 +7,7 @@ export * from './debug/index.ts';
 export * from './env/index.ts';
 export * from './firmware/index.ts';
 export * from './geometry.ts';
+export * from './net/index.ts';
 export * from './netlist/index.ts';
 export * from './probe/index.ts';
 export * from './project/index.ts';

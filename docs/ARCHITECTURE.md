@@ -30,14 +30,14 @@ simulation core has no DOM, the same code runs headless in Node for tests and CI
 
 | Package | Owns | Must not |
 |---|---|---|
-| `@benchtop/core` | time units, scheduler, netlist, signal resolution, the analog layer, the environment world, the `PartDefinition` / `PartModel` / `Mcu` contracts, the project document schema | import any other `@benchtop/*` package; touch DOM or Node APIs |
+| `@benchtop/core` | time units, scheduler, netlist, signal resolution, the analog layer, the environment world, the virtual network, the `PartDefinition` / `PartModel` / `Mcu` contracts, the project document schema | import any other `@benchtop/*` package; touch DOM or Node APIs |
 | `@benchtop/avr` | the Uno `Mcu`: ATmega328P peripherals via avr8js, Uno pin map, Intel HEX and ELF loading | know about parts or the UI |
 | `@benchtop/esp32` | the ESP32 `Mcu` (`createEsp32Mcu`, `esp32McuFactory`): Xtensa LX6 core, SoC (memory map, peripherals, two cores, pins), direct boot, boot debugging | know about parts or the UI |
 | `@benchtop/parts` | the part catalog: pin layouts, internal buses (breadboards), metadata, behavior models | touch DOM — views live in `apps/web` |
 | `@benchtop/rp2040` | the RP2040 `Mcu` (`createRp2040Mcu`, `rp2040McuFactory`) over rp2040js: the clean-room bootrom, UF2/ELF loading, pins, UARTs, USB serial, I2C/SPI controllers | know about parts or the UI |
 | `@benchtop/riscv` | the RISC-V RV32 core (Hazard3 profile: the RP2350's): decoder, objdump-exact disassembler, predecode cache, machine and user modes, the CSR hook a SoC plugs into | know about a SoC, parts or the UI |
 | `@benchtop/rp2350` | the RP2350 SoC (RISC-V side) on `@benchtop/riscv` with the real bootrom: memory map, Xh3irq, peripherals, QMI and flash, the `Mcu` (`createRp2350Mcu`, `rp2350McuFactory`) | know about parts or the UI |
-| `@benchtop/esp32c3` | the ESP32-C3 SoC on `@benchtop/riscv` with its mask ROM: memory map, flash MMU, interrupt matrix, peripherals, direct boot, the debugger view (headless for now: not a bench board yet) | know about parts or the UI |
+| `@benchtop/esp32c3` | the ESP32-C3 `Mcu` (`createEsp32c3Mcu`, `esp32c3McuFactory`): the SoC on `@benchtop/riscv` with its mask ROM — memory map, flash MMU, interrupt matrix, peripherals, direct boot, the debugger view | know about parts or the UI |
 | `@benchtop/pcb` | the PCB document, footprints, nets from the bench, ratsnest, DRC, fabrication exports | touch DOM; run simulation |
 | `@benchtop/web` | the editor, part views, the worker host and the worker entry | run CPU emulation on the UI thread |
 | `@benchtop/bridge` | the local compile bridge: runs arduino-cli for the browser (Node, zero dependencies) | listen beyond loopback; write outside its temp build folders |
@@ -619,6 +619,74 @@ parts, and sensors get values through the inputs they already take.
   walking toggle — stopped they edit props, running they send channel inputs (`set:<prop>=<v>`).
   A sensor that follows the room shows "Set by the environment" and a checkbox that sets
   `followEnvironment: false`.
+
+### Virtual network
+
+Boards with WiFi talk over a network the bench simulates (`packages/core/src/net/`), at the level
+of Ethernet II frames — what lwIP hands the WiFi driver and gets from it. It is built like the
+environment: `BenchOptions.netSpecFor(type, props)` (`@benchtop/parts`' `netSpecFor`) names the
+parts with a network role, and the bench builds a `NetRuntime` from them. Not a contract: an MCU
+with WiFi says so with `joinWifi(radio)` (`WifiStation`, duck-typed like `useSymbols`), and the
+bench calls it for every MCU whenever it builds (null without `netSpecFor`).
+
+- **Access points** (`wifi-ap`, the Network category): a part with no pins. Props: `ssid`,
+  `password`, `security` (open, wep, wpa, wpa2, wpa-wpa2, wpa3, wpa2-wpa3 — a WPA key of 8–63
+  characters, else the AP runs open, as a router refuses the key), `channel` 1–13, `rssi` (dBm),
+  `hidden`, `on`. Running, `set:on=0|1` (or press/release) switches it and `set:rssi=<dBm>`
+  changes the signal the next scan reports; the Inspector has a Power toggle and a signal slider.
+  Each AP has a LAN of its own and a gateway on it: an `IpHost` at 192.168.4.1/24 whose MAC is the
+  AP's BSSID (a locally administered MAC hashed from the part id, so it survives rebuilds), with
+  the DHCP server (`dhcp.ts`: pool .2–.254 in order of first DISCOVER, kept per client MAC for
+  the bench's life, 2-hour leases; router and DNS = the gateway; replies broadcast unless the
+  client has its address). Its view (`views/network.ts`) is our own drawing of a home router:
+  SSID, security, power and WiFi LEDs, the station count and the first client's lease.
+- **The LAN** (`lan.ts`) switches frames by destination MAC (group addresses to every other
+  port) through the bench's scheduler. A frame's airtime is 100 µs plus its bits at 54 Mb/s; a
+  station transmits one frame at a time and the AP relays to stations one at a time, so a
+  station's frame reaches the gateway after one airtime and another station after two, and
+  frames between two ports never reorder. No loss. A port that left gets nothing still in the
+  air.
+- **Hosts** (`host.ts`): ARP (answering for their address, learning every sender), ICMP echo,
+  UDP by port, TCP; sending asks ARP first when the neighbour is unknown (8 packets wait,
+  more drop). Packets are parsed defensively (`packet.ts`: lengths, header checksums, UDP and TCP
+  checksums over the pseudo-header; fragments are dropped).
+- **TCP** (`tcp.ts`): the part of RFC 9293 a lossless, in-order link needs — active and
+  passive open, data both ways in segments of the peer's MSS (its SYN's option, 536 without, at
+  most 1460) within the window it advertises (lwIP on an ESP32: 5744 bytes), ACKs at once with a
+  65535-byte window (data is delivered as it comes), FIN from either side and the states between,
+  RST for a segment no connection or listener wants. A station can still drop a frame (its
+  driver's queue, lwIP out of buffers), so unacknowledged data, an unanswered SYN or FIN go
+  again after 1 s (go-back-N from the oldest byte), five times before a reset. No other options,
+  no urgent data, no TIME_WAIT (nothing stray arrives late on this LAN). Ephemeral ports from 49152.
+- **DNS** (`dns.ts`): the gateway answers UDP 53 — an A question for a name on its LAN (a
+  server part's `hostname`, a station's DHCP hostname, "gateway") with its address (TTL 60 s), a
+  known name of another type with no answer, anything else NXDOMAIN (no recursion: the bench has
+  no internet). Names compare without case and without a trailing dot.
+- **HTTP servers** (`http.ts`, the `http-server` part): a host on the LAN of the AP whose
+  SSID is `network` (the first AP when empty) at `address` (or the next free one from
+  192.168.4.10 — explicit ones are placed first, and the DHCP pool skips them), `hostname` in the
+  DNS, `port`. Its `routes` prop is text, a route a line: `METHOD /path STATUS [type [body]]`
+  (METHOD may be `*`, a path ending in `*` matches a prefix; `\n` in a body is a newline;
+  {{method}} {{path}} {{query}} {{body}} {{client}} {{count}} {{time}} are filled per request).
+  The first matching route answers; a path known with another method is 405, an unknown one 404;
+  HEAD gets no body. Requests are HTTP/1.0–1.1 with Content-Length bodies (chunked: 411; headers
+  over 8 KB: 431; bodies over 64 KB: 413); every response closes the connection. The server logs
+  the last 200 requests (`http.log`). Its view (`views/network.ts`) is a small server box: the
+  hostname, `address:port`, the request count and the last three requests. A server whose AP
+  isn't there is `net-no-access-point`, an address off the subnet or taken `net-bad-address`
+  (it takes the next free one), route lines that don't parse `http-routes` — all warnings. The
+  Inspector edits multi-line text props (the routes) in a text area. `httpRequest(host, ip, port,
+  …)` is the matching client the bench's own tools use.
+- **Stations** see `radio.accessPoints()` (the APs that are on) and `radio.join(bssid, mac,
+  receive, lost)` puts them on an AP's LAN; `lost` runs when the AP goes off (or away in a
+  rebuild). A rebuild hands kept MCUs the new radio: an association moves to the same
+  AP's new LAN silently, and the new network keeps the APs' leases and on/off states; a bench
+  reset forgets both. `bench.network` exposes the runtime (its APs, LANs, gateways, leases).
+
+Measured: an ESP32 running `fixtures/sketches/esp32/wifi-ping` (WiFi.begin, DHCP, four pings of
+the gateway with IDF's esp_ping) prints its four replies 0–1 ms each; 6 s simulated take 1.1 s.
+`wifi-http-get`: Arduino's HTTPClient resolves `api.bench` at the gateway and GETs and POSTs
+to the http-server part through lwIP's TCP and ours.
 
 ### MCUs
 
@@ -1266,6 +1334,80 @@ sequence, files matched by basename or trailing path.
   off) measures 2.3–2.7× against the ≥ 5× target: with skip-ahead on, what is left is the tick
   work, executed instruction by instruction (what would help is a faster interpreter, not a bigger skip).
 
+  **High-level emulation (`hle/`).** Some firmware functions are answered by TypeScript
+  instead: `Hle.replace(address, name, handler)` puts a handler at a function's first
+  instruction, and `XtensaCore.setHle` hands the table to a core. When the core decodes an
+  instruction at a listed address — the predecode cache's fill and the uncached paths all pack
+  through `pack()` — it gets `OP_HLE` (id 1022, past the ISA table) instead, so code elsewhere
+  pays nothing. The function's own `entry` never runs: the caller's CALLn set PS.CALLINC = n and
+  a(4n) = the return address, so the arguments are the caller's a(4n+2)… (the seventh on the
+  caller's stack), the result goes to a(4n+2), and execution continues at the return address. A
+  handler that calls back into the firmware is a generator yielding `{ fn, args }`: it first gets
+  a frame of its own (`hleEntry`, what `entry a1, 176` does — a window overflow first if the
+  frame ahead is live, after which the HLE op simply runs again), then each step runs at a resume
+  address whose op touches window quarter 3 (so a8–a15 are free), a call out is a CALL8 (a8 =
+  the resume address, a10… the arguments, past six on the stack at a1) that returns there with
+  its result in a10, and the frame is found again by its stack pointer (unique among live frames
+  on every task's stack, so a task may block in a call out and resume on the other core). The
+  generator's return value goes to a2 and execution goes to a return address that decodes as
+  RETW, so a caller spilled meanwhile comes back through the window underflow handler as for any
+  RETW. The frame's 176 bytes: 16 for stack arguments, 128 of scratch memory the handler uses
+  while it runs (event data), 32 the windowed ABI reserves at the top. On the SoC the resume,
+  return and WiFi-task addresses are 0x4006FFF0/F4/F8: ROM1's instruction view past its
+  `.rodata` (zeros nothing executes), in the 1 GB region RETW needs. `fixtures/xtensa/hle.S`
+  tests it on the bare machine: CALL4/8/12 callers, calls out from CALL4 and CALL8 callers, seven
+  arguments, two TypeScript frames waiting at once, and a recursion deep enough that the
+  TypeScript frame's entry spills and its return underflows.
+
+  **WiFi at the driver API (`wifi/`).** Espressif's WiFi driver is closed (libnet80211,
+  libpp, libphy) and its PHY calibration (`ram_txdc_cal_v70`, from `esp_wifi_start`) polls radio
+  registers forever, so it is replaced at its API by name: `esp_wifi_init`/`deinit` (open source,
+  but they only start the closed driver and its supplicant), `esp_wifi_*` (mode, start/stop,
+  config, MAC, scan, connect/disconnect, AP info, power save, protocol, bandwidth, channel,
+  country, TX power, the soft-AP station list) and the `esp_wifi_internal_*` calls lwIP's glue
+  makes (the rx callback registration, transmit, buffer release). The list is the cross-reference
+  of Arduino-ESP32 2.0.17's link map: closed-library symbols that open code calls. Everything
+  above — the WiFi library, esp_netif, the default event loop, lwIP — is the firmware's own code.
+  `WifiDriver` keeps the driver's state and posts events as the driver does, through
+  `esp_event_post(WIFI_EVENT, …)`: STA/AP START and STOP from inside `esp_wifi_start`/`stop`
+  (the caller's task), timed ones (SCAN_DONE, STA_CONNECTED, STA_DISCONNECTED) from the driver's
+  task, which `esp_wifi_init` creates (`xTaskCreatePinnedToCore`: "wifi", 4 KB, priority 23,
+  core 0) with its entry at an HLE address: it posts what is due and sleeps a tick while WiFi is
+  started (50 otherwise). A scan dwells per channel as its configuration says (active: `max`
+  where an access point answers, `min` elsewhere — Arduino's 100/300 ms; passive: `passive`;
+  IDF's 120/360 ms defaults when 0) over 13 channels or the one asked, and lists results
+  strongest first; a connect finds its SSID with a full scan at 120 ms a channel (NO_AP_FOUND
+  when it isn't there, reason 15 after 4 s of 4-way handshake with a wrong WPA2 key, STA_CONNECTED
+  30 ms after the scan otherwise). Struct layouts (`wifi/types.ts`) were measured with the
+  toolchain (offsetof/sizeof built with the sketch's flags). Symbols come from the hosts:
+  `Esp32Mcu.useSymbols(table)` takes the table they build for the debugger (the web: the
+  compiled sketch's ELF; the CLI and MCP server: an `.elf` or `.syms.tsv` beside the `.bin`) and
+  installs the HLE on every SoC a reset builds. The radio's blocks (FE2, FE, 0x3FF4E000, NRX, BB,
+  0x3FF71000–0x3FF7FFFF but RNG) count their accesses (`radioAccesses`, 0 when WiFi is answered);
+  the first access reports `esp32-wifi-no-symbols` (error: a WiFi firmware without symbols, whose
+  real driver would hang) or `esp32-wifi-unsupported` (warning: something outside the answered
+  API). A WiFi firmware lacking `esp_event_post`, `vTaskDelay`, `xTaskCreatePinnedToCore` or
+  `WIFI_EVENT` reports `esp32-wifi-unsupported` (error). `fixtures/sketches/esp32/wifi-scan`
+  measures it: 8 s simulated of WiFi.mode, a scan with one AP and a connect run in 1.3 s wall.
+
+  **The station on the bench's network.** The access points a scan lists and a connect
+  finds are the bench's (`joinWifi(radio)`, see Virtual network). A connect honours the station
+  configuration's scan threshold (`threshold.rssi`, `threshold.authmode` — Arduino sets WPA2
+  whenever a password is given, so an open AP isn't joined with one) and `bssid_set`, and picks
+  the strongest candidate. STA_CONNECTED joins the AP's LAN as the station MAC; lwIP's frames
+  (`esp_wifi_internal_tx` and `_tx_by_ref`, copied at once — the caller keeps its buffer, so the
+  netstack's ref/free callbacks are never needed) go onto it; frames for the station queue (32
+  at most) and the WiFi task hands each to the rx callback lwIP's glue registered, in a buffer
+  from `malloc` that `esp_wifi_internal_free_rx_buffer` gives back with `free`. lwIP's own DHCP
+  client gets its address from the AP's server (with its ARP check), so `IP_EVENT_STA_GOT_IP` is
+  esp_netif's. A wrong WPA2 key ends in reason 15 (IDF 4.4's 4-way handshake timeout) 4 s after
+  the connect scan — Arduino-ESP32 2.0.17 reports that as WL_DISCONNECTED and auto-reconnects;
+  an absent SSID in 201 (WL_NO_SSID_AVAIL); `WiFi.disconnect()` in 8 (ASSOC_LEAVE, no
+  reconnect); an AP switched off in 200 (BEACON_TIMEOUT, WL_CONNECTION_LOST) after IDF's 6 s
+  inactive time. The factory gives every ESP32 board its own eFuse MAC — 24:0A:C4 and three bytes
+  hashed from its part id — so two boards on one LAN differ (`Esp32McuOptions.mac`; the SoC's
+  default stays 24:0A:C4:00:00:01).
+
 - **RP2040** — `@benchtop/rp2040` wraps [rp2040js](https://github.com/wokwi/rp2040js)
   1.4.0 (MIT, Wokwi): its Cortex-M0+ core 0 and peripherals (GPIO, SIO, PWM, timer, UART, I2C,
   SPI, ADC, PIO, DMA, USB). Core 1 isn't simulated yet: its bootrom's side of the FIFO is
@@ -1752,8 +1894,8 @@ sequence, files matched by basename or trailing path.
   core, running Arduino-ESP32 2.0.17 images (FQBN `esp32:esp32:esp32c3`) booted directly with
   its mask ROM. It shares what isn't Xtensa with `@benchtop/esp32`: the event table, the
   app-image and partition parsers (`parseEspImage(bytes, chip)`, `buildFlash(app, partitions,
-  chip)` — the C3 is chip id 5 with its own segment regions), the Problem log, sha256. It
-  isn't a bench board yet: no `Mcu` adapter and no board part.
+  chip)` — the C3 is chip id 5 with its own segment regions), the Problem log, sha256. The
+  bench `Mcu` and the ESP32-C3-DevKitM-1 board are described below.
 
   **ROM.** `esp32c3_rev3_rom.elf` (ECO3 — Arduino-ESP32 2.0.17 links against
   `esp32c3.rom.eco3.ld`, CONFIG_ESP32C3_REV_MIN_3) from the same pinned esp-rom-elfs-20241011
@@ -1874,6 +2016,39 @@ sequence, files matched by basename or trailing path.
   millisecond, so 10 s of simulated time take ≈ 0.34 s of wall time (≈ 30× real time). `node scripts/esp32c3-trace.ts
   <fixture>` is the boot debugger: UART0, the core's state, where the time went (symbolized),
   the Problems, the last samples' PCs and the stop PC's function disassembled.
+
+  **The bench `Mcu` (`esp32c3-mcu.ts`)** — `'esp32c3'` in `BoardSpec.mcu` and `Mcu.kind`
+  (an additive contract change). Built like the ESP32's adapter: `clockHz` the 160 MHz
+  reference clock, pins `GPIO0`–`GPIO21` from the pad resolver with 3.3 V thresholds and
+  hysteresis (VIH 0.75·VDD, VIL 0.25·VDD), a floating read reported once per pad the firmware
+  configured itself (`esp32c3-floating-input`; `IoMux.configured`), `load`/`reset` building a
+  fresh SoC and booting directly, the ROM checked against its SHA-256 (`esp32c3-rom-missing`
+  says how to get it, and the board won't run without it). `uart(0)` is what the serial monitor
+  shows: UART0 and the USB-Serial-JTAG port together (a `CDCOnBoot=cdc` build's `Serial`); typed
+  bytes go to the USB port once the firmware has sent on it — Arduino's core touches the port's
+  registers in every build, so only its output tells — else to UART0. `uart(1)` is UART1,
+  `i2c(0)` the I2C controller (Arduino's defaults SDA 8, SCL 9 before the firmware routes it),
+  `spi(2)` SPI2 (SCK 4, MOSI 6, MISO 5); `debug()` is Esp32c3Debug, its breakpoints outliving
+  resets. The bench's per-chip tables treat it as the ESP32 (3.3 V logic, 45 kΩ pulls, 40 mA a
+  pin, at most 3.6 V on a pin — `esp32-overvoltage` — and no pin groups).
+
+  **The board (`esp32-c3-devkitm-1`)** — our own pin table from Espressif's DevKitM-1 user
+  guide: J1 (GND, 3V3, 3V3, IO2, IO3, GND, RST, GND, IO0, IO1, IO10, GND, 5V, 5V, GND) down the
+  left edge and J3 (GND, TX, RX, GND, IO9, IO8, GND, IO7, IO6, IO5, IO4, GND, IO18, IO19, GND)
+  down the right, 0.9" apart; IO<n> → GPIO<n>, TX/RX → GPIO21/20, the GNDs, 3V3s and 5Vs each one
+  bus, 5V driven by USB while `usbPowered` (the default), RST unmodeled. Its RGB LED is a WS2812 on
+  GPIO8: the model decodes IO8's edges with the NeoPixel's `Ws2812Decoder` into `pixels[0]`, so
+  `pixel c3[0] is #rrggbb` assertions read it, and the view (`views/esp32-c3-devkitm-1.ts`, our
+  own drawing: the MINI-1 module and antenna, the headers, the LED with its glow, BOOT and RESET,
+  micro-USB) shows its color. GPIO8 is also Wire's default SDA: a line held high there doesn't
+  latch a pixel (the decoder now only waits for a latch while DIN is low — before, a NeoPixel whose
+  DIN stayed high after some bits polled every nanosecond). The factory runs in the web worker
+  (the ROM fetched from `/esp32c3-rom/`, served from `.cache/esp32c3-rom` in development), the
+  CLI and the MCP server (`CliIo.esp32c3Rom`); the compile bridge allows `esp32:esp32:esp32c3`;
+  the Debugger tab shows `mstatus` and starts its memory view at DRAM (0x3FC80000). Gallery:
+  RGB blink, serial hello, a potentiometer dimmer (ADC → LEDC) and an OLED clock (DS1307 +
+  SSD1306 on the default I2C pins), each with a spec in fixtures/specs/examples and a check in
+  `examples-run-esp32c3.test.ts`.
 
 ## Worker protocol
 
@@ -2420,10 +2595,12 @@ c/s [addr], C/S, vCont?/vCont;c/s, Z0/z0 through `setBreakpoint` — never BREAK
 qAttached, qC, thread queries, Hg/Hc, `k` resets and closes, `D` says OK and closes leaving the
 bench paused, everything else an empty reply; stop replies S05 breakpoint or step, S02
 interrupt, S04 fault; no-ack mode; a `-` resends the last reply). `apps/cli/src/gdb.ts`
-(`startGdbServer`) listens on 127.0.0.1 only, one client at a time (a second is closed at
-once; a client's breakpoints go with it). `k` and `D` free the slot at once, not when the
-socket's close event arrives, so gdb reconnecting right after `kill` is served (a race found
-2026-10-20: the test's reconnect lost it under load). While continuing it runs the bench in 1 ms
+(`startGdbServer`) listens on 127.0.0.1 only, one client at a time (a second is closed
+within 50 ms; a client's breakpoints go with it). `k` and `D` free the slot at once, not when
+the socket's close event arrives, so gdb reconnecting right after `kill` is served (a race found
+2026-10-20: the test's reconnect lost it under load). The 50 ms grace covers the other order:
+Linux can accept the new connection before the old one's `k` is read (GitHub's CI hit this
+2026-11-03), so a newcomer waits that long for the slot to free before it's refused. While continuing it runs the bench in 1 ms
 simulated slices, paced in real time unless `--speed max`, yielding with `setImmediate`
 between slices, so a 0x03 is answered within milliseconds (1.3 ms in the test). No avr-gdb
 exists on the dev machine; a scripted RSP client over `node:net` is the test. Watchpoints,

@@ -183,3 +183,15 @@ export class SymbolTable {
     return undefined;
   }
 }
+
+/**
+ * BT97: an Mcu that uses its firmware's symbols beyond the debugger — the ESP32 answers WiFi at
+ * the driver's API by function name. Hosts hand it the table they build for the debugger.
+ */
+export interface SymbolUser {
+  useSymbols(table: SymbolTable | null): void;
+}
+
+export function usesSymbols(mcu: object): mcu is SymbolUser {
+  return typeof (mcu as Partial<SymbolUser>).useSymbols === 'function';
+}

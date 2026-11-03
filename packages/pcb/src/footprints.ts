@@ -5,7 +5,8 @@
  * from the drawings at real size), with each run of pins about 0.1″ apart snapped to an exact
  * 2.54 mm pitch: the drawings' small rounding (2.52, 2.64 mm) would not fit a real header. A
  * few basic components get their standard footprints instead (resistor, LED, RGB LED, 6 mm
- * pushbutton). Breadboards, the IR remote and the environment parts aren't on a PCB.
+ * pushbutton). Breadboards, the IR remote, the environment parts and the network parts (the
+ * WiFi access point, the HTTP server) aren't on a PCB.
  *
  * Coordinates are mm relative to the footprint's origin — the part's centre — unrotated, y down.
  * Pads a part shorts inside (a board's GND pins, a pushbutton's two legs per side) share a pad

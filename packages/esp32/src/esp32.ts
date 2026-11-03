@@ -26,14 +26,25 @@
  *   one by one; `esp32McuFactory` turns them into one bench Problem per code on the board part
  *   (the newest few messages and a count), through the report function the bench hands
  *   `BenchEnv.createMcu`. `soc` is there for tests and debugging.
+ * - WiFi (BT97): `useSymbols(table)` gives the Mcu the firmware's symbols (the hosts pass the
+ *   table they build for the debugger: the sketch's ELF, or a fixture's .syms.tsv). With them the
+ *   WiFi driver's API is answered by wifi/driver.ts through hle/ (on every SoC a reset builds);
+ *   `wifi` is that driver. BT98: `joinWifi(radio)` (the bench calls it whenever it builds) is
+ *   what the station sees — the bench's access points and their LANs. A firmware that drives the
+ *   radio without symbols gets `esp32-wifi-no-symbols` (once per boot): the closed driver's
+ *   calibration would poll the radio forever.
+ * - `mac` (BT98): the eFuse's factory MAC; the factory gives each board one from its part id
+ *   (24:0A:C4 and three bytes of a hash), so two boards on one LAN differ.
  */
 
-import type { BoardSpec, Debuggable, FirmwareImage, I2cController, I2cDevice, Level, Mcu, McuDebug, McuPin, NetState, PinMode, Problem, RunResult, SpiController, SpiDevice, UartPort } from '@benchtop/core';
+import type { BoardSpec, Debuggable, FirmwareImage, I2cController, I2cDevice, Level, Mcu, McuDebug, McuPin, NetState, PinMode, Problem, RunResult, SpiController, SpiDevice, SymbolTable, UartPort, WifiRadio, WifiStation } from '@benchtop/core';
+import { macFromName } from '@benchtop/core';
 import { Esp32Debug } from './debug/debug.ts';
 import { describeFirmwareFormat } from '@benchtop/core';
 import { directBoot } from './boot/direct-boot.ts';
 import { ROM_ELF_NAME, ROM_ELF_SHA256, ROM_RELEASE } from './boot/rom-manifest.ts';
 import { parseRomElf, type RomImage } from './boot/rom.ts';
+import { ESP32_HLE_RESUME_PC, ESP32_HLE_RETURN_PC, Hle } from './hle/hle.ts';
 import { REF_HZ } from './soc/context.ts';
 import { GPIO_NUMBERS } from './soc/iomux.ts';
 import { PAD_MODE } from './soc/pads.ts';
@@ -41,6 +52,7 @@ import type { SocProblem } from './soc/periph.ts';
 import { Esp32Soc } from './soc/soc.ts';
 import type { Spi, SpiAttachment } from './soc/spi.ts';
 import { sha256Hex } from './util/sha256.ts';
+import { CODE_WIFI_NO_SYMBOLS, CODE_WIFI_UNSUPPORTED, WifiDriver } from './wifi/driver.ts';
 
 export const CODE_ROM_MISSING = 'esp32-rom-missing';
 export const CODE_FLOATING_INPUT = 'esp32-floating-input';
@@ -54,6 +66,8 @@ const MODES: readonly PinMode[] = ['input', 'input-pullup', 'input-pulldown', 'o
 export interface Esp32McuOptions {
   /** `esp32_rev0_rom.elf` from esp-rom-elfs (rom-manifest). Missing or wrong: the Mcu reports it and won't run. */
   rom?: Uint8Array;
+  /** BT98: the eFuse's factory MAC (24:0A:C4:00:00:01 by default). */
+  mac?: readonly number[];
 }
 
 /** Parsed ROMs by byte array (a bench rebuild creates new Mcus with the same bytes). */
@@ -243,7 +257,7 @@ class Esp32Uart implements UartPort {
   }
 }
 
-export class Esp32Mcu implements Mcu, Debuggable {
+export class Esp32Mcu implements Mcu, Debuggable, WifiStation {
   readonly kind = 'esp32' as const;
   readonly clockHz = REF_HZ;
   readonly pins: ReadonlyMap<string, McuPin>;
@@ -265,9 +279,18 @@ export class Esp32Mcu implements Mcu, Debuggable {
   /** BT73: breakpoints (either core stops at them), handed to every SoC built (they outlive resets). */
   private readonly breakpoints = new Set<number>();
   private debugView: Esp32Debug | null = null;
+  /** BT97: the firmware's symbols by exact name (useSymbols; functions win over objects). */
+  private symbols: Map<string, number> | null = null;
+  /** BT97: the current SoC's WiFi driver, when the firmware's WiFi calls are answered. */
+  wifi: WifiDriver | null = null;
+  /** BT98: the bench's radio (joinWifi). */
+  private radio: WifiRadio | null = null;
+  private readonly mac: readonly number[] | undefined;
+  private radioReported = false;
 
   constructor(options: Esp32McuOptions = {}) {
     this.rom = romFrom(options.rom);
+    this.mac = options.mac;
     const pins = new Map<string, McuPin>();
     for (const g of GPIO_NUMBERS) {
       const pin = new Esp32Pin(this, g);
@@ -321,6 +344,7 @@ export class Esp32Mcu implements Mcu, Debuggable {
   reset(): void {
     this.soc = this.buildSoc();
     this.bootError = '';
+    this.radioReported = false;
     if (typeof this.rom === 'string') {
       this.report('error', CODE_ROM_MISSING, 0, this.rom);
     } else if (this.image !== null) {
@@ -358,6 +382,29 @@ export class Esp32Mcu implements Mcu, Debuggable {
     return index === 2 ? this.spis[0] : index === 3 ? this.spis[1] : undefined;
   }
 
+  /**
+   * BT97: the firmware's symbols, for what the simulator answers by function name (WiFi). Hosts
+   * call it after `load` and before running; it applies to the current SoC and every later one.
+   */
+  useSymbols(table: SymbolTable | null): void {
+    if (table === null) this.symbols = null;
+    else {
+      const byName = new Map<string, number>();
+      for (let i = 0; i < table.size; i++) {
+        const entry = table.entry(i);
+        if (!byName.has(entry.name) || entry.kind === 'func') byName.set(entry.name, entry.address);
+      }
+      this.symbols = byName;
+    }
+    this.installHle(this.soc);
+  }
+
+  /** BT98: the bench's access points and LANs (null: none); an association moves to a rebuilt bench's. */
+  joinWifi(radio: WifiRadio | null): void {
+    this.radio = radio;
+    this.wifi?.radioChanged();
+  }
+
   /** BT73: the debugger view — the APP_CPU (where loop() runs), or the core that stopped last. */
   debug(): McuDebug {
     this.debugView ??= new Esp32Debug(() => this.soc, this.breakpoints);
@@ -365,7 +412,7 @@ export class Esp32Mcu implements Mcu, Debuggable {
   }
 
   private buildSoc(): Esp32Soc {
-    const soc = new Esp32Soc();
+    const soc = new Esp32Soc(this.mac === undefined ? {} : { mac: this.mac });
     // The field initializers run before the constructor's buildSoc: the set exists here.
     soc.cores[0].breakpoints = this.breakpoints;
     soc.cores[1].breakpoints = this.breakpoints;
@@ -373,6 +420,7 @@ export class Esp32Mcu implements Mcu, Debuggable {
     soc.problems.listener = (problem) => this.problemListener?.(problem);
     soc.pads.onPin = (g) => this.pinChanged(g);
     soc.gpio.onFloatingRead = (g) => this.floatingRead(g);
+    soc.periph.onRadio = (address, pc) => this.radioAccess(address, pc);
     soc.rtc.sens.padVolts = (g) => (this.byGpio[g] as Esp32Pin | undefined)?.volts ?? 0;
     // The bus devices outlive the SoC (a reset builds a new one); during construction the lists are empty.
     if (this.i2cs !== undefined) {
@@ -381,7 +429,37 @@ export class Esp32Mcu implements Mcu, Debuggable {
       soc.spi2.devices = this.spis[0].devices;
       soc.spi3.devices = this.spis[1].devices;
     }
+    this.installHle(soc);
     return soc;
+  }
+
+  /** BT97: answers the firmware's WiFi calls on `soc` when its symbols name them. */
+  private installHle(soc: Esp32Soc): void {
+    this.wifi = null;
+    soc.cores[0].setHle(null);
+    soc.cores[1].setHle(null);
+    const table = this.symbols;
+    if (table === null) return;
+    const hle = new Hle({ resumePc: ESP32_HLE_RESUME_PC, returnPc: ESP32_HLE_RETURN_PC });
+    const wifi = new WifiDriver({ now: () => soc.now(), refHz: REF_HZ, mac: soc.efuse.mac, radio: () => this.radio });
+    const { installed, missing } = wifi.install(hle, (name) => table.get(name));
+    if (missing.length > 0) this.report('error', CODE_WIFI_UNSUPPORTED, 0, `This firmware uses WiFi, but it lacks ${missing.join(', ')}, which the simulated WiFi driver calls: WiFi won't run.`);
+    if (!installed) return;
+    soc.cores[0].setHle(hle);
+    soc.cores[1].setHle(hle);
+    this.wifi = wifi;
+  }
+
+  /** BT97: the firmware touched the radio's registers (the closed WiFi driver is running). */
+  private radioAccess(address: number, pc: number): void {
+    if (this.radioReported) return;
+    this.radioReported = true;
+    const where = `0x${address.toString(16).toUpperCase()} at PC 0x${pc.toString(16).toUpperCase()}`;
+    if (this.wifi === null) {
+      this.report('error', CODE_WIFI_NO_SYMBOLS, address, `This firmware drives the WiFi radio (${where}). The simulator answers WiFi at the driver's API by function name, so it needs the firmware's symbols: run the sketch's .elf beside its .bin (arduino-cli builds both; Compile & Run passes it), or a .syms.tsv as the fixtures keep.`);
+    } else {
+      this.report('warning', CODE_WIFI_UNSUPPORTED, address, `The firmware touched the radio's registers (${where}) outside the WiFi API the simulator answers: that part of it doesn't run.`);
+    }
   }
 
   private pinChanged(g: number): void {
@@ -424,7 +502,8 @@ export class Esp32Mcu implements Mcu, Debuggable {
 export function esp32McuFactory(rom: Uint8Array | undefined): (board: BoardSpec, partId: string, report?: (problem: Problem) => void) => Mcu | undefined {
   return (board, partId, report) => {
     if (board.mcu !== 'esp32') return undefined;
-    const mcu = createEsp32Mcu(rom === undefined ? {} : { rom });
+    const mac = macFromName(partId, [0x24, 0x0a, 0xc4]);
+    const mcu = createEsp32Mcu(rom === undefined ? { mac } : { rom, mac });
     if (report !== undefined) {
       const seen = new Map<string, { messages: string[]; count: number }>();
       let soc = mcu.soc;

@@ -37,9 +37,11 @@ function neopixelModel(ctx: PartContext, length: number) {
     if (decoder.due(now)) {
       armed = false;
       if (decoder.latch()) latched();
-    } else if (decoder.bits > 0 || decoder.passing) {
+    } else if ((decoder.bits > 0 || decoder.passing) && !high) {
       ctx.schedule(Math.max(1, decoder.latchAt - now), check);
     } else {
+      // DIN held high: no latch until it falls again, which re-arms (BT94: polling every 1 ns
+      // while it stayed high stalled the bench).
       armed = false;
     }
   };

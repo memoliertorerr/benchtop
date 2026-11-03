@@ -9,9 +9,10 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { assembleBench, type Bench, type FirmwareImage, NS_PER_MS, type PartInput, parseProject, type VisualState } from '@benchtop/core';
-import { analogSpecFor, applyTftUpdate, envSpecFor, sevenSegmentText as decodeSevenSegment, TFT_PACKED, TFT_WIDTH, unpackPixel } from '@benchtop/parts';
+import { analogSpecFor, applyTftUpdate, envSpecFor, netSpecFor, sevenSegmentText as decodeSevenSegment, TFT_PACKED, TFT_WIDTH, unpackPixel } from '@benchtop/parts';
 import { REPO_ROOT } from '../../../../packages/core/src/firmware/fixtures.test-helper.ts';
 import { loadCachedRom } from '../../../../packages/esp32/src/test-support/rom.test-helper.ts';
+import { loadCachedC3Rom } from '../../../../packages/esp32c3/src/test-support/rom.test-helper.ts';
 import { MICROPYTHON_PICO2_RISCV } from '@benchtop/rp2040';
 import { cachedMicroPython } from '../../../../packages/rp2040/src/micropython.test-helper.ts';
 import { cachedRom as cachedRp2350Rom } from '../../../../packages/rp2350/src/rp2350.test-helper.ts';
@@ -58,6 +59,7 @@ export function runExample(example: Example): ExampleRun {
   for (const [board, files] of Object.entries(example.boards)) images[board] = image(files);
   const boards = Object.values(example.boards);
   const rom = boards.some((b) => 'firmware' in b && b.firmware.startsWith('esp32/')) ? loadCachedRom() : undefined;
+  const esp32c3Rom = boards.some((b) => 'firmware' in b && b.firmware.startsWith('esp32c3/')) ? loadCachedC3Rom() : undefined;
   // MicroPython for whichever board the project has; a Pico 2 needs the bootrom too (BT66, BT67).
   const types = new Set(parsed.doc.parts.map((p) => p.type));
   const python = boards.some((b) => 'micropython' in b);
@@ -65,7 +67,7 @@ export function runExample(example: Example): ExampleRun {
   const micropython = python && types.has('raspberry-pi-pico') ? cachedMicroPython() : undefined;
   const micropythonPico2 = python && pico2 ? cachedMicroPython(MICROPYTHON_PICO2_RISCV) : undefined;
   const rp2350Rom = pico2 ? cachedRp2350Rom() : undefined;
-  const bench = assembleBench(parsed.doc, createBenchEnv({ esp32Rom: rom, micropython, rp2350Rom, micropythonPico2 }), images, { analogSpecFor, envSpecFor });
+  const bench = assembleBench(parsed.doc, createBenchEnv({ esp32Rom: rom, micropython, rp2350Rom, micropythonPico2, esp32c3Rom }), images, { analogSpecFor, envSpecFor, netSpecFor });
   const text: Record<string, string> = {};
   for (const board of Object.keys(example.boards)) {
     text[board] = '';

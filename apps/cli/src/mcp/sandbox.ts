@@ -82,6 +82,7 @@ export class Sandbox {
     if (base.micropython !== undefined) io.micropython = () => base.micropython?.();
     if (base.rp2350Rom !== undefined) io.rp2350Rom = () => base.rp2350Rom?.();
     if (base.micropythonPico2 !== undefined) io.micropythonPico2 = () => base.micropythonPico2?.();
+    if (base.esp32c3Rom !== undefined) io.esp32c3Rom = () => base.esp32c3Rom?.();
     return io;
   }
 }

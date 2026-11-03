@@ -1,0 +1,145 @@
+{
+  "format": 1,
+  "name": "esp32c3-oled-clock",
+  "parts": [
+    {
+      "id": "c3",
+      "type": "esp32-c3-devkitm-1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "rtc",
+      "type": "ds1307",
+      "x": 40,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "oled",
+      "type": "ssd1306",
+      "x": 40,
+      "y": 40,
+      "rotation": 0,
+      "props": {
+        "address": "0x3C"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "c3",
+        "pin": "IO8"
+      },
+      "to": {
+        "part": "rtc",
+        "pin": "SDA"
+      },
+      "color": "green",
+      "waypoints": []
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "c3",
+        "pin": "IO9"
+      },
+      "to": {
+        "part": "rtc",
+        "pin": "SCL"
+      },
+      "color": "green",
+      "waypoints": []
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "rtc",
+        "pin": "5V"
+      },
+      "to": {
+        "part": "c3",
+        "pin": "3V3.1"
+      },
+      "color": "red",
+      "waypoints": []
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "rtc",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "c3",
+        "pin": "GND.6"
+      },
+      "color": "black",
+      "waypoints": []
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "oled",
+        "pin": "DATA"
+      },
+      "to": {
+        "part": "c3",
+        "pin": "IO8"
+      },
+      "color": "green",
+      "waypoints": []
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "oled",
+        "pin": "CLK"
+      },
+      "to": {
+        "part": "c3",
+        "pin": "IO9"
+      },
+      "color": "green",
+      "waypoints": []
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "oled",
+        "pin": "3V3"
+      },
+      "to": {
+        "part": "c3",
+        "pin": "3V3.2"
+      },
+      "color": "red",
+      "waypoints": []
+    },
+    {
+      "id": "w8",
+      "from": {
+        "part": "oled",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "c3",
+        "pin": "GND.7"
+      },
+      "color": "black",
+      "waypoints": []
+    }
+  ],
+  "firmware": {
+    "c3": {
+      "kind": "file",
+      "name": "oled-clock.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

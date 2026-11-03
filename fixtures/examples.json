@@ -742,6 +742,58 @@
     "description": "Wire scans the bus and finds the OLED (0x3C) and the clock (0x68)."
   },
   {
+    "id": "esp32c3-rgb-blink",
+    "title": "ESP32-C3 RGB blink",
+    "category": "ESP32-C3",
+    "project": "esp32c3-rgb-blink",
+    "boards": {
+      "c3": {
+        "firmware": "esp32c3/rgb-blink.bin",
+        "sketch": "esp32c3/rgb-blink"
+      }
+    },
+    "description": "The DevKitM-1's own RGB LED (a WS2812 on GPIO8) cycles red, green, blue and white through neopixelWrite."
+  },
+  {
+    "id": "esp32c3-serial-hello",
+    "title": "ESP32-C3 serial hello",
+    "category": "ESP32-C3",
+    "project": "esp32c3-serial",
+    "boards": {
+      "c3": {
+        "firmware": "esp32c3/serial-hello.bin",
+        "sketch": "esp32c3/serial-hello"
+      }
+    },
+    "description": "A RISC-V ESP32-C3 boots its real ROM and prints \"hello from esp32c3\", then counts once a second."
+  },
+  {
+    "id": "esp32c3-pot-led",
+    "title": "ESP32-C3 potentiometer dimmer",
+    "category": "ESP32-C3",
+    "project": "esp32c3-pot-led",
+    "boards": {
+      "c3": {
+        "firmware": "esp32c3/pot-led.bin",
+        "sketch": "esp32c3/pot-led"
+      }
+    },
+    "description": "A potentiometer on GPIO0 (the C3's ADC) sets an LED's brightness on GPIO3 through LEDC PWM."
+  },
+  {
+    "id": "esp32c3-oled-clock",
+    "title": "ESP32-C3 OLED clock",
+    "category": "ESP32-C3",
+    "project": "esp32c3-oled-clock",
+    "boards": {
+      "c3": {
+        "firmware": "esp32c3/oled-clock.bin",
+        "sketch": "esp32c3/oled-clock"
+      }
+    },
+    "description": "A DS1307 clock shown large on an SSD1306 OLED, both on the C3's default I2C pins (SDA 8, SCL 9)."
+  },
+  {
     "id": "pico-blink",
     "title": "Pico blink",
     "category": "Raspberry Pi Pico",

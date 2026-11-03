@@ -48,6 +48,12 @@ PWM, the ADC, UART0/UART1, USB serial (`Serial`), I2C (`Wire`), SPI, pin interru
 pinout, and runs **MicroPython** like the Pico (on the stock RISC-V build; `_thread` runs on the
 second core). The bootrom isn't part of this repository: see "RP2350 bootrom" below.
 
+**ESP32-C3-DevKitM-1** (RISC-V): the same RISC-V core runs Espressif's single-core ESP32-C3
+on its real mask ROM, booting the `.bin` Arduino-ESP32 2.0.17 builds for `esp32:esp32:esp32c3` —
+GPIO and pin interrupts, the ADC, LEDC PWM, UART0/UART1 and the USB-Serial-JTAG port (a CDC
+build's `Serial`), I2C (`Wire`), SPI, and the board's RGB LED (a WS2812 on GPIO8 through the RMT).
+Its ROM comes from the same download as the ESP32's (see "ESP32 ROM" below).
+
 **ESP32 DevKit V1** — an Xtensa LX6 dual-core emulator written in TypeScript for this project,
 running the real `.bin` image Arduino-ESP32 2.0.17 builds, on Espressif's real mask ROM:
 

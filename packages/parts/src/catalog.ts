@@ -13,6 +13,7 @@ import { slideSwitch } from './basic/slide-switch.ts';
 import { arduinoMega } from './boards/arduino-mega.ts';
 import { arduinoNano } from './boards/arduino-nano.ts';
 import { arduinoUno } from './boards/arduino-uno.ts';
+import { esp32C3DevkitM1 } from './boards/esp32-c3-devkitm-1.ts';
 import { esp32DevkitV1 } from './boards/esp32-devkit-v1.ts';
 import { raspberryPiPico, raspberryPiPico2 } from './boards/raspberry-pi-pico.ts';
 import { buzzer } from './actuators/buzzer.ts';
@@ -49,6 +50,7 @@ import { photoresistorSensor } from './sensors/photoresistor-sensor.ts';
 import { pirMotionSensor } from './sensors/pir-motion-sensor.ts';
 import { bigSoundSensor, smallSoundSensor } from './sensors/sound-sensor.ts';
 import { ENVIRONMENT_PARTS } from './environment/parts.ts';
+import { NETWORK_PARTS } from './network/wifi-ap.ts';
 import { POWER_REGULATORS } from './power/regulators.ts';
 import { POWER_SOURCES } from './power/sources.ts';
 
@@ -57,6 +59,7 @@ const ALL: readonly PartDefinition[] = [
   arduinoNano,
   arduinoMega,
   esp32DevkitV1,
+  esp32C3DevkitM1,
   raspberryPiPico,
   raspberryPiPico2,
   ...breadboards,
@@ -111,6 +114,7 @@ const ALL: readonly PartDefinition[] = [
   ...POWER_SOURCES,
   ...POWER_REGULATORS,
   ...ENVIRONMENT_PARTS,
+  ...NETWORK_PARTS,
 ];
 
 export const CATALOG: ReadonlyMap<string, PartDefinition> = new Map(ALL.map((d) => [d.type, d]));

@@ -142,16 +142,36 @@ export class RegisterFile implements Peripheral {
 
 export const CODE_UNIMPLEMENTED = 'esp32-unimplemented-register';
 
+/**
+ * BT97: the radio's blocks — FE2, FE, NRX, BB, the unnamed 0x3FF4E000 and 0x3FF71000–0x3FF7FFFF
+ * but RNG (the PHY library and the WiFi MAC use them; register_chipv7_phy's calibration polls
+ * them forever). WiFi is answered at the driver's API instead (wifi/), so a firmware touching
+ * them is one whose WiFi calls weren't replaced.
+ */
+export function isRadioBlock(address: number): boolean {
+  const base = (address & ~0xfff) >>> 0;
+  if (base === 0x3ff45000 || base === 0x3ff46000 || base === 0x3ff4e000 || base === 0x3ff5c000 || base === 0x3ff5d000) return true;
+  return base >= 0x3ff71000 && base < PERIPH_END && base !== 0x3ff75000;
+}
+
 /** The peripheral space: one Peripheral per 4 KB block, and which blocks are modeled. */
 export class PeripheralMap {
   readonly blocks: Peripheral[] = [];
   /** 1 for a block with a real model; accesses to the others are logged as unknown. */
   readonly modeled = new Uint8Array(BLOCK_COUNT);
   readonly problems: ProblemLog;
+  /** BT97: called on every access to a radio block (isRadioBlock) — an unmodeled one, so never in a hot path. */
+  onRadio: ((address: number, pc: number) => void) | null = null;
+  /** Accesses to radio blocks (tests assert none with WiFi answered at its API). */
+  radioAccesses = 0;
+  private readonly radio = new Uint8Array(BLOCK_COUNT);
 
   constructor(problems: ProblemLog) {
     this.problems = problems;
-    for (let i = 0; i < BLOCK_COUNT; i++) this.blocks.push(new RegisterFile(PERIPH_BASE + i * 0x1000));
+    for (let i = 0; i < BLOCK_COUNT; i++) {
+      this.blocks.push(new RegisterFile(PERIPH_BASE + i * 0x1000));
+      this.radio[i] = isRadioBlock(PERIPH_BASE + i * 0x1000) ? 1 : 0;
+    }
   }
 
   /** Puts a model in charge of the 4 KB block at `base`. */
@@ -195,6 +215,10 @@ export class PeripheralMap {
   }
 
   private unknown(access: 'read' | 'write', address: number, value: number, pc: number): void {
+    if (this.radio[(address - PERIPH_BASE) >>> 12] !== 0) {
+      this.radioAccesses++;
+      this.onRadio?.(address, pc);
+    }
     if (!this.problems.admit(CODE_UNIMPLEMENTED, address)) return;
     const offset = `0x${(address & 0xfff).toString(16).toUpperCase().padStart(3, '0')}`;
     this.problems.add('info', CODE_UNIMPLEMENTED, address, `${access} ${hex(address)} (${blockName(address)}+${offset}) = ${hex(value)} at PC ${hex(pc)}`);

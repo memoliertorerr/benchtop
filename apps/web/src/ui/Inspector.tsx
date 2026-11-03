@@ -142,6 +142,15 @@ export function Inspector() {
             </label>
           );
         }
+        // BT99: text that runs over lines (an HTTP server's routes) gets a text area.
+        if (typeof fallback === 'string' && fallback.includes('\n')) {
+          return (
+            <label key={key} class="field">
+              {label}
+              <textarea class="field-text" rows={6} spellcheck={false} value={String(value)} onChange={(event) => editor.setProp(part.id, key, (event.target as HTMLTextAreaElement).value)} />
+            </label>
+          );
+        }
         return (
           <label key={key} class="field">
             {label}

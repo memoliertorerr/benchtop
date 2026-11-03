@@ -75,6 +75,8 @@ export const CODE_REBOOT = 'esp32-reboot';
 export interface Esp32SocOptions {
   /** Flash size in bytes (a multiple of 64 KB; 4 MB by default). */
   flashSize?: number;
+  /** BT98: the eFuse's factory MAC (EFUSE_MAC by default); a bench gives each board its own. */
+  mac?: readonly number[];
 }
 
 export class Esp32Soc implements SocParts, SocContext, ResetSink {
@@ -90,7 +92,7 @@ export class Esp32Soc implements SocParts, SocContext, ResetSink {
   readonly buses: readonly [SocBus, SocBus];
   readonly cores: readonly [XtensaCore, XtensaCore];
   readonly rtc: RtcCntl;
-  readonly efuse = new Efuse();
+  readonly efuse: Efuse;
   readonly regi2c = new RegI2c();
   readonly syscon: Syscon;
   readonly rng = new Rng();
@@ -153,6 +155,7 @@ export class Esp32Soc implements SocParts, SocContext, ResetSink {
 
   constructor(options: Esp32SocOptions = {}) {
     this.memory = new EspMemory(options.flashSize ?? DEFAULT_FLASH_SIZE);
+    this.efuse = new Efuse(options.mac);
     this.dport = new Dport(this, this.matrix);
     this.mmu = new FlashMmu(this.dport);
     this.rtc = new RtcCntl(this);

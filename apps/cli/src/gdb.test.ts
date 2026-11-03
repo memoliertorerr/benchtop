@@ -67,7 +67,7 @@ const pcOf = (g: string): number => Number.parseInt(g.slice(70, 72), 16) | (Numb
 const hex = (n: number): string => n.toString(16);
 
 describe('benchtop gdb', () => {
-  it('serves a scripted session: breakpoints, continue, step, interrupt, kill and a new client (also one that reconnects at once)', async () => {
+  it('serves a scripted session: breakpoints, continue, step, interrupt, kill and a new client (also one that reconnects at once, in either order)', async () => {
     const transcript: string[] = [];
     const server = await startGdbServer({
       project: 'fixtures/projects/debug-demo.json',
@@ -109,8 +109,14 @@ describe('benchtop gdb', () => {
       again.socket.write(encodePacket('k'));
       const third = await Client.open(server.port);
       expect(await third.ask('qSupported')).toContain('PacketSize');
-      third.socket.end();
-      await third.closed;
+      // The other order (Linux accepts like this when both arrive together): the new connection
+      // is accepted first, the old one's k read just after — the newcomer waits for it, then is served.
+      const fourth = await Client.open(server.port);
+      await new Promise((r) => setTimeout(r, 10));
+      third.socket.write(encodePacket('k'));
+      expect(await fourth.ask('qSupported')).toContain('PacketSize');
+      fourth.socket.end();
+      await fourth.closed;
       console.info(`gdb session transcript (interrupt answered in ${latency.toFixed(1)} ms):\n${transcript.join('\n')}`);
     } finally {
       await server.close();

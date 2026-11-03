@@ -1,0 +1,13 @@
+{
+  "name": "example: esp32c3-rgb-blink",
+  "project": "../../projects/esp32c3-rgb-blink.json",
+  "firmware": {
+    "c3": "../../firmware/esp32c3/rgb-blink.bin"
+  },
+  "expect": [
+    "pixel c3[0] is #ff0000 at 300ms",
+    "pixel c3[0] is #00ff00 at 800ms",
+    "pixel c3[0] is #0000ff at 1300ms",
+    "pixel c3[0] is #404040 at 1800ms"
+  ]
+}

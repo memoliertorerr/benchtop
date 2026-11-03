@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { REPO_ROOT } from '../../../packages/core/src/firmware/fixtures.test-helper.ts';
+import { loadCachedRom } from '../../../packages/esp32/src/test-support/rom.test-helper.ts';
 import { cachedMicroPython } from '../../../packages/rp2040/src/micropython.test-helper.ts';
 import { parseAssertion, parseRunArgs, parseTime, type RunIo, type RunOptions, type RunReport, runHeadless, UsageError } from './run.ts';
 
@@ -49,6 +50,13 @@ describe('runHeadless', () => {
     expect(report).toMatchObject({ ok: true, exitCode: 0, simulatedNs: 2e9, problems: [] });
     expect(report.serial.uno).toBe('boot\r\npressed\r\n');
     expect(report.simulatedMHz).toBeGreaterThan(0);
+  });
+
+  it('BT97: gives an ESP32 the .syms.tsv beside its .bin, so its WiFi runs at the driver API', () => {
+    const report = runHeadless({ project: 'fixtures/projects/esp32-blink.json', firmware: { esp: 'fixtures/firmware/esp32/wifi-scan.bin' }, expect: ['serial contains "scan done 0" by 3s'] }, { ...io(), esp32Rom: () => loadCachedRom() });
+    expect(report.error).toBeNull();
+    expect(report.assertions.map((a) => a.ok)).toEqual([true]);
+    expect(report.problems.filter((p) => p.code.startsWith('esp32-wifi'))).toEqual([]);
   });
 
   it('a failing assertion → exit 1 with the level it saw', () => {

@@ -1,0 +1,22 @@
+{
+  "format": 1,
+  "name": "esp32c3-serial",
+  "parts": [
+    {
+      "id": "c3",
+      "type": "esp32-c3-devkitm-1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [],
+  "firmware": {
+    "c3": {
+      "kind": "file",
+      "name": "serial-hello.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

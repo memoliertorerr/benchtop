@@ -27,9 +27,13 @@ export function macCrc8(bytes: readonly number[]): number {
 }
 
 export class Efuse extends RegisterFile {
-  constructor() {
+  /** The factory MAC (BT98: a bench gives each board its own; EFUSE_MAC otherwise). */
+  readonly mac: readonly number[];
+
+  constructor(mac: readonly number[] = EFUSE_MAC) {
     super(EFUSE_BASE);
-    const m = EFUSE_MAC;
+    const m = mac.length === 6 ? mac : EFUSE_MAC;
+    this.mac = m;
     this.regs[1] = ((m[2] << 24) | (m[3] << 16) | (m[4] << 8) | m[5]) >>> 0; // BLK0_RDATA1
     this.regs[2] = (macCrc8(m) << 16) | (m[0] << 8) | m[1]; // BLK0_RDATA2
     this.regs[3] = 1 << 15; // BLK0_RDATA3: CHIP_VER_REV1

@@ -68,4 +68,6 @@ export const PORT_GROUPS: Readonly<Record<BoardSpec['mcu'], PortGroups>> = {
   // RP2040, RP2350: none (their datasheets limit the IOVDD supply current, not pin groups).
   rp2040: { source: [], sink: [] },
   rp2350: { source: [], sink: [] },
+  // The ESP32-C3's datasheet gives per-pin limits only, like the ESP32's.
+  esp32c3: { source: [], sink: [] },
 };

@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
 import { MICROPYTHON_BUILDS, MICROPYTHON_CACHE_DIR } from '../../packages/rp2040/src/micropython-manifest.ts';
 import { ROM_CACHE_DIR, ROM_IMAGE } from '../../packages/rp2350/src/rom-manifest.ts';
+import { C3_ROM_CACHE_DIR, C3_ROM_ELF_NAME } from '../../packages/esp32c3/src/rom-manifest.ts';
 import { type BundleEntry, precacheScript, shellFiles } from './src/offline/shell.ts';
 
 // Cross-origin isolation lets the simulation worker share memory with the UI thread
@@ -93,6 +94,30 @@ function rp2350Rom(): Plugin {
 }
 
 /**
+ * Dev only (BT94): the worker fetches the ESP32-C3 ROM from /esp32c3-rom/, served from the
+ * git-ignored .cache/esp32c3-rom that `npm run fetch:esp32-rom` fills; never part of the build.
+ */
+function esp32c3Rom(): Plugin {
+  const file = resolve(repoRoot, C3_ROM_CACHE_DIR, C3_ROM_ELF_NAME);
+  return {
+    name: 'benchtop-esp32c3-rom',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use(`/esp32c3-rom/${C3_ROM_ELF_NAME}`, (_req, res) => {
+        if (!existsSync(file)) {
+          res.statusCode = 404;
+          res.end('ESP32-C3 ROM not installed: run npm run fetch:esp32-rom');
+          return;
+        }
+        res.setHeader('Content-Type', 'application/octet-stream');
+        res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+        createReadStream(file).pipe(res);
+      });
+    },
+  };
+}
+
+/**
  * Build only (BT40): writes /sw-precache.js, the app shell the service worker (public/sw.js)
  * precaches — computed from the final bundle, so it runs after Vite emits the worker.
  */
@@ -112,7 +137,7 @@ export default defineConfig({
   oxc: {
     jsx: { runtime: 'automatic', importSource: 'preact' },
   },
-  plugins: [esp32Rom(), micropython(), rp2350Rom(), appShell()],
+  plugins: [esp32Rom(), esp32c3Rom(), micropython(), rp2350Rom(), appShell()],
   worker: { format: 'es' },
   build: { target: 'es2023' },
   server: {

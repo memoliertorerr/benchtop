@@ -69,7 +69,7 @@ export function flagsLine(kind: string, names: readonly { name: string }[], valu
     const cpu = of('cpu');
     return `${cpu === 1 ? 'APP_CPU' : cpu === 0 ? 'PRO_CPU' : ''} PS INTLEVEL=${ps & 0xf}${ps & 0x10 ? ' EXCM' : ''}${ps & 0x20 ? ' UM' : ''}${ps & 0x40000 ? ' WOE' : ''} CALLINC=${(ps >>> 16) & 3}`.trim();
   }
-  if (kind === 'rp2350') {
+  if (kind === 'rp2350' || kind === 'esp32c3') {
     const m = of('mstatus');
     return m === undefined ? '' : `mstatus${m & 0x8 ? ' MIE' : ''}${m & 0x80 ? ' MPIE' : ''}`;
   }
@@ -80,5 +80,6 @@ export function flagsLine(kind: string, names: readonly { name: string }[], valu
 export function memoryStart(kind: string): string {
   if (kind === 'rp2040' || kind === 'rp2350') return '0x20000000';
   if (kind === 'esp32') return '0x3ffb0000';
+  if (kind === 'esp32c3') return '0x3fc80000';
   return '0x100';
 }

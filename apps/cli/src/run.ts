@@ -14,7 +14,8 @@
  *   <t1> and <t2>` (rising edges in the window) and `pin … duty is <pct>% ±<points> between …`
  *   (time high over the window), both from a probe; and what parts show at a time: `led <part> is
  *   <lit|dark>` (brightness ≥ 0.3 / ≤ 0.05), `servo <part> angle is <deg> ±<deg>`, `lcd <part>
- *   row <n> is "<text>"` (rows from 0, trailing spaces ignored), `pixel <part>[<i>] is #rrggbb`,
+ *   row <n> is "<text>"` (rows from 0, trailing spaces ignored), `pixel <part>[<i>] is #rrggbb`
+ *   (a NeoPixel part, or the ESP32-C3-DevKitM-1's RGB LED as pixel 0),
  *   `digits <part> show "<text>"`. ± may be written +- or +/-.
  * - BT55: `env <gas|temperature|humidity|light|sound> at <part> is <v> ±<tol> at <time>` (or
  *   `>`, `<`, `>=`, `<=` <v>): the environment's value at a part that sits in it (a sensor, a
@@ -34,7 +35,7 @@
 
 import { type Bench, BusDecoder, type BusTransaction, MAX_PROBES, type Mcu, type NetState, type PartInput, type Problem, type ProjectDoc, type VisualState } from '@benchtop/core';
 import { envSpecFor, sevenSegmentText } from '@benchtop/parts';
-import { buildBench, cachedRoms, type CliIo, loadFirmware, loadProject, parseJson, projectFromJson, readText, resolvePin, UsageError } from './load.ts';
+import { buildBench, cachedRoms, type CliIo, loadFirmware, loadTables, loadProject, parseJson, projectFromJson, readText, resolvePin, UsageError } from './load.ts';
 
 export { UsageError } from './load.ts';
 
@@ -373,7 +374,8 @@ const VISUAL_TYPES: Readonly<Record<'led' | 'servo' | 'lcd' | 'pixel' | 'digits'
   led: { test: (t) => t === 'led', what: 'an LED' },
   servo: { test: (t) => t === 'servo', what: 'a servo' },
   lcd: { test: (t) => Object.hasOwn(LCD_SIZES, t), what: 'a character LCD' },
-  pixel: { test: (t) => t.startsWith('neopixel-'), what: 'a NeoPixel strip, ring or matrix' },
+  // BT94: the ESP32-C3-DevKitM-1's own RGB LED is a WS2812 too (its pixels[0]).
+  pixel: { test: (t) => t.startsWith('neopixel-') || t === 'esp32-c3-devkitm-1', what: 'a NeoPixel strip, ring or matrix (or a board with one)' },
   digits: { test: (t) => t.startsWith('seven-segment'), what: 'a 7-segment display' },
 };
 
@@ -580,7 +582,7 @@ export function runHeadless(options: RunOptions, io: RunIo): RunReport {
     if (options.maxDurationNs !== undefined && duration > options.maxDurationNs) throw new UsageError(`the run is ${formatNs(duration)} long; the limit is ${formatNs(options.maxDurationNs)}`);
 
     const images = loadFirmware(io, doc, boards, options.firmware);
-    const built = buildBench(doc, images, cachedRoms(io));
+    const built = buildBench(doc, images, cachedRoms(io), undefined, loadTables(io, doc, options.firmware));
     const bench = built.bench;
     mcus.push(...built.mcus);
 

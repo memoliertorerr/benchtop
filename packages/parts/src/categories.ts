@@ -8,6 +8,7 @@ export const PART_CATEGORIES = [
   { id: 'displays', title: 'Displays' },
   { id: 'sensors', title: 'Sensors' },
   { id: 'storage', title: 'Storage' },
+  { id: 'network', title: 'Network' },
   { id: 'motors', title: 'Motors' },
   { id: 'power', title: 'Power' },
   { id: 'environment', title: 'Environment' },

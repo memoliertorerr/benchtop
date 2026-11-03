@@ -1,0 +1,38 @@
+{
+  "format": 1,
+  "name": "esp32-wifi-http",
+  "parts": [
+    {
+      "id": "esp",
+      "type": "esp32-devkit-v1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "ap",
+      "type": "wifi-ap",
+      "x": 90,
+      "y": 10,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "api",
+      "type": "http-server",
+      "x": 90,
+      "y": 45,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [],
+  "firmware": {
+    "esp": {
+      "kind": "file",
+      "name": "wifi-http-get.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

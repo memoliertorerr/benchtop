@@ -8,7 +8,9 @@ import { a4988View } from './a4988.ts';
 import { microphoneView, speakerView } from './audio-parts.ts';
 import { breadboardView } from './breadboard.ts';
 import { ENVIRONMENT_VIEW_TYPES, environmentView } from './environment.ts';
+import { esp32C3DevkitM1View } from './esp32-c3-devkitm-1.ts';
 import { fallbackView } from './fallback.ts';
+import { httpServerView, networkView } from './network.ts';
 import { POWER_VIEW_TYPES, powerView } from './power.ts';
 import { raspberryPiPicoView } from './raspberry-pi-pico.ts';
 import { stepper28byj48View } from './stepper-28byj48.ts';
@@ -34,10 +36,13 @@ export function viewFor(type: string): ViewFactory {
   if (type === 'stepper-28byj48') return stepper28byj48View;
   if (type === 'a4988') return a4988View;
   if (type === 'raspberry-pi-pico' || type === 'raspberry-pi-pico-2') return raspberryPiPicoView;
+  if (type === 'esp32-c3-devkitm-1') return esp32C3DevkitM1View;
   if (type === 'speaker') return speakerView;
   if (type === 'microphone') return microphoneView;
   if (ENVIRONMENT_VIEW_TYPES.has(type)) return environmentView;
   if (POWER_VIEW_TYPES.has(type)) return powerView;
+  if (type === 'wifi-ap') return networkView;
+  if (type === 'http-server') return httpServerView;
   if (hasWokwiView(type)) return wokwiView;
   return fallbackView;
 }

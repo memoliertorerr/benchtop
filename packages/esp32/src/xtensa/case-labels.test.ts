@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { OP_HLE } from './cpu.ts';
 import { OP } from './isa.ts';
 import { SR, UR } from './regs.ts';
 
@@ -22,4 +23,9 @@ describe('literal case labels', () => {
       expect(source.match(/case (OP|SR|UR)\.[A-Z0-9_]+:/g)).toBeNull();
     });
   }
+
+  it('cpu.ts: the HLE op (BT97) is labeled with its value', () => {
+    const source = readFileSync(join(import.meta.dirname, 'cpu.ts'), 'utf8');
+    expect(source).toContain(`case ${OP_HLE} /* OP_HLE */:`);
+  });
 });

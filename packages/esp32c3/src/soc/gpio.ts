@@ -108,6 +108,8 @@ const GPIO_AT_0 = (1 << 0) | (1 << 1) | (1 << 2) | (1 << 3) | (1 << 8) | (1 << 9
 
 export class IoMux implements Peripheral {
   readonly regs = new Uint32Array(1024);
+  /** BT94: pads whose register the firmware wrote (as on the ESP32, BT96: only they count as read while floating). */
+  readonly configured = new Uint8Array(PIN_COUNT);
   /** Something that decides a pad's mode changed. */
   onConfig: (() => void) | null = null;
 
@@ -117,6 +119,7 @@ export class IoMux implements Peripheral {
 
   systemReset(): void {
     this.regs.fill(0);
+    this.configured.fill(0);
     for (let g = 0; g < PIN_COUNT; g++) {
       let v = MUX.DRV2;
       if (g !== 0 && g !== 1 && g !== 18 && g !== 19) v |= MUX.FUN_IE;
@@ -151,7 +154,10 @@ export class IoMux implements Peripheral {
   write32(offset: number, value: number): void {
     if (offset === 0xfc) return;
     this.regs[offset >>> 2] = value;
-    if (offset >= 4 && offset < 4 + PIN_COUNT * 4) this.onConfig?.();
+    if (offset >= 4 && offset < 4 + PIN_COUNT * 4) {
+      this.configured[(offset - 4) >>> 2] = 1;
+      this.onConfig?.();
+    }
   }
 }
 

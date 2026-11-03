@@ -103,6 +103,12 @@ export const PART_INPUTS: Readonly<Record<string, readonly PartInputSpec[]>> = {
   fan: source([['flow', 'air flow', 'm³/min']]),
   person: body(),
   object: body(),
+  'wifi-ap': [
+    press('switches the access point on'),
+    release('switches it off (its stations lose it)'),
+    channel('on', 'on (1) or off (0)', 'boolean', 0, 1),
+    channel('rssi', 'the signal stations see', 'dBm', -100, -20),
+  ],
 };
 
 /** The inputs a part type takes (none for parts without any). */

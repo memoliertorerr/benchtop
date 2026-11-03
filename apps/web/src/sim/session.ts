@@ -45,10 +45,11 @@ import {
   type StepOverPlan,
   SymbolTable,
   type SymbolTableData,
+  usesSymbols,
   validateProject,
   type VisualState,
 } from '@benchtop/core';
-import { analogSpecFor, envSpecFor } from '@benchtop/parts';
+import { analogSpecFor, envSpecFor, netSpecFor } from '@benchtop/parts';
 import { createBenchEnv, type RecordingEnv } from './env.ts';
 import { createFrameRingBuffer, FrameRingWriter } from './frame-ring.ts';
 import { type BusChunk, type BusRow, type DebugStopReason, type FromSim, type ProbeChunk, PROTOCOL_VERSION, type StorageReply, type ToSim } from './protocol.ts';
@@ -84,6 +85,8 @@ export interface SimSessionDeps {
   micropython?(): Uint8Array | undefined;
   /** The RP2350 bootrom (BT66); undefined: Pico 2 boards report it missing. */
   rp2350Rom?(): Uint8Array | undefined;
+  /** BT94: the ESP32-C3 ROM the worker fetched. */
+  esp32c3Rom?(): Uint8Array | undefined;
   /** The Pico 2's (RISC-V) MicroPython UF2 (BT67). */
   micropythonPico2?(): Uint8Array | undefined;
   /**
@@ -319,11 +322,11 @@ export class SimSession {
     this.latest.clear();
     this.serial.clear();
     this.cycleMarks.clear();
-    this.env = createBenchEnv({ esp32Rom: this.deps.esp32Rom?.(), micropython: this.deps.micropython?.(), rp2350Rom: this.deps.rp2350Rom?.(), micropythonPico2: this.deps.micropythonPico2?.() });
+    this.env = createBenchEnv({ esp32Rom: this.deps.esp32Rom?.(), micropython: this.deps.micropython?.(), rp2350Rom: this.deps.rp2350Rom?.(), micropythonPico2: this.deps.micropythonPico2?.(), esp32c3Rom: this.deps.esp32c3Rom?.() });
     // assembleBench resets the bench, which invalidates every part: the first frame carries
     // every view's state and nothing keeps showing what a previous bench left on screen.
     const project = validateProject(doc);
-    const bench = assembleBench(project, this.env, firmware, { analogSpecFor, envSpecFor });
+    const bench = assembleBench(project, this.env, firmware, { analogSpecFor, envSpecFor, netSpecFor });
     this.listenSerial(bench);
     this.bench = bench;
     this.doc = project;
@@ -365,7 +368,7 @@ export class SimSession {
     const carry = old.carry();
     let bench: Bench;
     try {
-      bench = assembleBench(project, this.env, firmware, { analogSpecFor, envSpecFor, carry });
+      bench = assembleBench(project, this.env, firmware, { analogSpecFor, envSpecFor, netSpecFor, carry });
     } catch {
       discardCarry(carry);
       const running = this.running;
@@ -546,7 +549,11 @@ export class SimSession {
     // BT74: the tables come from the image when it is an ELF, else from the ELF it was built from.
     const elfBytes = image?.format === 'elf' ? image.bytes : debugElf;
     const key = `${firmwareKey(image)}:${debugElf === undefined || image?.format === 'elf' ? '' : firmwareKey({ format: 'elf', bytes: debugElf })}`;
-    if (this.debugTables.get(board)?.key === key) return;
+    const cached = this.debugTables.get(board);
+    if (cached?.key === key) {
+      this.giveSymbols(board, cached.symbols);
+      return;
+    }
     let symbols: SymbolTable | null = null;
     let lines: LineTable | null = null;
     let error: string | null = null;
@@ -560,6 +567,7 @@ export class SimSession {
       }
     }
     this.debugTables.set(board, { key, symbols, lines });
+    this.giveSymbols(board, symbols);
     const transfer: ArrayBuffer[] = [];
     const copy = <T extends Uint8Array | Uint32Array>(array: T): T => {
       const out = array.slice() as T;
@@ -587,6 +595,12 @@ export class SimSession {
     const kind = this.env.mcus.get(board)?.kind ?? '';
     const registers = (this.bench?.debugOf(board)?.registers() ?? []).map((r) => ({ name: r.name, bits: r.bits }));
     this.deps.post({ type: 'debugInfo', board, symbols: symbolData, lines: lineData, error, kind, registers }, transfer);
+  }
+
+  /** BT97: an MCU that uses symbols beyond the debugger (the ESP32's WiFi) gets its board's, before it runs. */
+  private giveSymbols(board: string, symbols: SymbolTable | null): void {
+    const mcu = this.env.mcus.get(board);
+    if (mcu !== undefined && usesSymbols(mcu)) mcu.useSymbols(symbols);
   }
 
   private postDebugStopped(board: string, reason: DebugStopReason): void {

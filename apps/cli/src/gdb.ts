@@ -3,9 +3,9 @@
  * any RSP client) can debug it:
  *   npm run bench -- gdb [--port 3333] [--speed realtime|max] [--board uno] <project.json>
  *       --firmware uno=<file.elf>
- * It listens on 127.0.0.1 only, never 0.0.0.0, one client at a time (a second one is closed at
- * once). While the client continues, the bench runs in 1 ms simulated slices — paced in real
- * time by default, flat out with --speed max — yielding with setImmediate between slices so a
+ * It listens on 127.0.0.1 only, never 0.0.0.0, one client at a time (a second one is closed
+ * within 50 ms, unless the first one leaves by then). While the client continues, the bench runs
+ * in 1 ms simulated slices — paced in real time by default, flat out with --speed max — yielding with setImmediate between slices so a
  * 0x03 interrupt byte is read promptly. The protocol itself is @benchtop/avr's GdbSession.
  */
 
@@ -35,6 +35,8 @@ export interface GdbServer {
 }
 
 const SLICE_NS = NS_PER_MS;
+/** How long a second client waits for the first one's k or D before it's closed. */
+const BUSY_GRACE_MS = 50;
 
 export async function startGdbServer(options: GdbServerOptions): Promise<GdbServer> {
   const { doc, boards } = loadProject(options.io, options.project);
@@ -47,11 +49,8 @@ export async function startGdbServer(options: GdbServerOptions): Promise<GdbServ
   const realtime = options.speed !== 'max';
 
   let active: Socket | null = null;
-  const server = createServer((socket) => {
-    if (active !== null) {
-      socket.destroy(); // one client at a time
-      return;
-    }
+  let closing = false;
+  const serve = (socket: Socket): void => {
     active = socket;
     socket.setNoDelay(true);
     let running = false;
@@ -115,6 +114,15 @@ export async function startGdbServer(options: GdbServerOptions): Promise<GdbServ
       // a reset connection: 'close' follows
     });
     socket.on('close', release); // the next client starts without this one's breakpoints
+  };
+  const server = createServer((socket) => {
+    if (active === null) return serve(socket);
+    // One client at a time — but a client that sends k and reconnects at once (gdb after `kill`)
+    // can be accepted before the old socket's k is read, so wait a moment for that k first.
+    setTimeout(() => {
+      if (active === null && !closing && !socket.destroyed) serve(socket);
+      else socket.destroy();
+    }, BUSY_GRACE_MS);
   });
 
   await new Promise<void>((resolve, reject) => {
@@ -132,6 +140,7 @@ export async function startGdbServer(options: GdbServerOptions): Promise<GdbServ
     board,
     close: () =>
       new Promise<void>((resolve) => {
+        closing = true;
         (active as Socket | null)?.destroy();
         server.close(() => {
           bench.dispose();

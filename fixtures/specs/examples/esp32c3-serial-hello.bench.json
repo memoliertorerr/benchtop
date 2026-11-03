@@ -1,0 +1,11 @@
+{
+  "name": "example: esp32c3-serial-hello",
+  "project": "../../projects/esp32c3-serial.json",
+  "firmware": {
+    "c3": "../../firmware/esp32c3/serial-hello.bin"
+  },
+  "expect": [
+    "serial contains \"hello from esp32c3\" by 1s",
+    "serial contains \"tick 1\" by 2s"
+  ]
+}
