@@ -8,6 +8,10 @@
  * Table 6.10-1's Reset column (GPIO0, 14, 15 pull-up; 2, 4, 12, 13 pull-down). The registers sit
  * in the RTC domain: a digital (non-RTC) chip reset keeps them.
  *
+ * BT121: a pad routed to RTC with its input enabled (FUN_IE: rtc_gpio_init + an input direction,
+ * as a deep-sleep wake pin is) stays a digital input with these pulls; only one with its input off
+ * (ADC, DAC, touch) is analog. EXT_WAKEUP0 (+0xBC) SEL (31:27) names ext0's RTC GPIO.
+ *
  * DAC (BT41): GPIO25/26 (DAC channels 1/2) output RTC_IO_PDACn_DAC (bits 26:19) as
  * code / 255 · 3.3 V while the pad is routed to RTC (MUX_SEL) and RTC_IO_PDACn_XPD_DAC (bit 18)
  * powers the DAC — what IDF 4.4's dac_output_enable + dac_output_voltage (Arduino's dacWrite)
@@ -22,13 +26,19 @@ export const RTC_IO_OFFSET = 0x400;
 /** RTC IO register space size (RTC_IO_DATE_REG is at +0xC8). */
 export const RTC_IO_END = 0xcc;
 
-/** Per GPIO: register offset (within RTC IO), MUX_SEL bit, RUE bit, RDE bit (−1: none). */
+/** Per GPIO: register offset (within RTC IO), MUX_SEL bit, FUN_IE bit, RUE bit, RDE bit (−1: none). */
 interface RtcPad {
   reg: number;
   mux: number;
+  ie: number;
   rue: number;
   rde: number;
 }
+
+/** BT121: RTC GPIO n's GPIO (Table 6.11-1: RTC_GPIO0 = GPIO36 … RTC_GPIO17 = GPIO27). */
+export const RTC_GPIO_TO_GPIO: readonly number[] = [36, 37, 38, 39, 34, 35, 25, 26, 33, 32, 4, 0, 2, 15, 13, 12, 14, 27];
+/** BT121: RTC_IO_EXT_WAKEUP0_REG. */
+export const EXT_WAKEUP0 = 0xbc;
 
 const SENSOR_PADS = 0x7c;
 const ADC_PAD = 0x80;
@@ -43,18 +53,18 @@ const TOUCH_GPIO = [4, 0, 2, 15, 13, 12, 14, 27];
 
 export const RTC_PADS: readonly (RtcPad | undefined)[] = (() => {
   const t: (RtcPad | undefined)[] = new Array<RtcPad | undefined>(40).fill(undefined);
-  t[36] = { reg: SENSOR_PADS, mux: 27, rue: -1, rde: -1 };
-  t[37] = { reg: SENSOR_PADS, mux: 26, rue: -1, rde: -1 };
-  t[38] = { reg: SENSOR_PADS, mux: 25, rue: -1, rde: -1 };
-  t[39] = { reg: SENSOR_PADS, mux: 24, rue: -1, rde: -1 };
-  t[34] = { reg: ADC_PAD, mux: 29, rue: -1, rde: -1 };
-  t[35] = { reg: ADC_PAD, mux: 28, rue: -1, rde: -1 };
-  t[25] = { reg: PAD_DAC1, mux: 17, rue: 27, rde: 28 };
-  t[26] = { reg: PAD_DAC2, mux: 17, rue: 27, rde: 28 };
-  t[32] = { reg: XTAL_32K_PAD, mux: 17, rue: 22, rde: 23 };
-  t[33] = { reg: XTAL_32K_PAD, mux: 18, rue: 27, rde: 28 };
+  t[36] = { reg: SENSOR_PADS, mux: 27, ie: 19, rue: -1, rde: -1 };
+  t[37] = { reg: SENSOR_PADS, mux: 26, ie: 14, rue: -1, rde: -1 };
+  t[38] = { reg: SENSOR_PADS, mux: 25, ie: 9, rue: -1, rde: -1 };
+  t[39] = { reg: SENSOR_PADS, mux: 24, ie: 4, rue: -1, rde: -1 };
+  t[34] = { reg: ADC_PAD, mux: 29, ie: 23, rue: -1, rde: -1 };
+  t[35] = { reg: ADC_PAD, mux: 28, ie: 18, rue: -1, rde: -1 };
+  t[25] = { reg: PAD_DAC1, mux: 17, ie: 11, rue: 27, rde: 28 };
+  t[26] = { reg: PAD_DAC2, mux: 17, ie: 11, rue: 27, rde: 28 };
+  t[32] = { reg: XTAL_32K_PAD, mux: 17, ie: 5, rue: 22, rde: 23 };
+  t[33] = { reg: XTAL_32K_PAD, mux: 18, ie: 11, rue: 27, rde: 28 };
   TOUCH_GPIO.forEach((gpio, i) => {
-    t[gpio] = { reg: TOUCH_PAD0 + 4 * i, mux: 19, rue: 27, rde: 28 };
+    t[gpio] = { reg: TOUCH_PAD0 + 4 * i, mux: 19, ie: 13, rue: 27, rde: 28 };
   });
   return t;
 })();
@@ -93,10 +103,17 @@ export class RtcIo {
     this.onChange?.();
   }
 
-  /** Is RTC pad `gpio` routed to the RTC domain (analog)? */
+  /** Is RTC pad `gpio` routed to the RTC domain as an analog pad (BT121: its input off — an RTC GPIO input stays digital)? */
   analog(gpio: number): boolean {
     const pad = RTC_PADS[gpio];
-    return pad !== undefined && ((this.regs[pad.reg >>> 2] >>> pad.mux) & 1) !== 0;
+    if (pad === undefined) return false;
+    const reg = this.regs[pad.reg >>> 2];
+    return ((reg >>> pad.mux) & 1) !== 0 && ((reg >>> pad.ie) & 1) === 0;
+  }
+
+  /** BT121: ext0's wake pin (EXT_WAKEUP0 SEL, an RTC GPIO) as a GPIO, or −1. */
+  ext0Gpio(): number {
+    return RTC_GPIO_TO_GPIO[(this.regs[EXT_WAKEUP0 >>> 2] >>> 27) & 0x1f] ?? -1;
   }
 
   /** The DAC's output volts on GPIO25/26, or NaN when that DAC isn't driving the pad. */

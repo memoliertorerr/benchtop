@@ -115,6 +115,12 @@ resets, `ESP.restart()` and uploads, as on a real board, and the app saves it wi
 reload the page and a counter goes on where it was. A board's Inspector shows what it keeps (the
 ESP32s' Preferences by namespace and key) and erases it.
 
+**Sleep** — the ESP32's and ESP32-C3's deep and light sleep, as ESP-IDF's sleep functions drive
+them: the RTC timer and wake pins (ext0, ext1, GPIO) wake the chip, deep sleep keeps RTC memory
+(`RTC_DATA_ATTR`) through its wake, light sleep keeps everything and `millis()` counts the sleep
+once. A sleeping board costs nothing to simulate — an hour asleep passes in an instant — and the
+bench shows it asleep and what will wake it.
+
 **The bench** — breadboards (full, half, mini) where parts snap into holes, wires you draw,
 and ~40 parts: LEDs, RGB LEDs, buttons, switches, potentiometers, LCD1602/2004 (parallel and
 I2C), SSD1306 OLED, an ILI9341 color TFT (SPI), 7-segment displays, LED bar graph, keypad, rotary encoder, joystick, DIP
@@ -168,7 +174,7 @@ npm install
 npm run dev          # the editor at http://localhost:5173
 ```
 
-**Examples…** opens 95 ready-to-run circuits, each with its sketch, which you can change and
+**Examples…** opens 96 ready-to-run circuits, each with its sketch, which you can change and
 run again (Basics: blink, button, fade, traffic light, a Simon game, serial echo, an EEPROM boot
 counter, a Nano on a breadboard; Displays: LCDs,
 an LCD thermometer, OLED and an OLED clock, a color TFT, 7-segment, bar graph, NeoPixels; Sensors: DHT22,
@@ -177,7 +183,7 @@ gas meter, keypad, rotary encoder; Motors: servo sweep, a
 servo knob, a keypad lock, a stepper, an A4988 stepper driver, a relay; Sound: buzzers, a speaker melody, PCM through PWM,
 a microphone pitch meter, a VU meter; Power: a regulator meter (turn the bench supply and watch a
 7805 drop out); Storage: an SD card datalogger; Environment: a gas alarm with an extractor fan, a PIR
-hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, an LED Preferences remember, a PWM fader, NeoPixel, a
+hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, an LED Preferences remember, a deep sleep wake counter, a PWM fader, NeoPixel, a
 rainbow ring, an OLED clock, a color TFT, the DAC, the microphone, an I2C scan; ESP32-C3: the RGB LED,
 serial, a potentiometer dimmer, an OLED clock; WiFi: an ESP32 web server switched by HTTP client
 parts, an ESP32 hosting its own access point and web server, an ESP32-C3 web server that sets its RGB LED, a Pico W and a Pico 2 W web server switching their onboard LEDs, a Pico W and an ESP32 HTTP client talking to a server part, two ESP32s over TCP, an NTP clock on an OLED;

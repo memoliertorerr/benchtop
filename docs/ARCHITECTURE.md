@@ -1548,6 +1548,82 @@ sequence, files matched by basename or trailing path.
   `wifi-apsta` hosts "bridge-ap" at 192.168.5.1 while on the bench's "benchtop"
   (`packages/parts/src/integration/softap.test.ts`; the driver alone: `wifi/softap.test.ts`).
 
+  **Deep sleep (`soc/rtc-cntl.ts`, `soc.ts`).** `esp_deep_sleep_start()` (IDF's open sleep
+  code, in the firmware) ends in RTC_CNTL STATE0.SLEEP_EN: the SoC sleeps (`sleeping`; `canRun`
+  false for both cores, so the WAITI skip-ahead jumps over it — an hour asleep runs no
+  instruction). DIG_PWC.DG_WRAP_PD_EN makes it deep: the digital domain's pending timers (the
+  watchdogs among them) are dropped. Wake sources are WAKEUP_STATE's enables: the timer (the
+  RTC slow counter reaching SLP_TIMER0/1 — IDF 4.4 sets no MAIN_TIMER_ALARM_EN for sleep), ext0
+  (RTC IO EXT_WAKEUP0's RTC GPIO at EXT_WAKEUP_CONF.EXT_WAKEUP0_LV) and ext1 (EXT_WAKEUP1's RTC GPIOs
+  all low, or any high, latched in EXT_WAKEUP1_STATUS), checked at sleep entry and whenever the
+  bench changes a pad's input (`gpio.onInputs`) — levels, so a button held down wakes the chip again
+  each time it sleeps, as on a board. The wake writes WAKEUP_STATE's cause and INT_RAW.SLP_WAKEUP;
+  deep, it is a system reset with DEEPSLEEP_RESET (5) — exempt from the rapid-reboot guard — that
+  keeps the RTC domain: RTC memory, STORE0–7, the sleep and wake registers (RtcCntl's
+  `RTC_DOMAIN` list survives any non-RTC reset now) and RTC IO; the direct boot then skips the app's
+  RTC segments, as IDF's bootloader does, so `RTC_DATA_ATTR` counts on. On the way in, the ROM's
+  `set_rtc_memory_crc` has RTC_MEM_CONF's CRC unit sum RTC fast memory for the wake stub: modeled
+  at once as a CRC-32 (the polynomial isn't documented; only the ROM's wake path, which direct boot
+  skips, reads it) — unmodeled, its FINISH bit would never come and the interrupt watchdog would fire. Also:
+  an image's `.rtc.text` (IDF's wake stub, at RTC fast memory's instruction address 0x400C0000)
+  loads; and an RTC pad routed to RTC with its input enabled (FUN_IE: a wake pin after
+  `rtc_gpio_init`) is a digital input with the RTC pulls — only one with its input off (ADC, DAC,
+  touch) is analog. `fixtures/sketches/esp32/deep-sleep-timer` wakes every 2 s (boot 2, 3, 4: cause
+  TIMER, reset DEEPSLEEP, 2.0–2.4 s apart) and `deep-sleep-pins` on GPIO33 LOW (ext0) and GPIO32
+  HIGH (ext1) (`packages/parts/src/integration/sleep.test.ts`, `soc/sleep.test.ts`).
+
+  **Light sleep.** The same SLEEP_EN with DG_WRAP_PD_EN off: the chip sleeps and the run
+  goes on where it stopped — RAM, registers and the cores' state kept. The APB clock stops with it,
+  so the TIMG groups are gated (`Timg.gate`: counters frozen, alarms cancelled, the MWDT paused with
+  its stage time kept) and the RTC WDT pauses when WDTCONFIG0.PAUSE_IN_SLP (bit 7) is set — IDF arms
+  it with a 1 s RESET_RTC stage across every light sleep, so without the pause any sleep over a
+  second reset the chip. The wake ungates them; IDF then advances esp_timer by the time the RTC
+  timer says it slept, so `millis()` counts each sleep once. A further wake source in light sleep:
+  GPIO — a GPIO matrix pin with PINn.WAKEUP_ENABLE (bit 10) and a level interrupt type (4 low,
+  5 high), `gpio_wakeup_enable` + `esp_sleep_enable_gpio_wakeup` (`Gpio.wakeLevel`), cause GPIO (7).
+  `rtc_sleep_init` powers the RF down through four radio-block registers (BB, NRX, FE, FE2 power
+  controls): `periph.ts`'s `RADIO_POWER_CONTROL` keeps them from counting as a WiFi driver's
+  accesses. `fixtures/sketches/esp32/light-sleep`: ten 100 ms timer sleeps (cause TIMER, millis
+  100–103 ms on each), then a minute asleep until the button on D4 — no reboot.
+
+  **The ESP32-C3's sleep (`packages/esp32c3`).** RTC_CNTL at its C3 offsets (`rtc-cntl.ts`):
+  STATE0.SLEEP_EN (0x18) with DIG_PWC (0x88) bit 31 for deep; WAKEUP_STATE (0x3C) ENA bits 31:15
+  (TIMER 8, GPIO 4); the timer target in SLP_TIMER0/1 (0x04/0x08); SLP_WAKEUP_CAUSE (0xF8, read-only)
+  the cause; INT_RAW (0x44) bit 0 the wake, cleared through INT_CLR (0x4C). The deep-sleep GPIO
+  wake is RTC_CNTL_GPIO_WAKEUP (0x110): GPIO0–5, each with an enable (bit 31−n) and a 3-bit type
+  (bits 23−3n, 4 low / 5 high), STATUS (5:0) latched, cleared by bit 6 —
+  `esp_deep_sleep_enable_gpio_wakeup`. Light sleep's GPIO wake is the matrix's, as on the ESP32.
+  The SoC (`soc.ts`) sleeps as the ESP32's: deep drops the digital timers, light gates both TIMGs;
+  the run loop jumps asleep to the next event or the target. Deep's wake is a reset: the SoC stops
+  with `resetRequested` and reason DEEPSLEEP, and the Mcu builds a fresh chip at the same time (the
+  software-reset path) carrying RTC fast memory, the RTC timer's origin and the RTC domain's
+  registers (`rtcDomain` / `keepRtcDomain`: the sleep timer, wake enables and cause, GPIO_WAKEUP,
+  STORE0–7); the direct boot keeps RTC fast memory on any reset but power-on and skips the app's
+  RTC_FAST segments on DEEPSLEEP. Deep sleep's wakes don't count toward the reboot-loop guard.
+  IDF's `rtc_deep_sleep_start` on the C3 CRCs RTC fast memory through SYSTEM's
+  RTC_FASTMEM_CONFIG / RTC_FASTMEM_CRC (0x48 / 0x4C — not RTC_CNTL, as on the ESP32) and spins on
+  FINISH: modeled at once (`system.ts`). One more C3 change: IDF isolates every pad for sleep at
+  startup (`gpio_sleep_set_direction`, `gpio_sleep_sel_en`) with read-modify-writes of IO_MUX's
+  sleep fields; such a write no longer counts as configuring the pad, which had made every
+  floating pin warn as "read while floating" at the first `digitalRead`. Fixtures:
+  `esp32c3/deep-sleep` (the timer every 2 s and GPIO4 LOW; boot count in `RTC_DATA_ATTR`) and
+  `esp32c3/light-sleep` (the ESP32's sketch) on `fixtures/projects/esp32c3-sleep.json`.
+
+  **Sleep in the hosts.** `packages/core/src/bench/sleep.ts`: an MCU that can sleep opts
+  in with `sleepState()` (`Sleeper`, found by `usesSleep` — not a contract, as `NonVolatile`):
+  deep or light, nanoseconds until the RTC timer wakes it (null when it doesn't) and its armed wake
+  pins in words ("GPIO4 low", ext1's "GPIO32 high (any)"). Both ESP32 MCUs answer from their SoC's
+  `sleepWakes()`. `Bench.sleepOf(board)` turns the timer's wake into a bench time. The worker puts
+  every sleeping board into its frames' stats (`FrameStats.sleep`, protocol 17) and the canvas
+  draws a badge above it — "Deep sleep wakes on timer in 3.2 s · GPIO4 low" — outside the parts'
+  own views (so image export leaves it out). The MCP's `sim_state` lists the boards asleep
+  (`sleeping`: deep or light, `timerWakesAt`, `wakePins`). The gallery's ESP32 deep sleep example
+  (`fixtures/sketches/esp32/deep-sleep-counter`, project `esp32-deep-sleep`) wakes every 5 s and on
+  the button on D4 (ext0), counting both in RTC memory. One diagnostic changed with it: an APP_CPU
+  read of RTC FAST memory raises `esp32-rtc-fast-app-cpu` only when the word holds something other
+  than the 0 it reads — IDF 4.4's `esp_sleep_start` reads its `RTC_FAST_ATTR` `s_adc_tsen_enabled`
+  (false) on whichever CPU sleeps, the APP_CPU in Arduino's `setup()`; writes still always warn.
+
   **Crypto accelerators (`soc/crypto/`).** Arduino-ESP32 2.0.17 builds mbedTLS with
   CONFIG_MBEDTLS_HARDWARE_AES, _SHA and _MPI, so its hashes, ciphers and bignum work run on the
   accelerators at 0x3FF01000 (AES), 0x3FF02000 (RSA) and 0x3FF03000 (SHA). They are modeled at

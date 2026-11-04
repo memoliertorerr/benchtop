@@ -37,7 +37,7 @@
  *   (24:0A:C4 and three bytes of a hash), so two boards on one LAN differ.
  */
 
-import { type BoardSpec, type Debuggable, type FirmwareImage, type I2cController, type I2cDevice, type Level, type Mcu, type McuDebug, type McuPin, type NetState, type NonVolatile, type NvMemory, type PinMode, type Problem, type RunResult, SectorMemory, type SpiController, type SpiDevice, type SymbolTable, type UartPort, type WifiRadio, type WifiStation } from '@benchtop/core';
+import { type BoardSpec, type Debuggable, type FirmwareImage, type I2cController, type I2cDevice, type Level, type Mcu, type McuDebug, type McuPin, type NetState, type McuSleep, type NonVolatile, type NvMemory, type PinMode, type Problem, type RunResult, SectorMemory, type Sleeper, type SpiController, type SpiDevice, type SymbolTable, type UartPort, type WifiRadio, type WifiStation } from '@benchtop/core';
 import { macFromName } from '@benchtop/core';
 import { Esp32Debug } from './debug/debug.ts';
 import { describeFirmwareFormat } from '@benchtop/core';
@@ -257,7 +257,7 @@ class Esp32Uart implements UartPort {
   }
 }
 
-export class Esp32Mcu implements Mcu, Debuggable, WifiStation, NonVolatile {
+export class Esp32Mcu implements Mcu, Debuggable, WifiStation, NonVolatile, Sleeper {
   readonly kind = 'esp32' as const;
   readonly clockHz = REF_HZ;
   readonly pins: ReadonlyMap<string, McuPin>;
@@ -415,6 +415,14 @@ export class Esp32Mcu implements Mcu, Debuggable, WifiStation, NonVolatile {
    */
   nonVolatile(): NvMemory | null {
     return this.nvm;
+  }
+
+  /** BT123: the chip's light or deep sleep and what wakes it (the timer in ns from now), or null awake. */
+  sleepState(): McuSleep | null {
+    const wakes = this.soc.sleepWakes();
+    if (wakes === null || this.soc.sleeping === null) return null;
+    const now = this.soc.now();
+    return { deep: this.soc.sleeping.deep, wakeIn: wakes.at < 0 ? null : (Math.max(0, wakes.at - now) / REF_HZ) * 1e9, pins: wakes.pins };
   }
 
   /** The flash a boot ran from becomes the board's; what it wrote is the program's. */

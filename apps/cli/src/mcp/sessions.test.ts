@@ -216,6 +216,19 @@ describe('live sessions', () => {
     expect((await tool(server, 'sim_storage', { session: uno, board: 'nope' })).text).toMatch(/no board "nope"/);
   }, 120_000);
 
+  it('sim_state (BT123): a board asleep — deep or light, when the timer wakes it, its wake pins — and awake again', async () => {
+    const server = testServer({ maxWallMs: 120_000 });
+    const session = ((await tool(server, 'sim_open', { project: 'fixtures/projects/esp32-deep-sleep.json', firmware: { esp: 'fixtures/firmware/esp32/deep-sleep-counter.bin' } })).value as { session: string }).session;
+    type State = { sleeping?: Record<string, { sleep: string; timerWakesAt?: string; wakePins: string[] }> };
+    await tool(server, 'sim_run', { session, duration: '1s' });
+    const asleep = (await tool(server, 'sim_state', { session, parts: [] })).value as State;
+    expect(asleep.sleeping?.esp).toMatchObject({ sleep: 'deep', wakePins: ['GPIO4 low'] });
+    expect(asleep.sleeping?.esp.timerWakesAt).toMatch(/^5\d{3}ms$/); // 5 s after it went to sleep
+    await tool(server, 'sim_input', { session, part: 'btn1', input: { kind: 'press' } });
+    await tool(server, 'sim_run', { session, duration: '100ms' });
+    expect(((await tool(server, 'sim_state', { session, parts: [] })).value as State).sleeping).toBeUndefined();
+  }, 120_000);
+
   it('sim_wifi (BT117): an ESP32 hosting its own access point — the client parts on it, their addresses from its DHCP server', async () => {
     const server = testServer({ maxWallMs: 120_000 });
     const open = (await tool(server, 'sim_open', { project: 'fixtures/projects/esp32-softap-webserver.json', firmware: { esp: 'fixtures/firmware/esp32/softap-webserver.bin' } })).value as { session: string };

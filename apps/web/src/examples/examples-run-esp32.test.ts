@@ -101,6 +101,23 @@ export const ESP32_CHECKS: Record<string, (r: ExampleRun) => void> = {
     expect(r.serial('esp')).toContain('start: led on\n');
     expect(r.lit('led1')).toBe(true);
   },
+  'esp32-deep-sleep'(r) {
+    // BT123: asleep between wakes — the timer every 5 s, the button at once; the counts in RTC memory.
+    r.runTo(1000);
+    expect(r.serial('esp')).toBe('boot 1: power-on, 0 presses\n');
+    expect(r.bench.sleepOf('esp')).toEqual({ deep: true, wakeAt: expect.any(Number), pins: ['GPIO4 low'] });
+    r.input('btn1', { kind: 'press' });
+    r.runTo(1200);
+    expect(r.serial('esp')).toContain('boot 2: button, 1 presses\n');
+    expect(r.bench.sleepOf('esp')).toBeNull(); // awake: waiting for the release
+    r.input('btn1', { kind: 'release' });
+    r.runTo(2500); // two flashes, then asleep again: the timer 5 s on
+    const wakeAt = (r.bench.sleepOf('esp')?.wakeAt ?? 0) / 1e9;
+    expect(wakeAt).toBeGreaterThan(6.5);
+    expect(wakeAt).toBeLessThan(7.5);
+    r.runTo(7800);
+    expect(r.serial('esp')).toContain('boot 3: timer, 1 presses\n');
+  },
   'esp32-pwm-fader'(r) {
     r.runTo(1000);
     const middle = brightness(r, 'led1');

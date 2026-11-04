@@ -16,6 +16,19 @@
  *     reset system → RTCWDT_SYS_RESET, reset RTC → RTCWDT_RTC_RESET (clears the RTC domain).
  *     FLASHBOOT_MOD_EN isn't modeled (direct boot clears it).
  *   - INT_ENA (0x3C), INT_RAW (0x40), INT_ST (0x44), INT_CLR (0x48).
+ *   - BT121: sleep. STATE0.SLEEP_EN (bit 31) puts the chip to sleep (`SleepSink`); deep when
+ *     DIG_PWC.DG_WRAP_PD_EN (bit 31) powers the digital domain down. WAKEUP_STATE's ENA (21:11)
+ *     enables wake sources (EXT0 bit 0, EXT1 1, GPIO 2, TIMER 3, …) and CAUSE (10:0) says which
+ *     woke it. The timer: SLP_TIMER0/1 (a 48-bit RTC slow-counter target; SLP_TIMER1's
+ *     MAIN_TIMER_ALARM_EN isn't needed — IDF 4.4 doesn't set it for sleep). ext0: RTC IO EXT_WAKEUP0's RTC GPIO at EXT_WAKEUP_CONF.EXT_WAKEUP0_LV
+ *     (30). ext1: the RTC GPIOs EXT_WAKEUP1.SEL (17:0) selects — all low, or any high with
+ *     EXT_WAKEUP1_LV (31); EXT_WAKEUP1_STATUS says which, STATUS_CLR (18) clears it. A wake sets
+ *     INT_RAW.SLP_WAKEUP (bit 0) and clears SLEEP_EN. These registers sit in the RTC domain: a deep
+ *     sleep's wake (any non-RTC reset) keeps them, so the woken app reads its cause.
+ *   - BT121: RTC_MEM_CONF (0x100) / RTC_MEM_CRC_RES (0x104): the ROM's set_rtc_memory_crc has the
+ *     hardware CRC RTC fast memory words ADDR (19:9) to ADDR + LEN (30:20) on CRC_START (8),
+ *     polling CRC_FINISH (31). The polynomial isn't documented; the only reader is the ROM's wake
+ *     path, which the direct boot skips: a CRC-32 of those bytes, done at once.
  * RTC IO (0x3FF48400–0x3FF484C8, the same 4 KB block) is rtcio.ts and SENS (0x3FF48800–0x3FF488FF)
  * sens.ts, both reached through here (BT34, BT35).
  * Brownout, power and the other configuration registers are storage.
@@ -25,13 +38,24 @@ import type { SocContext } from './context.ts';
 import { REF_HZ } from './context.ts';
 import { RegisterFile } from './periph.ts';
 import { RESET_REASON } from './reset.ts';
-import { RTC_IO_END, RTC_IO_OFFSET, RtcIo } from './rtcio.ts';
+import { RTC_GPIO_TO_GPIO, RTC_IO_END, RTC_IO_OFFSET, RtcIo } from './rtcio.ts';
 import { Sens, SENS_END, SENS_OFFSET } from './sens.ts';
 import { Watchdog } from './wdt.ts';
 
 export const RTC_CNTL_BASE = 0x3ff48000;
 export const RTC = {
   OPTIONS0: 0x00,
+  SLP_TIMER0: 0x04,
+  SLP_TIMER1: 0x08,
+  STATE0: 0x18,
+  WAKEUP_STATE: 0x38,
+  EXT_WAKEUP_CONF: 0x60,
+  SLP_REJECT_CONF: 0x64,
+  DIG_PWC: 0x84,
+  EXT_WAKEUP1: 0xcc,
+  EXT_WAKEUP1_STATUS: 0xd0,
+  MEM_CONF: 0x100,
+  MEM_CRC_RES: 0x104,
   TIME_UPDATE: 0x0c,
   TIME0: 0x10,
   TIME1: 0x14,
@@ -58,10 +82,33 @@ const RESET_BITS = SW_SYS_RST | SW_PROCPU_RST | SW_APPCPU_RST;
 const WDT_KEY = 0x50d83aa1;
 const WDT_EN = 1 << 31;
 const WDT_LEVEL_INT_EN = 1 << 17;
+const WDT_PAUSE_IN_SLP = 1 << 7;
 const WDT_INT = 1 << 3;
 const WDT_SOURCE = 46;
 const STALL_C1 = 0x21;
 const STALL_C0 = 2;
+const SLEEP_EN = 1 << 31;
+const DG_WRAP_PD_EN = 1 << 31;
+const SLP_WAKEUP_INT = 1 << 0;
+const EXT_WAKEUP0_LV = 1 << 30;
+const EXT_WAKEUP1_LV = 1 << 31;
+const EXT_WAKEUP1_STATUS_CLR = 1 << 18;
+const MEM_CRC_START = 1 << 8;
+const MEM_CRC_FINISH = 1 << 31;
+/** BT121: wake sources (WAKEUP_STATE ENA and CAUSE bits, esp32 rtc.h's RTC_*_TRIG_EN). */
+export const WAKE = { EXT0: 1 << 0, EXT1: 1 << 1, GPIO: 1 << 2, TIMER: 1 << 3 } as const;
+/** RTC_CNTL registers in the RTC domain that a chip reset other than an RTC one keeps (BT121: the sleep and wake ones). */
+const RTC_DOMAIN = [RTC.SLP_TIMER0, RTC.SLP_TIMER1, RTC.WAKEUP_STATE, RTC.EXT_WAKEUP_CONF, RTC.SLP_REJECT_CONF, RTC.DIG_PWC, RTC.EXT_WAKEUP1, RTC.EXT_WAKEUP1_STATUS];
+
+const CRC_TABLE = (() => {
+  const table = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    table[n] = c >>> 0;
+  }
+  return table;
+})();
 
 export class RtcCntl extends RegisterFile {
   readonly watchdog: Watchdog;
@@ -69,6 +116,8 @@ export class RtcCntl extends RegisterFile {
   readonly sens: Sens;
   private readonly context: SocContext;
   private sourceHigh = false;
+  /** BT121: RTC fast memory's bytes (the CRC unit reads them; set by the SoC). */
+  rtcFast: () => Uint8Array = () => new Uint8Array(0);
 
   constructor(context: SocContext) {
     super(RTC_CNTL_BASE);
@@ -101,7 +150,11 @@ export class RtcCntl extends RegisterFile {
       offset === RTC.CLK_CONF ||
       (offset >= RTC.WDTCONFIG0 && offset <= RTC.WDTWPROTECT) ||
       offset === RTC.SW_CPU_STALL ||
-      (offset >= RTC.STORE4 && offset <= RTC.STORE4 + 12)
+      (offset >= RTC.STORE4 && offset <= RTC.STORE4 + 12) ||
+      offset === RTC.STATE0 ||
+      offset === RTC.MEM_CONF ||
+      offset === RTC.MEM_CRC_RES ||
+      RTC_DOMAIN.includes(offset as (typeof RTC_DOMAIN)[number])
     );
   }
 
@@ -115,12 +168,14 @@ export class RtcCntl extends RegisterFile {
       store[i] = this.regs[(RTC.STORE0 >>> 2) + i];
       store[4 + i] = this.regs[(RTC.STORE4 >>> 2) + i];
     }
+    const kept = RTC_DOMAIN.map((offset) => this.regs[offset >>> 2]);
     this.reset();
     if (!rtcDomain) {
       for (let i = 0; i < 4; i++) {
         this.regs[(RTC.STORE0 >>> 2) + i] = store[i];
         this.regs[(RTC.STORE4 >>> 2) + i] = store[4 + i];
       }
+      RTC_DOMAIN.forEach((offset, i) => (this.regs[offset >>> 2] = kept[i]));
     }
     this.watchdog.stop();
     this.updateInterrupt();
@@ -146,6 +201,104 @@ export class RtcCntl extends RegisterFile {
     const c1 = (this.regs[RTC.SW_CPU_STALL >>> 2] >>> (cpu === 0 ? 26 : 20)) & 0x3f;
     const c0 = (this.regs[RTC.OPTIONS0 >>> 2] >>> (cpu === 0 ? 2 : 0)) & 3;
     return c1 === STALL_C1 && c0 === STALL_C0;
+  }
+
+  // ── Sleep (BT121) ────────────────────────────────────────────────────────────────────────
+
+  /** The wake sources WAKEUP_STATE enables (WAKE bits). */
+  wakeSources(): number {
+    return (this.regs[RTC.WAKEUP_STATE >>> 2] >>> 11) & 0x7ff;
+  }
+
+  /**
+   * The RTC slow-counter tick the timer wakes at, or −1 when the timer doesn't wake the chip. Sleep
+   * wakes on WAKEUP_STATE's TIMER enable alone: IDF 4.4's rtc_sleep_set_wakeup_time writes the
+   * target without MAIN_TIMER_ALARM_EN (that bit is the RTC main timer's interrupt).
+   */
+  wakeTick(): number {
+    if ((this.wakeSources() & WAKE.TIMER) === 0) return -1;
+    return (this.regs[RTC.SLP_TIMER1 >>> 2] & 0xffff) * 0x100000000 + (this.regs[RTC.SLP_TIMER0 >>> 2] >>> 0);
+  }
+
+  /**
+   * The pin wake sources that hold now (WAKE.EXT0 / EXT1 bits), `level(gpio)` the pads' input
+   * levels; ext1's pins are latched into EXT_WAKEUP1_STATUS.
+   */
+  pinWake(level: (gpio: number) => number): number {
+    const sources = this.wakeSources();
+    const conf = this.regs[RTC.EXT_WAKEUP_CONF >>> 2];
+    let cause = 0;
+    if ((sources & WAKE.EXT0) !== 0) {
+      const g = this.rtcio.ext0Gpio();
+      if (g >= 0 && level(g) === ((conf & EXT_WAKEUP0_LV) !== 0 ? 1 : 0)) cause |= WAKE.EXT0;
+    }
+    if ((sources & WAKE.EXT1) !== 0) {
+      const sel = this.regs[RTC.EXT_WAKEUP1 >>> 2] & 0x3ffff;
+      if (sel !== 0) {
+        let high = 0;
+        for (let n = 0; n < 18; n++) if (((sel >>> n) & 1) !== 0 && level(RTC_GPIO_TO_GPIO[n]) === 1) high |= 1 << n;
+        const anyHigh = (conf & EXT_WAKEUP1_LV) !== 0;
+        if (anyHigh ? high !== 0 : high === 0) {
+          cause |= WAKE.EXT1;
+          this.regs[RTC.EXT_WAKEUP1_STATUS >>> 2] = anyHigh ? high : sel;
+        }
+      }
+    }
+    return cause;
+  }
+
+  /** BT123: the pin wakes WAKEUP_STATE enables, in words: ext0's pin and level, ext1's pins. */
+  wakePins(): string[] {
+    const sources = this.wakeSources();
+    const conf = this.regs[RTC.EXT_WAKEUP_CONF >>> 2];
+    const pins: string[] = [];
+    if ((sources & WAKE.EXT0) !== 0) {
+      const g = this.rtcio.ext0Gpio();
+      if (g >= 0) pins.push(`GPIO${g} ${(conf & EXT_WAKEUP0_LV) !== 0 ? 'high' : 'low'}`);
+    }
+    if ((sources & WAKE.EXT1) !== 0) {
+      const sel = this.regs[RTC.EXT_WAKEUP1 >>> 2] & 0x3ffff;
+      const mode = (conf & EXT_WAKEUP1_LV) !== 0 ? 'high (any)' : 'low (all)';
+      for (let n = 0; n < 18; n++) if (((sel >>> n) & 1) !== 0) pins.push(`GPIO${RTC_GPIO_TO_GPIO[n]} ${mode}`);
+    }
+    return pins;
+  }
+
+  /** BT122: the chip sleeps (true) or woke: the RTC watchdog waits meanwhile when WDTCONFIG0.PAUSE_IN_SLP (7) says so — as IDF's light-sleep safety net sets it. */
+  sleepWatchdog(asleep: boolean): void {
+    if ((this.regs[RTC.WDTCONFIG0 >>> 2] & WDT_PAUSE_IN_SLP) === 0) return;
+    if (asleep) this.watchdog.pause();
+    else this.watchdog.resume();
+  }
+
+  /** Is the sleep the firmware asked for a deep one (the digital domain powered down)? */
+  deepSleep(): boolean {
+    return (this.regs[RTC.DIG_PWC >>> 2] & DG_WRAP_PD_EN) !== 0;
+  }
+
+  /** The chip woke for `cause` (WAKE bits): WAKEUP_STATE's CAUSE, INT_RAW.SLP_WAKEUP, SLEEP_EN off. */
+  woke(cause: number): void {
+    const w = RTC.WAKEUP_STATE >>> 2;
+    this.regs[w] = (this.regs[w] & ~0x7ff) | (cause & 0x7ff);
+    this.regs[RTC.STATE0 >>> 2] &= ~SLEEP_EN;
+    this.regs[RTC.INT_RAW >>> 2] |= SLP_WAKEUP_INT;
+    this.updateInterrupt();
+  }
+
+  /** RTC_MEM_CONF's CRC unit: bytes of RTC fast memory from word ADDR, LEN words, CRC-32'd at once. */
+  private memCrc(value: number): void {
+    const conf = RTC.MEM_CONF >>> 2;
+    if ((value & MEM_CRC_START) === 0) {
+      this.regs[conf] = value & ~MEM_CRC_FINISH;
+      return;
+    }
+    const mem = this.rtcFast();
+    const start = ((value >>> 9) & 0x7ff) * 4;
+    const end = Math.min(mem.length, start + ((value >>> 20) & 0x7ff) * 4);
+    let crc = 0xffffffff;
+    for (let i = start; i < end; i++) crc = CRC_TABLE[(crc ^ mem[i]) & 0xff] ^ (crc >>> 8);
+    this.regs[RTC.MEM_CRC_RES >>> 2] = ~crc >>> 0;
+    this.regs[conf] = (value | MEM_CRC_FINISH) >>> 0;
   }
 
   /** RESET_STATE for a boot after reset `reason` (both CPUs). */
@@ -193,9 +346,24 @@ export class RtcCntl extends RegisterFile {
           this.regs[RTC.TIME_UPDATE >>> 2] = 1 << 30; // TIME_VALID
         }
         return;
+      case RTC.STATE0: {
+        const before = this.regs[offset >>> 2];
+        super.write32(offset, value);
+        if ((value & SLEEP_EN) !== 0 && (before & SLEEP_EN) === 0) this.context.sleeper?.enterSleep(this.deepSleep());
+        return;
+      }
+      case RTC.EXT_WAKEUP1:
+        if ((value & EXT_WAKEUP1_STATUS_CLR) !== 0) this.regs[RTC.EXT_WAKEUP1_STATUS >>> 2] = 0;
+        super.write32(offset, value & ~EXT_WAKEUP1_STATUS_CLR);
+        return;
+      case RTC.MEM_CONF:
+        this.memCrc(value);
+        return;
       case RTC.RESET_STATE:
       case RTC.INT_RAW:
       case RTC.INT_ST:
+      case RTC.EXT_WAKEUP1_STATUS:
+      case RTC.MEM_CRC_RES:
         return; // read-only
       case RTC.INT_CLR:
         this.regs[RTC.INT_RAW >>> 2] &= ~value;

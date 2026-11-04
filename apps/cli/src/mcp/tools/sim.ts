@@ -199,7 +199,7 @@ export const simState: Tool<SimContext> = {
   name: 'sim_state',
   title: 'Read a live simulation\'s state',
   description:
-    'What an open session shows now: each part\'s visual state (an LED\'s brightness, a servo\'s angle, an LCD\'s text, a NeoPixel\'s colors, a display\'s framebuffer summarized unless "full"), and the level and volts of the pins asked for ("part:pin"). Filter parts with "parts".',
+    'What an open session shows now: each part\'s visual state (an LED\'s brightness, a servo\'s angle, an LCD\'s text, a NeoPixel\'s colors, a display\'s framebuffer summarized unless "full"), the level and volts of the pins asked for ("part:pin"), and the boards asleep (an ESP32\'s or ESP32-C3\'s light or deep sleep: "sleeping", with what wakes it — the timer\'s time, the wake pins). Filter parts with "parts".',
   inputSchema: {
     type: 'object',
     properties: {
@@ -224,7 +224,13 @@ export const simState: Tool<SimContext> = {
       const state = session.bench.pinState(ref.part, ref.pin);
       pins[key] = { level: levelText(state), volts: state === undefined ? 0 : Math.round(state.volts * 1000) / 1000 };
     }
-    return { session: session.id, now: timeText(session.bench.now()), parts, ...(Object.keys(pins).length > 0 ? { pins } : {}) };
+    // BT123: boards asleep, and what wakes them.
+    const sleeping: Record<string, unknown> = {};
+    for (const board of session.boards) {
+      const sleep = session.bench.sleepOf(board);
+      if (sleep !== null) sleeping[board] = { sleep: sleep.deep ? 'deep' : 'light', ...(sleep.wakeAt === null ? {} : { timerWakesAt: timeText(Math.round(sleep.wakeAt / 1e6) * 1e6) }), wakePins: sleep.pins };
+    }
+    return { session: session.id, now: timeText(session.bench.now()), parts, ...(Object.keys(pins).length > 0 ? { pins } : {}), ...(Object.keys(sleeping).length > 0 ? { sleeping } : {}) };
   },
 };
 

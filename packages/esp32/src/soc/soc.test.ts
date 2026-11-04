@@ -84,6 +84,9 @@ describe('memory map and aliases', () => {
     app.write32(0x3ff80010, 1);
     expect(hex(pro.read32(0x3ff80010))).toBe('0x12345678');
     expect(soc.problems.problems.map((p) => p.code)).toEqual([CODE.RTC_FAST_APP, CODE.RTC_FAST_APP]);
+    // BT123: a word holding 0 reads the same either way — no Problem for it.
+    expect(app.read32(0x3ff80020)).toBe(0);
+    expect(soc.problems.problems).toHaveLength(2);
     // RTC SLOW is shared.
     app.write32(0x50000100, 0xabcdef);
     expect(pro.read32(0x50000100)).toBe(0xabcdef);

@@ -61,8 +61,26 @@ export class Watchdog {
 
   stop(): void {
     this.stage = -1;
+    this.pausedAt = -1;
     this.context.events.cancel(this.slot);
   }
+
+  /** BT122: its clock stops (light sleep gates APB): the stage waits. */
+  pause(): void {
+    if (this.stage < 0 || this.pausedAt >= 0) return;
+    this.pausedAt = this.context.now();
+    this.context.events.cancel(this.slot);
+  }
+
+  /** BT122: its clock runs again: the stage goes on where it stopped. */
+  resume(): void {
+    if (this.pausedAt < 0) return;
+    this.stageStart += this.context.now() - this.pausedAt;
+    this.pausedAt = -1;
+    if (this.stage >= 0) this.schedule();
+  }
+
+  private pausedAt = -1;
 
   private stageEnd(): number {
     return this.stageStart + Math.max(1, this.config.hold(this.stage)) * this.config.tickCycles();

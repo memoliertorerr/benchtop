@@ -222,6 +222,105 @@
     },
     {
       "board": "esp32",
+      "name": "deep-sleep-counter",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/deep-sleep-counter.bin",
+      "sha256": "86a9e1837cb835756f50facc2c17f8a0332654cf946084304f2257e39cc578d9",
+      "bytes": 280976,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "ffe3fbaf07c2b6e6ba0f61300f1a738f62afb95c9a5fec71c57fb2f2e551d24d"
+    },
+    {
+      "board": "esp32",
+      "name": "deep-sleep-counter",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/deep-sleep-counter.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "ffe3fbaf07c2b6e6ba0f61300f1a738f62afb95c9a5fec71c57fb2f2e551d24d"
+    },
+    {
+      "board": "esp32",
+      "name": "deep-sleep-counter",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/deep-sleep-counter.syms.tsv",
+      "sha256": "9aa09cbd7ffa7ac4432d43d03baab05de6fc36edfb05fa6ceae0c0d793a4be72",
+      "bytes": 123178,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "ffe3fbaf07c2b6e6ba0f61300f1a738f62afb95c9a5fec71c57fb2f2e551d24d"
+    },
+    {
+      "board": "esp32",
+      "name": "deep-sleep-pins",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/deep-sleep-pins.bin",
+      "sha256": "00182727eac4a007479037e7d8dc88c20fbb085134f97d059b200241a9434b27",
+      "bytes": 279344,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "61ef9de57e4e7271722a805da02bc29e29db7041fffdb23426c495fe8e2d6423"
+    },
+    {
+      "board": "esp32",
+      "name": "deep-sleep-pins",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/deep-sleep-pins.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "61ef9de57e4e7271722a805da02bc29e29db7041fffdb23426c495fe8e2d6423"
+    },
+    {
+      "board": "esp32",
+      "name": "deep-sleep-pins",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/deep-sleep-pins.syms.tsv",
+      "sha256": "7b2332ea9eb64a72feaf506077ac8229278403d3dbf433cab564f8c56bc585ac",
+      "bytes": 122369,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "61ef9de57e4e7271722a805da02bc29e29db7041fffdb23426c495fe8e2d6423"
+    },
+    {
+      "board": "esp32",
+      "name": "deep-sleep-timer",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/deep-sleep-timer.bin",
+      "sha256": "93341114ba9a2f7c4108db5c262f0fc3327c45a0bb53fc1a89097c0857c5f245",
+      "bytes": 278800,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "278be2e1b79bfe1d570cdc44a67fadbf976dca8df20507e8bdeba5795c64ecb3"
+    },
+    {
+      "board": "esp32",
+      "name": "deep-sleep-timer",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/deep-sleep-timer.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "278be2e1b79bfe1d570cdc44a67fadbf976dca8df20507e8bdeba5795c64ecb3"
+    },
+    {
+      "board": "esp32",
+      "name": "deep-sleep-timer",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/deep-sleep-timer.syms.tsv",
+      "sha256": "37968ef36314529c29b86121d14e2ae73ad4065f19f23008a23b4d4b11ffd607",
+      "bytes": 122305,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "278be2e1b79bfe1d570cdc44a67fadbf976dca8df20507e8bdeba5795c64ecb3"
+    },
+    {
+      "board": "esp32",
       "name": "gpio-input",
       "fqbn": "esp32:esp32:esp32",
       "file": "esp32/gpio-input.bin",
@@ -480,6 +579,39 @@
       "core": "esp32:esp32@2.0.17",
       "libraries": {},
       "source": "7cff7c83ac32cce940560362471f1ae1702dc6c4b37ee641f40bc162d9b1ceff"
+    },
+    {
+      "board": "esp32",
+      "name": "light-sleep",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/light-sleep.bin",
+      "sha256": "8c082861b65b1c4d90fe12f799367e659ca09b23da8a7d5ed5f85a1aa6b14406",
+      "bytes": 282528,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "71b0dd6bba9da2297ffd05d3a7070ee45ce963bfcb378c132cdffe6967c667d0"
+    },
+    {
+      "board": "esp32",
+      "name": "light-sleep",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/light-sleep.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "71b0dd6bba9da2297ffd05d3a7070ee45ce963bfcb378c132cdffe6967c667d0"
+    },
+    {
+      "board": "esp32",
+      "name": "light-sleep",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/light-sleep.syms.tsv",
+      "sha256": "f052265419e795ffaa28ce98dad607a80a9230fad881a6367bd205efad1cda82",
+      "bytes": 123673,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "71b0dd6bba9da2297ffd05d3a7070ee45ce963bfcb378c132cdffe6967c667d0"
     },
     {
       "board": "esp32",
@@ -1821,6 +1953,39 @@
     },
     {
       "board": "esp32c3",
+      "name": "deep-sleep",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/deep-sleep.bin",
+      "sha256": "3aab625e36524949e4713226d3035c9811d372378e8ea5b2ea2afd0afbb658f3",
+      "bytes": 268160,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "adfa8788b3af84cabdf7656b360e60bd9b5bd36122d5fe70637e002cbebf7778"
+    },
+    {
+      "board": "esp32c3",
+      "name": "deep-sleep",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/deep-sleep.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "adfa8788b3af84cabdf7656b360e60bd9b5bd36122d5fe70637e002cbebf7778"
+    },
+    {
+      "board": "esp32c3",
+      "name": "deep-sleep",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/deep-sleep.syms.tsv",
+      "sha256": "b9ffde0bd517c298246b1d6bd106ecc79b75d6b3b0e586bae473c96beb27ac27",
+      "bytes": 156834,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "adfa8788b3af84cabdf7656b360e60bd9b5bd36122d5fe70637e002cbebf7778"
+    },
+    {
+      "board": "esp32c3",
       "name": "gpio-interrupt",
       "fqbn": "esp32:esp32:esp32c3",
       "file": "esp32c3/gpio-interrupt.bin",
@@ -1923,6 +2088,39 @@
       "core": "esp32:esp32@2.0.17",
       "libraries": {},
       "source": "47c1c115ee04416ff88fd7ede1c47426d02041f923d1b426469ecee335d69bf2"
+    },
+    {
+      "board": "esp32c3",
+      "name": "light-sleep",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/light-sleep.bin",
+      "sha256": "75fde19897a4a5918a3f401c948b435b47e69b12f89623403d356733971f5bde",
+      "bytes": 269088,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "f06627d28ad5a588cc4c71f38123b0cc4a0f179e1d99c20c52d72f27a0393624"
+    },
+    {
+      "board": "esp32c3",
+      "name": "light-sleep",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/light-sleep.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "f06627d28ad5a588cc4c71f38123b0cc4a0f179e1d99c20c52d72f27a0393624"
+    },
+    {
+      "board": "esp32c3",
+      "name": "light-sleep",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/light-sleep.syms.tsv",
+      "sha256": "7a16fecb18efcfc3ec1e4fed1164e714c5112bf24e6670f65854aef9d6649354",
+      "bytes": 157190,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "f06627d28ad5a588cc4c71f38123b0cc4a0f179e1d99c20c52d72f27a0393624"
     },
     {
       "board": "esp32c3",

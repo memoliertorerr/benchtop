@@ -32,6 +32,8 @@ import { REF_HZ } from './context.ts';
 export const RESET_REASON = {
   POWERON: 1,
   SW: 3,
+  /** BT121: the wake from deep sleep. */
+  DEEPSLEEP: 5,
   TG0WDT_SYS: 7,
   TG1WDT_SYS: 8,
   RTCWDT_SYS: 9,
@@ -44,6 +46,7 @@ export const RESET_REASON = {
 const NAMES: Record<number, string> = {
   1: 'POWERON_RESET',
   3: 'SW_RESET',
+  5: 'DEEPSLEEP_RESET',
   7: 'TG0WDT_SYS_RESET',
   8: 'TG1WDT_SYS_RESET',
   9: 'RTCWDT_SYS_RESET',

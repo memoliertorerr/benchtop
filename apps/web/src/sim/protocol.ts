@@ -6,6 +6,7 @@
  */
 
 import type {
+  BoardSleep,
   BusTransaction,
   FirmwareImage,
   LineTableData,
@@ -20,7 +21,7 @@ import type {
   VisualState,
 } from '@benchtop/core';
 
-export const PROTOCOL_VERSION = 16;
+export const PROTOCOL_VERSION = 17;
 
 export type ToSim =
   | { type: 'hello'; protocol: number }
@@ -205,6 +206,8 @@ export interface FrameStats {
   ratio: number;
   /** Simulated clock rate per board part id, in MHz of executed cycles per wall second. */
   mhz: Record<string, number>;
+  /** BT123: the boards asleep (an ESP32's or ESP32-C3's light or deep sleep) and what wakes them; absent when none sleeps. */
+  sleep?: Record<string, BoardSleep>;
 }
 
 export type FromSim =

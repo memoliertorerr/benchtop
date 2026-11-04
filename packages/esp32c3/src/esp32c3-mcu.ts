@@ -32,7 +32,7 @@
  *   (Espressif's 34:85:18 and three bytes of a hash), so two boards on one LAN differ.
  */
 
-import type { BoardSpec, Debuggable, FirmwareImage, I2cController, I2cDevice, Level, Mcu, McuDebug, McuPin, NetState, NonVolatile, NvMemory, PinMode, Problem, RunResult, SpiController, SpiDevice, SymbolTable, UartPort, WifiRadio, WifiStation } from '@benchtop/core';
+import type { BoardSpec, Debuggable, FirmwareImage, I2cController, I2cDevice, Level, Mcu, McuDebug, McuPin, McuSleep, NetState, NonVolatile, NvMemory, Sleeper, PinMode, Problem, RunResult, SpiController, SpiDevice, SymbolTable, UartPort, WifiRadio, WifiStation } from '@benchtop/core';
 import { describeFirmwareFormat, macFromName, SectorMemory } from '@benchtop/core';
 import { STA_LIST_C3, sha256Hex, WifiDriver } from '@benchtop/esp32';
 import { RiscvHle } from '@benchtop/riscv';
@@ -237,7 +237,7 @@ class C3Uart implements UartPort {
   }
 }
 
-export class Esp32c3Mcu implements Mcu, Debuggable, WifiStation, NonVolatile {
+export class Esp32c3Mcu implements Mcu, Debuggable, WifiStation, NonVolatile, Sleeper {
   readonly kind = 'esp32c3' as const;
   readonly clockHz = REF_HZ;
   readonly pins: ReadonlyMap<string, McuPin>;
@@ -365,7 +365,7 @@ export class Esp32c3Mcu implements Mcu, Debuggable, WifiStation, NonVolatile {
     for (;;) {
       this.soc.runUntil(targetCycles);
       if (!this.soc.resetRequested) break;
-      if (!this.softwareReset()) return { reason: 'halted', detail: this.rebootLoop };
+      if (!this.softwareReset(this.soc.resetReason)) return { reason: 'halted', detail: this.rebootLoop };
     }
     if (this.soc.stopped) return { reason: 'halted', detail: this.soc.stopReason };
     if (this.soc.atBreakpoint) return { reason: 'breakpoint' };
@@ -415,6 +415,13 @@ export class Esp32c3Mcu implements Mcu, Debuggable, WifiStation, NonVolatile {
     return this.nvm;
   }
 
+  /** BT123: the chip's light or deep sleep and what wakes it (the timer in ns from now), or null awake. */
+  sleepState(): McuSleep | null {
+    const wakes = this.soc.sleepWakes();
+    if (wakes === null || this.soc.sleeping === null) return null;
+    return { deep: this.soc.sleeping.deep, wakeIn: wakes.at < 0 ? null : (Math.max(0, wakes.at - this.soc.now()) / REF_HZ) * 1e9, pins: wakes.pins };
+  }
+
   /** The flash a boot ran from becomes the board's; what it wrote is the program's. */
   private keepFlash(flash: Uint8Array, written: readonly { offset: number; length: number }[]): void {
     if (this.flashBytes !== flash || this.nvm === null) {
@@ -432,25 +439,29 @@ export class Esp32c3Mcu implements Mcu, Debuggable, WifiStation, NonVolatile {
 
   /**
    * BT118: the system reset the firmware asked for (OPTIONS0.SW_SYS_RST — ESP.restart(), a panic's
-   * restart): a fresh chip at the same time — the bench's clock runs on — keeping what survives a
-   * system reset (flash, RTC fast memory, the RTC timer), booting with reason SW_SYS. False when
-   * reboots less than a second apart end the run.
+   * restart), or (BT122) a deep sleep's wake (DEEPSLEEP): a fresh chip at the same time — the
+   * bench's clock runs on — keeping what survives a system reset (flash, RTC fast memory, the RTC
+   * timer and the RTC domain's registers: the wake cause, the sleep timer), booting for `reason`.
+   * False when software resets less than a second apart end the run (a deep sleep's wakes don't count).
    */
-  private softwareReset(): boolean {
+  private softwareReset(reason: number): boolean {
     const old = this.soc;
     const now = old.time;
-    this.rapidReboots = now - this.bootTime < REF_HZ ? this.rapidReboots + 1 : 0;
+    const deepSleep = reason === RESET_REASON.DEEPSLEEP;
+    this.rapidReboots = deepSleep ? 0 : now - this.bootTime < REF_HZ ? this.rapidReboots + 1 : 0;
     if (this.rapidReboots >= RAPID_REBOOT_LIMIT) {
       this.rebootLoop = `reboot loop: ${RAPID_REBOOT_LIMIT} software resets in a row less than 1 s apart`;
       return false;
     }
-    const rtcFast = old.memory.rtcFast.slice();
+    const rtcFast = old.memory.rtcFast;
     const powerOn = old.rtc.powerOn;
+    const rtcDomain = old.rtc.rtcDomain();
     this.soc = this.buildSoc(now);
     this.soc.rtc.powerOn = powerOn;
-    this.boot(RESET_REASON.SW_SYS);
+    this.soc.rtc.keepRtcDomain(rtcDomain);
     this.soc.memory.rtcFast.set(rtcFast);
-    this.report('info', CODE_C3_REBOOT, 0, `reboot after a software reset (SW_SYS) at ${(now / REF_HZ).toFixed(6)} s`);
+    this.boot(reason);
+    this.report('info', CODE_C3_REBOOT, 0, `reboot after ${deepSleep ? "a deep sleep's wake (DEEPSLEEP)" : 'a software reset (SW_SYS)'} at ${(now / REF_HZ).toFixed(6)} s`);
     return true;
   }
 

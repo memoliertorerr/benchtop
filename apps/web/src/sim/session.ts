@@ -54,7 +54,7 @@ import { decodeNvs, nvsPartitions } from '@benchtop/esp32';
 import { analogSpecFor, envSpecFor, netSpecFor } from '@benchtop/parts';
 import { createBenchEnv, type RecordingEnv } from './env.ts';
 import { createFrameRingBuffer, FrameRingWriter } from './frame-ring.ts';
-import { type BusChunk, type BusRow, type DebugStopReason, type FromSim, type MemoryReply, type MemorySector, type ProbeChunk, PROTOCOL_VERSION, type StorageReply, type ToSim } from './protocol.ts';
+import { type BusChunk, type BusRow, type DebugStopReason, type FrameStats, type FromSim, type MemoryReply, type MemorySector, type ProbeChunk, PROTOCOL_VERSION, type StorageReply, type ToSim } from './protocol.ts';
 import { TestRecording } from './recording.ts';
 
 /** Most bus records decoded per frame (the newest; the rest are counted as lost). */
@@ -730,7 +730,7 @@ export class SimSession {
         type: 'frame',
         t: frame.t,
         parts,
-        stats: { ratio: this.running ? this.pacer.ratio() : 0, mhz: this.measureMhz(wall) },
+        stats: this.frameStats(bench, wall),
         running: this.running,
         probes,
         ...(bus === undefined ? {} : { bus }),
@@ -767,6 +767,16 @@ export class SimSession {
       return { ...tx, label: source?.label ?? `source ${tx.source}`, board: source?.board ?? '', part: source?.part ?? null, ...(source?.direction === undefined ? {} : { direction: source.direction }) };
     };
     return { rows: done.map(row), pending: pending.map(row), lost: records.lost, restart };
+  }
+
+  /** Pace, executed MHz per board, and (BT123) the boards asleep. */
+  private frameStats(bench: Bench, wall: number): FrameStats {
+    const stats: FrameStats = { ratio: this.running ? this.pacer.ratio() : 0, mhz: this.measureMhz(wall) };
+    for (const board of bench.boards()) {
+      const sleep = bench.sleepOf(board);
+      if (sleep !== null) (stats.sleep ??= {})[board] = sleep;
+    }
+    return stats;
   }
 
   /** Executed MHz per board since the previous frame (kept while paused). */

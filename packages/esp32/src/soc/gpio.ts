@@ -163,6 +163,40 @@ export class Gpio extends RegisterFile {
     return (this.regs[(GPIO.PIN0 >>> 2) + n] & 4) !== 0;
   }
 
+  /** BT121: a pad's input level as the bench drives it (0/1), whatever routes it. */
+  padInput(n: number): number {
+    return n < 32 ? (this.padIn >>> n) & 1 : (this.padIn1 >>> (n - 32)) & 1;
+  }
+
+  /**
+   * BT122: does a pin wake a light sleep now? A pin with PINn WAKEUP_ENABLE (bit 10) whose
+   * INT_TYPE (9:7) is a level (4 low, 5 high) that its pad is at.
+   */
+  wakeLevel(): boolean {
+    for (let g = 0; g < 40; g++) {
+      const pin = this.regs[(GPIO.PIN0 >>> 2) + g];
+      if ((pin & (1 << 10)) === 0) continue;
+      const type = (pin >>> 7) & 7;
+      const level = this.padInput(g);
+      if ((type === 4 && level === 0) || (type === 5 && level === 1)) return true;
+    }
+    return false;
+  }
+
+  /** BT123: the pins armed for a light sleep's GPIO wake, as "GPIO4 low". */
+  wakePins(): string[] {
+    const pins: string[] = [];
+    for (let g = 0; g < 40; g++) {
+      const pin = this.regs[(GPIO.PIN0 >>> 2) + g];
+      const type = (pin >>> 7) & 7;
+      if ((pin & (1 << 10)) !== 0 && (type === 4 || type === 5)) pins.push(`GPIO${g} ${type === 4 ? 'low' : 'high'}`);
+    }
+    return pins;
+  }
+
+  /** BT121: after a pad's input changed (a sleeping chip checks its wake pins). */
+  onInputs: (() => void) | null = null;
+
   /** The pins report a pad's input level (0/1). */
   setPadInput(n: number, level: number): void {
     if (n < 32) {
@@ -175,6 +209,7 @@ export class Gpio extends RegisterFile {
       this.padIn1 = v;
     }
     this.inputsChanged();
+    this.onInputs?.();
   }
 
   /** The pins report whether a pad's net is floating (no driver). */

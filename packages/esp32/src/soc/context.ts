@@ -18,6 +18,12 @@ export interface InterruptSink {
   setSource(source: number, high: boolean): void;
 }
 
+/** BT121: the chip goes to sleep (RTC_CNTL STATE0.SLEEP_EN). */
+export interface SleepSink {
+  /** `deep`: the digital domain powers down (DIG_PWC.DG_WRAP_PD_EN): the wake is a reset. */
+  enterSleep(deep: boolean): void;
+}
+
 export interface SocContext {
   /** Now, in reference cycles (the executing core's local time while one runs). */
   now(): number;
@@ -31,4 +37,6 @@ export interface SocContext {
   pc(): number;
   /** A clock-select register changed: recompute the CPU and APB clocks. */
   clockChanged(): void;
+  /** BT121: where sleep goes (absent in a bare test context: sleep is ignored). */
+  readonly sleeper?: SleepSink;
 }

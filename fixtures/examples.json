@@ -664,6 +664,19 @@
     "description": "The button on D4 toggles the LED on D2, and Preferences (flash) remembers it: press Reset and the LED comes back as you left it. The Inspector's Storage section shows the NVS entry led.on."
   },
   {
+    "id": "esp32-deep-sleep",
+    "title": "ESP32 deep sleep",
+    "category": "ESP32",
+    "project": "esp32-deep-sleep",
+    "boards": {
+      "esp": {
+        "firmware": "esp32/deep-sleep-counter.bin",
+        "sketch": "esp32/deep-sleep-counter"
+      }
+    },
+    "description": "The ESP32 sleeps most of the time: every 5 s its RTC timer wakes it, and the button on D4 wakes it at once (ext0). It counts its wakes and the presses in RTC memory, which deep sleep keeps, prints them and flashes the LED. While it sleeps the board says so, and what will wake it."
+  },
+  {
     "id": "esp32-pwm-fader",
     "title": "ESP32 PWM fader",
     "category": "ESP32",

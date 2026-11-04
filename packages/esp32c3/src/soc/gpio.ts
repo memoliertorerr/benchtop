@@ -91,6 +91,8 @@ const ENA_CPU_NMI = 1 << 14;
 const STRAP_SPI_BOOT = 0x0c;
 
 const MUX = { FUN_WPD: 1 << 7, FUN_WPU: 1 << 8, FUN_IE: 1 << 9, DRV2: 2 << 10 } as const;
+/** IO_MUX's sleep-mode fields (MCU_OE, SLP_SEL, MCU_WPD, MCU_WPU, MCU_IE, bits 4:0 and the reserved 6:5). */
+const MUX_SLEEP_FIELDS = 0x7f;
 /** IO_MUX output functions as (gpio << 2 | MCU_SEL) → the signal they carry. */
 const DIRECT_OUT: ReadonlyMap<number, number> = new Map([
   [(21 << 2) | 0, SIG.U0TXD],
@@ -108,7 +110,12 @@ const GPIO_AT_0 = (1 << 0) | (1 << 1) | (1 << 2) | (1 << 3) | (1 << 8) | (1 << 9
 
 export class IoMux implements Peripheral {
   readonly regs = new Uint32Array(1024);
-  /** BT94: pads whose register the firmware wrote (as on the ESP32, BT96: only they count as read while floating). */
+  /**
+   * BT94: pads whose register the firmware wrote (as on the ESP32, BT96: only they count as read
+   * while floating). BT122: a write that changes nothing outside the sleep-mode fields doesn't count
+   * — IDF isolates every pad for sleep at startup (gpio_sleep_set_direction, gpio_sleep_sel_en …),
+   * which configures none of them for use.
+   */
   readonly configured = new Uint8Array(PIN_COUNT);
   /** Something that decides a pad's mode changed. */
   onConfig: (() => void) | null = null;
@@ -153,9 +160,10 @@ export class IoMux implements Peripheral {
 
   write32(offset: number, value: number): void {
     if (offset === 0xfc) return;
+    const before = this.regs[offset >>> 2];
     this.regs[offset >>> 2] = value;
     if (offset >= 4 && offset < 4 + PIN_COUNT * 4) {
-      this.configured[(offset - 4) >>> 2] = 1;
+      if (((before ^ value) & ~MUX_SLEEP_FIELDS) !== 0) this.configured[(offset - 4) >>> 2] = 1;
       this.onConfig?.();
     }
   }
@@ -213,11 +221,43 @@ export class Gpio implements Peripheral {
   }
 
   /** The pins report a pad's input level (0/1). */
+  /** BT122: a pad's input level as the bench drives it (0/1). */
+  padInput(g: number): number {
+    return (this.padIn >>> g) & 1;
+  }
+
+  /** BT122: a light sleep's GPIO wake: a pin with PINn WAKEUP_ENABLE (bit 10) at its level type (4 low, 5 high). */
+  wakeLevel(): boolean {
+    for (let g = 0; g < PIN_COUNT; g++) {
+      const pin = this.regs[(GPIO_REG.PIN0 >>> 2) + g];
+      if ((pin & (1 << 10)) === 0) continue;
+      const type = (pin >>> 7) & 7;
+      const level = this.padInput(g);
+      if ((type === 4 && level === 0) || (type === 5 && level === 1)) return true;
+    }
+    return false;
+  }
+
+  /** BT123: the pins armed for a light sleep's GPIO wake, as "GPIO4 low". */
+  wakePins(): string[] {
+    const pins: string[] = [];
+    for (let g = 0; g < PIN_COUNT; g++) {
+      const pin = this.regs[(GPIO_REG.PIN0 >>> 2) + g];
+      const type = (pin >>> 7) & 7;
+      if ((pin & (1 << 10)) !== 0 && (type === 4 || type === 5)) pins.push(`GPIO${g} ${type === 4 ? 'low' : 'high'}`);
+    }
+    return pins;
+  }
+
+  /** BT122: after a pad's input changed (a sleeping chip checks its wake pins). */
+  onInputs: (() => void) | null = null;
+
   setPadInput(g: number, level: number): void {
     const v = level !== 0 ? (this.padIn | (1 << g)) >>> 0 : (this.padIn & ~(1 << g)) >>> 0;
     if (v === this.padIn) return;
     this.padIn = v;
     this.inputsChanged();
+    this.onInputs?.();
   }
 
   /** The pins report whether a pad's net floats (no driver). */

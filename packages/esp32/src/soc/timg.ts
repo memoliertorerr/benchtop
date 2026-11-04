@@ -23,6 +23,10 @@
  * its LEVEL_INT_EN bit is (IDF's watchdog code sets only LEVEL_INT_EN, its timer drivers both),
  * and pulses its edge source (TG0 58–61, TG1 62–65) when the raw bit rises with EDGE_INT_EN set.
  *
+ * BT122: light sleep gates the APB clock (`gate`/`ungate`): the counters hold their values, their
+ * alarms wait and the MWDT's stage stops, all going on after the wake as if the sleep weren't there
+ * — IDF then advances esp_timer by the RTC's measure of the sleep.
+ *
  * RTC calibration (RTCCALICFG): START (bit 31) counts XTAL cycles over RTC_CALI_MAX cycles (0:
  * until the next edge) of the selected slow clock (CLK_SEL 0: RC 150 kHz, 1: 8MD256 = 8.5 MHz /
  * 256, 2: 32 kHz crystal — absent, so it never completes) and sets RDY (bit 15) and RTCCALICFG1
@@ -124,6 +128,7 @@ export class Timg extends RegisterFile {
 
   override systemReset(_rtcDomain: boolean): void {
     this.reset();
+    this.gatedAt = -1;
     this.value.fill(0);
     this.anchor.fill(this.context.now());
     for (const slot of this.alarmSlots) this.context.events.cancel(slot);
@@ -147,10 +152,31 @@ export class Timg extends RegisterFile {
     return (divider * REF_HZ) / this.context.apbHz;
   }
 
+  /** BT122: when the APB clock stopped (light sleep), or −1 while it runs. */
+  private gatedAt = -1;
+
+  /** BT122: light sleep stops the APB clock: counters hold, alarms and the MWDT wait. */
+  gate(): void {
+    if (this.gatedAt >= 0) return;
+    this.rebase();
+    this.gatedAt = this.context.now();
+    for (const slot of this.alarmSlots) this.context.events.cancel(slot);
+    this.watchdog.pause();
+  }
+
+  /** BT122: the clock runs again: counters go on from where they held. */
+  ungate(): void {
+    if (this.gatedAt < 0) return;
+    this.gatedAt = -1;
+    this.anchor.fill(this.context.now());
+    for (let c = 0; c < 3; c++) this.scheduleAlarm(c);
+    this.watchdog.resume();
+  }
+
   /** The counter's value now. */
   count(c: number): number {
     const cfg = this.config(c);
-    if ((cfg & EN) === 0) return this.value[c];
+    if ((cfg & EN) === 0 || this.gatedAt >= 0) return this.value[c];
     const ticks = Math.floor((this.context.now() - this.anchor[c]) / this.tickCycles(c));
     const v = (cfg & INCREASE) !== 0 ? this.value[c] + ticks : this.value[c] - ticks;
     // Wrap without adding 2^64 to a small value (a double would lose its low bits).

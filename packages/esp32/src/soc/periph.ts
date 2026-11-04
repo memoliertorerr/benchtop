@@ -154,6 +154,12 @@ export function isRadioBlock(address: number): boolean {
   return base >= 0x3ff71000 && base < PERIPH_END && base !== 0x3ff75000;
 }
 
+/**
+ * BT122: the RF power-down controls IDF's rtc_sleep_init writes on every sleep (BBPD_CTRL,
+ * NRXPD_CTRL, FE_GEN_CTRL, FE2_TX_INTERP_CTRL): in radio blocks, but no sign of a WiFi driver.
+ */
+const RADIO_POWER_CONTROL: ReadonlySet<number> = new Set([0x3ff5d054, 0x3ff5ccd4, 0x3ff46090, 0x3ff450f0]);
+
 /** The peripheral space: one Peripheral per 4 KB block, and which blocks are modeled. */
 export class PeripheralMap {
   readonly blocks: Peripheral[] = [];
@@ -215,7 +221,7 @@ export class PeripheralMap {
   }
 
   private unknown(access: 'read' | 'write', address: number, value: number, pc: number): void {
-    if (this.radio[(address - PERIPH_BASE) >>> 12] !== 0) {
+    if (this.radio[(address - PERIPH_BASE) >>> 12] !== 0 && !RADIO_POWER_CONTROL.has(address & ~3)) {
       this.radioAccesses++;
       this.onRadio?.(address, pc);
     }

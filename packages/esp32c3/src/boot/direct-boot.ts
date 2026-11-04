@@ -97,7 +97,9 @@ export function directBoot(soc: Esp32c3Soc, options: C3DirectBootOptions): C3Dir
 }
 
 function bootImage(soc: Esp32c3Soc, layout: FlashLayout, rom: C3Rom, plan: Map<number, number>, reason: number): void {
-  soc.memory.clearRam();
+  // RTC fast memory survives every reset but a power-on (the Mcu carries it into the chip a reset builds).
+  if (reason === RESET_REASON.POWERON) soc.memory.clearRam();
+  else soc.memory.sram.fill(0);
   for (const section of rom.ram) soc.memory.load(section.address, section.data);
   const ticksPerUs = rom.symbols.get('s_ticks_per_us');
   if (ticksPerUs !== undefined) soc.memory.load(ticksPerUs, Uint8Array.of(40, 0, 0, 0));
@@ -105,6 +107,8 @@ function bootImage(soc: Esp32c3Soc, layout: FlashLayout, rom: C3Rom, plan: Map<n
   for (const [entry, page] of plan) soc.mmu[entry] = page;
   for (const segment of layout.image.segments) {
     if (segment.region === 'DROM' || segment.region === 'IROM') continue;
+    // BT122: a deep sleep's wake keeps RTC_DATA_ATTR as the sleep left it (the bootloader skips RTC segments).
+    if (reason === RESET_REASON.DEEPSLEEP && segment.region === 'RTC_FAST') continue;
     try {
       soc.memory.load(segment.loadAddress, segment.data);
     } catch (error) {

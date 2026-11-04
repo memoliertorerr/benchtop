@@ -621,6 +621,25 @@ input {
   pointer-events: none;
 }
 
+.sleep-badge {
+  position: absolute;
+  transform: translateY(calc(-100% - 4px));
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-raised);
+  font: 11px var(--font-mono);
+  color: var(--text-muted);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.sleep-badge-state {
+  color: var(--accent);
+  font-weight: 600;
+}
+
 .zoom-badge {
   position: absolute;
   right: 10px;

@@ -64,6 +64,8 @@ export class EspMemory {
   /** Copies `data` to the memory at bus address `address` (data-bus addresses for D/I memories). */
   load(address: number, data: Uint8Array): void {
     if (address >= ROM1_I_START && address < ROM1_I_START + ROM1.size) address = address - ROM1_I_START + ROM1.start;
+    // BT121: RTC fast memory by its instruction-bus address (an image's .rtc.text: IDF's deep-sleep wake stub).
+    if (address >= RTC_FAST_I_START && address < RTC_FAST_I_START + RTC_FAST.size) address = address - RTC_FAST_I_START + RTC_FAST.start;
     for (const region of [ROM0, ROM1, SRAM0, SRAM1, SRAM2, RTC_FAST, RTC_SLOW]) {
       const o = address - region.start;
       if (o >= 0 && o + data.length <= region.size) {

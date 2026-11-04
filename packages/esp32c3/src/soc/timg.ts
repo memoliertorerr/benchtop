@@ -8,7 +8,8 @@
  * reaching T0ALARM with ALARM_EN sets INT_RAW.T0 and clears ALARM_EN (AUTORELOAD reloads).
  * MWDT: WDTCONFIG0.EN with four stages (CONFIG2–5 timeouts in prescaled ticks of the XTAL clock /
  * CONFIG1's prescaler ×… as written) — stage action 1 raises INT_RAW.WDT, 2/3 reset; a feed
- * restarts it. Calibration: RTCCALICFG.START measures MAX slow-clock cycles in XTAL cycles
+ * restarts it. BT122: light sleep gates the APB clock — the MWDT's stage waits (`gate`/`ungate`).
+ * Calibration: RTCCALICFG.START measures MAX slow-clock cycles in XTAL cycles
  * (RC_SLOW 136 kHz, RC_FAST/256 ≈ 68.4 kHz, XTAL32K 32.768 kHz) and sets RDY with the result in
  * RTCCALICFG1 after that many slow cycles. Sources: TG0_T0 32, TG0_WDT 33, TG1_T0 34, TG1_WDT 35.
  */
@@ -70,6 +71,24 @@ export class Timg implements Peripheral {
   private readonly wdtSlot: number;
   private readonly caliSlot: number;
   private wdtStage = 0;
+  /** BT122: the MWDT's time left in its stage while the clock is gated (light sleep), or −1. */
+  private wdtLeft = -1;
+
+  /** BT122: light sleep: the MWDT's stage waits (the general timer is idle in Arduino; not gated). */
+  gate(): void {
+    if (this.wdtLeft >= 0) return;
+    const at = this.ctx.events.timeOf(this.wdtSlot);
+    if (at === Number.POSITIVE_INFINITY) return;
+    this.wdtLeft = Math.max(0, at - this.ctx.now());
+    this.ctx.events.cancel(this.wdtSlot);
+  }
+
+  /** BT122: the clock runs again: the stage goes on where it waited. */
+  ungate(): void {
+    if (this.wdtLeft < 0) return;
+    this.ctx.events.schedule(this.wdtSlot, this.ctx.now() + this.wdtLeft);
+    this.wdtLeft = -1;
+  }
   /** A watchdog stage with a reset action expired. */
   onWdtReset: ((index: number) => void) | null = null;
 
@@ -88,6 +107,7 @@ export class Timg implements Peripheral {
     for (let i = 0; i < this.regs.length; i++) this.regs[i] = registerDefault(base + i * 4);
     this.count = this.since = this.latched = this.intRaw = 0;
     this.wdtStage = 0;
+    this.wdtLeft = -1;
     for (const slot of [this.alarmSlot, this.wdtSlot, this.caliSlot]) this.ctx.events.cancel(slot);
     this.update();
   }

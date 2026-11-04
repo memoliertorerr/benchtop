@@ -46,7 +46,7 @@ import { placeRomData, type RomImage } from '../boot/rom.ts';
 import { HALT, XtensaCore } from '../xtensa/cpu.ts';
 import { RegI2c, REGI2C_BASE, Rng, RNG_BASE, Syscon, SYSCON_BASE } from './analog.ts';
 import { SocBus, type SocParts } from './bus.ts';
-import { REF_HZ, type SocContext, XTAL_HZ } from './context.ts';
+import { REF_HZ, type SleepSink, type SocContext, XTAL_HZ } from './context.ts';
 import { AES_BASE, AesAccelerator } from './crypto/aes.ts';
 import { RSA_BASE, RsaAccelerator } from './crypto/rsa.ts';
 import { SHA_BASE, ShaAccelerator } from './crypto/sha.ts';
@@ -65,7 +65,7 @@ import { IDLE_HIGH_SIGNALS, Pads } from './pads.ts';
 import { PeripheralMap, ProblemLog } from './periph.ts';
 import { RAPID_LIMIT, RAPID_REBOOT, RESET_REASON, RESET_SETTLE, type ResetSink, resetName } from './reset.ts';
 import { RMT_BASE, RMT_SIGNAL_BASE, Rmt } from './rmt.ts';
-import { RTC_CNTL_BASE, RtcCntl } from './rtc-cntl.ts';
+import { RTC_CNTL_BASE, RTC_SLOW_HZ, RtcCntl, WAKE } from './rtc-cntl.ts';
 import { SPI0_BASE, SPI1_BASE, SpiCacheController, SpiFlashController } from './spi-flash.ts';
 import { Spi, SPI_BASES } from './spi.ts';
 import { Timg, TIMG_BASES } from './timg.ts';
@@ -82,7 +82,7 @@ export interface Esp32SocOptions {
   mac?: readonly number[];
 }
 
-export class Esp32Soc implements SocParts, SocContext, ResetSink {
+export class Esp32Soc implements SocParts, SocContext, ResetSink, SleepSink {
   readonly memory: EspMemory;
   readonly problems = new ProblemLog();
   readonly events = new EventTable();
@@ -212,6 +212,12 @@ export class Esp32Soc implements SocParts, SocContext, ResetSink {
     this.memory.codeWritten = (offset) => this.codeWritten(offset);
     this.spi1 = new SpiFlashController(this.flash);
     this.rebootSlot = this.events.add(() => this.reboot());
+    // BT121: sleep — the timer's wake, pins checked as the bench changes them, RTC fast memory for the CRC unit.
+    this.wakeSlot = this.events.add(() => this.wake(WAKE.TIMER));
+    this.gpio.onInputs = () => {
+      if (this.sleeping !== null) this.checkPinWake();
+    };
+    this.rtc.rtcFast = () => this.memory.bytes.subarray(RTC_FAST.offset, RTC_FAST.offset + RTC_FAST.size);
 
     const periph = this.periph;
     periph.register(0x3ff00000, this.dport);
@@ -361,9 +367,72 @@ export class Esp32Soc implements SocParts, SocContext, ResetSink {
     if (this.active >= 0) this.cores[this.active].requestStop();
   }
 
+  // ── Sleep (BT121) ───────────────────────────────────────────────────────────────────────
+
+  /** The chip sleeps (RTC_CNTL STATE0.SLEEP_EN): both CPUs stopped until a wake; `deep`: the wake is a reset. Null awake. */
+  sleeping: { deep: boolean; since: number } | null = null;
+  readonly sleeper: SleepSink = this;
+  private readonly wakeSlot: number;
+
+  /**
+   * BT123: what wakes the sleeping chip — the RTC timer's wake time (reference cycles, −1 when the
+   * timer doesn't) and the pin wakes in words — or null while it is awake.
+   */
+  sleepWakes(): { at: number; pins: string[] } | null {
+    const sleep = this.sleeping;
+    if (sleep === null) return null;
+    const tick = this.rtc.wakeTick();
+    const pins = this.rtc.wakePins();
+    if (!sleep.deep && (this.rtc.wakeSources() & WAKE.GPIO) !== 0) pins.push(...this.gpio.wakePins());
+    return { at: tick < 0 ? -1 : Math.max(sleep.since, Math.ceil((tick / RTC_SLOW_HZ) * REF_HZ)), pins };
+  }
+
+  enterSleep(deep: boolean): void {
+    if (this.sleeping !== null) return;
+    this.sleeping = { deep, since: this.now() };
+    this.stopActive();
+    this.rtc.sleepWatchdog(true);
+    // Deep: the digital domain is off — its timers (the watchdogs among them) stop with it.
+    // BT122: light: its APB clock is gated — the timer groups hold until the wake.
+    if (deep) this.events.clear();
+    else {
+      this.events.cancel(this.wakeSlot);
+      for (const timg of this.timg) timg.gate();
+    }
+    const tick = this.rtc.wakeTick();
+    if (tick >= 0) this.events.schedule(this.wakeSlot, Math.max(this.now(), Math.ceil((tick / RTC_SLOW_HZ) * REF_HZ)));
+    this.checkPinWake();
+  }
+
+  /** A pin wake source that holds now wakes the chip (at once, as an event: the run may be inside an instruction). */
+  private checkPinWake(): void {
+    let cause = this.rtc.pinWake((g) => this.gpio.padInput(g));
+    // BT122: GPIO wake (light sleep): a pin at the level its PINn register waits for.
+    if ((this.rtc.wakeSources() & WAKE.GPIO) !== 0 && this.gpio.wakeLevel()) cause |= WAKE.GPIO;
+    if (cause === 0) return;
+    this.pinCause = cause;
+    this.events.schedule(this.wakeSlot, this.now());
+  }
+
+  private pinCause = 0;
+
+  /** The chip wakes for `cause` (the timer's slot fires with TIMER; a pin's with its own). */
+  private wake(timerCause: number): void {
+    const sleep = this.sleeping;
+    if (sleep === null) return;
+    const cause = this.pinCause !== 0 ? this.pinCause : timerCause;
+    this.pinCause = 0;
+    this.sleeping = null;
+    this.rtc.woke(cause);
+    this.rtc.sleepWatchdog(false);
+    // Deep: the digital domain powered up again — a reset whose boot sees DEEPSLEEP_RESET.
+    if (sleep.deep) this.systemReset(RESET_REASON.DEEPSLEEP);
+    else for (const timg of this.timg) timg.ungate();
+  }
+
   /** May core `cpu` execute now? */
   private canRun(cpu: number): boolean {
-    if (this.systemHeld || this.rtc.stalled(cpu)) return false;
+    if (this.systemHeld || this.sleeping !== null || this.rtc.stalled(cpu)) return false;
     return cpu === 0 ? !this.proHeld : this.appRunning;
   }
 
@@ -539,7 +608,8 @@ export class Esp32Soc implements SocParts, SocContext, ResetSink {
     if (!this.systemHeld && this.rtc.stalled(0)) return; // re-armed when unstalled
     const reason = this.resetReason;
     const now = this.time;
-    const rapid = now - this.bootTime < RAPID_REBOOT;
+    // BT121: waking from deep sleep is no crash: a sketch may sleep a few ms at a time.
+    const rapid = reason !== RESET_REASON.DEEPSLEEP && now - this.bootTime < RAPID_REBOOT;
     if (rapid && this.rapidReboots >= RAPID_LIMIT) {
       this.stopped = true;
       this.stopReason = `reboot loop: ${resetName(reason)} after ${RAPID_LIMIT} reboots in a row less than 1 s apart`;
@@ -566,6 +636,9 @@ export class Esp32Soc implements SocParts, SocContext, ResetSink {
       this.memory.bytes.fill(0, RTC_FAST.offset, RTC_FAST.offset + RTC_FAST.size);
       this.memory.bytes.fill(0, RTC_SLOW.offset, RTC_SLOW.offset + RTC_SLOW.size);
     }
+    this.sleeping = null;
+    this.pinCause = 0;
+    this.events.cancel(this.wakeSlot);
     this.systemHeld = false;
     this.proHeld = false;
     this.appResetPending = false;

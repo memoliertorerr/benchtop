@@ -85,6 +85,7 @@ import { ENV_PERIOD_NS, EnvRuntime } from '../env/runtime.ts';
 import type { EnvSpecFor, PointField } from '../env/spec.ts';
 import { usesWifi } from '../net/radio.ts';
 import { type NvMemory, usesNonVolatile } from './nonvolatile.ts';
+import { type BoardSleep, usesSleep } from './sleep.ts';
 import { NetRuntime } from '../net/runtime.ts';
 import type { NetSpecFor } from '../net/spec.ts';
 import type { Uplink } from '../net/uplink.ts';
@@ -952,6 +953,17 @@ export class Bench {
   nonVolatileOf(boardPartId: string): NvMemory | null {
     const mcu = this.mcuSlot(boardPartId).mcu;
     return usesNonVolatile(mcu) ? mcu.nonVolatile() : null;
+  }
+
+  /**
+   * BT123: a board asleep (an ESP32's light or deep sleep) and what wakes it — the timer's wake as
+   * a bench time — or null while it is awake or can't sleep. Throws for a part that isn't a board.
+   */
+  sleepOf(boardPartId: string): BoardSleep | null {
+    const mcu = this.mcuSlot(boardPartId).mcu;
+    const sleep = usesSleep(mcu) ? mcu.sleepState() : null;
+    if (sleep === null) return null;
+    return { deep: sleep.deep, wakeAt: sleep.wakeIn === null ? null : this.now() + sleep.wakeIn, pins: sleep.pins };
   }
 
   /** A board's debugger view, or undefined when its MCU isn't debuggable. */

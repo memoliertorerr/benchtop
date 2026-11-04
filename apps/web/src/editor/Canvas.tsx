@@ -18,7 +18,7 @@ import { CATALOG } from '@benchtop/parts';
 import { signal } from '@preact/signals';
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'preact/hooks';
 import { liveViews } from '../sim/live-views.ts';
-import { sim, simRunning } from '../sim/host.ts';
+import { sim, simRunning, simStats, simTime } from '../sim/host.ts';
 import { inputTargets } from '../views/ir-remote.ts';
 import { viewFor } from '../views/registry.ts';
 import { isInteractive } from '../views/wokwi.ts';
@@ -496,6 +496,7 @@ export function Canvas({ store }: { store: EditorStore }) {
           <PartView key={part.id} part={part} selected={selection.has(part.id)} />
         ))}
         <WireLayer doc={doc} netlist={netlist} spots={spots} selectedWire={selectedWire} />
+        <SleepBadges doc={doc} />
       </div>
       <div class="marquee" ref={marquee} hidden />
       <div class="pin-tooltip" ref={tooltip} hidden />
@@ -508,6 +509,33 @@ export function Canvas({ store }: { store: EditorStore }) {
       {/* The signal itself, not .value: only this text node updates on zoom. */}
       <div class="zoom-badge">{zoomPercent}%</div>
     </main>
+  );
+}
+
+/**
+ * BT123: a badge over each board that sleeps (an ESP32's light or deep sleep, from the worker's
+ * frame stats): which sleep, and what wakes it — the timer's countdown, the wake pins.
+ */
+function SleepBadges({ doc }: { doc: ProjectDoc }) {
+  const sleep = simStats.value.sleep;
+  if (sleep === undefined) return null;
+  const now = simTime.value;
+  return (
+    <>
+      {doc.parts.map((part) => {
+        const s = sleep[part.id];
+        if (s === undefined) return null;
+        const wakes: string[] = [];
+        if (s.wakeAt !== null) wakes.push(`timer in ${Math.max(0, (s.wakeAt - now) / 1e9).toFixed(1)} s`);
+        wakes.push(...s.pins);
+        const text = wakes.length === 0 ? 'nothing wakes it' : `wakes on ${wakes.join(' · ')}`;
+        return (
+          <div key={part.id} class="sleep-badge" style={{ left: `${part.x * PX_PER_MM}px`, top: `${part.y * PX_PER_MM}px` }} title={`${part.id}: ${s.deep ? 'deep' : 'light'} sleep — ${text}`}>
+            <span class="sleep-badge-state">{s.deep ? 'Deep sleep' : 'Light sleep'}</span> {text}
+          </div>
+        );
+      })}
+    </>
   );
 }
 

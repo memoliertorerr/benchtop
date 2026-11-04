@@ -109,9 +109,11 @@ function bootImage(soc: Esp32Soc, layout: FlashLayout, reason: number): number {
   bus.write32(0x3ff00040, bus.read32(0x3ff00040) | CACHE_ENABLE); // DPORT_PRO_CACHE_CTRL
   bus.write32(0x3ff00058, bus.read32(0x3ff00058) & ~CACHE_ENABLE); // DPORT_APP_CACHE_CTRL
 
-  // RAM segments.
+  // RAM segments. BT121: on a deep-sleep wake IDF's bootloader leaves RTC memory as it was
+  // (RTC_DATA_ATTR counters count on), so its segments aren't loaded again.
   for (const segment of image.segments) {
     if (segment.region === 'DROM' || segment.region === 'IROM') continue;
+    if (reason === RESET_REASON.DEEPSLEEP && (segment.region === 'RTC_FAST' || segment.region === 'RTC_SLOW')) continue;
     try {
       soc.memory.load(segment.loadAddress, segment.data);
     } catch (error) {

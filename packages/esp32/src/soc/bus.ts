@@ -582,7 +582,7 @@ export class SocBus implements XtensaBus {
       return this.words[this.sram1Instruction(a)];
     }
     if (a >= 0x400c0000 && a < 0x400c2000) {
-      if (!this.rtcFastAllowed(a)) return 0;
+      if (!this.rtcFastAllowed(a, RTC_FAST.offset + (a - 0x400c0000), false)) return 0;
       return this.words[(RTC_FAST.offset + (a - 0x400c0000)) >>> 2];
     }
     if (a >= 0x400c2000 && a < 0x40c00000) {
@@ -613,7 +613,7 @@ export class SocBus implements XtensaBus {
       return;
     }
     if (a >= 0x400c0000 && a < 0x400c2000) {
-      if (this.rtcFastAllowed(a)) this.storeWord((RTC_FAST.offset + (a - 0x400c0000)) >>> 2, value);
+      if (this.rtcFastAllowed(a, RTC_FAST.offset + (a - 0x400c0000), true)) this.storeWord((RTC_FAST.offset + (a - 0x400c0000)) >>> 2, value);
       return;
     }
     if (a >= 0x400c2000 && a < 0x40c00000) {
@@ -689,7 +689,7 @@ export class SocBus implements XtensaBus {
       return SRAM1.offset + (a - SRAM1.start);
     }
     if (a >= ROM1.start && a < ROM1.start + ROM1.size) return ROM1.offset + (a - ROM1.start);
-    if (a >= RTC_FAST.start && a < RTC_FAST.start + RTC_FAST.size) return this.rtcFastAllowed(a) ? RTC_FAST.offset + (a - RTC_FAST.start) : -1;
+    if (a >= RTC_FAST.start && a < RTC_FAST.start + RTC_FAST.size) return this.rtcFastAllowed(a, RTC_FAST.offset + (a - RTC_FAST.start), write) ? RTC_FAST.offset + (a - RTC_FAST.start) : -1;
     if (a >= RTC_SLOW.start && a < RTC_SLOW.start + RTC_SLOW.size) return RTC_SLOW.offset + (a - RTC_SLOW.start);
     if (a >= 0x3f800000 && a < 0x3fc00000) {
       this.parts.problems.report('error', CODE.PSRAM, a, `PSRAM access at ${hex(a)} (PC ${hex(this.pc())}): external RAM is not emulated`);
@@ -722,9 +722,17 @@ export class SocBus implements XtensaBus {
     if (this.parts.problems.admit(CODE.ROM_WRITE, a)) this.parts.problems.add('warning', CODE.ROM_WRITE, a, `write ${hex(value)} to ROM at ${hex(a)} (PC ${hex(this.pc())}) ignored`);
   }
 
-  private rtcFastAllowed(a: number): boolean {
+  /**
+   * Only the PRO_CPU reaches RTC FAST memory (`offset`: the access's place in the buffer). BT123: an
+   * APP_CPU read of a word holding 0 gets what the PRO_CPU would, so it raises no Problem — IDF 4.4's
+   * esp_sleep_start reads its RTC_FAST_ATTR s_adc_tsen_enabled (false) on whichever CPU sleeps, the
+   * APP_CPU in Arduino's setup().
+   */
+  private rtcFastAllowed(a: number, offset: number, write: boolean): boolean {
     if (this.cpu === 0) return true;
-    if (this.parts.problems.admit(CODE.RTC_FAST_APP, a)) this.parts.problems.add('warning', CODE.RTC_FAST_APP, a, `APP_CPU access to RTC FAST memory at ${hex(a)} (PC ${hex(this.pc())}): only the PRO_CPU can reach it; reads 0`);
+    if ((write || this.words[offset >>> 2] !== 0) && this.parts.problems.admit(CODE.RTC_FAST_APP, a)) {
+      this.parts.problems.add('warning', CODE.RTC_FAST_APP, a, `APP_CPU ${write ? 'write to' : 'read of'} RTC FAST memory at ${hex(a)} (PC ${hex(this.pc())}): only the PRO_CPU can reach it; ${write ? 'the write is dropped' : 'it reads 0'}`);
+    }
     return false;
   }
 

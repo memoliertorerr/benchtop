@@ -33,7 +33,7 @@ import { Ledc, LEDC_BASE, LEDC_CHANNELS, LEDC_SIGNAL_BASE } from './ledc.ts';
 import { C3Memory, DROM_FLASH_BASE, FLASH_WINDOW, IRAM_BASE, IRAM_END, IROM_BASE, MEM, PERIPH_BASE, PERIPH_END, ROM_BASE, ROM_SIZE, DRAM_BASE, DRAM_END, DRAM_TO_IRAM, RTC_FAST_BASE } from './memory.ts';
 import { PeripheralMap, ProblemLog } from './periph.ts';
 import { Rmt, RMT_BASE, RMT_SIGNAL_BASE, RMT_TX_CHANNELS } from './rmt.ts';
-import { RTC_CNTL_BASE, RtcCntl } from './rtc-cntl.ts';
+import { RESET_REASON, RTC_CNTL_BASE, RtcCntl, WAKE } from './rtc-cntl.ts';
 import { SarAdc, SARADC_BASE } from './saradc.ts';
 import { APB_CTRL_BASE, ApbCtrl } from './apb-ctrl.ts';
 import { FlashChip, SPI0_BASE, SPI1_BASE, SpiMem } from './spi-mem.ts';
@@ -270,9 +270,15 @@ export class Esp32c3Soc implements SocContext {
 
   /**
    * BT118: the firmware asked for a system reset (RTC_CNTL OPTIONS0.SW_SYS_RST — esp_restart): the
-   * run stops there, and the Mcu boots a fresh chip at this time.
+   * run stops there, and the Mcu boots a fresh chip at this time, for `resetReason` (BT122: or a
+   * deep sleep's wake, DEEPSLEEP).
    */
   resetRequested = false;
+  resetReason: number = RESET_REASON.SW_SYS;
+  /** BT122: the chip sleeps (STATE0.SLEEP_EN) until a wake source; `deep`: the wake is a reset. Null awake. */
+  sleeping: { deep: boolean } | null = null;
+  private wakeSlot = -1;
+  private pinCause = 0;
 
   constructor(options: Esp32c3SocOptions = {}) {
     this.time = options.time ?? 0;
@@ -282,7 +288,7 @@ export class Esp32c3Soc implements SocContext {
     this.core.csrHook = this.csrHook();
     this.matrix.onCause = (cause) => this.core.setInterruptCause(cause);
     this.periph.register(INTMATRIX_BASE, this.matrix);
-    this.system = new SystemRegs(this);
+    this.system = new SystemRegs(this, this.memory.rtcFast);
     this.system.onClock = (cpu, apb) => this.setClock(cpu, apb);
     this.periph.register(SYSTEM_BASE, this.system);
     this.periph.register(EXTMEM_BASE, new Extmem());
@@ -290,8 +296,11 @@ export class Esp32c3Soc implements SocContext {
     this.periph.register(RTC_CNTL_BASE, this.rtc);
     this.rtc.onSoftwareReset = () => {
       this.resetRequested = true;
+      this.resetReason = RESET_REASON.SW_SYS;
       if (this.running) this.core.requestStop();
     };
+    this.rtc.onSleep = (deep) => this.enterSleep(deep);
+    this.wakeSlot = this.events.add(() => this.wake(WAKE.TIMER));
     this.systimer = new Systimer(this);
     this.periph.register(SYSTIMER_BASE, this.systimer);
     this.timg = [new Timg(this, 0, [SRC.TG0_T0, SRC.TG0_WDT]), new Timg(this, 1, [SRC.TG1_T0, SRC.TG1_WDT])];
@@ -330,6 +339,56 @@ export class Esp32c3Soc implements SocContext {
     this.periph.register(APB_CTRL_BASE, new ApbCtrl());
     this.adc.sample = (adc, channel, attenuation) => this.adcSample(adc, channel, attenuation);
     this.flash.onWrite = () => this.core.invalidateCode(IROM_BASE, FLASH_WINDOW);
+    this.gpio.onInputs = () => {
+      if (this.sleeping !== null) this.checkPinWake();
+    };
+  }
+
+  // ── Sleep (BT122) ───────────────────────────────────────────────────────────────────────
+
+  /** BT123: what wakes the sleeping chip — the timer's wake time (reference cycles, −1: none) and the pin wakes in words — or null awake. */
+  sleepWakes(): { at: number; pins: string[] } | null {
+    const sleep = this.sleeping;
+    if (sleep === null) return null;
+    const pins = this.rtc.wakePins();
+    if (!sleep.deep && (this.rtc.wakeSources() & WAKE.GPIO) !== 0) for (const pin of this.gpio.wakePins()) if (!pins.includes(pin)) pins.push(pin);
+    return { at: this.rtc.wakeTime(), pins };
+  }
+
+  private enterSleep(deep: boolean): void {
+    if (this.sleeping !== null) return;
+    this.sleeping = { deep };
+    if (this.running) this.core.requestStop();
+    // Deep: the digital domain is off — its timers stop with it. Light: APB is gated — the watchdogs wait.
+    if (deep) this.events.clear();
+    else for (const timg of this.timg) timg.gate();
+    const at = this.rtc.wakeTime();
+    if (at >= 0) this.events.schedule(this.wakeSlot, Math.max(this.now(), at));
+    this.checkPinWake();
+  }
+
+  private checkPinWake(): void {
+    const sleep = this.sleeping;
+    if (sleep === null) return;
+    let cause = 0;
+    if (this.rtc.gpioWake((g) => this.gpio.padInput(g))) cause |= WAKE.GPIO;
+    if (!sleep.deep && (this.rtc.wakeSources() & WAKE.GPIO) !== 0 && this.gpio.wakeLevel()) cause |= WAKE.GPIO;
+    if (cause === 0) return;
+    this.pinCause = cause;
+    this.events.schedule(this.wakeSlot, this.now());
+  }
+
+  private wake(timerCause: number): void {
+    const sleep = this.sleeping;
+    if (sleep === null) return;
+    const cause = this.pinCause !== 0 ? this.pinCause : timerCause;
+    this.pinCause = 0;
+    this.sleeping = null;
+    this.rtc.woke(cause);
+    if (sleep.deep) {
+      this.resetRequested = true;
+      this.resetReason = RESET_REASON.DEEPSLEEP;
+    } else for (const timg of this.timg) timg.ungate();
   }
 
   /** The level of a peripheral output signal on its way to the pads. */
@@ -388,6 +447,12 @@ export class Esp32c3Soc implements SocContext {
     this.atBreakpoint = false;
     while (this.time < target && !this.stopped && !this.resetRequested) {
       this.events.fireDue(this.time);
+      if (this.resetRequested) break;
+      if (this.sleeping !== null) {
+        // BT122: asleep: nothing runs; time goes to the next event (a wake, a timer) or the target.
+        this.time = Math.max(this.time, Math.min(target, this.events.next));
+        continue;
+      }
       let end = Math.min(target, this.events.next);
       if (!core.waiting) end = Math.min(end, this.time + SLICE);
       if (end <= this.time) end = this.time + this.cost;
