@@ -13,6 +13,8 @@ const ROM = cachedRom();
 const WITHHELD = withheldFirmware('pico2w/blink.uf2') !== undefined;
 const UF2 = WITHHELD ? new Uint8Array(0) : readFixture('fixtures/firmware/pico2w/blink.uf2');
 const SYMBOLS = SymbolTable.fromNm(WITHHELD ? '' : readFixtureText('fixtures/firmware/pico2w/blink.syms.tsv'));
+/** A test that runs the firmware (or reads its symbols); the rest run everywhere. */
+const needsFirmware = it.skipIf(WITHHELD);
 
 function boot(symbols: boolean): { mcu: Rp2350Mcu; problems: string[]; edges: [number, number][]; serial: () => string } {
   const problems: string[] = [];
@@ -35,8 +37,8 @@ function run(mcu: Rp2350Mcu, ms: number): void {
   }
 }
 
-describe.skipIf(WITHHELD)('the Pico 2 W’s CYW43 on the RP2350 (BT113)', () => {
-  it('blink: the LED on WL_GPIO0 toggles every 500 ms through cyw43_ll_gpio_set (RISC-V HLE)', () => {
+describe('the Pico 2 W’s CYW43 on the RP2350 (BT113)', () => {
+  needsFirmware('blink: the LED on WL_GPIO0 toggles every 500 ms through cyw43_ll_gpio_set (RISC-V HLE)', () => {
     const { mcu, problems, edges, serial } = boot(true);
     run(mcu, 2200);
     expect(edges.map(([, level]) => level)).toEqual([1, 0, 1, 0, 1]);
@@ -47,7 +49,7 @@ describe.skipIf(WITHHELD)('the Pico 2 W’s CYW43 on the RP2350 (BT113)', () => 
     expect(problems).not.toContain(CODE_CYW43_NO_SYMBOLS);
   });
 
-  it('a reset answers the chip again (a fresh table): the LED blinks on', () => {
+  needsFirmware('a reset answers the chip again (a fresh table): the LED blinks on', () => {
     const { mcu, edges } = boot(true);
     run(mcu, 300);
     mcu.reset();
@@ -56,7 +58,7 @@ describe.skipIf(WITHHELD)('the Pico 2 W’s CYW43 on the RP2350 (BT113)', () => 
     expect(edges.map(([, level]) => level)).toEqual([1, 0]);
   });
 
-  it('without symbols: rp2350-cyw43-no-symbols once, the LED dark, the sketch running', () => {
+  needsFirmware('without symbols: rp2350-cyw43-no-symbols once, the LED dark, the sketch running', () => {
     const { mcu, problems, edges, serial } = boot(false);
     run(mcu, 1500);
     expect(problems.filter((p) => p === CODE_CYW43_NO_SYMBOLS)).toHaveLength(1);

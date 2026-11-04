@@ -13,6 +13,8 @@ import { EVENT, PICO_W_MAC, SCAN_OPTIONS, SCAN_RESULT, scanResultBytes } from '.
 const WITHHELD = withheldFirmware('picow/blink.uf2') !== undefined;
 const UF2 = WITHHELD ? new Uint8Array(0) : readFixture('fixtures/firmware/picow/blink.uf2');
 const SYMBOLS = SymbolTable.fromNm(WITHHELD ? '' : readFixtureText('fixtures/firmware/picow/blink.syms.tsv'), true);
+/** A test that runs the firmware (or reads its symbols); the rest run everywhere. */
+const needsFirmware = it.skipIf(WITHHELD);
 
 function boot(symbols: boolean): { mcu: Rp2040Mcu; serial: () => string; problems: string[]; edges: [number, number][] } {
   const problems: string[] = [];
@@ -28,8 +30,8 @@ function boot(symbols: boolean): { mcu: Rp2040Mcu; serial: () => string; problem
   return { mcu, serial: () => text, problems, edges };
 }
 
-describe.skipIf(WITHHELD)('the Pico W’s CYW43 at its driver API (BT110)', () => {
-  it('blink: the LED on WL_GPIO0 toggles every 500 ms through cyw43_ll_gpio_set', () => {
+describe('the Pico W’s CYW43 at its driver API (BT110)', () => {
+  needsFirmware('blink: the LED on WL_GPIO0 toggles every 500 ms through cyw43_ll_gpio_set', () => {
     const { mcu, serial, problems, edges } = boot(true);
     runMs(mcu, 2200);
     expect(edges.map(([, level]) => level)).toEqual([1, 0, 1, 0, 1]);
@@ -43,7 +45,7 @@ describe.skipIf(WITHHELD)('the Pico W’s CYW43 at its driver API (BT110)', () =
     expect(problems).not.toContain(CODE_CYW43_NO_SYMBOLS);
   });
 
-  it('a reset keeps the chip answered: the LED blinks again', () => {
+  needsFirmware('a reset keeps the chip answered: the LED blinks again', () => {
     const { mcu, edges } = boot(true);
     runMs(mcu, 600);
     mcu.reset();
@@ -53,7 +55,7 @@ describe.skipIf(WITHHELD)('the Pico W’s CYW43 at its driver API (BT110)', () =
     expect(edges.map(([, level]) => level)).toEqual([1, 0]); // on, then off, from the fresh boot
   });
 
-  it('without symbols the real driver powers the chip (WL_REG_ON): rp2040-cyw43-no-symbols once, the LED stays dark', () => {
+  needsFirmware('without symbols the real driver powers the chip (WL_REG_ON): rp2040-cyw43-no-symbols once, the LED stays dark', () => {
     const { mcu, serial, problems, edges } = boot(false);
     runMs(mcu, 1500);
     expect(problems.filter((p) => p === CODE_CYW43_NO_SYMBOLS)).toHaveLength(1);
@@ -61,7 +63,7 @@ describe.skipIf(WITHHELD)('the Pico W’s CYW43 at its driver API (BT110)', () =
     expect(serial()).toContain('led 1'); // the sketch itself runs on
   });
 
-  it('a Pico has no CYW43: no WL_GPIO0, symbols change nothing', () => {
+  needsFirmware('a Pico has no CYW43: no WL_GPIO0, symbols change nothing', () => {
     const mcu = createRp2040Mcu();
     expect(mcu.cyw43).toBeNull();
     expect(mcu.pins.has('WL_GPIO0')).toBe(false);
@@ -82,7 +84,7 @@ describe.skipIf(WITHHELD)('the Pico W’s CYW43 at its driver API (BT110)', () =
     expect((createRp2040Mcu({ cyw43: {} }).cyw43 as unknown as { host: { mac: number[] } }).host.mac).toEqual(PICO_W_MAC);
   });
 
-  it('BT111: the event and scan structs the model writes are the Pico W toolchain’s (wifi-layout)', () => {
+  needsFirmware('BT111: the event and scan structs the model writes are the Pico W toolchain’s (wifi-layout)', () => {
     const mcu = createRp2040Mcu({ cyw43: {} });
     mcu.load({ format: 'uf2', bytes: readFixture('fixtures/firmware/picow/wifi-layout.uf2') });
     mcu.useSymbols(SymbolTable.fromNm(readFixtureText('fixtures/firmware/picow/wifi-layout.syms.tsv'), true));
