@@ -8,7 +8,8 @@
  * for a system reset (`onSoftwareReset`). Everything else reads back as written.
  *
  * EFUSE: a v0.3 chip (WAFER_VERSION 3, the revision the Arduino core requires) with Espressif's
- * MAC 34:85:18:00:C3:01; CMD's READ/PGM bits complete at once.
+ * MAC 34:85:18:00:C3:01 (BT107: or the one the SoC is built with); CMD's READ/PGM bits complete
+ * at once.
  */
 
 import type { Peripheral } from '@benchtop/esp32';
@@ -50,9 +51,12 @@ export class RtcCntl implements Peripheral {
   /** Reference time of the last power-on (the RTC timer counts from it). */
   private origin = 0;
   onSoftwareReset: (() => void) | null = null;
+  /** BT107: the factory MAC in BLK1 (the station's; the soft-AP's is one more). */
+  readonly mac: readonly number[];
 
-  constructor(ctx: SocContext) {
+  constructor(ctx: SocContext, mac: readonly number[] = EFUSE_MAC) {
     this.ctx = ctx;
+    this.mac = mac.length === 6 ? mac.slice() : EFUSE_MAC;
     this.systemReset(true);
   }
 
@@ -62,7 +66,7 @@ export class RtcCntl implements Peripheral {
       this.origin = this.ctx.now();
     }
     for (let i = 0; i < this.efuse.length; i++) this.efuse[i] = registerDefault(RTC_CNTL_BASE + EFUSE_OFFSET + i * 4);
-    const m = EFUSE_MAC;
+    const m = this.mac;
     this.efuse[MAC0 >>> 2] = (m[2] << 24) | (m[3] << 16) | (m[4] << 8) | m[5];
     this.efuse[MAC1 >>> 2] = (this.efuse[MAC1 >>> 2] & 0xffff0000) | (m[0] << 8) | m[1];
     this.efuse[SYS3 >>> 2] = (this.efuse[SYS3 >>> 2] & ~(7 << 18)) | (3 << 18); // WAFER_VERSION 3

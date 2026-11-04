@@ -807,6 +807,19 @@
     "description": "An ESP32 joins the bench's WiFi access point as \"esp32-web\" and serves pages with Arduino's WebServer; the two HTTP client parts switch its LED through /led?state=on and off — press Send on each."
   },
   {
+    "id": "esp32c3-wifi-rgb-server",
+    "title": "ESP32-C3 RGB web server",
+    "category": "WiFi",
+    "project": "esp32c3-wifi-rgb-server",
+    "boards": {
+      "c3": {
+        "firmware": "esp32c3/wifi-rgb-server.bin",
+        "sketch": "esp32c3/wifi-rgb-server"
+      }
+    },
+    "description": "An ESP32-C3 joins the access point as \"c3-web\" and serves /led?color=red, green, blue, white, off or an rrggbb hex color, which sets its board's RGB LED; press Send on the HTTP client parts."
+  },
+  {
     "id": "esp32-wifi-http",
     "title": "ESP32 HTTP client",
     "category": "WiFi",

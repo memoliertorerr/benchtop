@@ -35,6 +35,7 @@ import { PeripheralMap, ProblemLog } from './periph.ts';
 import { Rmt, RMT_BASE, RMT_SIGNAL_BASE, RMT_TX_CHANNELS } from './rmt.ts';
 import { RTC_CNTL_BASE, RtcCntl } from './rtc-cntl.ts';
 import { SarAdc, SARADC_BASE } from './saradc.ts';
+import { APB_CTRL_BASE, ApbCtrl } from './apb-ctrl.ts';
 import { FlashChip, SPI0_BASE, SPI1_BASE, SpiMem } from './spi-mem.ts';
 import { Spi, SPI2_BASE } from './spi.ts';
 import { Extmem, EXTMEM_BASE, SYSTEM_BASE, SystemRegs } from './system.ts';
@@ -216,6 +217,8 @@ class C3Bus implements RiscvBus, RiscvCodeBus {
 
 export interface Esp32c3SocOptions {
   flashSize?: number;
+  /** BT107: the eFuse's factory MAC (default EFUSE_MAC, 34:85:18:00:C3:01). */
+  mac?: readonly number[];
 }
 
 export class Esp32c3Soc implements SocContext {
@@ -274,7 +277,7 @@ export class Esp32c3Soc implements SocContext {
     this.system.onClock = (cpu, apb) => this.setClock(cpu, apb);
     this.periph.register(SYSTEM_BASE, this.system);
     this.periph.register(EXTMEM_BASE, new Extmem());
-    this.rtc = new RtcCntl(this);
+    this.rtc = options.mac === undefined ? new RtcCntl(this) : new RtcCntl(this, options.mac);
     this.periph.register(RTC_CNTL_BASE, this.rtc);
     this.systimer = new Systimer(this);
     this.periph.register(SYSTIMER_BASE, this.systimer);
@@ -311,6 +314,7 @@ export class Esp32c3Soc implements SocContext {
     this.rmt = new Rmt(this);
     this.periph.register(RMT_BASE, this.rmt);
     this.rmt.onOutput = () => this.pads.update();
+    this.periph.register(APB_CTRL_BASE, new ApbCtrl());
     this.adc.sample = (adc, channel, attenuation) => this.adcSample(adc, channel, attenuation);
     this.flash.onWrite = () => this.core.invalidateCode(IROM_BASE, FLASH_WINDOW);
   }

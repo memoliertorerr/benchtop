@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { REPO_ROOT } from '../../../../packages/core/src/firmware/fixtures.test-helper.ts';
 import { type Manifest, SKETCH_SOURCE, sketchSourceSha256 } from '../../../../scripts/fixture-boards.ts';
 import { micropythonFqbnOf } from '../editor/fqbn.ts';
-import { CATEGORIES, EXAMPLES, loadFirmware, loadMicroPython, loadProject, loadSketch } from './manifest.ts';
+import { CATEGORIES, EXAMPLES, loadFirmware, loadMicroPython, loadProject, loadSketch, loadSymbols } from './manifest.ts';
 
 // BT38/BT43: every gallery example is a committed project that parses, whose boards are boards
 // in it; its loaders return exactly the committed files; its sketch is the fixture sketch folder,
@@ -52,6 +52,8 @@ describe('examples gallery (BT38, BT43, BT45, BT47, BT56)', () => {
       'esp32-wifi-webserver', 'esp32-wifi-http', 'esp32-wifi-tcp',
       // BT105
       'esp32-ntp-clock',
+      // BT108
+      'esp32c3-wifi-rgb-server',
     ];
     for (const id of planned) expect(EXAMPLES.some((e) => e.id === id), id).toBe(true);
     for (const category of CATEGORIES) expect(EXAMPLES.some((e) => e.category === category), category).toBe(true);
@@ -102,6 +104,18 @@ describe('examples gallery (BT38, BT43, BT45, BT47, BT56)', () => {
       expect(spec.expect.length).toBeGreaterThan(0);
     });
   }
+
+  it('BT108: every WiFi example’s boards come with their symbols (the WiFi driver is answered by name)', async () => {
+    const wifi = EXAMPLES.filter((e) => e.category === 'WiFi');
+    expect(wifi.some((e) => Object.values(e.boards).some((b) => 'firmware' in b && b.firmware.startsWith('esp32c3/')))).toBe(true);
+    for (const example of wifi) {
+      for (const files of Object.values(example.boards)) {
+        if (!('firmware' in files)) continue;
+        const committed = readFileSync(join(REPO_ROOT, 'fixtures', 'firmware', files.firmware.replace(/\.bin$/, '.syms.tsv')), 'utf8');
+        expect(await loadSymbols(files), `${example.id}: ${files.firmware}`).toBe(committed);
+      }
+    }
+  });
 
   it('has no spec for an example that no longer exists', () => {
     const ids = new Set(EXAMPLES.map((e) => e.id));

@@ -30,11 +30,13 @@
 import type { RiscvBus, RiscvCodeBus } from './bus.ts';
 import { isRiscvCodeBus, RISCV_BUS_YIELD, RiscvBusError } from './bus.ts';
 import { CSR, csrPrivilege, csrReadOnly, type RiscvCsrHook } from './csr.ts';
+import type { RiscvHleHook } from './hle.ts';
 import * as dec from './decode.ts';
 import * as ic from './icache.ts';
 import { RiscvICache } from './icache.ts';
 import * as isa from './isa.ts';
 import type { RiscvProfile } from './isa.ts';
+const OP_HLE = isa.OP_HLE;
 import * as traps from './traps.ts';
 
 // Imported bindings copied to module constants once: under vitest's module transform every
@@ -218,6 +220,8 @@ export class RiscvCore {
   attention = false;
   /** A SoC's CSRs (consulted for every CSR the core doesn't implement). */
   csrHook: RiscvCsrHook | null = null;
+  /** BT106: the HLE table (hle.ts), or null; set it with setHle. */
+  private hleHook: RiscvHleHook | null = null;
   /** Claims an EBREAK as a halt instead of a breakpoint exception (the bare machine's exit). */
   ebreakHook: (() => boolean) | null = null;
   /** Called on every trap entry with mcause, mepc and mtval (interrupts included). */
@@ -344,6 +348,19 @@ export class RiscvCore {
     this.icache.invalidate(address >>> 0, size);
   }
 
+  /**
+   * BT106: functions TypeScript answers (hle.ts). Addresses the table lists decode as OP_HLE
+   * (cached or not), so the table is consulted only when an instruction is decoded.
+   */
+  setHle(hle: RiscvHleHook | null): void {
+    this.hleHook = hle;
+    this.icache.invalidateAll();
+  }
+
+  get hle(): RiscvHleHook | null {
+    return this.hleHook;
+  }
+
   /** Stops the core with a message (a model error, not a guest trap). */
   fault(message: string): void {
     this.halt = HALT.FAULT;
@@ -387,7 +404,7 @@ export class RiscvCore {
     this.fetching = false;
     this.lastBits = word;
     decode(word, this.profile, this.d);
-    this.pack();
+    this.pack(pc);
   }
 
   /** Decodes the instruction at `pc` into its cache slot (when it may be cached) and this.w0s/w1s. */
@@ -400,15 +417,15 @@ export class RiscvCore {
     }
     this.lastBits = word;
     decode(word, this.profile, this.d);
-    this.pack();
-    if (this.d[D_OP] !== 0) {
+    this.pack(pc);
+    if ((this.w0s & 0x7f) !== 0) {
       page[slot] = this.w0s;
       page[slot + 1] = this.w1s;
     }
   }
 
-  /** The descriptor → an entry (icache.ts layout). */
-  private pack(): void {
+  /** The descriptor → an entry (icache.ts layout); at an HLE address, OP_HLE with the kind in w1. */
+  private pack(pc: number): void {
     const d = this.d;
     const op = d[D_OP];
     let w0 = W0_FILLED | op | (d[D_LEN] === 4 ? W0_LEN4 : 0) | (d[D_RD] << 8) | (d[D_RS1] << 13) | (d[D_RS2] << 18);
@@ -418,6 +435,14 @@ export class RiscvCore {
     else if (op === OP.H3_BEXTM || op === OP.H3_BEXTMI) w0 |= (d[D_AUX] - 1) << W0_AUX_SHIFT;
     this.w0s = w0;
     this.w1s = w1;
+    const hle = this.hleHook;
+    if (hle !== null) {
+      const kind = hle.kind(pc >>> 0);
+      if (kind !== 0) {
+        this.w0s = W0_FILLED | OP_HLE;
+        this.w1s = kind;
+      }
+    }
   }
 
   /**
@@ -1063,6 +1088,17 @@ export class RiscvCore {
             x[rd] = ~x[rs1];
             pc = next;
             break;
+          case 127 /* OP_HLE */: {
+            // BT106: a function TypeScript answers, or a generator's step (hle.ts).
+            const hle = this.hleHook;
+            this.pc = pc;
+            this.cycles = cycles;
+            if (hle === null) this.fault(`hle: an HLE op at 0x${(pc >>> 0).toString(16)} without a table`);
+            const target = hle === null ? pc : hle.run(this, pc, w1);
+            if (this.halt !== HALT.RUNNING) return;
+            pc = target >>> 0;
+            break;
+          }
           default:
             // INVALID, SRET and DRET (no supervisor mode, not in debug mode)
             cycles = this.illegal(pc, cycles);

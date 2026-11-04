@@ -8,6 +8,7 @@ export * from './cpu.ts';
 export * from './csr.ts';
 export * from './decode.ts';
 export * from './disasm.ts';
+export * from './hle.ts';
 export * from './icache.ts';
 export * from './isa.ts';
 export * from './traps.ts';

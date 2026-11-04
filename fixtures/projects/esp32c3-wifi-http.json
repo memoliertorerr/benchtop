@@ -1,0 +1,38 @@
+{
+  "format": 1,
+  "name": "esp32c3-wifi-http",
+  "parts": [
+    {
+      "id": "c3",
+      "type": "esp32-c3-devkitm-1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "ap",
+      "type": "wifi-ap",
+      "x": 90,
+      "y": 10,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "api",
+      "type": "http-server",
+      "x": 90,
+      "y": 45,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [],
+  "firmware": {
+    "c3": {
+      "kind": "file",
+      "name": "wifi-http-get.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

@@ -1850,6 +1850,168 @@
       "source": "5e3b47f0e66543a46e8a74a64234022455dfd069a571f7fa1775ea2715d2e9a5"
     },
     {
+      "board": "esp32c3",
+      "name": "wifi-http-get",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/wifi-http-get.bin",
+      "sha256": "0e3fc69576abe0961fb61c82e133152757d06e3103e598ee820d1590db5e551d",
+      "bytes": 890512,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "HTTPClient": "2.0.0",
+        "WiFi": "2.0.0",
+        "WiFiClientSecure": "2.0.0"
+      },
+      "source": "c2a8b994a601274ec34f4d05c2d7beb72a131ce8d6b66c4f869fd53fcf4ffe5d"
+    },
+    {
+      "board": "esp32c3",
+      "name": "wifi-http-get",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/wifi-http-get.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "HTTPClient": "2.0.0",
+        "WiFi": "2.0.0",
+        "WiFiClientSecure": "2.0.0"
+      },
+      "source": "c2a8b994a601274ec34f4d05c2d7beb72a131ce8d6b66c4f869fd53fcf4ffe5d"
+    },
+    {
+      "board": "esp32c3",
+      "name": "wifi-http-get",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/wifi-http-get.syms.tsv",
+      "sha256": "3c2967071eabe6bd7569f17f0bc2b49c13a8ae8ef118093090df2fb48f9cffc6",
+      "bytes": 330265,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "HTTPClient": "2.0.0",
+        "WiFi": "2.0.0",
+        "WiFiClientSecure": "2.0.0"
+      },
+      "source": "c2a8b994a601274ec34f4d05c2d7beb72a131ce8d6b66c4f869fd53fcf4ffe5d"
+    },
+    {
+      "board": "esp32c3",
+      "name": "wifi-layout",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/wifi-layout.bin",
+      "sha256": "06231473dd869463b214d08999bb4a9c18fde9dcaeb4f6d54aef93fd1de98cdf",
+      "bytes": 254336,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "749b05ecb31481f0503e7b8d618619d9db39bf273ac1ca32fd494b4a1d10a916"
+    },
+    {
+      "board": "esp32c3",
+      "name": "wifi-layout",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/wifi-layout.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "749b05ecb31481f0503e7b8d618619d9db39bf273ac1ca32fd494b4a1d10a916"
+    },
+    {
+      "board": "esp32c3",
+      "name": "wifi-layout",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/wifi-layout.syms.tsv",
+      "sha256": "73fe8be1135e30ed958cee3a95346cce05e3b0c0399109e5939c61cab77b6b61",
+      "bytes": 152156,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "749b05ecb31481f0503e7b8d618619d9db39bf273ac1ca32fd494b4a1d10a916"
+    },
+    {
+      "board": "esp32c3",
+      "name": "wifi-rgb-server",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/wifi-rgb-server.bin",
+      "sha256": "312ddeebe89cf5cd61199678ad74031eb101e8f6c1f6dffde0b4264ad88d7865",
+      "bytes": 779936,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "FS": "2.0.0",
+        "WebServer": "2.0.0",
+        "WiFi": "2.0.0"
+      },
+      "source": "815d829af7cc6aa6234f3d37a27bb565b54dc23a082054655c6d956d45c53d70"
+    },
+    {
+      "board": "esp32c3",
+      "name": "wifi-rgb-server",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/wifi-rgb-server.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "FS": "2.0.0",
+        "WebServer": "2.0.0",
+        "WiFi": "2.0.0"
+      },
+      "source": "815d829af7cc6aa6234f3d37a27bb565b54dc23a082054655c6d956d45c53d70"
+    },
+    {
+      "board": "esp32c3",
+      "name": "wifi-rgb-server",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/wifi-rgb-server.syms.tsv",
+      "sha256": "032fce291be2868f172b83010e99502b555828daf00c660b606d2b316af4f31f",
+      "bytes": 310383,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "FS": "2.0.0",
+        "WebServer": "2.0.0",
+        "WiFi": "2.0.0"
+      },
+      "source": "815d829af7cc6aa6234f3d37a27bb565b54dc23a082054655c6d956d45c53d70"
+    },
+    {
+      "board": "esp32c3",
+      "name": "wifi-scan",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/wifi-scan.bin",
+      "sha256": "6c6ff18a4c771dd30c5d6fe36e151565b9bf7a57344970728e92f02142006820",
+      "bytes": 711088,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "WiFi": "2.0.0"
+      },
+      "source": "df095b12032fb809740567a7b0e9dd66dec3fcea22da6625c75ed6b7f7e763b2"
+    },
+    {
+      "board": "esp32c3",
+      "name": "wifi-scan",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/wifi-scan.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "WiFi": "2.0.0"
+      },
+      "source": "df095b12032fb809740567a7b0e9dd66dec3fcea22da6625c75ed6b7f7e763b2"
+    },
+    {
+      "board": "esp32c3",
+      "name": "wifi-scan",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/wifi-scan.syms.tsv",
+      "sha256": "eeb11851f73cac9b50c8f9a8b7bac9205a77f112c74d55a2a86b93691be8fa0f",
+      "bytes": 290628,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "WiFi": "2.0.0"
+      },
+      "source": "df095b12032fb809740567a7b0e9dd66dec3fcea22da6625c75ed6b7f7e763b2"
+    },
+    {
       "board": "mega",
       "name": "analog-hi",
       "fqbn": "arduino:avr:mega",

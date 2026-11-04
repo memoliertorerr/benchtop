@@ -22,11 +22,20 @@
  *   `esp32c3-rom-missing` with the command that fetches it, and `runUntil` returns `halted`.
  * - `debug()` is Esp32c3Debug; breakpoints outlive resets. Outside the contract: `onProblem` hears
  *   the SoC's Problems one by one; `esp32c3McuFactory` folds them into one bench Problem per code.
+ * - WiFi (BT107), as the ESP32's (@benchtop/esp32's esp32.ts): `useSymbols(table)` gives the Mcu
+ *   the firmware's symbols, and the WiFi driver's API is answered by @benchtop/esp32's WifiDriver
+ *   through @benchtop/riscv's RiscvHle (on every SoC a reset builds); `wifi` is that driver.
+ *   `joinWifi(radio)` is what the station sees. A firmware that drives the radio's registers
+ *   without symbols gets `esp32c3-wifi-no-symbols` (once per boot). HLE_RESUME_PC and
+ *   WIFI_TASK_PC sit in the ROM's unused gap between .text and .rodata.
+ * - `mac` (BT107): the eFuse's factory MAC; the factory gives each board one from its part id
+ *   (Espressif's 34:85:18 and three bytes of a hash), so two boards on one LAN differ.
  */
 
-import type { BoardSpec, Debuggable, FirmwareImage, I2cController, I2cDevice, Level, Mcu, McuDebug, McuPin, NetState, PinMode, Problem, RunResult, SpiController, SpiDevice, UartPort } from '@benchtop/core';
-import { describeFirmwareFormat } from '@benchtop/core';
-import { sha256Hex } from '@benchtop/esp32';
+import type { BoardSpec, Debuggable, FirmwareImage, I2cController, I2cDevice, Level, Mcu, McuDebug, McuPin, NetState, PinMode, Problem, RunResult, SpiController, SpiDevice, SymbolTable, UartPort, WifiRadio, WifiStation } from '@benchtop/core';
+import { describeFirmwareFormat, macFromName } from '@benchtop/core';
+import { STA_LIST_C3, sha256Hex, WifiDriver } from '@benchtop/esp32';
+import { RiscvHle } from '@benchtop/riscv';
 import { directBoot } from './boot/direct-boot.ts';
 import { type C3Rom, parseC3Rom } from './boot/rom.ts';
 import { Esp32c3Debug } from './debug.ts';
@@ -39,6 +48,12 @@ import type { SpiAttachment } from './soc/spi.ts';
 
 export const CODE_C3_ROM_MISSING = 'esp32c3-rom-missing';
 export const CODE_C3_FLOATING_INPUT = 'esp32c3-floating-input';
+export const CODE_C3_WIFI_NO_SYMBOLS = 'esp32c3-wifi-no-symbols';
+export const CODE_C3_WIFI_UNSUPPORTED = 'esp32c3-wifi-unsupported';
+/** BT107: where HLE generators run (hle.ts's resumePc) — in the ROM's gap after .text (ends 0x40059590), before .rodata (0x40059C00 on IBUS). */
+export const C3_HLE_RESUME_PC = 0x40059a00;
+/** BT107: the simulated WiFi driver's task entry, in the same gap. */
+export const C3_WIFI_TASK_PC = 0x40059a08;
 export const C3_ROM_MISSING_MESSAGE = `ESP32-C3 ROM not installed — run npm run fetch:esp32-rom (it unpacks ${C3_ROM_ELF_NAME} into ${C3_ROM_CACHE_DIR} from the ESP32 ROM's tarball, with no new download when that is cached).`;
 /** Input thresholds at VDD 3.3 V (datasheet: VIH ≥ 0.75·VDD, VIL ≤ 0.25·VDD). */
 export const C3_VIH = 2.475;
@@ -49,6 +64,8 @@ const MODES: readonly PinMode[] = ['input', 'input-pullup', 'input-pulldown', 'o
 export interface Esp32c3McuOptions {
   /** `esp32c3_rev3_rom.elf` (rom-manifest). Missing or wrong: the Mcu reports it and won't run. */
   rom?: Uint8Array;
+  /** BT107: the eFuse's factory MAC (34:85:18:00:C3:01 by default). */
+  mac?: readonly number[];
 }
 
 const parsedRoms = new WeakMap<Uint8Array, C3Rom | string>();
@@ -214,7 +231,7 @@ class C3Uart implements UartPort {
   }
 }
 
-export class Esp32c3Mcu implements Mcu, Debuggable {
+export class Esp32c3Mcu implements Mcu, Debuggable, WifiStation {
   readonly kind = 'esp32c3' as const;
   readonly clockHz = REF_HZ;
   readonly pins: ReadonlyMap<string, McuPin>;
@@ -236,9 +253,18 @@ export class Esp32c3Mcu implements Mcu, Debuggable {
   /** Breakpoints, handed to every SoC built (they outlive resets). */
   private readonly breakpoints = new Set<number>();
   private debugView: Esp32c3Debug | null = null;
+  /** BT107: the firmware's symbols by exact name (useSymbols; functions win over objects). */
+  private symbols: Map<string, number> | null = null;
+  /** BT107: the simulated WiFi driver of the current SoC, when the firmware's symbols name its API. */
+  wifi: WifiDriver | null = null;
+  /** BT107: the bench's radio (joinWifi). */
+  private radio: WifiRadio | null = null;
+  private readonly mac: readonly number[] | undefined;
+  private radioReported = false;
 
   constructor(options: Esp32c3McuOptions = {}) {
     this.rom = romFrom(options.rom);
+    this.mac = options.mac;
     const pins = new Map<string, McuPin>();
     for (let g = 0; g < PIN_COUNT; g++) {
       const pin = new C3Pin(this, g);
@@ -288,6 +314,7 @@ export class Esp32c3Mcu implements Mcu, Debuggable {
   reset(): void {
     this.soc = this.buildSoc();
     this.bootError = '';
+    this.radioReported = false;
     if (typeof this.rom === 'string') {
       this.report('error', CODE_C3_ROM_MISSING, 0, this.rom);
     } else if (this.image !== null) {
@@ -330,8 +357,31 @@ export class Esp32c3Mcu implements Mcu, Debuggable {
     return this.debugView;
   }
 
+  /**
+   * BT107: the firmware's symbols, for what the simulator answers by function name (WiFi). Hosts
+   * call it after `load` and before running; it applies to the current SoC and every later one.
+   */
+  useSymbols(table: SymbolTable | null): void {
+    if (table === null) this.symbols = null;
+    else {
+      const byName = new Map<string, number>();
+      for (let i = 0; i < table.size; i++) {
+        const entry = table.entry(i);
+        if (!byName.has(entry.name) || entry.kind === 'func') byName.set(entry.name, entry.address);
+      }
+      this.symbols = byName;
+    }
+    this.installHle(this.soc);
+  }
+
+  /** BT107: the bench's access points and LANs (null: none); an association moves to a rebuilt bench's. */
+  joinWifi(radio: WifiRadio | null): void {
+    this.radio = radio;
+    this.wifi?.radioChanged();
+  }
+
   private buildSoc(): Esp32c3Soc {
-    const soc = new Esp32c3Soc();
+    const soc = new Esp32c3Soc(this.mac === undefined ? {} : { mac: this.mac });
     soc.breakpoints = this.breakpoints;
     soc.uarts[0].onTx = (byte) => this.uarts[0].emit(byte);
     soc.uarts[1].onTx = (byte) => this.uarts[1].emit(byte);
@@ -349,7 +399,36 @@ export class Esp32c3Mcu implements Mcu, Debuggable {
       soc.i2c.devices = this.i2c0.devices;
       soc.spi2.devices = this.spi2.devices;
     }
+    soc.periph.onRadio = (address, pc) => this.radioAccess(address, pc);
+    this.installHle(soc);
     return soc;
+  }
+
+  /** BT107: answers the firmware's WiFi calls on `soc` when its symbols name them. */
+  private installHle(soc: Esp32c3Soc): void {
+    this.wifi = null;
+    soc.core.setHle(null);
+    const table = this.symbols;
+    if (table === null) return;
+    const hle = new RiscvHle(C3_HLE_RESUME_PC);
+    const wifi = new WifiDriver({ now: () => soc.now(), refHz: REF_HZ, mac: soc.rtc.mac, radio: () => this.radio, taskPc: C3_WIFI_TASK_PC, staListSize: STA_LIST_C3.SIZE });
+    const { installed, missing } = wifi.install(hle, (name) => table.get(name));
+    if (missing.length > 0) this.report('error', CODE_C3_WIFI_UNSUPPORTED, 0, `This firmware uses WiFi, but it lacks ${missing.join(', ')}, which the simulated WiFi driver calls: WiFi won't run.`);
+    if (!installed) return;
+    soc.core.setHle(hle);
+    this.wifi = wifi;
+  }
+
+  /** BT107: the firmware touched the radio's registers (the closed WiFi driver is running). */
+  private radioAccess(address: number, pc: number): void {
+    if (this.radioReported) return;
+    this.radioReported = true;
+    const where = `0x${address.toString(16).toUpperCase()} at PC 0x${pc.toString(16).toUpperCase()}`;
+    if (this.wifi === null) {
+      this.report('error', CODE_C3_WIFI_NO_SYMBOLS, address, `This firmware drives the WiFi radio (${where}). The simulator answers WiFi at the driver's API by function name, so it needs the firmware's symbols: run the sketch's .elf beside its .bin (arduino-cli builds both; Compile & Run passes it), or a .syms.tsv as the fixtures keep.`);
+    } else {
+      this.report('warning', CODE_C3_WIFI_UNSUPPORTED, address, `The firmware touched the radio's registers (${where}) outside the WiFi API the simulator answers: that part of it doesn't run.`);
+    }
   }
 
   private pinChanged(g: number): void {
@@ -381,7 +460,8 @@ export class Esp32c3Mcu implements Mcu, Debuggable {
 export function esp32c3McuFactory(rom: Uint8Array | undefined): (board: BoardSpec, partId: string, report?: (problem: Problem) => void) => Mcu | undefined {
   return (board, partId, report) => {
     if (board.mcu !== 'esp32c3') return undefined;
-    const mcu = createEsp32c3Mcu(rom === undefined ? {} : { rom });
+    const mac = macFromName(partId, [0x34, 0x85, 0x18]);
+    const mcu = createEsp32c3Mcu(rom === undefined ? { mac } : { rom, mac });
     if (report !== undefined) {
       const seen = new Map<string, { messages: string[]; count: number }>();
       let soc = mcu.soc;

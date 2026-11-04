@@ -29,3 +29,5 @@ export * from './xtensa/exceptions.ts';
 export * from './xtensa/interrupts.ts';
 export * from './xtensa/isa.ts';
 export * from './xtensa/regs.ts';
+export * from './wifi/driver.ts';
+export { STA_LIST_C3 } from './wifi/types.ts';

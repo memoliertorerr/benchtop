@@ -740,7 +740,8 @@ to the http-server part through lwIP's TCP and ours. Also running: `wifi-webserv
 WebServer as "esp32-web": the board connects at 1.61 s and answers an http-client part within
 8 ms, switching its LED), and `wifi-tcp-server` + `wifi-tcp-client` on two ESP32s (the client
 finds "echo-server" through the gateway's DNS and gets its line back in capitals 22 ms after
-both connected). The gallery's WiFi category runs all three; the web gives an example its
+both connected). The gallery's WiFi category runs all three (and an ESP32-C3 web server,
+`wifi-rgb-server`, whose `/led?color=…` sets the board's RGB LED); the web gives an example its
 `.syms.tsv` (`debugSyms`, see Worker protocol), since a precompiled `.bin` has no ELF.
 
 ### MCUs
@@ -1423,7 +1424,9 @@ sequence, files matched by basename or trailing path.
   makes (the rx callback registration, transmit, buffer release). The list is the cross-reference
   of Arduino-ESP32 2.0.17's link map: closed-library symbols that open code calls. Everything
   above — the WiFi library, esp_netif, the default event loop, lwIP — is the firmware's own code.
-  `WifiDriver` keeps the driver's state and posts events as the driver does, through
+  `WifiDriver` (chip-neutral: it sees calls through `WifiCall` and installs into any `WifiHle`,
+  so the ESP32-C3 runs it too — see that entry) keeps the driver's state and posts events as the
+  driver does, through
   `esp_event_post(WIFI_EVENT, …)`: STA/AP START and STOP from inside `esp_wifi_start`/`stop`
   (the caller's task), timed ones (SCAN_DONE, STA_CONNECTED, STA_DISCONNECTED) from the driver's
   task, which `esp_wifi_init` creates (`xTaskCreatePinnedToCore`: "wifi", 4 KB, priority 23,
@@ -1817,6 +1820,21 @@ sequence, files matched by basename or trailing path.
   (`slt x0, x0, x1`) calls `unblockHook`, and the SoC's `unblock()` wakes a blocked hart or
   latches for its next block — the SDK's `__wfe`/`__sev` on RISC-V, so a sketch in `delay()`
   sleeps instead of spinning.
+  **High-level emulation (`hle.ts`).** As on the Xtensa core (the ESP32's hle/), a
+  function can be answered by TypeScript: `RiscvHle.replace(address, name, handler)` and
+  `core.setHle(table)`; an address the table lists decodes as `OP_HLE` (127, past the ISA's ids
+  in the entry's 7-bit op field; `pack()` asks the table, so the predecode cache and the
+  uncached path agree, and the table costs nothing elsewhere). The calling convention does the
+  rest: arguments in a0–a7 (later ones on the caller's stack at sp), the result to a0, then on to
+  ra. A handler that calls back into the firmware is a generator yielding `{ fn, args }`: its
+  call gets a frame of its own — sp down FRAME_SIZE (144: 16 bytes of stack arguments, 128 of
+  scratch memory, 16-aligned), the caller's ra kept with it — and every step runs at `resumePc`
+  (an address the firmware never executes): a call out puts its arguments in a0–a7 and on the
+  stack, sets ra = resumePc and jumps to `fn`; the frame is found again by sp; at the end a0 gets
+  the value, sp goes back up and execution continues at the kept ra. No register windows, so no
+  spills and no return trampoline. `fixtures/riscv/programs/hle.S` tests it on the bare machine,
+  cached and not: nine arguments, generators calling the firmware, two waiting at once, a
+  recursion 50 deep around one, a call out with stack arguments, scratch memory.
   **External interrupt cause.** A SoC whose interrupt controller picks the line itself
   (the ESP32-C3's) presents it with `setInterruptCause(cause)` (0 = none): while it is nonzero
   the core treats an interrupt as pending, and with mstatus.MIE set takes it as cause
@@ -2145,7 +2163,37 @@ sequence, files matched by basename or trailing path.
   the Debugger tab shows `mstatus` and starts its memory view at DRAM (0x3FC80000). Gallery:
   RGB blink, serial hello, a potentiometer dimmer (ADC → LEDC) and an OLED clock (DS1307 +
   SSD1306 on the default I2C pins), each with a spec in fixtures/specs/examples and a check in
-  `examples-run-esp32c3.test.ts`.
+  `examples-run-esp32c3.test.ts`; and in the WiFi category an ESP32-C3 RGB web server (its
+  `.syms.tsv` in the manifest's symbol glob, a test that every WiFi example ships its symbols).
+
+  **WiFi.** The C3's Arduino sketches call the same IDF 4.4 WiFi API as the ESP32's, so
+  the ESP32's `WifiDriver` (@benchtop/esp32's `wifi/`, see the ESP32's WiFi above) answers them
+  here too, through `@benchtop/riscv`'s `RiscvHle` instead of the Xtensa `Hle`. The driver sees a
+  call through `WifiCall` (arguments, memory, scratch, calls out) and installs into a `WifiHle`
+  (`replace`), which both ISAs' HLE tables satisfy; what it keeps per chip is in `WifiHost`: the
+  task's entry address (`taskPc`) and `sizeof(wifi_sta_list_t)` (`staListSize`). Every other
+  layout in `wifi/types.ts` is the C3's too — `fixtures/sketches/esp32c3/wifi-layout` prints them
+  with the C3's toolchain and `packages/esp32c3/src/wifi.test.ts` holds them to the table — but
+  the station list: ESP_WIFI_MAX_CONN_NUM is 10 on the C3, so it is 124 bytes (`STA_LIST_C3`).
+  The resume and WiFi-task addresses, 0x40059A00 and 0x40059A08, are in the ROM's gap between
+  `.text` (ends 0x40059590) and `.rodata` (0x40059C00 on the instruction bus): nothing is
+  loaded there (ROM1's view past its `.rodata`, the ESP32's choice, is the C3's
+  `.rodata.interface` table). `Esp32c3Mcu.useSymbols` and `joinWifi` are the ESP32's, and the
+  factory gives each board its own eFuse MAC — Espressif's 34:85:18 and three bytes hashed from
+  its part id (`Esp32c3McuOptions.mac`, `RtcCntl.mac`; the SoC's default stays
+  34:85:18:00:C3:01). The radio's blocks (FE2 0x60005000, FE 0x60006000, NRX 0x6001C000, BB
+  0x6001D000) count accesses and report `esp32c3-wifi-no-symbols` / `esp32c3-wifi-unsupported` as
+  the ESP32's do — but for their power-down controls (BB_BBPD_CTRL, NRXPD_CTRL, FE_GEN_CTRL,
+  FE2_TX_INTERP_CTRL), which every boot's `rtc_init` sets (`rtc_sleep_pu`), WiFi or not. Without
+  symbols the closed driver's PHY setup touches FE and then polls the analog through RTC_I2C
+  forever. lwIP's DNS needed one more model: APB_CTRL's WDEV_RND_REG (+0xB0, `apb-ctrl.ts`), a
+  deterministic xorshift32 as the ESP32's RNG — `dns_alloc_random_port` draws from `esp_random`
+  until it gets a port ≥ 1024, and a register reading back one value never gives one.
+  Measured: `fixtures/sketches/esp32c3/wifi-scan` (scan, connect, DHCP) runs 5 s simulated in
+  ≈ 1.5 s wall, `wifi-http-get` GETs and POSTs to an http-server part
+  (`packages/parts/src/integration/esp32c3-wifi.test.ts`); `wifi-rgb-server` listens 1.6 s
+  into a run and sets its LED within 10 ms of an http-client part's Send (4 s simulated in
+  0.8 s); `sim_wifi` lists ESP32-C3 boards with the ESP32's.
 
 ## Worker protocol
 
@@ -2782,7 +2830,7 @@ Model Context Protocol on stdio — one more front end over the headless runner,
   at most; write one from `write` text or `writeBase64`; `remove` one or a directory); `sim_wifi`
   (the access points — SSID, on, channel, signal, security — with the boards joined to
   each, their addresses and hostnames, the server and client parts on its LAN, and each ESP32
-  board's state; runs nothing); `sim_http` (one request from an AP's gateway to a URL on
+  and ESP32-C3 board's state; runs nothing); `sim_http` (one request from an AP's gateway to a URL on
   its LAN — a board's web server by hostname — running the session until the response or
   `timeout`, default 5 s, stopping at the 10 ms slice it arrived in: status, headers, the body as
   text up to 64 KB, or why it failed, plus the serial since the last call); `sim_update` (a new

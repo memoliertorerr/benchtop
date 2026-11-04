@@ -33,14 +33,41 @@
  */
 
 import type { AccessPointInfo, WifiLink, WifiRadio, WifiSecurity } from '@benchtop/core';
-import { type Hle, type HleCall, type HleTask, SCRATCH_SIZE, type Upcall } from '../hle/hle.ts';
+import { type HleTask, SCRATCH_SIZE, type Upcall } from '../hle/hle.ts';
 import * as T from './types.ts';
 
 export const CODE_WIFI_NO_SYMBOLS = 'esp32-wifi-no-symbols';
 export const CODE_WIFI_UNSUPPORTED = 'esp32-wifi-unsupported';
 
-/** The WiFi task's entry: the ROM's unused tail, next to hle/'s resume and return addresses. */
+/** The ESP32's WiFi task entry: the ROM's unused tail, next to hle/'s resume and return addresses. */
 export const WIFI_TASK_PC = 0x4006fff8;
+
+/**
+ * BT107: what the driver needs from one call of a replaced function — the Xtensa `WifiCall`
+ * (hle/) and the RISC-V `RiscvWifiCall` (@benchtop/riscv, the ESP32-C3) both provide it, so one
+ * driver serves both chips.
+ */
+export interface WifiCall {
+  /** SCRATCH_SIZE bytes a generator may use while it runs (0 for a plain handler). */
+  readonly scratch: number;
+  arg(i: number): number;
+  int(i: number): number;
+  call(fn: number, ...args: number[]): Upcall;
+  read8(address: number): number;
+  read16(address: number): number;
+  read32(address: number): number;
+  write8(address: number, value: number): void;
+  write16(address: number, value: number): void;
+  write32(address: number, value: number): void;
+  readBytes(address: number, length: number): Uint8Array;
+  writeBytes(address: number, bytes: ArrayLike<number>): void;
+  fill(address: number, length: number, value?: number): void;
+}
+
+/** BT107: an HLE table the driver installs its handlers in (either ISA's). */
+export interface WifiHle {
+  replace(address: number, name: string, handler: (call: WifiCall) => number | HleTask): void;
+}
 
 /** Firmware functions (and the WIFI_EVENT base) the driver calls back. */
 export const WIFI_NEEDS = ['esp_event_post', 'vTaskDelay', 'xTaskCreatePinnedToCore', 'malloc', 'free', 'WIFI_EVENT'] as const;
@@ -69,6 +96,10 @@ export interface WifiHost {
   readonly mac: readonly number[];
   /** The bench's radio, or null (no access point anywhere). */
   radio(): WifiRadio | null;
+  /** BT107: where the WiFi task's entry is (an address the firmware never executes; default WIFI_TASK_PC, the ESP32's). */
+  readonly taskPc?: number;
+  /** BT107: sizeof(wifi_sta_list_t) on this chip (default STA_LIST.SIZE, the ESP32's; the C3's is STA_LIST_C3.SIZE). */
+  readonly staListSize?: number;
 }
 
 /** Frames waiting for lwIP at most (more are dropped, as the driver's RX buffers would be). */
@@ -188,7 +219,7 @@ export class WifiDriver {
    * esp_wifi_init): nothing to do. Returns the needed firmware names it lacks (then nothing is
    * replaced).
    */
-  install(hle: Hle, lookup: (name: string) => number | undefined): { installed: boolean; missing: string[] } {
+  install(hle: WifiHle, lookup: (name: string) => number | undefined): { installed: boolean; missing: string[] } {
     if (lookup('esp_wifi_init') === undefined) return { installed: false, missing: [] };
     const missing = WIFI_NEEDS.filter((name) => lookup(name) === undefined);
     if (missing.length > 0) return { installed: false, missing };
@@ -197,7 +228,7 @@ export class WifiDriver {
       const address = lookup(name);
       if (address !== undefined) hle.replace(address, name, handler);
     }
-    hle.replace(WIFI_TASK_PC, 'wifi task', (call) => this.task(call));
+    hle.replace(this.host.taskPc ?? WIFI_TASK_PC, 'wifi task', (call) => this.task(call));
     return { installed: true, missing: [] };
   }
 
@@ -205,7 +236,7 @@ export class WifiDriver {
     return this.fn.get(name) ?? 0;
   }
 
-  private handlers(): Record<string, (call: HleCall) => number | HleTask> {
+  private handlers(): Record<string, (call: WifiCall) => number | HleTask> {
     const ok = (): number => T.ESP_OK;
     const initOk = (): number => (this.inited ? T.ESP_OK : T.ESP_ERR_WIFI_NOT_INIT);
     return {
@@ -271,7 +302,7 @@ export class WifiDriver {
   // ── Calls back into the firmware ──────────────────────────────────────────────────────
 
   /** esp_event_post(WIFI_EVENT, id, data, size, portMAX_DELAY); `data` goes through the frame's scratch. */
-  private *post(call: HleCall, id: number, data: Uint8Array | null): Generator<Upcall, number, number> {
+  private *post(call: WifiCall, id: number, data: Uint8Array | null): Generator<Upcall, number, number> {
     const base = call.read32(this.address('WIFI_EVENT'));
     if (id === T.WIFI_EVENT.STA_DISCONNECTED && data !== null) this.lastReason = data[T.STA_DISCONNECTED.REASON];
     if (data !== null) call.writeBytes(call.scratch, data.subarray(0, SCRATCH_SIZE));
@@ -279,7 +310,7 @@ export class WifiDriver {
   }
 
   /** The WiFi task: posts what is due, hands lwIP the frames that came, sleeps a tick (50 while WiFi is stopped). */
-  private *task(call: HleCall): HleTask {
+  private *task(call: WifiCall): HleTask {
     for (;;) {
       for (let event = this.due(); event !== null; event = this.due()) {
         if (event.apply !== null && !event.apply()) continue;
@@ -317,11 +348,11 @@ export class WifiDriver {
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────────────────
 
-  private *init(call: HleCall): HleTask {
+  private *init(call: WifiCall): HleTask {
     if (this.inited) return T.ESP_OK;
     if (!this.taskCreated) {
       call.writeBytes(call.scratch, TASK_NAME);
-      const created = yield call.call(this.address('xTaskCreatePinnedToCore'), WIFI_TASK_PC, call.scratch, 4096, 0, 23, 0, 0);
+      const created = yield call.call(this.address('xTaskCreatePinnedToCore'), this.host.taskPc ?? WIFI_TASK_PC, call.scratch, 4096, 0, 23, 0, 0);
       if (created !== 1) return T.ESP_ERR_NO_MEM;
       this.taskCreated = true;
     }
@@ -336,7 +367,7 @@ export class WifiDriver {
     return T.ESP_OK;
   }
 
-  private setMode(call: HleCall): number | HleTask {
+  private setMode(call: WifiCall): number | HleTask {
     if (!this.inited) return T.ESP_ERR_WIFI_NOT_INIT;
     const mode = call.arg(0);
     if (mode > T.WIFI_MODE.APSTA) return T.ESP_ERR_INVALID_ARG;
@@ -347,7 +378,7 @@ export class WifiDriver {
     return this.modeEvents(call, before, mode);
   }
 
-  private *modeEvents(call: HleCall, before: number, after: number): HleTask {
+  private *modeEvents(call: WifiCall, before: number, after: number): HleTask {
     if ((before & 1) !== 0 && (after & 1) === 0) {
       this.dropStation();
       yield* this.post(call, T.WIFI_EVENT.STA_STOP, null);
@@ -358,7 +389,7 @@ export class WifiDriver {
     return T.ESP_OK;
   }
 
-  private *start(call: HleCall): HleTask {
+  private *start(call: WifiCall): HleTask {
     if (!this.inited) return T.ESP_ERR_WIFI_NOT_INIT;
     if (this.started) return T.ESP_OK;
     this.started = true;
@@ -366,7 +397,7 @@ export class WifiDriver {
     return T.ESP_OK;
   }
 
-  private *stop(call: HleCall): HleTask {
+  private *stop(call: WifiCall): HleTask {
     if (!this.inited) return T.ESP_ERR_WIFI_NOT_INIT;
     if (!this.started) return T.ESP_OK;
     yield* this.modeEvents(call, this.mode, T.WIFI_MODE.NULL);
@@ -435,7 +466,7 @@ export class WifiDriver {
 
   // ── Configuration ─────────────────────────────────────────────────────────────────────
 
-  private setConfig(call: HleCall): number {
+  private setConfig(call: WifiCall): number {
     if (!this.inited) return T.ESP_ERR_WIFI_NOT_INIT;
     const ifx = call.arg(0);
     if (ifx > 1) return T.ESP_ERR_WIFI_IF;
@@ -446,7 +477,7 @@ export class WifiDriver {
     return T.ESP_OK;
   }
 
-  private getConfig(call: HleCall): number {
+  private getConfig(call: WifiCall): number {
     if (!this.inited) return T.ESP_ERR_WIFI_NOT_INIT;
     const ifx = call.arg(0);
     if (ifx > 1) return T.ESP_ERR_WIFI_IF;
@@ -455,7 +486,7 @@ export class WifiDriver {
     return T.ESP_OK;
   }
 
-  private setMac(call: HleCall): number {
+  private setMac(call: WifiCall): number {
     if (!this.inited) return T.ESP_ERR_WIFI_NOT_INIT;
     const ifx = call.arg(0);
     if (ifx > 1) return T.ESP_ERR_WIFI_IF;
@@ -465,7 +496,7 @@ export class WifiDriver {
     return T.ESP_OK;
   }
 
-  private getMac(call: HleCall): number {
+  private getMac(call: WifiCall): number {
     if (!this.inited) return T.ESP_ERR_WIFI_NOT_INIT;
     const ifx = call.arg(0);
     if (ifx > 1) return T.ESP_ERR_WIFI_IF;
@@ -474,21 +505,21 @@ export class WifiDriver {
     return T.ESP_OK;
   }
 
-  private perInterface(call: HleCall, store: number[]): number {
+  private perInterface(call: WifiCall, store: number[]): number {
     if (!this.inited) return T.ESP_ERR_WIFI_NOT_INIT;
     if (call.arg(0) > 1) return T.ESP_ERR_WIFI_IF;
     store[call.arg(0)] = call.arg(1);
     return T.ESP_OK;
   }
 
-  private getChannel(call: HleCall): number {
+  private getChannel(call: WifiCall): number {
     if (!this.inited) return T.ESP_ERR_WIFI_NOT_INIT;
     if (call.arg(0) !== 0) call.write8(call.arg(0), this.associated?.channel ?? 1);
     if (call.arg(1) !== 0) call.write32(call.arg(1), 0);
     return T.ESP_OK;
   }
 
-  private getCountry(call: HleCall): number {
+  private getCountry(call: WifiCall): number {
     if (!this.inited) return T.ESP_ERR_WIFI_NOT_INIT;
     const at = call.arg(0);
     if (at === 0) return T.ESP_ERR_INVALID_ARG;
@@ -500,28 +531,28 @@ export class WifiDriver {
     return T.ESP_OK;
   }
 
-  private staList(call: HleCall): number {
+  private staList(call: WifiCall): number {
     if (!this.inited) return T.ESP_ERR_WIFI_NOT_INIT;
     if ((this.mode & 2) === 0) return T.ESP_ERR_WIFI_MODE;
-    call.fill(call.arg(0), T.STA_LIST.SIZE);
+    call.fill(call.arg(0), this.host.staListSize ?? T.STA_LIST.SIZE);
     return T.ESP_OK;
   }
 
-  private out32(call: HleCall, arg: number, value: number): number {
+  private out32(call: WifiCall, arg: number, value: number): number {
     if (!this.inited) return T.ESP_ERR_WIFI_NOT_INIT;
     if (call.arg(arg) === 0) return T.ESP_ERR_INVALID_ARG;
     call.write32(call.arg(arg), value);
     return T.ESP_OK;
   }
 
-  private out16(call: HleCall, arg: number, value: number): number {
+  private out16(call: WifiCall, arg: number, value: number): number {
     if (!this.inited) return T.ESP_ERR_WIFI_NOT_INIT;
     if (call.arg(arg) === 0) return T.ESP_ERR_INVALID_ARG;
     call.write16(call.arg(arg), value);
     return T.ESP_OK;
   }
 
-  private out8(call: HleCall, arg: number, value: number): number {
+  private out8(call: WifiCall, arg: number, value: number): number {
     if (!this.inited) return T.ESP_ERR_WIFI_NOT_INIT;
     if (call.arg(arg) === 0) return T.ESP_ERR_INVALID_ARG;
     call.write8(call.arg(arg), value);
@@ -530,7 +561,7 @@ export class WifiDriver {
 
   // ── Scanning ──────────────────────────────────────────────────────────────────────────
 
-  private scanStart(call: HleCall): number | HleTask {
+  private scanStart(call: WifiCall): number | HleTask {
     if (!this.inited) return T.ESP_ERR_WIFI_NOT_INIT;
     if (!this.started) return T.ESP_ERR_WIFI_NOT_STARTED;
     if ((this.mode & 1) === 0) return T.ESP_ERR_WIFI_MODE;
@@ -581,7 +612,7 @@ export class WifiDriver {
   }
 
   /** A blocking scan: the calling task sleeps for the scan, then SCAN_DONE is posted from it. */
-  private *scanBlocking(call: HleCall, ms: number, data: Uint8Array, done: () => boolean): HleTask {
+  private *scanBlocking(call: WifiCall, ms: number, data: Uint8Array, done: () => boolean): HleTask {
     yield call.call(this.address('vTaskDelay'), Math.max(1, Math.ceil((ms * T.TICK_HZ) / 1000)));
     done();
     yield* this.post(call, T.WIFI_EVENT.SCAN_DONE, data);
@@ -597,7 +628,7 @@ export class WifiDriver {
     return T.ESP_OK;
   }
 
-  private apRecords(call: HleCall): number {
+  private apRecords(call: WifiCall): number {
     if (!this.inited) return T.ESP_ERR_WIFI_NOT_INIT;
     const numberAt = call.arg(0);
     const records = call.arg(1);
@@ -610,7 +641,7 @@ export class WifiDriver {
     return T.ESP_OK;
   }
 
-  private writeRecord(call: HleCall, at: number, ap: VirtualAp): void {
+  private writeRecord(call: WifiCall, at: number, ap: VirtualAp): void {
     const R = T.AP_RECORD;
     call.fill(at, R.SIZE);
     call.writeBytes(at + R.BSSID, ap.bssid.slice(0, 6));
@@ -627,7 +658,7 @@ export class WifiDriver {
 
   // ── The station ───────────────────────────────────────────────────────────────────────
 
-  private connect(_call: HleCall): number {
+  private connect(_call: WifiCall): number {
     if (!this.inited) return T.ESP_ERR_WIFI_NOT_INIT;
     if (!this.started) return T.ESP_ERR_WIFI_NOT_STARTED;
     if ((this.mode & 1) === 0) return T.ESP_ERR_WIFI_MODE;
@@ -687,7 +718,7 @@ export class WifiDriver {
     return (this.host.radio()?.accessPoints() ?? []).map((ap) => ({ ...ap, auth: AUTH_OF[ap.security] }));
   }
 
-  private disconnect(call: HleCall): number | HleTask {
+  private disconnect(call: WifiCall): number | HleTask {
     if (!this.inited) return T.ESP_ERR_WIFI_NOT_INIT;
     if (!this.started) return T.ESP_ERR_WIFI_NOT_STARTED;
     const was = this.associated;
@@ -698,7 +729,7 @@ export class WifiDriver {
     return this.postNow(call, T.WIFI_EVENT.STA_DISCONNECTED, this.disconnectedData(ssid, was, T.WIFI_REASON.ASSOC_LEAVE));
   }
 
-  private *postNow(call: HleCall, id: number, data: Uint8Array): HleTask {
+  private *postNow(call: WifiCall, id: number, data: Uint8Array): HleTask {
     yield* this.post(call, id, data);
     return T.ESP_OK;
   }
@@ -714,7 +745,7 @@ export class WifiDriver {
     return data;
   }
 
-  private apInfo(call: HleCall): number {
+  private apInfo(call: WifiCall): number {
     if (!this.inited) return T.ESP_ERR_WIFI_NOT_INIT;
     const ap = this.associated;
     if (ap === null) return T.ESP_ERR_WIFI_NOT_CONNECT;
@@ -725,7 +756,7 @@ export class WifiDriver {
 
   // ── Frames ────────────────────────────────────────────────────────────────────────────
 
-  private regRx(call: HleCall): number {
+  private regRx(call: WifiCall): number {
     const ifx = call.arg(0);
     if (ifx > 1) return T.ESP_ERR_WIFI_IF;
     this.rxCallbacks[ifx] = call.arg(1);
@@ -733,7 +764,7 @@ export class WifiDriver {
   }
 
   /** esp_wifi_internal_tx(ifx, buffer, len) and _by_ref(…, netstack_buf): the frame is copied now. */
-  private transmit(call: HleCall): number {
+  private transmit(call: WifiCall): number {
     const ifx = call.arg(0);
     const length = call.arg(2) & 0xffff;
     if (ifx !== T.WIFI_IF.STA || this.link === null) return T.ESP_ERR_WIFI_NOT_ASSOC;
@@ -744,7 +775,7 @@ export class WifiDriver {
   }
 
   /** esp_wifi_internal_free_rx_buffer(eb): a buffer the WiFi task allocated for lwIP. */
-  private *freeRx(call: HleCall): HleTask {
+  private *freeRx(call: WifiCall): HleTask {
     const buffer = call.arg(0);
     if (buffer !== 0) yield call.call(this.address('free'), buffer);
     return T.ESP_OK;

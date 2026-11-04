@@ -122,7 +122,7 @@ export const listExamples: Tool<ExamplesContext> = {
   name: 'list_examples',
   title: 'List the examples',
   description:
-    'The examples gallery: ready-made circuits with their firmware (Arduino Uno/Nano/Mega, ESP32, Raspberry Pi Pico and Pico 2, MicroPython), by category. open_example runs one live; the resource benchtop://examples/<id> holds its project document and sketch — a good starting point for a project of your own.',
+    'The examples gallery: ready-made circuits with their firmware (Arduino Uno/Nano/Mega, ESP32, ESP32-C3, Raspberry Pi Pico and Pico 2, MicroPython), by category. open_example runs one live; the resource benchtop://examples/<id> holds its project document and sketch — a good starting point for a project of your own.',
   inputSchema: {
     type: 'object',
     properties: {

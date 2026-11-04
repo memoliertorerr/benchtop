@@ -36,6 +36,9 @@ export const OP = {
 
 export type Op = (typeof OP)[keyof typeof OP];
 export const OP_COUNT = 114;
+/** BT106: a function TypeScript answers (hle.ts): past the ISA's ids, inside the entry's 7-bit op field. */
+export const OP_HLE = 127;
+if (OP_COUNT > OP_HLE) throw new Error('the RISC-V op table has grown into OP_HLE');
 
 /** Operand layouts the disassembler prints. */
 export const FMT = {

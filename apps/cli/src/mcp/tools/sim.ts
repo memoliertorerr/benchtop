@@ -393,11 +393,14 @@ export const simFiles: Tool<SimContext> = {
 
 const SINCE = (ns: number): string => timeText(Math.round(ns / 1e6) * 1e6);
 
+/** BT108: the MCUs with WiFi (the ESP32's driver answered at its API; the C3 runs it too). */
+const WIFI_MCUS = new Set(['esp32', 'esp32c3']);
+
 export const simWifi: Tool<SimContext> = {
   name: 'sim_wifi',
   title: 'Read the virtual WiFi network',
   description:
-    'The virtual network of an open session (runs nothing): each WiFi access point part — SSID, on or off, channel, signal, security — with the boards joined to it (MAC, the address its DHCP server gave, the hostname they sent, since when), the HTTP server and client parts on its LAN with their addresses, and for every ESP32 board whether it is connected. Boards reach each other and the server parts by hostname through the gateway\'s DNS (192.168.4.1).',
+    'The virtual network of an open session (runs nothing): each WiFi access point part — SSID, on or off, channel, signal, security — with the boards joined to it (MAC, the address its DHCP server gave, the hostname they sent, since when), the HTTP server and client parts on its LAN with their addresses, and for every ESP32 and ESP32-C3 board whether it is connected. Boards reach each other and the server parts by hostname through the gateway\'s DNS (192.168.4.1).',
   inputSchema: { type: 'object', properties: { session: SESSION }, required: ['session'], additionalProperties: false },
   annotations: { readOnlyHint: true, openWorldHint: false },
   run(args, context) {
@@ -409,7 +412,7 @@ export const simWifi: Tool<SimContext> = {
       const type = session.doc.parts.find((p) => p.id === board)?.type ?? '';
       const station = stations.find((st) => st.board === board);
       if (station !== undefined) boards[board] = station.ip === 0 ? `joined "${station.ssid}", no address yet` : `connected to "${station.ssid}" as ${ipString(station.ip)}`;
-      else if (CATALOG.get(type)?.board?.mcu === 'esp32') boards[board] = 'not connected';
+      else if (WIFI_MCUS.has(CATALOG.get(type)?.board?.mcu ?? '')) boards[board] = 'not connected';
     }
     return {
       session: session.id,

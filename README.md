@@ -78,7 +78,7 @@ running the real `.bin` image Arduino-ESP32 2.0.17 builds, on Espressif's real m
 Not on the ESP32 yet: ADC2, the DAC's cosine generator and DMA, touch, I2S, PCNT, CAN, deep
 sleep and PSRAM; Bluetooth is out of scope.
 
-**WiFi on the ESP32** — a network inside the bench, no radio and, unless you allow hosts (see
+**WiFi on the ESP32 and the ESP32-C3** — a network inside the bench, no radio and, unless you allow hosts (see
 "The real network" below), nothing leaving your machine:
 put a **WiFi access point** part beside the board and `WiFi.begin("benchtop", "simulated")`
 joins it. The closed WiFi driver is answered at its API (the firmware's symbols tell where its
@@ -90,7 +90,8 @@ names boards by hostname; an **HTTP server** part answers from routes you write 
 web server when you press Send (or every so many milliseconds); two ESP32s reach each other by
 hostname; `configTime()` gets the time from the access point, which answers for pool.ntp.org
 itself (your computer's clock, or a fixed date you set). Switch the access point off or weaken
-its signal while it runs.
+its signal while it runs. The ESP32-C3 runs the same WiFi sketches: its firmware calls the same
+driver API, answered the same way on its RISC-V core.
 
 **The bench** — breadboards (full, half, mini) where parts snap into holes, wires you draw,
 and ~40 parts: LEDs, RGB LEDs, buttons, switches, potentiometers, LCD1602/2004 (parallel and
@@ -145,7 +146,7 @@ npm install
 npm run dev          # the editor at http://localhost:5173
 ```
 
-**Examples…** opens 88 ready-to-run circuits, each with its sketch, which you can change and
+**Examples…** opens 89 ready-to-run circuits, each with its sketch, which you can change and
 run again (Basics: blink, button, fade, traffic light, a Simon game, serial echo, a Nano on a
 breadboard; Displays: LCDs,
 an LCD thermometer, OLED and an OLED clock, a color TFT, 7-segment, bar graph, NeoPixels; Sensors: DHT22,
@@ -157,7 +158,7 @@ a microphone pitch meter, a VU meter; Power: a regulator meter (turn the bench s
 hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, a PWM fader, NeoPixel, a
 rainbow ring, an OLED clock, a color TFT, the DAC, the microphone, an I2C scan; ESP32-C3: the RGB LED,
 serial, a potentiometer dimmer, an OLED clock; WiFi: an ESP32 web server switched by HTTP client
-parts, an HTTP client talking to a server part, two ESP32s over TCP, an NTP clock on an OLED;
+parts, an ESP32-C3 web server that sets its RGB LED, an HTTP client talking to a server part, two ESP32s over TCP, an NTP clock on an OLED;
 Raspberry Pi Pico:
 blink, a potentiometer, PWM steps, an OLED, a color TFT, both cores at once; Raspberry Pi Pico 2: the same, NeoPixels
 through PIO, a button interrupt and MicroPython blink; Mega: an LED chaser, four

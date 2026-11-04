@@ -186,6 +186,22 @@ describe('live sessions', () => {
     expect((await tool(server, 'sim_http', { session: blinkSession, url: 'http://x/' })).text).toMatch(/no WiFi access point/);
   }, 120_000);
 
+  it('sim_wifi and sim_http (BT108): an ESP32-C3 web server, its RGB LED set over HTTP', async () => {
+    const server = testServer({ maxWallMs: 120_000 });
+    const open = (await tool(server, 'sim_open', { project: 'fixtures/projects/esp32c3-wifi-rgb-server.json', firmware: { c3: 'fixtures/firmware/esp32c3/wifi-rgb-server.bin' } })).value as { session: string };
+    const session = open.session;
+    type Wifi = { accessPoints: { stations: { board: string; ip: string | null; hostname?: string; mac: string }[] }[]; boards: Record<string, string> };
+    expect(((await tool(server, 'sim_wifi', { session })).value as Wifi).boards).toEqual({ c3: 'not connected' });
+    await tool(server, 'sim_run', { session, untilSerial: 'server at', duration: '5s' });
+    const wifi = (await tool(server, 'sim_wifi', { session })).value as Wifi;
+    expect(wifi.boards).toEqual({ c3: 'connected to "benchtop" as 192.168.4.2' });
+    expect(wifi.accessPoints[0].stations[0]).toMatchObject({ board: 'c3', ip: '192.168.4.2', hostname: 'c3-web', mac: expect.stringMatching(/^34:85:18:/) });
+    expect((await tool(server, 'sim_http', { session, url: 'http://c3-web/led?color=12ab34' })).value).toMatchObject({ status: 200, body: 'led 12ab34' });
+    const state = (await tool(server, 'sim_state', { session, parts: ['c3'] })).value as { parts: Record<string, { pixels: number[] }> };
+    expect(state.parts.c3.pixels[0]).toBe(0x12ab34);
+    expect((await tool(server, 'sim_http', { session, url: 'http://c3-web/led?color=mauve' })).value).toMatchObject({ status: 400, body: 'bad color' });
+  }, 120_000);
+
   it('limits: the session count, the duration and the wall-clock budget', async () => {
     const server = testServer({ maxSessions: 2, maxSimNs: 5e9 });
     await tool(server, 'sim_open', blink);

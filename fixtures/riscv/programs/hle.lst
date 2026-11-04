@@ -1,0 +1,137 @@
+
+hle.elf:     file format elf32-littleriscv
+
+
+Disassembly of section .text:
+
+80000000 <_start>:
+80000000:	80040137          	lui	sp,0x80040
+80000004:	80020237          	lui	tp,0x80020
+80000008:	6419                	lui	s0,0x6
+8000000a:	a5a40413          	addi	s0,s0,-1446 # 5a5a <MMIO-0xfffa5a6>
+8000000e:	848a                	mv	s1,sp
+80000010:	4505                	li	a0,1
+80000012:	4589                	li	a1,2
+80000014:	460d                	li	a2,3
+80000016:	4691                	li	a3,4
+80000018:	4715                	li	a4,5
+8000001a:	4799                	li	a5,6
+8000001c:	481d                	li	a6,7
+8000001e:	48a1                	li	a7,8
+80000020:	1141                	addi	sp,sp,-16 # 8003fff0 <OUT+0x1fff0>
+80000022:	42a5                	li	t0,9
+80000024:	c016                	sw	t0,0(sp)
+80000026:	00000097          	auipc	ra,0x0
+8000002a:	07a080e7          	jalr	122(ra) # 800000a0 <sum9>
+8000002e:	0141                	addi	sp,sp,16
+80000030:	00a22023          	sw	a0,0(tp) # 80020000 <OUT>
+80000034:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000036:	4555                	li	a0,21
+80000038:	00000097          	auipc	ra,0x0
+8000003c:	06c080e7          	jalr	108(ra) # 800000a4 <twice>
+80000040:	00a22023          	sw	a0,0(tp) # 0 <MMIO-0x10000000>
+80000044:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000046:	00822023          	sw	s0,0(tp) # 0 <MMIO-0x10000000>
+8000004a:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+8000004c:	4515                	li	a0,5
+8000004e:	00000097          	auipc	ra,0x0
+80000052:	05a080e7          	jalr	90(ra) # 800000a8 <outer>
+80000056:	00a22023          	sw	a0,0(tp) # 0 <MMIO-0x10000000>
+8000005a:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+8000005c:	03200513          	li	a0,50
+80000060:	00000097          	auipc	ra,0x0
+80000064:	06e080e7          	jalr	110(ra) # 800000ce <rec>
+80000068:	00a22023          	sw	a0,0(tp) # 0 <MMIO-0x10000000>
+8000006c:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+8000006e:	409102b3          	sub	t0,sp,s1
+80000072:	00522023          	sw	t0,0(tp) # 0 <MMIO-0x10000000>
+80000076:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000078:	00000097          	auipc	ra,0x0
+8000007c:	034080e7          	jalr	52(ra) # 800000ac <many>
+80000080:	00a22023          	sw	a0,0(tp) # 0 <MMIO-0x10000000>
+80000084:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000086:	00000097          	auipc	ra,0x0
+8000008a:	02a080e7          	jalr	42(ra) # 800000b0 <scratchy>
+8000008e:	00a22023          	sw	a0,0(tp) # 0 <MMIO-0x10000000>
+80000092:	0211                	addi	tp,tp,4 # 4 <MMIO-0xffffffc>
+80000094:	10000fb7          	lui	t6,0x10000
+80000098:	4f01                	li	t5,0
+8000009a:	01efa223          	sw	t5,4(t6) # 10000004 <MMIO+0x4>
+8000009e:	a001                	j	8000009e <_start+0x9e>
+
+800000a0 <sum9>:
+800000a0:	557d                	li	a0,-1
+800000a2:	8082                	ret
+
+800000a4 <twice>:
+800000a4:	557d                	li	a0,-1
+800000a6:	8082                	ret
+
+800000a8 <outer>:
+800000a8:	557d                	li	a0,-1
+800000aa:	8082                	ret
+
+800000ac <many>:
+800000ac:	557d                	li	a0,-1
+800000ae:	8082                	ret
+
+800000b0 <scratchy>:
+800000b0:	557d                	li	a0,-1
+800000b2:	8082                	ret
+
+800000b4 <double>:
+800000b4:	0506                	slli	a0,a0,0x1
+800000b6:	8082                	ret
+
+800000b8 <nest_helper>:
+800000b8:	1141                	addi	sp,sp,-16
+800000ba:	c606                	sw	ra,12(sp)
+800000bc:	00000097          	auipc	ra,0x0
+800000c0:	fe8080e7          	jalr	-24(ra) # 800000a4 <twice>
+800000c4:	06450513          	addi	a0,a0,100
+800000c8:	40b2                	lw	ra,12(sp)
+800000ca:	0141                	addi	sp,sp,16
+800000cc:	8082                	ret
+
+800000ce <rec>:
+800000ce:	1141                	addi	sp,sp,-16
+800000d0:	c606                	sw	ra,12(sp)
+800000d2:	c422                	sw	s0,8(sp)
+800000d4:	842a                	mv	s0,a0
+800000d6:	c901                	beqz	a0,800000e6 <rec+0x18>
+800000d8:	157d                	addi	a0,a0,-1
+800000da:	00000097          	auipc	ra,0x0
+800000de:	ff4080e7          	jalr	-12(ra) # 800000ce <rec>
+800000e2:	0505                	addi	a0,a0,1
+800000e4:	a031                	j	800000f0 <rec+0x22>
+800000e6:	4505                	li	a0,1
+800000e8:	00000097          	auipc	ra,0x0
+800000ec:	fbc080e7          	jalr	-68(ra) # 800000a4 <twice>
+800000f0:	4422                	lw	s0,8(sp)
+800000f2:	40b2                	lw	ra,12(sp)
+800000f4:	0141                	addi	sp,sp,16
+800000f6:	8082                	ret
+
+800000f8 <sum10>:
+800000f8:	952e                	add	a0,a0,a1
+800000fa:	9532                	add	a0,a0,a2
+800000fc:	9536                	add	a0,a0,a3
+800000fe:	953a                	add	a0,a0,a4
+80000100:	953e                	add	a0,a0,a5
+80000102:	9542                	add	a0,a0,a6
+80000104:	9546                	add	a0,a0,a7
+80000106:	4282                	lw	t0,0(sp)
+80000108:	9516                	add	a0,a0,t0
+8000010a:	4292                	lw	t0,4(sp)
+8000010c:	9516                	add	a0,a0,t0
+8000010e:	8082                	ret
+
+80000110 <load_word>:
+80000110:	4108                	lw	a0,0(a0)
+80000112:	8082                	ret
+80000114:	00000013          	nop
+80000118:	00000013          	nop
+8000011c:	00000013          	nop
+
+80000120 <hle_resume>:
+	...

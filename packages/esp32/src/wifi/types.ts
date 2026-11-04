@@ -62,3 +62,5 @@ export const COUNTRY = { SIZE: 12, CC: 0, SCHAN: 3, NCHAN: 4, MAX_TX_POWER: 5, P
 
 /** wifi_sta_list_t (184 bytes): 15 wifi_sta_info_t of 12 bytes, then num. */
 export const STA_LIST = { SIZE: 184, NUM: 180 } as const;
+/** BT107: the ESP32-C3's (124 bytes): ESP_WIFI_MAX_CONN_NUM is 10 there. Every other layout above is the C3's too (wifi-layout). */
+export const STA_LIST_C3 = { SIZE: 124, NUM: 120 } as const;

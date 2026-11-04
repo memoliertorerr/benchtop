@@ -22,8 +22,11 @@ fixtures/firmware/esp32/<name>.syms.tsv       `nm -S -n --defined-only` of the f
 fixtures/firmware/esp32c3/<name>.bin|.partitions.bin|.syms.tsv  the same for the ESP32-C3
                                               (serial-hello, blink, gpio-interrupt, adc-read,
                                               ledc-fade, i2c-scan, spi-loopback, rgb-blink,
-                                              serial-echo, and cdc-hello built with
-                                              CDCOnBoot=cdc — Serial on the C3's own USB)
+                                              serial-echo, cdc-hello built with
+                                              CDCOnBoot=cdc — Serial on the C3's own USB —,
+                                              wifi-layout (the WiFi API's struct layouts),
+                                              wifi-scan, wifi-http-get (the ESP32's sketches)
+                                              and wifi-rgb-server, the gallery's C3 web server)
 fixtures/firmware/pico*/debug-demo.syms.tsv   the same for the Pico and Pico 2 debug-demos only (the
                                               debugger's tests; `SYMBOL_SKETCHES` in fixture-boards.ts)
 fixtures/firmware/pico/<name>.uf2             Raspberry Pi Pico firmware (arduino-pico 6.2.0; the

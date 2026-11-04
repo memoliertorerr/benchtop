@@ -35,12 +35,25 @@ export const ESP32C3_CHECKS: Record<string, (r: ExampleRun) => void> = {
     expect(r.serial('c3')).toContain('2026-01-01 00:00:01');
     expect(((r.visual('oled')?.fb ?? []) as number[]).some((v) => v !== 0)).toBe(true);
   },
+  // BT108: the C3's WiFi — its symbols come with the example (run.test-helper reads the .syms.tsv).
+  'esp32c3-wifi-rgb-server'(r) {
+    r.runTo(2000);
+    expect(r.serial('c3')).toContain('server at 192.168.4.2');
+    const pixel = (): number => ((r.visual('c3')?.pixels as number[] | undefined) ?? [-1])[0];
+    let t = 2000;
+    for (const [client, color] of [['green', 0x00ff00], ['blue', 0x0000ff], ['red', 0xff0000], ['off', 0]] as const) {
+      r.input(client, { kind: 'press' });
+      r.runTo((t += 100));
+      expect(pixel(), client).toBe(color);
+      expect(r.serial('c3')).toContain(`led ${client}`);
+    }
+  },
 };
 
 describe('every ESP32-C3 example runs as described (BT94)', () => {
   const withC3 = EXAMPLES.filter((e) => Object.values(e.boards).some((b) => 'firmware' in b && b.firmware.startsWith('esp32c3/')));
   it('has a check for each', () => {
-    expect(withC3.length).toBe(4);
+    expect(withC3.length).toBe(5);
     expect(withC3.map((e) => e.id).filter((id) => ESP32C3_CHECKS[id] === undefined)).toEqual([]);
   });
   for (const example of withC3) {
