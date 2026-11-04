@@ -20,26 +20,27 @@ import type {
   VisualState,
 } from '@benchtop/core';
 
-export const PROTOCOL_VERSION = 14;
+export const PROTOCOL_VERSION = 15;
 
 export type ToSim =
   | { type: 'hello'; protocol: number }
   /** Builds a new bench from `doc` (paused at t = 0) and loads firmware per board part id. */
   /** `debugElf` (BT74): a board's ELF for the debugger's symbols and lines when its image isn't one (a .hex, .uf2 or .bin built from it). */
-  | { type: 'load'; doc: ProjectDoc; firmware: Record<string, FirmwareImage>; debugElf?: Record<string, Uint8Array> }
+  /** `debugSyms` (BT100): a board's symbol table as `nm` text (a gallery example's .syms.tsv) when it has no ELF — the ESP32's WiFi needs it. */
+  | { type: 'load'; doc: ProjectDoc; firmware: Record<string, FirmwareImage>; debugElf?: Record<string, Uint8Array>; debugSyms?: Record<string, string> }
   /**
    * BT79: the loaded bench's document changed (an edit while loaded): the bench is rebuilt with
    * carry-over — time, unchanged boards (still running their firmware) and unchanged parts'
    * state continue; `firmware` is loaded only into boards that are new or whose firmware ref
    * changed. Keeps running if it was. Answered with `edited`.
    */
-  | { type: 'edit'; doc: ProjectDoc; firmware: Record<string, FirmwareImage>; debugElf?: Record<string, Uint8Array> }
+  | { type: 'edit'; doc: ProjectDoc; firmware: Record<string, FirmwareImage>; debugElf?: Record<string, Uint8Array>; debugSyms?: Record<string, string> }
   /**
    * New firmware for one board of the loaded bench (a fresh compile): loads it and resets that
    * board's MCU only; its clock restarts at the current bench time, other parts keep their state
    * and a running bench keeps running.
    */
-  | { type: 'setFirmware'; board: string; image: FirmwareImage; debugElf?: Uint8Array }
+  | { type: 'setFirmware'; board: string; image: FirmwareImage; debugElf?: Uint8Array; debugSyms?: string }
   /** Runs in real time × `speed` (Infinity = as fast as possible). */
   | { type: 'run'; speed: number }
   | { type: 'pause' }

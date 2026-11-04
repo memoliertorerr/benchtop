@@ -20,6 +20,33 @@ export const ESP32_CHECKS: Record<string, (r: ExampleRun) => void> = {
     }
     expect(flips).toBeGreaterThanOrEqual(2);
   },
+  // BT100: WiFi — the board joins the access point at ≈ 1.6 s.
+  'esp32-wifi-webserver'(r) {
+    r.runTo(1700);
+    expect(r.serial('esp')).toContain('server at 192.168.4.2\n');
+    expect(r.lit('led1')).toBe(false);
+    r.input('on', { kind: 'press' });
+    r.runTo(1800);
+    expect(r.visual('on')).toMatchObject({ status: '200', body: 'led on', sent: 1 });
+    expect(r.lit('led1')).toBe(true);
+    r.input('off', { kind: 'press' });
+    r.runTo(1900);
+    expect(r.visual('off')).toMatchObject({ status: '200', body: 'led off' });
+    expect(r.lit('led1')).toBe(false);
+    expect(r.serial('esp')).toContain('GET /led on\nGET /led off\n');
+  },
+  'esp32-wifi-http'(r) {
+    r.runTo(2000);
+    expect(r.serial('esp')).toContain('GET 200 {"hello":"world","count":1}\n');
+    expect(r.serial('esp')).toContain('POST 200 ping\n');
+    expect(r.visual('api')).toMatchObject({ requests: 2 });
+  },
+  'esp32-wifi-tcp'(r) {
+    r.runTo(2000);
+    expect(r.serial('server')).toMatch(/^echo server at 192\.168\.4\.\d+\nclient 192\.168\.4\.\d+\nline hello bench\n/);
+    expect(r.serial('client')).toContain('reply HELLO BENCH\n');
+    expect(r.visual('ap')).toMatchObject({ stations: 2 });
+  },
   'esp32-serial-hello'(r) {
     r.runTo(2000);
     expect(r.serial('esp')).toContain('hello from esp32');

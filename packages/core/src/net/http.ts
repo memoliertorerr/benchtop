@@ -164,6 +164,8 @@ export interface HttpLogEntry {
   client: number;
   method: string;
   path: string;
+  /** The query, without its '?' ('' for none). */
+  query: string;
   status: number;
   /** Response body bytes. */
   bytes: number;
@@ -243,7 +245,7 @@ export class HttpServer {
       body = 'Method Not Allowed\n';
     }
     const bytes = utf8Bytes(body);
-    const entry: HttpLogEntry = { at: this.host.clock.now(), client, method: request.method, path: request.path, status, bytes: head ? 0 : bytes.length };
+    const entry: HttpLogEntry = { at: this.host.clock.now(), client, method: request.method, path: request.path, query: request.query, status, bytes: head ? 0 : bytes.length };
     this.log.push(entry);
     if (this.log.length > LOG_SIZE) this.log.shift();
     this.onrequest?.(entry);
@@ -272,6 +274,28 @@ export class HttpServer {
   }
 }
 
+/** An http:// URL's parts (BT100): `path` keeps its query; the port is 80 unless given. */
+export interface HttpUrl {
+  host: string;
+  port: number;
+  path: string;
+}
+
+/**
+ * `http://host[:port][/path][?query]` (the scheme may be left out), or why not: https isn't on
+ * the virtual LAN, a host is a name or an IPv4 address, a port 1–65535.
+ */
+export function parseHttpUrl(text: string): HttpUrl | string {
+  const t = text.trim();
+  if (/^https:\/\//i.test(t)) return 'https isn\'t simulated: use http://';
+  const m = /^(?:http:\/\/)?([A-Za-z0-9.-]+)(?::(\d{1,5}))?([/?][^\s#]*)?(?:#\S*)?$/i.exec(t);
+  if (m === null) return 'not an http:// URL';
+  const port = m[2] === undefined ? 80 : Number(m[2]);
+  if (port < 1 || port > 65535) return `port ${m[2]} is outside 1–65535`;
+  const rest = m[3] ?? '/';
+  return { host: m[1], port, path: rest.startsWith('?') ? `/${rest}` : rest };
+}
+
 export interface HttpResult {
   status: number;
   headers: Map<string, string>;
@@ -283,9 +307,10 @@ export interface HttpResult {
  * Content-Length), and calls `done` with the response — or with an error string (refused, reset,
  * timed out, not HTTP).
  */
-export function httpRequest(host: IpHost, ip: number, port: number, request: { method: string; path: string; headers?: Record<string, string>; body?: Uint8Array }, done: (result: HttpResult | string) => void): void {
+export function httpRequest(host: IpHost, ip: number, port: number, request: { method: string; path: string; headers?: Record<string, string>; body?: Uint8Array; hostname?: string }, done: (result: HttpResult | string) => void): void {
   const body = request.body ?? new Uint8Array(0);
-  const lines = [`${request.method} ${request.path} HTTP/1.1`, `Host: ${ipString(ip)}${port === 80 ? '' : `:${port}`}`, 'Connection: close', 'User-Agent: benchtop'];
+  // The Host header names the URL's host (BT101: a real server may serve several), else the address.
+  const lines = [`${request.method} ${request.path} HTTP/1.1`, `Host: ${request.hostname ?? ipString(ip)}${port === 80 ? '' : `:${port}`}`, 'Connection: close', 'User-Agent: benchtop'];
   for (const [name, value] of Object.entries(request.headers ?? {})) lines.push(`${name}: ${value}`);
   if (body.length > 0 || request.method === 'POST' || request.method === 'PUT') lines.push(`Content-Length: ${body.length}`);
   const head = utf8Bytes(`${lines.join('\r\n')}\r\n\r\n`);

@@ -6,9 +6,9 @@
  * latest visual state and its history, pin states.
  */
 
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { assembleBench, type Bench, type FirmwareImage, NS_PER_MS, type PartInput, parseProject, type VisualState } from '@benchtop/core';
+import { assembleBench, type Bench, type FirmwareImage, NS_PER_MS, type PartInput, parseProject, SymbolTable, usesSymbols, type VisualState } from '@benchtop/core';
 import { analogSpecFor, applyTftUpdate, envSpecFor, netSpecFor, sevenSegmentText as decodeSevenSegment, TFT_PACKED, TFT_WIDTH, unpackPixel } from '@benchtop/parts';
 import { REPO_ROOT } from '../../../../packages/core/src/firmware/fixtures.test-helper.ts';
 import { loadCachedRom } from '../../../../packages/esp32/src/test-support/rom.test-helper.ts';
@@ -67,7 +67,16 @@ export function runExample(example: Example): ExampleRun {
   const micropython = python && types.has('raspberry-pi-pico') ? cachedMicroPython() : undefined;
   const micropythonPico2 = python && pico2 ? cachedMicroPython(MICROPYTHON_PICO2_RISCV) : undefined;
   const rp2350Rom = pico2 ? cachedRp2350Rom() : undefined;
-  const bench = assembleBench(parsed.doc, createBenchEnv({ esp32Rom: rom, micropython, rp2350Rom, micropythonPico2, esp32c3Rom }), images, { analogSpecFor, envSpecFor, netSpecFor });
+  const env = createBenchEnv({ esp32Rom: rom, micropython, rp2350Rom, micropythonPico2, esp32c3Rom });
+  const bench = assembleBench(parsed.doc, env, images, { analogSpecFor, envSpecFor, netSpecFor });
+  // BT100: a board whose firmware has a symbol table beside it gets it, as the app gives a
+  // gallery example's (the ESP32's WiFi driver API is answered by name).
+  for (const [board, files] of Object.entries(example.boards)) {
+    if (!('firmware' in files)) continue;
+    const syms = join(REPO_ROOT, 'fixtures', 'firmware', files.firmware.replace(/\.bin$/, '.syms.tsv'));
+    const mcu = env.mcus.get(board);
+    if (files.firmware.endsWith('.bin') && existsSync(syms) && mcu !== undefined && usesSymbols(mcu)) mcu.useSymbols(SymbolTable.fromNm(readFileSync(syms, 'utf8')));
+  }
   const text: Record<string, string> = {};
   for (const board of Object.keys(example.boards)) {
     text[board] = '';

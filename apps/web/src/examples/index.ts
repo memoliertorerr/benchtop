@@ -16,7 +16,7 @@ import { sourceHash, storedMicroPython } from '../editor/inline-compile.ts';
 import { fqbnOf } from '../editor/sketch-actions.ts';
 import { firmwareChanged } from '../sim/controller.ts';
 import { resetPcb } from '../pcb/mode.ts';
-import { EXAMPLES, loadFirmware, loadMicroPython, loadPcb, loadProject, loadSketch } from './manifest.ts';
+import { EXAMPLES, loadFirmware, loadMicroPython, loadPcb, loadProject, loadSketch, loadSymbols } from './manifest.ts';
 
 const formatOf = (path: string): FirmwareFormat => (path.endsWith('.hex') ? 'hex' : path.endsWith('.elf') ? 'elf' : path.endsWith('.uf2') ? 'uf2' : 'esp32-bin');
 
@@ -47,10 +47,11 @@ export async function openExample(id: string): Promise<void> {
       }
       const fqbn = part === undefined ? undefined : fqbnOf(part.type);
       if (fqbn === undefined) throw new Error(`no board "${board}" in the project`);
-      const [bytes, sketch] = await Promise.all([loadFirmware(files), loadSketch(files)]);
+      const [bytes, sketch, syms] = await Promise.all([loadFirmware(files), loadSketch(files), loadSymbols(files)]);
       const ref = { kind: 'inline' as const, fqbn, files: sketch.files, main: sketch.main };
       firmware[board] = ref;
-      stored.push([board, { name: files.firmware.split('/').pop() as string, format: formatOf(files.firmware), bytes, source: sourceHash(ref) }]);
+      // BT100: a WiFi example's symbols (its driver's API is answered by name).
+      stored.push([board, { name: files.firmware.split('/').pop() as string, format: formatOf(files.firmware), bytes, source: sourceHash(ref), ...(syms === undefined ? {} : { debugSyms: syms }) }]);
     }
     const doc: ProjectDoc = { ...parsed.doc, name: example.title, firmware: { ...parsed.doc.firmware, ...firmware } };
     await Promise.all(stored.map(([board, f]) => firmwareStore.put(board, f)));

@@ -109,22 +109,25 @@ export function onAnySerial(listener: (board: string, bytes: Uint8Array, t: Nano
 
 /** Commands for the worker. The firmware bytes are copied, so the caller keeps its own. */
 export const sim = {
-  /** `debugElf`: boards' ELFs for the debugger when their images aren't ELFs (BT74). */
-  load(doc: ProjectDoc, firmware: Record<string, FirmwareImage>, debugElf: Record<string, Uint8Array> = {}): void {
+  /**
+   * `debugElf`: boards' ELFs for the debugger when their images aren't ELFs (BT74); `debugSyms`:
+   * boards' symbol tables as text when they have no ELF (BT100: gallery examples).
+   */
+  load(doc: ProjectDoc, firmware: Record<string, FirmwareImage>, debugElf: Record<string, Uint8Array> = {}, debugSyms: Record<string, string> = {}): void {
     simLoaded.value = false;
     simRunning.value = false;
-    send({ type: 'load', doc, firmware, debugElf });
+    send({ type: 'load', doc, firmware, debugElf, debugSyms });
   },
   /**
    * BT79: the loaded bench's document changed: the worker rebuilds it keeping time, running
    * boards and unchanged parts (`firmware` reaches only new boards). Keeps running if it was.
    */
-  edit(doc: ProjectDoc, firmware: Record<string, FirmwareImage>, debugElf: Record<string, Uint8Array> = {}): void {
-    send({ type: 'edit', doc, firmware, debugElf });
+  edit(doc: ProjectDoc, firmware: Record<string, FirmwareImage>, debugElf: Record<string, Uint8Array> = {}, debugSyms: Record<string, string> = {}): void {
+    send({ type: 'edit', doc, firmware, debugElf, debugSyms });
   },
   /** Swaps one board's firmware on the loaded bench (load + reset of that board only). */
-  setFirmware(board: string, image: FirmwareImage, debugElf?: Uint8Array): void {
-    send(debugElf === undefined ? { type: 'setFirmware', board, image } : { type: 'setFirmware', board, image, debugElf });
+  setFirmware(board: string, image: FirmwareImage, debugElf?: Uint8Array, debugSyms?: string): void {
+    send({ type: 'setFirmware', board, image, ...(debugElf === undefined ? {} : { debugElf }), ...(debugSyms === undefined ? {} : { debugSyms }) });
   },
   run(speed: number): void {
     send({ type: 'run', speed });

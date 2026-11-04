@@ -1,7 +1,7 @@
 /**
  * The bridge's HTTP server, bound to 127.0.0.1 only.
  *
- *   GET  /api/health                     → { cli: version | null, cores: [{ id, version }] }
+ *   GET  /api/health                     → { cli: version | null, cores: [{ id, version }], network: ["host:port"] }
  *   POST /api/compile { sketch, fqbn }   → CompileResult (binary artifacts base64)
  *   POST /api/compile-inline { fqbn, files, main } → CompileResult (BT42): the files go into a
  *        fresh folder under the system temp dir, named after main, which is compiled and then
@@ -10,6 +10,9 @@
  *        `compile-result` (CompileResult) on start and after every saved .ino/.h/.hpp/.c/.cpp
  *        change (300 ms debounce; one compile at a time per sketch; a change during a compile
  *        queues exactly one more).
+ *   POST /api/net/open { host, port }    → BT101 (only with `--network`, only its hosts): an event
+ *        stream for one TCP connection — `open` {id}, `data` (base64), `close` {error};
+ *        POST /api/net/send { id, data }, /api/net/end { id }, /api/net/close { id } (network.ts).
  *   With `serveDir`: every other GET serves a file from it (cross-origin isolation headers, no
  *   directory listing, no path escape).
  *
@@ -21,6 +24,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import type { AddressInfo } from 'node:net';
 import { extname, join, resolve, sep } from 'node:path';
 import { type CompileResult, compileInlineSketch, compile as runCompile } from './compile.ts';
+import { type NetEntry, NetworkProxy } from './network.ts';
 import { runArduinoCli } from '../../../scripts/arduino-cli.ts';
 import {
   FQBN_ALLOWLIST,
@@ -41,6 +45,10 @@ export interface BridgeOptions {
   serveDir?: string;
   /** Injected for tests; defaults to the real compile. `buildKey` names the build cache. */
   compile?: (sketchDir: string, fqbn: string, buildKey?: string) => Promise<CompileResult>;
+  /** BT101: the real hosts the app's simulated WiFi may reach (`--network`); empty or absent: none. */
+  network?: readonly NetEntry[];
+  /** Injected for tests: how a connection out is opened. */
+  connectTo?: ConstructorParameters<typeof NetworkProxy>[1];
 }
 
 export interface Bridge {
@@ -188,6 +196,8 @@ export function createBridge(options: BridgeOptions): Bridge {
   /** An inline sketch (BT42): written to a fresh temp folder, compiled, removed. */
   const compileInline = (fqbn: string, files: Record<string, string>, main: string): Promise<CompileResult> => compileInlineSketch(compile, fqbn, files, main);
   const watches = new Map<string, SketchWatch>();
+  const network = new NetworkProxy(options.network ?? [], options.connectTo);
+  const networkList = network.allow.map((e) => `${e.host}:${e.port}`);
   let health: Promise<string> | null = null;
   let port = 0;
 
@@ -224,7 +234,7 @@ export function createBridge(options: BridgeOptions): Bridge {
 
   const getHealth = (): Promise<string> => {
     health ??= (async () => {
-      if (cli === undefined) return JSON.stringify({ cli: null, cores: [] });
+      if (cli === undefined) return JSON.stringify({ cli: null, cores: [], network: networkList });
       const version = JSON.parse((await runArduinoCli(cli, ['version', '--json'], 30_000)).stdout || '{}') as { VersionString?: string };
       const cores = JSON.parse((await runArduinoCli(cli, ['core', 'list', '--json'], 30_000)).stdout || '{}') as {
         platforms?: { id: string; installed_version?: string }[];
@@ -232,8 +242,9 @@ export function createBridge(options: BridgeOptions): Bridge {
       return JSON.stringify({
         cli: version.VersionString ?? null,
         cores: (cores.platforms ?? []).map((p) => ({ id: p.id, version: p.installed_version ?? '' })),
+        network: networkList,
       });
-    })().catch(() => JSON.stringify({ cli: null, cores: [] }));
+    })().catch(() => JSON.stringify({ cli: null, cores: [], network: networkList }));
     return health;
   };
 
@@ -320,6 +331,28 @@ export function createBridge(options: BridgeOptions): Bridge {
           return send(res, 200, compileResultToJson(await compileInline(sketch.fqbn, sketch.files, sketch.main)));
         }
         if (req.method === 'GET' && url.pathname === '/api/watch') return handleWatch(req, res, url);
+        // BT101: the network proxy — POSTs only, so a browser always sends the Origin checked above.
+        if (req.method === 'POST' && url.pathname.startsWith('/api/net/')) {
+          if (origin === undefined) return send(res, 403, { error: 'origin required' });
+          const text = await readBody(req);
+          if (text === null) return send(res, 413, { error: `request body over ${MAX_BODY_BYTES} bytes` });
+          let body: { host?: unknown; port?: unknown; id?: unknown; data?: unknown };
+          try {
+            body = JSON.parse(text) as typeof body;
+          } catch {
+            return send(res, 400, { error: 'body must be JSON' });
+          }
+          const action = url.pathname.slice('/api/net/'.length);
+          if (action === 'open') {
+            const refused = network.refusal(body.host, body.port);
+            if (refused !== null) return send(res, refused.status, refused.body);
+            return network.stream(res, body.host as string, body.port as number);
+          }
+          if (action === 'send' || action === 'end' || action === 'close') {
+            const reply = network.act(action, body);
+            return send(res, reply.status, reply.body);
+          }
+        }
         if (url.pathname.startsWith('/api/')) return send(res, 404, { error: 'no such endpoint' });
         if (req.method === 'GET' && options.serveDir !== undefined) return handleStatic(res, url.pathname);
         return send(res, 404, { error: 'not found' });
@@ -343,6 +376,7 @@ export function createBridge(options: BridgeOptions): Bridge {
     },
     close() {
       return new Promise((resolveClose) => {
+        network.closeAll();
         server.closeAllConnections();
         server.close(() => resolveClose());
       });

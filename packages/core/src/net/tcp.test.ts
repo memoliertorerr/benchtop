@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { DnsServer, dnsQuery, parseDnsQuery } from './dns.ts';
 import { IpHost } from './host.ts';
-import { HttpServer, httpRequest, type HttpResult, parseRequest, parseRoutes, utf8Bytes, utf8String } from './http.ts';
+import { HttpServer, httpRequest, type HttpResult, parseHttpUrl, parseRequest, parseRoutes, utf8Bytes, utf8String } from './http.ts';
 import { type LanClock, type LanPort, VirtualLan } from './lan.ts';
 import { be16, be32, ETH_HEADER, ETHERTYPE_IPV4, ethernet, ipv4, parseEthernet, parseIpv4, PROTO_TCP } from './packet.ts';
-import { NetRuntime } from './runtime.ts';
+import { type NetEvent, NetRuntime } from './runtime.ts';
 import type { NetRole } from './spec.ts';
 import { parseTcp, TCP, tcpSegment } from './tcp.ts';
 
@@ -220,7 +220,7 @@ describe('HTTP (BT99)', () => {
 
 describe('server parts on the bench network (BT99)', () => {
   const roles: Record<string, NetRole> = {
-    ap: { kind: 'access-point', ssid: 'benchtop', password: 'simulated', security: 'wpa2', channel: 6, rssi: -50, hidden: false, on: true },
+    ap: { kind: 'access-point', ssid: 'benchtop', password: 'simulated', security: 'wpa2', channel: 6, rssi: -50, hidden: false, on: true, internet: false, allow: '' },
     api: { kind: 'http-server', network: '', address: 0, port: 80, hostname: 'api.bench', routes: 'GET /api/hello 200 application/json {"hello":"world"}' },
     web: { kind: 'http-server', network: 'benchtop', address: 0xc0a8040a, port: 8080, hostname: 'web.bench', routes: 'GET / 200 text/html ok\nbogus line' },
     lost: { kind: 'http-server', network: 'elsewhere', address: 0, port: 80, hostname: '', routes: '' },
@@ -262,3 +262,99 @@ describe('server parts on the bench network (BT99)', () => {
   });
 });
 
+describe('client parts, events and requests from the gateway (BT100)', () => {
+  it('parses http:// URLs and says why it won’t send to others', () => {
+    expect(parseHttpUrl('http://esp32-web/')).toEqual({ host: 'esp32-web', port: 80, path: '/' });
+    expect(parseHttpUrl('  esp32-web/led?state=on ')).toEqual({ host: 'esp32-web', port: 80, path: '/led?state=on' });
+    expect(parseHttpUrl('HTTP://192.168.4.2:8080')).toEqual({ host: '192.168.4.2', port: 8080, path: '/' });
+    expect(parseHttpUrl('http://x?y=1#top')).toEqual({ host: 'x', port: 80, path: '/?y=1' });
+    expect(parseHttpUrl('https://x/')).toMatch(/https isn't simulated/);
+    expect(parseHttpUrl('ftp://x/')).toBe('not an http:// URL');
+    expect(parseHttpUrl('http://bad host/')).toBe('not an http:// URL');
+    expect(parseHttpUrl('http://x:0/')).toMatch(/outside 1–65535/);
+    expect(parseHttpUrl('http://x:99999/')).toMatch(/outside 1–65535/);
+  });
+
+  const roles: Record<string, NetRole> = {
+    ap: { kind: 'access-point', ssid: 'benchtop', password: 'simulated', security: 'wpa2', channel: 6, rssi: -50, hidden: false, on: true, internet: false, allow: '' },
+    api: { kind: 'http-server', network: '', address: 0, port: 80, hostname: 'api.bench', routes: 'GET /api/hello 200 application/json {"n":{{count}}}\nPOST /echo 200 text/plain got {{body}}' },
+    poll: { kind: 'http-client', network: '', url: 'http://api.bench/api/hello?x=1', method: 'GET', body: '', interval: 500 },
+    post: { kind: 'http-client', network: '', url: 'http://192.168.4.10/echo', method: 'POST', body: 'hi', interval: 0 },
+    nobody: { kind: 'http-client', network: '', url: 'http://esp32-web/', method: 'GET', body: '', interval: 0 },
+    bad: { kind: 'http-client', network: '', url: 'https://secure/', method: 'GET', body: '', interval: 0 },
+  };
+  const parts = Object.keys(roles).map((id) => ({ id, type: id, props: {} }));
+
+  it('sends a client part’s request on a timer and when pressed, and reports what the servers answered', () => {
+    const clock = testClock();
+    const net = NetRuntime.build(parts, (type) => roles[type], clock);
+    expect(net.problems().map((p) => [p.code, p.parts[0]])).toEqual([['http-url', 'bad']]);
+    // Servers and clients share the automatic addresses: api .10, then the clients .11 on.
+    expect(net.serverHosts.map((h) => h.host.ip)).toEqual([0xc0a8040a]);
+    expect(net.clientHosts.map((h) => [h.id, h.host.ip])).toEqual([
+      ['poll', 0xc0a8040b],
+      ['post', 0xc0a8040c],
+      ['nobody', 0xc0a8040d],
+      ['bad', 0xc0a8040e],
+    ]);
+    expect(net.owns('poll')).toBe(true);
+    const events: NetEvent[] = [];
+    net.listen((e) => events.push(e));
+    net.reset(); // as a bench does after building: the timer starts with time
+    clock.advance(1_200_000_000);
+    const got = events.filter((e) => e.kind === 'got');
+    expect(got.map((e) => [e.part, e.status, e.body])).toEqual([
+      ['poll', 200, '{"n":1}'],
+      ['poll', 200, '{"n":2}'],
+    ]);
+    expect(got[0].at).toBeGreaterThan(500_000_000);
+    expect(got[0].at).toBeLessThan(510_000_000);
+    const served = events.filter((e) => e.kind === 'served');
+    expect(served[0]).toMatchObject({ part: 'api', method: 'GET', path: '/api/hello', query: 'x=1', status: 200, client: 0xc0a8040b });
+    // Pressed: the POST goes by address; a name nobody has fails at once; https never leaves.
+    net.input('post', { kind: 'press' });
+    net.input('nobody', { kind: 'press' });
+    net.input('bad', { kind: 'press' });
+    clock.advance(1_300_000_000);
+    expect(events.filter((e) => e.kind === 'got').slice(2).map((e) => [e.part, e.status, e.error === '' ? e.body : e.error])).toEqual([
+      ['nobody', 0, 'no host "esp32-web" on "benchtop" (not a server part\'s hostname or a joined board\'s)'],
+      ['bad', 0, "https isn't simulated: use http://"],
+      ['post', 200, 'got hi'],
+    ]);
+    const frames: [string, Record<string, unknown>][] = [];
+    net.collect(frames as never);
+    expect(frames.find(([id]) => id === 'poll')?.[1]).toEqual({ url: 'http://api.bench/api/hello?x=1', method: 'GET', status: '200', body: '{"n":2}', sent: 2, busy: false });
+    expect(frames.find(([id]) => id === 'nobody')?.[1]).toMatchObject({ status: 'error', body: expect.stringMatching(/^no host/) });
+    // A reset starts the timer over and forgets the answers; a disposed network sends nothing.
+    net.reset();
+    expect(net.clientHosts[0]).toMatchObject({ sent: 0, status: 0, body: '' });
+    clock.advance(clock.time + 600_000_000);
+    expect(net.clientHosts[0].sent).toBe(1);
+    net.dispose();
+    const before = events.length;
+    clock.advance(clock.time + 2_000_000_000);
+    expect(events.length).toBe(before);
+    expect(net.clientHosts[0].sent).toBe(1);
+  });
+
+  it('sends a request from the gateway (sim_http) by name or address, and says why one can’t go', () => {
+    const clock = testClock();
+    const net = NetRuntime.build(parts.slice(0, 2), (type) => roles[type], clock);
+    const results: (HttpResult | string)[] = [];
+    net.request('', 'POST', 'http://API.bench/echo', utf8Bytes('x'), { 'X-Test': '1' }, (r) => results.push(r));
+    net.request('benchtop', 'GET', 'http://192.168.4.10/nope', new Uint8Array(0), {}, (r) => results.push(r));
+    net.request('other', 'GET', 'http://api.bench/', new Uint8Array(0), {}, (r) => results.push(r));
+    clock.advance(100_000_000);
+    expect(results.map((r) => (typeof r === 'string' ? r : [r.status, utf8String(r.body)]))).toEqual([
+      'no access point has the SSID "other"',
+      [200, 'got x'],
+      [404, 'Not Found\n'],
+    ]);
+    net.input('ap', { kind: 'release' });
+    net.request('', 'GET', 'http://api.bench/', new Uint8Array(0), {}, (r) => results.push(r));
+    expect(results.at(-1)).toBe('the access point "benchtop" is off');
+    const empty = NetRuntime.build([], (type) => roles[type], clock);
+    empty.request('', 'GET', 'http://x/', new Uint8Array(0), {}, (r) => results.push(r));
+    expect(results.at(-1)).toBe('the bench has no WiFi access point');
+  });
+});

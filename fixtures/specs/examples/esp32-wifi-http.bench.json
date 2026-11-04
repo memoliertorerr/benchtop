@@ -1,0 +1,14 @@
+{
+  "name": "example: esp32-wifi-http",
+  "project": "../../projects/esp32-wifi-http.json",
+  "firmware": {
+    "esp": "../../firmware/esp32/wifi-http-get.bin"
+  },
+  "expect": [
+    "wifi esp connected by 2s",
+    "http api served GET /api/hello by 2s",
+    "http api served POST /api/echo by 2s",
+    "serial contains \"GET 200 {\\\"hello\\\":\\\"world\\\",\\\"count\\\":1}\" by 2s",
+    "serial contains \"POST 200 ping\" by 2s"
+  ]
+}

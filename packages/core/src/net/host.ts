@@ -6,7 +6,9 @@
  * SYN for a port nobody listens on (or a segment for no connection) gets RST, `connectTcp` opens
  * from an ephemeral port (49152 on). Sending resolves the next hop's MAC from what it learned, or
  * asks with an ARP request and sends once the reply comes (a few packets wait; more are dropped,
- * as an ARP queue would). Packets for other addresses are ignored (it doesn't route — yet).
+ * as an ARP queue would). Packets for other addresses are ignored — except, BT101, TCP to an
+ * address beyond the subnet that `outside` takes (the gateway's uplink): it answers for that
+ * address as a transparent proxy would, so the station sees the far server's address.
  */
 
 import type { LanClock, LanPort, VirtualLan } from './lan.ts';
@@ -42,12 +44,22 @@ export interface UdpSource {
 
 export type UdpHandler = (from: UdpSource, data: Uint8Array) => void;
 
+/**
+ * BT101: what to do with a SYN to an address beyond the subnet — `undefined` resets it; else
+ * `open(accept, refuse)` starts reaching the far end and calls `accept` once it can (the
+ * station gets its SYN-ACK then, the connection's handlers set by `setup`; false when the SYN is
+ * gone — a reset since) or `refuse` (an RST).
+ */
+export type OutsideTcp = (ip: number, port: number) => ((accept: (setup: (connection: TcpConnection) => void) => boolean, refuse: () => void) => void) | undefined;
+
 const ARP_QUEUE = 8;
 
 export class IpHost implements LanPort, TcpOwner {
   readonly mac: Mac;
   readonly ip: number;
   readonly netmask: number;
+  /** BT101: where packets beyond the subnet go (0: nowhere — they wait for an ARP reply that never comes). */
+  readonly router: number;
   readonly arpTable = new Map<number, number[]>();
   /** Echo requests answered. */
   echoes = 0;
@@ -60,29 +72,37 @@ export class IpHost implements LanPort, TcpOwner {
   private readonly waiting = new Map<number, Uint8Array[]>();
   private readonly listeners = new Map<number, (connection: TcpConnection) => void>();
   private readonly tcp = new Map<string, TcpConnection>();
+  /** BT101: connections for outside addresses, and SYNs waiting for the far end. */
+  private readonly outsideTcp = new Map<string, TcpConnection>();
+  private readonly outsidePending = new Set<string>();
+  /** BT101: TCP beyond the subnet (null: ignored, as any packet for another address). */
+  outside: OutsideTcp | null = null;
   private nextId = 1;
   private nextPort = 49152;
   private iss: number;
 
-  constructor(lan: VirtualLan, options: { mac: Mac; ip: number; netmask: number }) {
+  constructor(lan: VirtualLan, options: { mac: Mac; ip: number; netmask: number; router?: number }) {
     this.lan = lan;
     this.clock = lan.clock;
     this.mac = options.mac;
     this.ip = options.ip >>> 0;
     this.netmask = options.netmask >>> 0;
+    this.router = (options.router ?? 0) >>> 0;
     this.iss = Math.imul(this.ip, 2654435761) >>> 0;
   }
 
   /** A bench reset: no connections, nothing learned, nothing waiting. */
   reset(): void {
     this.tcp.clear();
+    this.outsideTcp.clear();
+    this.outsidePending.clear();
     this.arpTable.clear();
     this.waiting.clear();
   }
 
   /** Open TCP connections. */
   get connections(): number {
-    return this.tcp.size;
+    return this.tcp.size + this.outsideTcp.size;
   }
 
   /** Accepts connections on `port` (the callback sets the connection's handlers). */
@@ -141,6 +161,55 @@ export class IpHost implements LanPort, TcpOwner {
     this.sendIp(src, PROTO_TCP, reply, srcMac);
   }
 
+  /** BT101: a segment from a station to `dst`, an address beyond the subnet. */
+  private outsideIn(src: number, srcMac: number[], payload: Uint8Array, dst: number): void {
+    const seg = parseTcp(src, dst, payload);
+    if (seg === undefined) return;
+    const k = `${dst}:${key(src, seg.srcPort, seg.dstPort)}`;
+    const existing = this.outsideTcp.get(k);
+    if (existing !== undefined) {
+      existing.segment(seg);
+      return;
+    }
+    if (this.outsidePending.has(k)) return; // a repeated SYN while the far end answers
+    const open = (seg.flags & (TCP.SYN | TCP.ACK | TCP.RST)) === TCP.SYN ? this.outside?.(dst, seg.dstPort) : undefined;
+    const reset = (): void => {
+      if ((seg.flags & TCP.RST) !== 0) return;
+      const length = seg.data.length + ((seg.flags & TCP.SYN) !== 0 ? 1 : 0) + ((seg.flags & TCP.FIN) !== 0 ? 1 : 0);
+      const reply =
+        (seg.flags & TCP.ACK) !== 0
+          ? tcpSegment(dst, src, { srcPort: seg.dstPort, dstPort: seg.srcPort, seq: seg.ack, ack: 0, flags: TCP.RST, window: 0 })
+          : tcpSegment(dst, src, { srcPort: seg.dstPort, dstPort: seg.srcPort, seq: 0, ack: (seg.seq + length) >>> 0, flags: TCP.RST | TCP.ACK, window: 0 });
+      this.sendIp(src, PROTO_TCP, reply, srcMac, dst);
+    };
+    if (open === undefined) {
+      reset();
+      return;
+    }
+    this.outsidePending.add(k);
+    const owner: TcpOwner = {
+      clock: this.clock,
+      ip: dst,
+      output: (remoteIp, segment) => this.sendIp(remoteIp, PROTO_TCP, segment, undefined, dst),
+      forget: (connection) => {
+        if (this.outsideTcp.get(k) === connection) this.outsideTcp.delete(k);
+      },
+    };
+    open(
+      (setup) => {
+        if (!this.outsidePending.delete(k)) return false; // a reset since
+        const connection = new TcpConnection(owner, seg.dstPort, src, seg.srcPort, this.nextIss(), 'syn-received');
+        this.outsideTcp.set(k, connection);
+        setup(connection);
+        connection.accept(seg);
+        return true;
+      },
+      () => {
+        if (this.outsidePending.delete(k)) reset();
+      },
+    );
+  }
+
   bindUdp(port: number, handler: UdpHandler): void {
     this.udpPorts.set(port, handler);
   }
@@ -167,7 +236,10 @@ export class IpHost implements LanPort, TcpOwner {
     const packet = parseIpv4(eth.payload);
     if (packet === undefined) return;
     const forUs = packet.dst === this.ip || packet.dst === BROADCAST_IP || packet.dst === this.subnetBroadcast;
-    if (!forUs) return;
+    if (!forUs) {
+      if (packet.protocol === PROTO_TCP && this.outside !== null && (packet.dst & this.netmask) !== (this.ip & this.netmask)) this.outsideIn(packet.src, eth.src, packet.payload, packet.dst);
+      return;
+    }
     if (packet.src !== 0 && (packet.src & this.netmask) === (this.ip & this.netmask)) this.learn(packet.src, eth.src);
     if (packet.protocol === PROTO_ICMP) {
       if (packet.payload[0] !== ICMP_ECHO_REQUEST || packet.dst !== this.ip) return;
@@ -193,17 +265,20 @@ export class IpHost implements LanPort, TcpOwner {
     this.sendIp(dst, PROTO_UDP, udp(this.ip, dst, srcPort, dstPort, data), dstMac);
   }
 
-  sendIp(dst: number, protocol: number, payload: Uint8Array, dstMac?: Mac): void {
-    const packet = ipv4({ protocol, src: this.ip, dst, payload, id: this.nextId++ & 0xffff });
-    const mac = dst === BROADCAST_IP || dst === this.subnetBroadcast ? BROADCAST_MAC : (dstMac ?? this.arpTable.get(dst));
+  /** `src`: the source address (BT101: the outside address the gateway answers for). */
+  sendIp(dst: number, protocol: number, payload: Uint8Array, dstMac?: Mac, src = this.ip): void {
+    const packet = ipv4({ protocol, src, dst, payload, id: this.nextId++ & 0xffff });
+    // The next hop: the destination on the subnet, else the router (BT101).
+    const hop = (dst & this.netmask) === (this.ip & this.netmask) || this.router === 0 ? dst : this.router;
+    const mac = dst === BROADCAST_IP || dst === this.subnetBroadcast ? BROADCAST_MAC : (dstMac ?? this.arpTable.get(hop));
     if (mac !== undefined) {
       this.send(mac, ETHERTYPE_IPV4, packet);
       return;
     }
-    let queue = this.waiting.get(dst);
+    let queue = this.waiting.get(hop);
     if (queue === undefined) {
-      this.waiting.set(dst, (queue = []));
-      this.send(BROADCAST_MAC, ETHERTYPE_ARP, arp({ op: ARP_REQUEST, senderMac: [...this.mac], senderIp: this.ip, targetMac: [0, 0, 0, 0, 0, 0], targetIp: dst }));
+      this.waiting.set(hop, (queue = []));
+      this.send(BROADCAST_MAC, ETHERTYPE_ARP, arp({ op: ARP_REQUEST, senderMac: [...this.mac], senderIp: this.ip, targetMac: [0, 0, 0, 0, 0, 0], targetIp: hop }));
     }
     if (queue.length < ARP_QUEUE) queue.push(packet);
   }

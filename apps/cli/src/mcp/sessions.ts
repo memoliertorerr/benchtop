@@ -12,8 +12,9 @@
  * with carry-over (time, boards that keep running, unchanged parts' state), as the app does.
  */
 
-import { type Bench, type BenchRunResult, BusDecoder, type BusLog, type BusTransaction, type DebugTables, discardCarry, type FirmwareImage, lineTableFromElf, type NetState, parseElf32, type Problem, type ProjectDoc, SymbolTable, type VisualState } from '@benchtop/core';
+import { type AllowEntry, type Bench, type BenchRunResult, BusDecoder, type BusLog, type BusTransaction, type DebugTables, discardCarry, type FirmwareImage, lineTableFromElf, type NetState, parseElf32, type Problem, type ProjectDoc, SymbolTable, type VisualState } from '@benchtop/core';
 import { type BenchRoms, buildBench, resolvePin, UsageError } from '../load.ts';
+import { type NodeUplink, uplinkFor } from '../uplink.ts';
 
 /** Simulated time per run slice. */
 export const SLICE_NS = 10_000_000;
@@ -61,6 +62,8 @@ export interface SessionInit {
   serialChars: number;
   /** BT74: debug tables for boards whose image isn't an ELF (from an .elf or .syms.tsv beside it). */
   tables?: Readonly<Record<string, DebugTables>>;
+  /** BT101: the hosts the server's `--network` lets a project's access point reach (none: nothing leaves). */
+  network?: readonly AllowEntry[];
 }
 
 /** What `Session.update` did to the boards and watched pins. */
@@ -93,6 +96,8 @@ export class Session {
   readonly tables = new Map<string, DebugTables>();
   /** BT88: bus transactions decoded since the last `takeBus`, and where the log was read to. */
   private readonly busDecoder = new BusDecoder();
+  /** BT101: this session's way out (its sockets close with it). */
+  private readonly uplink: NodeUplink | undefined;
   private busLog: BusLog | null = null;
   private busSince = 0;
 
@@ -102,7 +107,8 @@ export class Session {
     this.doc = init.doc;
     this.boards = init.boards;
     this.serialChars = init.serialChars;
-    this.bench = buildBench(init.doc, init.images, init.roms, undefined, init.tables).bench;
+    this.uplink = uplinkFor({ ...(init.network === undefined ? {} : { network: init.network }) });
+    this.bench = buildBench(init.doc, init.images, init.roms, undefined, init.tables, this.uplink).bench;
     for (const board of init.boards) {
       this.pending[board] = '';
       this.dropped[board] = 0;
@@ -144,7 +150,7 @@ export class Session {
     const carry = this.bench.carry(); // flushes serial output to this session first
     let bench: Bench;
     try {
-      bench = buildBench(next.doc, next.images, next.roms, { carry, restart: next.restart }, next.tables).bench;
+      bench = buildBench(next.doc, next.images, next.roms, { carry, restart: next.restart }, next.tables, this.uplink).bench;
     } catch (error) {
       discardCarry(carry);
       throw error;
@@ -285,14 +291,15 @@ export class Session {
 
   /**
    * Runs up to `durationNs` more, stopping early when `until` appears on a board's serial (since
-   * this run began) or when `deadline()` says the wall-clock budget is spent.
+   * this run began), when `done()` says what the caller waits for happened (BT100: sim_http's
+   * response; checked every 10 ms slice) or when `deadline()` says the wall-clock budget is spent.
    */
-  run(durationNs: number, until: { text: string; board: string } | undefined, deadline: () => boolean): { stoppedBy: 'duration' | 'serial' | 'wall' | 'breakpoint'; breakpoint?: string; watched: Record<string, PinWindow> } {
+  run(durationNs: number, until: { text: string; board: string } | undefined, deadline: () => boolean, done?: () => boolean): { stoppedBy: 'duration' | 'serial' | 'wall' | 'breakpoint' | 'done'; breakpoint?: string; watched: Record<string, PinWindow> } {
     const end = this.bench.now() + durationNs;
     const seenBefore = until === undefined ? 0 : this.pending[until.board].length;
     const droppedBefore = until === undefined ? 0 : this.dropped[until.board];
     this.openWindows();
-    let stoppedBy: 'duration' | 'serial' | 'wall' | 'breakpoint' = 'duration';
+    let stoppedBy: 'duration' | 'serial' | 'wall' | 'breakpoint' | 'done' = 'duration';
     let breakpoint: string | undefined;
     while (this.bench.now() < end) {
       const result: BenchRunResult = this.bench.runUntil(Math.min(end, this.bench.now() + SLICE_NS));
@@ -308,6 +315,10 @@ export class Session {
           stoppedBy = 'serial';
           break;
         }
+      }
+      if (done?.() === true) {
+        stoppedBy = 'done';
+        break;
       }
       if (this.bench.now() < end && deadline()) {
         stoppedBy = 'wall';
@@ -381,6 +392,7 @@ export class Session {
 
   dispose(): void {
     this.bench.dispose();
+    this.uplink?.dispose();
   }
 }
 

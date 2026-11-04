@@ -1,0 +1,14 @@
+{
+  "name": "example: esp32-wifi-tcp",
+  "project": "../../projects/esp32-wifi-tcp.json",
+  "firmware": {
+    "server": "../../firmware/esp32/wifi-tcp-server.bin",
+    "client": "../../firmware/esp32/wifi-tcp-client.bin"
+  },
+  "expect": [
+    "wifi server connected by 2s",
+    "wifi client connected by 2s",
+    "serial[server] contains \"line hello bench\" by 2s",
+    "serial[client] contains \"reply HELLO BENCH\" by 2s"
+  ]
+}

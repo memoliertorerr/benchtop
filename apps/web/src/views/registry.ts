@@ -10,7 +10,7 @@ import { breadboardView } from './breadboard.ts';
 import { ENVIRONMENT_VIEW_TYPES, environmentView } from './environment.ts';
 import { esp32C3DevkitM1View } from './esp32-c3-devkitm-1.ts';
 import { fallbackView } from './fallback.ts';
-import { httpServerView, networkView } from './network.ts';
+import { httpClientView, httpServerView, networkView } from './network.ts';
 import { POWER_VIEW_TYPES, powerView } from './power.ts';
 import { raspberryPiPicoView } from './raspberry-pi-pico.ts';
 import { stepper28byj48View } from './stepper-28byj48.ts';
@@ -43,6 +43,7 @@ export function viewFor(type: string): ViewFactory {
   if (POWER_VIEW_TYPES.has(type)) return powerView;
   if (type === 'wifi-ap') return networkView;
   if (type === 'http-server') return httpServerView;
+  if (type === 'http-client') return httpClientView;
   if (hasWokwiView(type)) return wokwiView;
   return fallbackView;
 }

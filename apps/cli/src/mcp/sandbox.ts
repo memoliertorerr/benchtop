@@ -83,6 +83,7 @@ export class Sandbox {
     if (base.rp2350Rom !== undefined) io.rp2350Rom = () => base.rp2350Rom?.();
     if (base.micropythonPico2 !== undefined) io.micropythonPico2 = () => base.micropythonPico2?.();
     if (base.esp32c3Rom !== undefined) io.esp32c3Rom = () => base.esp32c3Rom?.();
+    if (base.network !== undefined) io.network = base.network; // BT101: --network, the user's own list
     return io;
   }
 }

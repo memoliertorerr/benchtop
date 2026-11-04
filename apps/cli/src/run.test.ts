@@ -218,6 +218,42 @@ describe('grammar', () => {
     expect(notCard.error).toMatch(/not a part that keeps files/);
   }, 30_000);
 
+  it('network assertions (BT100): the forms, usage errors, passes and failures on the ESP32 web server', () => {
+    expect(parseAssertion('wifi esp connected by 2s')).toMatchObject({ kind: 'wifi', board: 'esp', by: 2e9 });
+    expect(parseAssertion('http api served GET /led?state=on by 1s')).toMatchObject({ kind: 'served', part: 'api', method: 'GET', path: '/led?state=on', by: 1e9 });
+    expect(parseAssertion('http api served * / by 1s')).toMatchObject({ kind: 'served', method: '*', path: '/' });
+    expect(parseAssertion('http on got 200 with "led \\"on\\"" by 1s')).toMatchObject({ kind: 'got', part: 'on', status: 200, needle: 'led "on"' });
+    expect(parseAssertion('http on got 404 by 1s')).toMatchObject({ kind: 'got', status: 404, needle: null });
+    expect(() => parseAssertion('http api served FETCH / by 1s')).toThrow(/not an assertion/);
+    const project = 'fixtures/projects/esp32-wifi-webserver.json';
+    const espIo = { ...io(), esp32Rom: () => loadCachedRom() };
+    const firmware = { esp: 'fixtures/firmware/esp32/wifi-webserver.bin' };
+    const web = runHeadless(
+      {
+        project,
+        firmware,
+        scriptJson: [{ at: '1800ms', part: 'on', input: { kind: 'press' } }],
+        expect: ['wifi esp connected by 1700ms', 'http on got 200 with "led on" by 1900ms', 'http on got 404 by 1900ms', 'http on got 200 with "led off" by 1900ms', 'http off got 200 by 1900ms', 'wifi esp connected by 1s'],
+        duration: '1900ms',
+      },
+      espIo,
+    );
+    expect(web.exitCode).toBe(1);
+    expect(web.assertions.map((a) => [a.ok, a.detail.replace(/[\d.]+ (ms|µs|ns|s)/g, 'T')])).toEqual([
+      [true, 'connected to ap as 192.168.4.2 at T'],
+      [true, 'got 200 at T'],
+      [false, 'not seen by T (last: 200)'],
+      [false, 'not seen by T (last: 200 without the text)'],
+      [false, 'not seen by T'],
+      [false, 'connected to ap as 192.168.4.2 at T, after T'],
+    ]);
+    const usage = (expectation: string): string | null => runHeadless({ project, firmware, expect: [expectation] }, espIo).error;
+    expect(usage('wifi led1 connected by 1s')).toMatch(/no board "led1"/);
+    expect(usage('http on served GET / by 1s')).toMatch(/"on" is a http-client, not an http-server part/);
+    expect(usage('http esp got 200 by 1s')).toMatch(/"esp" is a esp32-devkit-v1, not an http-client part/);
+    expect(runHeadless({ project: 'fixtures/projects/esp32-blink.json', firmware: { esp: 'fixtures/firmware/esp32/blink.bin' }, expect: ['wifi esp connected by 1s'] }, io()).error).toMatch(/no WiFi access point/);
+  }, 120_000);
+
   it('run arguments', () => {
     expect(parseRunArgs(['p.json', '--firmware', 'uno=a.hex', '--expect', 'x', '--expect', 'y', '--duration', '1s', '--report', 'r.json'])).toEqual({
       project: 'p.json',

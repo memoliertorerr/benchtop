@@ -794,6 +794,49 @@
     "description": "A DS1307 clock shown large on an SSD1306 OLED, both on the C3's default I2C pins (SDA 8, SCL 9)."
   },
   {
+    "id": "esp32-wifi-webserver",
+    "title": "ESP32 WiFi web server",
+    "category": "WiFi",
+    "project": "esp32-wifi-webserver",
+    "boards": {
+      "esp": {
+        "firmware": "esp32/wifi-webserver.bin",
+        "sketch": "esp32/wifi-webserver"
+      }
+    },
+    "description": "An ESP32 joins the bench's WiFi access point as \"esp32-web\" and serves pages with Arduino's WebServer; the two HTTP client parts switch its LED through /led?state=on and off — press Send on each."
+  },
+  {
+    "id": "esp32-wifi-http",
+    "title": "ESP32 HTTP client",
+    "category": "WiFi",
+    "project": "esp32-wifi-http",
+    "boards": {
+      "esp": {
+        "firmware": "esp32/wifi-http-get.bin",
+        "sketch": "esp32/wifi-http-get"
+      }
+    },
+    "description": "An ESP32 joins the access point, finds api.bench through its DNS and GETs and POSTs to the HTTP server part with HTTPClient; edit the server's routes in the Inspector."
+  },
+  {
+    "id": "esp32-wifi-tcp",
+    "title": "Two ESP32s over WiFi",
+    "category": "WiFi",
+    "project": "esp32-wifi-tcp",
+    "boards": {
+      "server": {
+        "firmware": "esp32/wifi-tcp-server.bin",
+        "sketch": "esp32/wifi-tcp-server"
+      },
+      "client": {
+        "firmware": "esp32/wifi-tcp-client.bin",
+        "sketch": "esp32/wifi-tcp-client"
+      }
+    },
+    "description": "One ESP32 listens on TCP port 7000 as \"echo-server\"; the other finds it by name and sends a line, which comes back in capitals — both serial monitors show it."
+  },
+  {
     "id": "pico-blink",
     "title": "Pico blink",
     "category": "Raspberry Pi Pico",

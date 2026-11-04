@@ -87,6 +87,7 @@ describe('part catalog', () => {
         'object',
         'wifi-ap',
         'http-server',
+        'http-client',
       ].sort(),
     );
     expect(benchEnvParts('led')).toBe(CATALOG.get('led'));

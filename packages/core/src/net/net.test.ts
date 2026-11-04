@@ -30,7 +30,7 @@ import {
   setBe16,
   udp,
 } from './packet.ts';
-import { GATEWAY_IP, NetRuntime } from './runtime.ts';
+import { GATEWAY_IP, type NetEvent, NetRuntime } from './runtime.ts';
 import type { AccessPointRole } from './spec.ts';
 
 // BT98: the virtual network's TypeScript side, frame by frame against hand-built packets.
@@ -286,7 +286,7 @@ describe('the DHCP server (BT98)', () => {
 });
 
 describe('the bench network (BT98)', () => {
-  const role: AccessPointRole = { kind: 'access-point', ssid: 'benchtop', password: 'simulated', security: 'wpa2', channel: 6, rssi: -50, hidden: false, on: true };
+  const role: AccessPointRole = { kind: 'access-point', ssid: 'benchtop', password: 'simulated', security: 'wpa2', channel: 6, rssi: -50, hidden: false, on: true, internet: false, allow: '' };
   const build = (clock: LanClock, previous: NetRuntime | null = null): NetRuntime =>
     NetRuntime.build([{ id: 'ap', type: 'wifi-ap', props: {} }, { id: 'led', type: 'led', props: {} }], (type) => (type === 'wifi-ap' ? role : undefined), clock, previous);
 
@@ -307,7 +307,7 @@ describe('the bench network (BT98)', () => {
     expect(replyOf(parseUdp(offer.src, offer.dst, offer.payload)!.data).type).toBe(DHCP.OFFER);
     const frames: [string, unknown][] = [];
     net.collect(frames as never);
-    expect(frames).toEqual([['ap', { on: true, ssid: 'benchtop', stations: 1, clients: '192.168.4.2 (esp32)' }]]);
+    expect(frames).toEqual([['ap', { on: true, ssid: 'benchtop', stations: 1, clients: '192.168.4.2 (esp32)', internet: 'off' }]]);
     net.collect((frames.length = 0, frames) as never);
     expect(frames).toEqual([]); // nothing changed
     net.input('ap', { kind: 'key', key: 'set:on=0', down: true });
@@ -321,5 +321,54 @@ describe('the bench network (BT98)', () => {
     expect(next.accessPoints[0].dhcp.leases.get('24:0a:c4:11:22:33')).toBe(0xc0a80402);
     next.reset();
     expect(next.accessPoints[0].dhcp.leases.size).toBe(0);
+  });
+});
+
+describe('stations and their events (BT100)', () => {
+  const role: AccessPointRole = { kind: 'access-point', ssid: 'benchtop', password: 'simulated', security: 'wpa2', channel: 6, rssi: -50, hidden: false, on: true, internet: false, allow: '' };
+  const dhcpFrame = (type: number, extra: { requested?: number; server?: number } = {}): Uint8Array =>
+    ethernet(BROADCAST_MAC, STATION, ETHERTYPE_IPV4, ipv4({ protocol: PROTO_UDP, src: 0, dst: 0xffffffff, payload: udp(0, 0xffffffff, DHCP_CLIENT_PORT, DHCP_SERVER_PORT, dhcpMessage(type, STATION, extra)) }));
+
+  it('files a board’s station under its part id: connected at its DHCP ACK, disconnected when it leaves or the AP goes off', () => {
+    const clock = testClock();
+    const net = NetRuntime.build([{ id: 'ap', type: 'wifi-ap', props: {} }], () => role, clock);
+    const events: NetEvent[] = [];
+    net.listen((e) => events.push(e));
+    const radio = net.radioFor('esp');
+    const bssid = radio.accessPoints()[0].bssid;
+    let link = radio.join(bssid, STATION, () => {}, () => {})!;
+    expect(net.stations()).toEqual([{ board: 'esp', ap: 'ap', ssid: 'benchtop', mac: '24:0a:c4:11:22:33', ip: 0, hostname: '', since: 0 }]);
+    clock.advance(1_000_000);
+    link.send(dhcpFrame(DHCP.DISCOVER));
+    clock.advance(10_000_000);
+    expect(events).toEqual([]); // an offer isn't a connection
+    link.send(dhcpFrame(DHCP.REQUEST, { requested: 0xc0a80402, server: GATEWAY_IP }));
+    clock.advance(20_000_000);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({ kind: 'connected', board: 'esp', ap: 'ap', ip: 0xc0a80402 });
+    expect(events[0].at).toBeGreaterThan(10_000_000);
+    expect(net.stations()[0]).toMatchObject({ ip: 0xc0a80402, hostname: 'esp32', since: 0 });
+    // A renewal of the same lease says nothing new.
+    link.send(dhcpFrame(DHCP.REQUEST, { requested: 0xc0a80402, server: GATEWAY_IP }));
+    clock.advance(30_000_000);
+    expect(events).toHaveLength(1);
+    link.leave();
+    expect(events.at(-1)).toMatchObject({ kind: 'disconnected', board: 'esp', ap: 'ap', at: 30_000_000 });
+    expect(net.stations()).toEqual([]);
+    // Back on: connected again when its lease is acknowledged; the AP going off drops it.
+    link = radio.join(bssid, STATION, () => {}, () => {})!;
+    link.send(dhcpFrame(DHCP.REQUEST, { requested: 0xc0a80402, server: GATEWAY_IP }));
+    clock.advance(40_000_000);
+    expect(events.map((e) => e.kind)).toEqual(['connected', 'disconnected', 'connected']);
+    net.input('ap', { kind: 'release' });
+    expect(events.map((e) => e.kind)).toEqual(['connected', 'disconnected', 'connected', 'disconnected']);
+    // The anonymous radio (no part id) joins without events.
+    net.input('ap', { kind: 'press' });
+    net.radio.join(bssid, STATION, () => {}, () => {})!.leave();
+    expect(events).toHaveLength(4);
+    // A disposed network tells nobody.
+    net.dispose();
+    radio.join(bssid, STATION, () => {}, () => {});
+    expect(events).toHaveLength(4);
   });
 });

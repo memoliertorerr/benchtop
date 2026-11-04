@@ -109,6 +109,7 @@ export const PART_INPUTS: Readonly<Record<string, readonly PartInputSpec[]>> = {
     channel('on', 'on (1) or off (0)', 'boolean', 0, 1),
     channel('rssi', 'the signal stations see', 'dBm', -100, -20),
   ],
+  'http-client': [press('sends its request now (a press while one is still in flight is ignored)')],
 };
 
 /** The inputs a part type takes (none for parts without any). */

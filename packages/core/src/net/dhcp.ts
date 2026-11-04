@@ -82,6 +82,8 @@ export class DhcpServer {
   private readonly declined = new Set<number>();
   /** Addresses in the pool that hosts hold already (the server parts'). */
   readonly reserved = new Set<number>();
+  /** BT100: runs when a REQUEST is acknowledged (the client MAC, its address). */
+  onack: ((mac: string, ip: number) => void) | null = null;
 
   constructor(config: DhcpConfig) {
     this.config = config;
@@ -112,7 +114,9 @@ export class DhcpServer {
         const ip = this.leases.get(key) ?? (wanted !== 0 && this.free(wanted) ? wanted : undefined);
         if (ip === undefined || ip !== wanted) return this.reply(m, DHCP.NAK, 0);
         this.leases.set(key, ip);
-        return this.reply(m, DHCP.ACK, ip);
+        const reply = this.reply(m, DHCP.ACK, ip);
+        this.onack?.(key, ip);
+        return reply;
       }
       case DHCP.DECLINE:
         if (m.requested !== 0) this.declined.add(m.requested);

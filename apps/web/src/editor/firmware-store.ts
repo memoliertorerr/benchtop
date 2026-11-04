@@ -20,6 +20,8 @@ export interface StoredFirmware {
   source?: string;
   /** BT74: the ELF the compiler built it from (.hex, .uf2 or .bin builds), for the debugger's symbols and lines. */
   debugElf?: Uint8Array;
+  /** BT100: a symbol table as `nm` text, when there is no ELF (a gallery example's .syms.tsv: the ESP32's WiFi needs it). */
+  debugSyms?: string;
 }
 
 /** The firmware format a file name implies, or undefined. */
@@ -127,6 +129,7 @@ export const firmwareStore = {
       const value = values[i] as StoredFirmware | undefined;
       if (typeof key !== 'string' || value === undefined || !(value.bytes instanceof Uint8Array)) return;
       if (value.debugElf !== undefined && !(value.debugElf instanceof Uint8Array)) delete value.debugElf;
+      if (value.debugSyms !== undefined && typeof value.debugSyms !== 'string') delete value.debugSyms;
       memory.set(key, value);
     });
   },

@@ -19,6 +19,7 @@ import { ROM_IMAGE } from '@benchtop/rp2350';
 import { C3_ROM_ELF_NAME } from '@benchtop/esp32c3';
 import type { FromSim, ToSim } from './protocol.ts';
 import { SimSession } from './session.ts';
+import { BridgeUplink } from './uplink.ts';
 
 // The DOM lib types `self` as a Window; inside a dedicated worker only these members matter.
 interface WorkerScope {
@@ -54,6 +55,7 @@ const session = new SimSession({
   rp2350Rom: () => rp2350Rom,
   micropythonPico2: () => micropythonPico2,
   esp32c3Rom: () => esp32c3Rom,
+  uplink: new BridgeUplink(), // BT101: only an access point with `internet` on uses it
   // Shared memory needs cross-origin isolation (COOP/COEP, set by the dev server and the bridge).
   sharedMemory: crossOriginIsolated,
 });

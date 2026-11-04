@@ -2,8 +2,12 @@
  * Our own drawings of the network parts, in mm. The WiFi access point (BT98): a white home router
  * with two antennas, a power LED and a WiFi LED, its SSID on the front, and — while running — how
  * many stations joined and their addresses (the bench network's visual state: on, ssid, stations,
- * clients). The HTTP server (BT99): a small dark server box with its hostname, its address and
+ * clients; BT101: a third LED, NET, for the real network — dark while `internet` is off, green
+ * when on, amber while a connection is out, red after one failed). The HTTP server (BT99): a small dark server box with its hostname, its address and
  * port, a request counter and the last requests (visual state: address, hostname, requests, log).
+ * The HTTP client (BT100): a light laptop-like box with the method and URL it sends, the last
+ * status (green 2xx, amber others, red an error) and the body's start (visual state: url,
+ * method, status, body, sent, busy).
  */
 
 import type { PartDefinition, PartProps, VisualState } from '@benchtop/core';
@@ -27,10 +31,14 @@ interface ApNodes {
   ssid: SVGTextElement;
   power: SVGCircleElement;
   wifi: SVGCircleElement;
+  internet: SVGCircleElement;
   stations: SVGTextElement;
   clients: SVGTextElement;
   on: boolean;
 }
+
+/** BT101: the NET LED per visual `internet` state. */
+const INTERNET_COLORS: Readonly<Record<string, string>> = { off: '#2c3a30', on: '#3ddc66', busy: '#f2b84b', error: '#ff5b5b' };
 
 const nodes = new WeakMap<HTMLElement, ApNodes>();
 
@@ -55,11 +63,12 @@ function draw(def: PartDefinition, svg: SVGSVGElement): ApNodes {
   const stations = text(w / 2 + 2.5, 16.4, '', 2, '#5d636c');
   const clients = text(w / 2 + 2.5, 19.1, '', 1.6, '#5d636c');
   svg.append(ssid, stations, clients);
+  const internet = el('circle', { cx: w - 8.6, cy: h - 2.35, r: 0.75, fill: LED_OFF });
   const power = el('circle', { cx: w - 6, cy: h - 2.35, r: 0.75, fill: LED_ON });
   const wifi = el('circle', { cx: w - 3.4, cy: h - 2.35, r: 0.75, fill: LED_ON });
-  svg.append(power, wifi);
-  svg.append(text(w - 6, h - 0.9, 'PWR', 0.9, '#7a8088'), text(w - 3.4, h - 0.9, 'WiFi', 0.9, '#7a8088'));
-  return { ssid, power, wifi, stations, clients, on: true };
+  svg.append(internet, power, wifi);
+  svg.append(text(w - 8.6, h - 0.9, 'NET', 0.9, '#7a8088'), text(w - 6, h - 0.9, 'PWR', 0.9, '#7a8088'), text(w - 3.4, h - 0.9, 'WiFi', 0.9, '#7a8088'));
+  return { ssid, power, wifi, internet, stations, clients, on: true };
 }
 
 function showOn(n: ApNodes, on: boolean): void {
@@ -89,6 +98,7 @@ export const networkView: ViewFactory = {
     n.stations.textContent = security === 'open' ? 'open network' : security.toUpperCase();
     n.clients.textContent = '';
     showOn(n, props.on !== false);
+    n.internet.setAttribute('fill', props.internet === true ? (INTERNET_COLORS.on as string) : LED_OFF);
   },
   update(el: HTMLElement, visual: VisualState) {
     const n = nodes.get(el);
@@ -100,6 +110,7 @@ export const networkView: ViewFactory = {
       const more = visual.clients === '' ? 0 : visual.clients.split('\n').length - 1;
       n.clients.textContent = more > 0 ? `${first} +${more}` : first;
     }
+    if (typeof visual.internet === 'string') n.internet.setAttribute('fill', INTERNET_COLORS[visual.internet] ?? LED_OFF);
   },
 };
 
@@ -166,5 +177,83 @@ export const httpServerView: ViewFactory = {
       const lines = visual.log === '' ? [] : visual.log.split('\n').slice(-n.log.length);
       n.log.forEach((line, i) => (line.textContent = lines[i] ?? ''));
     }
+  },
+};
+
+interface ClientNodes {
+  request: SVGTextElement;
+  status: SVGTextElement;
+  body: SVGTextElement[];
+  count: SVGTextElement;
+  activity: SVGCircleElement;
+}
+
+const clientNodes = new WeakMap<HTMLElement, ClientNodes>();
+const BODY_LINES = 3;
+const BODY_LINE_CHARS = 26;
+
+function drawClient(def: PartDefinition, svg: SVGSVGElement): ClientNodes {
+  const { w, h } = def.size;
+  // A screen in a light frame on a thin base: a laptop seen from the front.
+  svg.append(el('rect', { x: 0.4, y: 0.4, width: w - 0.8, height: h - 3.4, rx: 1.4, fill: '#d9dde3', stroke: '#9aa1aa', 'stroke-width': 0.3 }));
+  svg.append(el('rect', { x: 1.6, y: 1.6, width: w - 3.2, height: h - 5.8, rx: 0.6, fill: '#101418' }));
+  svg.append(el('path', { d: `M 0.2 ${h - 2.6} h ${w - 0.4} l -1.6 2.2 h ${-(w - 3.6)} z`, fill: '#c3c8cf', stroke: '#9aa1aa', 'stroke-width': 0.25 }));
+  const activity = el('circle', { cx: w - 3, cy: 3, r: 0.55, fill: LED_OFF });
+  const request = text(w / 2, 3.4, '', 1.45, '#e9edf2', 'bold');
+  const status = text(w / 2, 6.6, '', 2.6, '#7f8a96', 'bold');
+  const count = text(w / 2, h - 1.3, '', 1.3, '#4c535c');
+  svg.append(activity, request, status, count);
+  const body: SVGTextElement[] = [];
+  for (let i = 0; i < BODY_LINES; i++) {
+    const line = text(w / 2, 9.6 + i * 1.9, '', 1.35, '#b7c0ca');
+    line.setAttribute('font-family', 'ui-monospace, monospace');
+    body.push(line);
+    svg.append(line);
+  }
+  return { request, status, body, count, activity };
+}
+
+function shortUrl(url: string): string {
+  const bare = url.replace(/^http:\/\//i, '');
+  return bare.length > 24 ? `${bare.slice(0, 23)}…` : bare;
+}
+
+export const httpClientView: ViewFactory = {
+  async create(def, props) {
+    const { w, h } = def.size;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'network-view';
+    const svg = el('svg', { width: `${w}mm`, height: `${h}mm`, viewBox: `0 0 ${w} ${h}`, overflow: 'visible' });
+    wrapper.append(svg);
+    clientNodes.set(wrapper, drawClient(def, svg));
+    this.setProps(wrapper, props);
+    return wrapper;
+  },
+  setProps(el: HTMLElement, props: PartProps) {
+    const n = clientNodes.get(el);
+    if (n === undefined) return;
+    const method = typeof props.method === 'string' && props.method !== '' ? props.method.toUpperCase() : 'GET';
+    n.request.textContent = `${method} ${shortUrl(typeof props.url === 'string' ? props.url : '')}`;
+    n.status.textContent = '—';
+    n.status.setAttribute('fill', '#7f8a96');
+    for (const line of n.body) line.textContent = '';
+    const every = typeof props.interval === 'number' && props.interval > 0 ? `every ${props.interval} ms` : 'press Send';
+    n.count.textContent = every;
+  },
+  update(el: HTMLElement, visual: VisualState) {
+    const n = clientNodes.get(el);
+    if (n === undefined) return;
+    if (typeof visual.url === 'string') n.request.textContent = `${typeof visual.method === 'string' ? visual.method : 'GET'} ${shortUrl(visual.url)}`;
+    if (typeof visual.status === 'string') {
+      const code = Number(visual.status);
+      n.status.textContent = visual.status === '' ? '—' : visual.status;
+      n.status.setAttribute('fill', visual.status === 'error' ? '#ff6b6b' : code >= 200 && code < 300 ? '#6fd18b' : visual.status === '' ? '#7f8a96' : '#f2b84b');
+    }
+    if (typeof visual.body === 'string') {
+      const flat = visual.body.replace(/\s+/g, ' ').trim();
+      n.body.forEach((line, i) => (line.textContent = flat.slice(i * BODY_LINE_CHARS, (i + 1) * BODY_LINE_CHARS)));
+    }
+    if (typeof visual.sent === 'number') n.count.textContent = `${visual.sent} sent`;
+    if (typeof visual.busy === 'boolean') n.activity.setAttribute('fill', visual.busy ? LED_ON : LED_OFF);
   },
 };

@@ -1,0 +1,32 @@
+{
+  "name": "example: esp32-wifi-webserver",
+  "project": "../../projects/esp32-wifi-webserver.json",
+  "firmware": {
+    "esp": "../../firmware/esp32/wifi-webserver.bin"
+  },
+  "steps": [
+    {
+      "at": "2s",
+      "part": "on",
+      "input": {
+        "kind": "press"
+      }
+    },
+    {
+      "at": "3s",
+      "part": "off",
+      "input": {
+        "kind": "press"
+      }
+    }
+  ],
+  "expect": [
+    "wifi esp connected by 2s",
+    "serial contains \"server at 192.168.4.2\" by 2s",
+    "http on got 200 with \"led on\" by 2500ms",
+    "led led1 is lit at 2500ms",
+    "serial contains \"GET /led on\" by 2500ms",
+    "http off got 200 with \"led off\" by 3500ms",
+    "led led1 is dark at 3500ms"
+  ]
+}

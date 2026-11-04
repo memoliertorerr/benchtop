@@ -23,6 +23,11 @@
  * - BT88: `bus i2c <part> wrote|read <hex bytes> by <time>` and `bus spi <part> sent <hex bytes>
  *   by <time>`: some transaction with that part (BT86's bus log) carried those bytes in a row —
  *   an I2C write or read, an SPI frame's MOSI — by that time (when the transaction ended).
+ * - BT100: `wifi <board> connected by <time>` (the board's station got its address from an
+ *   access point's DHCP server), `http <part> served <METHOD|*> <path[?query]> by <time>` (an
+ *   http-server part answered such a request) and `http <part> got <status> [with "<text>"] by
+ *   <time>` (an http-client part's request came back with that status, its body holding the
+ *   text): the first such event on the bench's network, by that time.
  * - Script: an array of steps or { steps: [...], expect: [...] }. A step is { at, part, input }
  *   (a part input), { at, part, set: { <channel>: <number|boolean>, … } } (BT55: channel inputs
  *   `set:<channel>=<v>`, booleans as 1/0 — an environment source's rate or on/off, a DHT22's
@@ -33,9 +38,10 @@
  * Exit codes: 0 every assertion passed, 1 one failed, 2 usage, load or run error.
  */
 
-import { type Bench, BusDecoder, type BusTransaction, MAX_PROBES, type Mcu, type NetState, type PartInput, type Problem, type ProjectDoc, type VisualState } from '@benchtop/core';
-import { envSpecFor, sevenSegmentText } from '@benchtop/parts';
+import { type Bench, BusDecoder, type BusTransaction, ipString, MAX_PROBES, type Mcu, type NetEvent, type NetState, type PartInput, type Problem, type ProjectDoc, type VisualState } from '@benchtop/core';
+import { envSpecFor, netSpecFor, sevenSegmentText } from '@benchtop/parts';
 import { buildBench, cachedRoms, type CliIo, loadFirmware, loadTables, loadProject, parseJson, projectFromJson, readText, resolvePin, UsageError } from './load.ts';
+import { uplinkFor } from './uplink.ts';
 
 export { UsageError } from './load.ts';
 
@@ -119,7 +125,14 @@ export type Assertion =
   | { kind: 'duty'; text: string; part: string; pin: string; percent: number; tolerance: number; from: number; to: number }
   | { kind: 'env'; text: string; field: EnvField; part: string; op: EnvOp; value: number; tolerance: number; at: number }
   | { kind: 'bus'; text: string; bus: 'i2c' | 'spi'; part: string; how: 'wrote' | 'read' | 'sent'; bytes: number[]; by: number }
-  | { kind: 'file'; text: string; part: string; path: string; needle: string; by: number };
+  | { kind: 'file'; text: string; part: string; path: string; needle: string; by: number }
+  | { kind: 'wifi'; text: string; board: string; by: number }
+  | { kind: 'served'; text: string; part: string; method: string; path: string; by: number }
+  | { kind: 'got'; text: string; part: string; status: number; needle: string | null; by: number };
+
+/** BT100: assertions decided by events on the bench's network. */
+type NetAssertion = Extract<Assertion, { kind: 'wifi' | 'served' | 'got' }>;
+const isNetAssertion = (a: Assertion): a is NetAssertion => a.kind === 'wifi' || a.kind === 'served' || a.kind === 'got';
 
 type EnvField = 'gas' | 'temperature' | 'humidity' | 'light' | 'sound';
 type EnvOp = 'is' | '>' | '<' | '>=' | '<=';
@@ -127,7 +140,7 @@ const ENV_UNITS: Readonly<Record<EnvField, string>> = { gas: 'ppm', temperature:
 
 /** The time an assertion is decided at: its `at`, its `by`, or the end of its window. */
 export function decidedAt(a: Assertion): number {
-  if (a.kind === 'serial' || a.kind === 'match' || a.kind === 'bus' || a.kind === 'file') return a.by;
+  if (a.kind === 'serial' || a.kind === 'match' || a.kind === 'bus' || a.kind === 'file' || isNetAssertion(a)) return a.by;
   if (a.kind === 'frequency' || a.kind === 'duty') return a.to;
   return a.at;
 }
@@ -158,6 +171,9 @@ const FORMS = [
   'bus i2c <part> wrote|read <hex bytes> by <time>',
   'bus spi <part> sent <hex bytes> by <time>',
   'file <part> <path> contains "<text>" by <time>',
+  'wifi <board> connected by <time>',
+  'http <server part> served <METHOD> <path> by <time>',
+  'http <client part> got <status> [with "<text>"] by <time>',
 ];
 
 const NUM = String.raw`(\d+(?:\.\d+)?)`;
@@ -178,6 +194,9 @@ const GRAMMAR = {
   env: re(String.raw`env\s+(gas|temperature|humidity|light|sound)\s+at\s+(\S+)\s+(?:is\s+(-?\d+(?:\.\d+)?)${PM}${NUM}|(>=|<=|>|<)\s*(-?\d+(?:\.\d+)?))\s+at\s+(\S+)`),
   bus: re(String.raw`bus\s+(i2c|spi)\s+(\S+)\s+(wrote|read|sent)\s+((?:[0-9a-fA-F]{2}\s+)*[0-9a-fA-F]{2})\s+by\s+(\S+)`),
   file: re(String.raw`file\s+(\S+)\s+(\S+)\s+contains\s+${QUOTED}\s+by\s+(\S+)`),
+  wifi: re(String.raw`wifi\s+(\S+)\s+connected\s+by\s+(\S+)`),
+  served: re(String.raw`http\s+(\S+)\s+served\s+(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|\*)\s+(\/\S*)\s+by\s+(\S+)`),
+  got: re(String.raw`http\s+(\S+)\s+got\s+(\d{3})(?:\s+with\s+${QUOTED})?\s+by\s+(\S+)`),
 };
 
 /** A regex from `serial matches /…/flags`: i, m, s and u only (g and y would make it stateful). */
@@ -231,6 +250,9 @@ export function parseAssertion(text: string): Assertion {
     return { kind: 'bus', text: t, bus, part: m[2], how, bytes: m[4].split(/\s+/).map((h) => Number.parseInt(h, 16)), by: parseTime(m[5]) };
   }
   if ((m = GRAMMAR.file.exec(t)) !== null) return { kind: 'file', text: t, part: m[1], path: m[2], needle: unescape(m[3], t), by: parseTime(m[4]) };
+  if ((m = GRAMMAR.wifi.exec(t)) !== null) return { kind: 'wifi', text: t, board: m[1], by: parseTime(m[2]) };
+  if ((m = GRAMMAR.served.exec(t)) !== null) return { kind: 'served', text: t, part: m[1], method: m[2], path: m[3], by: parseTime(m[4]) };
+  if ((m = GRAMMAR.got.exec(t)) !== null) return { kind: 'got', text: t, part: m[1], status: Number(m[2]), needle: m[3] === undefined ? null : unescape(m[3], t), by: parseTime(m[4]) };
   throw new UsageError(`not an assertion: ${t} (expected one of: ${FORMS.join(' · ')})`);
 }
 
@@ -391,9 +413,19 @@ function checkAgainstProject(a: Assertion, doc: ProjectDoc, boards: readonly str
     } else if (!boards.includes(a.board)) throw new UsageError(`${a.text}: no board "${a.board}"`);
     return;
   }
+  if (a.kind === 'wifi') {
+    if (!boards.includes(a.board)) throw new UsageError(`${a.text}: no board "${a.board}"`);
+    if (!doc.parts.some((p) => netSpecFor(p.type, p.props)?.kind === 'access-point')) throw new UsageError(`${a.text}: the project has no WiFi access point`);
+    return;
+  }
   const part = doc.parts.find((p) => p.id === a.part);
   if (part === undefined) throw new UsageError(`${a.text}: no part "${a.part}"`);
   if (a.kind === 'bus') return;
+  if (a.kind === 'served' || a.kind === 'got') {
+    const want = a.kind === 'served' ? 'http-server' : 'http-client';
+    if (part.type !== want) throw new UsageError(`${a.text}: "${a.part}" is a ${part.type}, not an ${want} part`);
+    return;
+  }
   if (a.kind === 'file') {
     if (!FILE_TYPES.has(part.type)) throw new UsageError(`${a.text}: "${a.part}" is a ${part.type}, not a part that keeps files (a microSD card)`);
     return;
@@ -540,6 +572,28 @@ function closeWindow(w: Window): { ok: boolean; detail: string } {
 }
 
 /** Runs a project headless. Never throws: errors become exit code 2 in the report. */
+/**
+ * BT100: whether a network event satisfies an assertion — its detail when it does, null when it
+ * is about something else, or '!' and a note when it is about the same part but doesn't match
+ * (a client's other status: the failure says what it got).
+ */
+function netMatch(a: NetAssertion, e: NetEvent): string | null {
+  if (a.kind === 'wifi') return e.kind === 'connected' && e.board === a.board ? `connected to ${e.ap} as ${ipString(e.ip)}` : null;
+  if (a.kind === 'served') {
+    if (e.kind !== 'served' || e.part !== a.part) return null;
+    const q = a.path.indexOf('?');
+    const path = q < 0 ? a.path : a.path.slice(0, q);
+    const query = q < 0 ? null : a.path.slice(q + 1);
+    const hit = (a.method === '*' || a.method === e.method) && path === e.path && (query === null || query === e.query);
+    return hit ? `served ${e.method} ${e.path}${e.query === '' ? '' : `?${e.query}`} → ${e.status}` : `!${e.method} ${e.path}${e.query === '' ? '' : `?${e.query}`}`;
+  }
+  if (e.kind !== 'got' || e.part !== a.part) return null;
+  const got = e.status === 0 ? `error: ${e.error}` : `${e.status}`;
+  if (e.status !== a.status) return `!${got}`;
+  if (a.needle !== null && !e.body.includes(a.needle)) return `!${got} without the text`;
+  return `got ${got}`;
+}
+
 export function runHeadless(options: RunOptions, io: RunIo): RunReport {
   const start = io.now();
   const report: RunReport = {
@@ -554,7 +608,10 @@ export function runHeadless(options: RunOptions, io: RunIo): RunReport {
     error: null,
   };
   const mcus: Mcu[] = [];
+  // BT101: the real network, when `--network` named hosts (closed when the run ends).
+  let uplink: ReturnType<typeof uplinkFor>;
   const finish = (): RunReport => {
+    uplink?.dispose();
     report.wallMs = Math.round((io.now() - start) * 10) / 10;
     const cycles = mcus.reduce((sum, mcu) => sum + mcu.cycles, 0);
     report.simulatedMHz = report.wallMs > 0 ? Math.round((cycles / (report.wallMs * 1000)) * 100) / 100 : 0;
@@ -582,7 +639,8 @@ export function runHeadless(options: RunOptions, io: RunIo): RunReport {
     if (options.maxDurationNs !== undefined && duration > options.maxDurationNs) throw new UsageError(`the run is ${formatNs(duration)} long; the limit is ${formatNs(options.maxDurationNs)}`);
 
     const images = loadFirmware(io, doc, boards, options.firmware);
-    const built = buildBench(doc, images, cachedRoms(io), undefined, loadTables(io, doc, options.firmware));
+    uplink = uplinkFor(io);
+    const built = buildBench(doc, images, cachedRoms(io), undefined, loadTables(io, doc, options.firmware), uplink);
     const bench = built.bench;
     mcus.push(...built.mcus);
 
@@ -671,6 +729,23 @@ export function runHeadless(options: RunOptions, io: RunIo): RunReport {
     };
     if (fileAssertions.length > 0) for (let t = DRAIN_NS; t < duration; t += DRAIN_NS) drains.push(t);
 
+    // BT100: network assertions listen to the bench's network; each is satisfied by the first
+    // event that matches it (a board connected, a server part's answer, a client part's response).
+    const netAssertions = assertions.filter(isNetAssertion);
+    const netSeen = new Map<Assertion, { at: number; detail: string }>();
+    const netNotes = new Map<Assertion, string>();
+    if (netAssertions.length > 0) {
+      bench.network?.listen((e) => {
+        for (const a of netAssertions) {
+          if (netSeen.has(a)) continue;
+          const detail = netMatch(a, e);
+          if (detail === null) continue;
+          if (detail.startsWith('!')) netNotes.set(a, detail.slice(1));
+          else netSeen.set(a, { at: e.at, detail });
+        }
+      });
+    }
+
     // The timeline: at each distinct time, drain the windows, apply the steps (file order),
     // collect what parts show, then check what is due then.
     const encoder = new TextEncoder();
@@ -704,7 +779,7 @@ export function runHeadless(options: RunOptions, io: RunIo): RunReport {
       }
       collect();
       for (const a of assertions) {
-        if (a.kind === 'serial' || a.kind === 'match' || a.kind === 'bus' || a.kind === 'file' || decidedAt(a) !== t) continue;
+        if (a.kind === 'serial' || a.kind === 'match' || a.kind === 'bus' || a.kind === 'file' || isNetAssertion(a) || decidedAt(a) !== t) continue;
         if (a.kind === 'frequency' || a.kind === 'duty') {
           const w = windows.find((x) => x.a === a) as Window;
           results.set(a, { text: a.text, atNs: t, ...closeWindow(w) });
@@ -731,6 +806,13 @@ export function runHeadless(options: RunOptions, io: RunIo): RunReport {
       const why = fileNotes.get(a) ?? 'not checked';
       const detail = at === undefined ? `not seen by ${formatNs(a.by)}: ${why}` : ok ? `seen at ${formatNs(at)}` : `seen at ${formatNs(at)}, after ${formatNs(a.by)}`;
       results.set(a, { text: a.text, ok, atNs: at ?? null, detail });
+    }
+    for (const a of netAssertions) {
+      const seenAt = netSeen.get(a);
+      const ok = seenAt !== undefined && seenAt.at <= a.by;
+      const why = netNotes.get(a);
+      const detail = seenAt === undefined ? `not seen by ${formatNs(a.by)}${why === undefined ? '' : ` (last: ${why})`}` : ok ? `${seenAt.detail} at ${formatNs(seenAt.at)}` : `${seenAt.detail} at ${formatNs(seenAt.at)}, after ${formatNs(a.by)}`;
+      results.set(a, { text: a.text, ok, atNs: seenAt?.at ?? null, detail });
     }
     for (const a of busAssertions) {
       const at = busSeen.get(a);

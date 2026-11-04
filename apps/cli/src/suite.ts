@@ -8,6 +8,7 @@
 
 import { availableParallelism } from 'node:os';
 import { Worker } from 'node:worker_threads';
+import type { AllowEntry } from '@benchtop/core';
 import { type CliIo, UsageError } from './load.ts';
 import { formatNs, type RunReport, runHeadless } from './run.ts';
 import { defaultSpecName, loadSpec, SPEC_SUFFIX } from './spec.ts';
@@ -108,18 +109,18 @@ export async function runSuite(files: readonly string[], io: CliIo, jobs: number
   const start = io.now();
   const results: (SpecResult | undefined)[] = new Array(files.length);
   if (jobs <= 1 || files.length <= 1) files.forEach((file, i) => (results[i] = runSpecFile(file, io)));
-  else await runInWorkers(files, Math.min(jobs, files.length), results);
+  else await runInWorkers(files, Math.min(jobs, files.length), results, io.network ?? []);
   const specs = results.map((r, i) => r ?? errored(files[i], defaultSpecName(files[i]), 'not run: its worker stopped'));
   const exitCode = specs.reduce<0 | 1 | 2>((code, s) => (s.report.exitCode > code ? s.report.exitCode : code), 0);
   return { ok: exitCode === 0, exitCode, wallMs: Math.round((io.now() - start) * 10) / 10, specs };
 }
 
-function runInWorkers(files: readonly string[], count: number, results: (SpecResult | undefined)[]): Promise<void> {
+function runInWorkers(files: readonly string[], count: number, results: (SpecResult | undefined)[], network: readonly AllowEntry[]): Promise<void> {
   const url = new URL('./suite-worker.ts', import.meta.url);
   let next = 0;
   const one = (): Promise<void> =>
     new Promise((done) => {
-      const worker = new Worker(url);
+      const worker = new Worker(url, { workerData: { network } }); // BT101: --network reaches the workers
       let current = -1;
       const feed = (): void => {
         if (next >= files.length) {

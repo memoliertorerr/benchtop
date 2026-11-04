@@ -1,13 +1,14 @@
 /**
  * Live sessions as MCP tools (BT69): `sim_open` a bench, then `sim_run` it in steps, `sim_input`
  * and `sim_serial` into it, `sim_state` to read parts and pins, `sim_update` (BT79) to edit the
- * circuit while it runs, `sim_reset`, `sim_close`, `sim_list`. Every result carries the
- * session's time; runs return the serial output since the last call, new problems and the
- * watched pins' measurements over the run.
+ * circuit while it runs, `sim_reset`, `sim_close`, `sim_list`; BT100: `sim_wifi` (the virtual
+ * network: access points, the boards on them, server and client parts) and `sim_http` (a request
+ * into it). Every result carries the session's time; runs return the serial output since the
+ * last call, new problems and the watched pins' measurements over the run.
  */
 
-import type { DebugTables, FirmwareImage, ProjectDoc, VisualState } from '@benchtop/core';
-import { base64Decode, base64Encode, utf8Text } from '@benchtop/parts';
+import { type DebugTables, type FirmwareImage, type HttpResult, ipString, type ProjectDoc, utf8Bytes, utf8String, type VisualState } from '@benchtop/core';
+import { base64Decode, base64Encode, CATALOG, utf8Text } from '@benchtop/parts';
 import { cachedRoms, loadFirmware, loadTables, projectFromJson } from '../../load.ts';
 import { parseScript, parseTime } from '../../run.ts';
 import { levelText, type Session, Sessions } from '../sessions.ts';
@@ -37,7 +38,7 @@ function compactVisual(visual: VisualState, full: boolean): Record<string, unkno
 
 /** Opens a session on a parsed project and its firmware; the result sim_open and open_example share. */
 export function openSession(context: SimContext, label: string, doc: ProjectDoc, boards: string[], images: Record<string, FirmwareImage>, watch: readonly string[], tables: Record<string, DebugTables> = {}): object {
-  const { session, closed } = context.sessions.add({ label, doc, boards, images, roms: cachedRoms(context.io), watch, serialChars: context.limits.serialChars, tables });
+  const { session, closed } = context.sessions.add({ label, doc, boards, images, roms: cachedRoms(context.io), watch, serialChars: context.limits.serialChars, tables, ...(context.io.network === undefined ? {} : { network: context.io.network }) });
   return {
     session: session.id,
     project: label,
@@ -390,6 +391,106 @@ export const simFiles: Tool<SimContext> = {
   },
 };
 
+const SINCE = (ns: number): string => timeText(Math.round(ns / 1e6) * 1e6);
+
+export const simWifi: Tool<SimContext> = {
+  name: 'sim_wifi',
+  title: 'Read the virtual WiFi network',
+  description:
+    'The virtual network of an open session (runs nothing): each WiFi access point part — SSID, on or off, channel, signal, security — with the boards joined to it (MAC, the address its DHCP server gave, the hostname they sent, since when), the HTTP server and client parts on its LAN with their addresses, and for every ESP32 board whether it is connected. Boards reach each other and the server parts by hostname through the gateway\'s DNS (192.168.4.1).',
+  inputSchema: { type: 'object', properties: { session: SESSION }, required: ['session'], additionalProperties: false },
+  annotations: { readOnlyHint: true, openWorldHint: false },
+  run(args, context) {
+    const session = context.sessions.get(args.session as string);
+    const net = session.bench.network;
+    const stations = net?.stations() ?? [];
+    const boards: Record<string, string> = {};
+    for (const board of session.boards) {
+      const type = session.doc.parts.find((p) => p.id === board)?.type ?? '';
+      const station = stations.find((st) => st.board === board);
+      if (station !== undefined) boards[board] = station.ip === 0 ? `joined "${station.ssid}", no address yet` : `connected to "${station.ssid}" as ${ipString(station.ip)}`;
+      else if (CATALOG.get(type)?.board?.mcu === 'esp32') boards[board] = 'not connected';
+    }
+    return {
+      session: session.id,
+      now: timeText(session.bench.now()),
+      accessPoints: (net?.accessPoints ?? []).map((ap) => ({
+        part: ap.id,
+        ssid: ap.role.ssid,
+        on: ap.on,
+        channel: ap.role.channel,
+        rssi: ap.rssi,
+        security: ap.role.security,
+        gateway: '192.168.4.1',
+        stations: stations.filter((st) => st.ap === ap.id).map((st) => ({ board: st.board, mac: st.mac, ip: st.ip === 0 ? null : ipString(st.ip), ...(st.hostname === '' ? {} : { hostname: st.hostname }), since: SINCE(st.since) })),
+        servers: ap.servers.map((sv) => ({ part: sv.id, address: `${ipString(sv.host.ip)}:${sv.role.port}`, ...(sv.role.hostname === '' ? {} : { hostname: sv.role.hostname }), requests: sv.http.count })),
+        clients: (net?.clientHosts ?? []).filter((c) => c.ap === ap).map((c) => ({ part: c.id, address: ipString(c.host.ip), request: `${c.role.method} ${c.role.url}`, ...(c.role.interval > 0 ? { everyMs: c.role.interval } : {}), sent: c.sent, ...(c.status !== 0 ? { last: c.status } : c.error !== '' ? { last: c.error } : {}) })),
+      })),
+      boards,
+    };
+  },
+};
+
+/** Most body bytes sim_http returns. */
+const MAX_HTTP_BODY = 64 * 1024;
+
+export const simHttp: Tool<SimContext> = {
+  name: 'sim_http',
+  title: 'Send an HTTP request into the virtual network',
+  description:
+    'Sends one HTTP request from an access point\'s gateway (192.168.4.1) to a host on its LAN — an ESP32 running a web server (by its hostname, e.g. "http://esp32-web/led?state=on", or address) or an HTTP server part — and runs the session until the response arrives or "timeout" (default "5s") passes. Returns the status, headers and body (text, at most 64 KB) or why it failed (unknown host, refused, timed out), plus the serial output since the last call. Plain http:// only; "network" picks the access point by SSID when there are several.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      session: SESSION,
+      url: { type: 'string', maxLength: 2048, description: 'http://host[:port]/path?query' },
+      method: { type: 'string', enum: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD'] },
+      body: { type: 'string', maxLength: 65_536, description: 'The request body (UTF-8).' },
+      headers: { type: 'object', additionalProperties: { type: 'string', maxLength: 1024 }, description: 'Extra request headers (at most 16).' },
+      network: { type: 'string', maxLength: 64, description: 'The SSID of the access point to send from (default: the first).' },
+      timeout: { type: 'string', maxLength: 32, description: 'How long to wait in simulated time (default "5s").' },
+    },
+    required: ['session', 'url'],
+    additionalProperties: false,
+  },
+  annotations: { readOnlyHint: false, openWorldHint: false },
+  run(args, context) {
+    const session = context.sessions.get(args.session as string);
+    const net = session.bench.network;
+    if (net === null || net.accessPoints.length === 0) throw new ToolError('the session has no WiFi access point (add a wifi-ap part)');
+    const timeout = parseTime(typeof args.timeout === 'string' ? args.timeout : '5s');
+    if (timeout <= 0) throw new ToolError('timeout must be positive');
+    if (timeout > context.limits.maxSimNs) throw new ToolError(`timeout ${timeText(timeout)} is over the limit of ${timeText(context.limits.maxSimNs)} per call`);
+    const headers = (args.headers ?? {}) as Record<string, string>;
+    if (Object.keys(headers).length > 16) throw new ToolError('at most 16 headers');
+    for (const [name, value] of Object.entries(headers)) {
+      if (!/^[A-Za-z0-9-]{1,64}$/.test(name) || /[\r\n]/.test(value)) throw new ToolError(`header "${name}" isn't a plain header name and one-line value`);
+    }
+    let result: HttpResult | string | undefined;
+    const method = (args.method ?? 'GET') as string;
+    const from = session.bench.now();
+    net.request((args.network ?? '') as string, method, args.url as string, utf8Bytes((args.body ?? '') as string), headers, (r) => {
+      result = r;
+    });
+    const start = context.io.now();
+    const run = result !== undefined ? { stoppedBy: 'done' } : session.run(timeout, undefined, () => context.io.now() - start > context.limits.maxWallMs, () => result !== undefined);
+    const { serial, dropped } = session.takeSerial();
+    const base = { session: session.id, now: timeText(session.bench.now()), ran: timeText(session.bench.now() - from) };
+    const tail = { serial, ...(dropped === undefined ? {} : { serialDropped: dropped }), problems: session.newProblems() };
+    if (result === undefined) return { ...base, error: run.stoppedBy === 'wall' ? 'the call\'s wall-clock budget ran out before the response' : `no response within ${timeText(timeout)}`, ...tail };
+    if (typeof result === 'string') return { ...base, error: result, ...tail };
+    const shown = result.body.subarray(0, MAX_HTTP_BODY);
+    return {
+      ...base,
+      status: result.status,
+      headers: Object.fromEntries(result.headers),
+      body: utf8String(shown),
+      ...(result.body.length > shown.length ? { truncated: true } : {}),
+      ...tail,
+    };
+  },
+};
+
 export const simClose: Tool<SimContext> = {
   name: 'sim_close',
   title: 'Close a live simulation',
@@ -413,4 +514,4 @@ export const simList: Tool<SimContext> = {
   },
 };
 
-export const SIM_TOOLS: readonly Tool<SimContext>[] = [simOpen, simRun, simInput, simSerial, simState, simBus, simFiles, simUpdate, simReset, simClose, simList];
+export const SIM_TOOLS: readonly Tool<SimContext>[] = [simOpen, simRun, simInput, simSerial, simState, simBus, simFiles, simWifi, simHttp, simUpdate, simReset, simClose, simList];

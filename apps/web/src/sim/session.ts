@@ -45,6 +45,7 @@ import {
   type StepOverPlan,
   SymbolTable,
   type SymbolTableData,
+  type Uplink,
   usesSymbols,
   validateProject,
   type VisualState,
@@ -89,6 +90,8 @@ export interface SimSessionDeps {
   esp32c3Rom?(): Uint8Array | undefined;
   /** The Pico 2's (RISC-V) MicroPython UF2 (BT67). */
   micropythonPico2?(): Uint8Array | undefined;
+  /** BT101: the real network through the compile bridge, for access points whose `internet` is on. */
+  uplink?: Uplink;
   /**
    * The UI can read shared memory (the worker is cross-origin isolated): visual state goes
    * through a frame ring (BT40) instead of `frame` messages.
@@ -172,10 +175,10 @@ export class SimSession {
         this.post({ type: 'ready', protocol: PROTOCOL_VERSION });
         return;
       case 'load':
-        this.load(message.doc, message.firmware, message.debugElf ?? {});
+        this.load(message.doc, message.firmware, message.debugElf ?? {}, message.debugSyms ?? {});
         return;
       case 'edit':
-        this.edit(message.doc, message.firmware, message.debugElf ?? {});
+        this.edit(message.doc, message.firmware, message.debugElf ?? {}, message.debugSyms ?? {});
         return;
       case 'setFirmware': {
         const bench = this.requireBench();
@@ -183,7 +186,7 @@ export class SimSession {
         bench.attachFirmware(message.board, message.image);
         this.serial.get(message.board)?.splice(0); // unflushed output of the old firmware
         this.cycleMarks.delete(message.board);
-        this.postDebugInfo(message.board, message.image, message.debugElf);
+        this.postDebugInfo(message.board, message.image, message.debugElf, message.debugSyms);
         this.applyBreakpoints(message.board);
         this.postFrame();
         if (!this.running) this.postDebugStopped(message.board, 'pause');
@@ -310,7 +313,7 @@ export class SimSession {
     }
   }
 
-  private load(doc: unknown, firmware: Record<string, FirmwareImage>, debugElf: Record<string, Uint8Array>): void {
+  private load(doc: unknown, firmware: Record<string, FirmwareImage>, debugElf: Record<string, Uint8Array>, debugSyms: Record<string, string> = {}): void {
     this.running = false;
     this.busLog = null; // the new bench's log, from its start
     this.busRestart = true;
@@ -326,7 +329,7 @@ export class SimSession {
     // assembleBench resets the bench, which invalidates every part: the first frame carries
     // every view's state and nothing keeps showing what a previous bench left on screen.
     const project = validateProject(doc);
-    const bench = assembleBench(project, this.env, firmware, { analogSpecFor, envSpecFor, netSpecFor });
+    const bench = assembleBench(project, this.env, firmware, { analogSpecFor, envSpecFor, netSpecFor, ...this.uplinkOption() });
     this.listenSerial(bench);
     this.bench = bench;
     this.doc = project;
@@ -344,7 +347,7 @@ export class SimSession {
     this.postProblems(false);
     this.postFrame();
     for (const board of this.env.mcus.keys()) {
-      this.postDebugInfo(board, firmware[board], debugElf[board]);
+      this.postDebugInfo(board, firmware[board], debugElf[board], debugSyms[board]);
       this.applyBreakpoints(board);
       this.postDebugStopped(board, 'pause');
     }
@@ -356,10 +359,10 @@ export class SimSession {
    * boards, probes (their history continues) and the run state stay; new boards get `firmware`
    * and their debug info. If carrying over fails, the document is loaded afresh instead.
    */
-  private edit(doc: unknown, firmware: Record<string, FirmwareImage>, debugElf: Record<string, Uint8Array>): void {
+  private edit(doc: unknown, firmware: Record<string, FirmwareImage>, debugElf: Record<string, Uint8Array>, debugSyms: Record<string, string> = {}): void {
     const old = this.bench;
     if (old === null) {
-      this.load(doc, firmware, debugElf);
+      this.load(doc, firmware, debugElf, debugSyms);
       return;
     }
     const project = validateProject(doc); // an invalid document leaves the bench as it was
@@ -368,11 +371,11 @@ export class SimSession {
     const carry = old.carry();
     let bench: Bench;
     try {
-      bench = assembleBench(project, this.env, firmware, { analogSpecFor, envSpecFor, netSpecFor, carry });
+      bench = assembleBench(project, this.env, firmware, { analogSpecFor, envSpecFor, netSpecFor, carry, ...this.uplinkOption() });
     } catch {
       discardCarry(carry);
       const running = this.running;
-      this.load(project, firmware, debugElf);
+      this.load(project, firmware, debugElf, debugSyms);
       this.post({ type: 'edited', problems: [...(this.bench?.problems() ?? [])], reloaded: true });
       if (running) this.resume();
       return;
@@ -400,7 +403,7 @@ export class SimSession {
     this.postFrame();
     for (const board of this.env.mcus.keys()) {
       if (bench.carriedBoard(board)) continue; // its MCU, breakpoints and symbols came along
-      this.postDebugInfo(board, firmware[board], debugElf[board]);
+      this.postDebugInfo(board, firmware[board], debugElf[board], debugSyms[board]);
       this.applyBreakpoints(board);
       if (!this.running) this.postDebugStopped(board, 'pause');
     }
@@ -545,10 +548,12 @@ export class SimSession {
    * Parses a board's symbols and lines once per firmware and posts copies to the UI (the
    * session keeps its own tables to resolve breakpoints against).
    */
-  private postDebugInfo(board: string, image: FirmwareImage | undefined, debugElf?: Uint8Array): void {
-    // BT74: the tables come from the image when it is an ELF, else from the ELF it was built from.
+  private postDebugInfo(board: string, image: FirmwareImage | undefined, debugElf?: Uint8Array, debugSyms?: string): void {
+    // BT74: the tables come from the image when it is an ELF, else from the ELF it was built from;
+    // BT100: without an ELF, symbols (no lines) from `nm` text when the host has it.
     const elfBytes = image?.format === 'elf' ? image.bytes : debugElf;
-    const key = `${firmwareKey(image)}:${debugElf === undefined || image?.format === 'elf' ? '' : firmwareKey({ format: 'elf', bytes: debugElf })}`;
+    const syms = elfBytes === undefined ? debugSyms : undefined;
+    const key = `${firmwareKey(image)}:${debugElf === undefined || image?.format === 'elf' ? '' : firmwareKey({ format: 'elf', bytes: debugElf })}:${syms === undefined ? '' : `syms ${syms.length}`}`;
     const cached = this.debugTables.get(board);
     if (cached?.key === key) {
       this.giveSymbols(board, cached.symbols);
@@ -565,6 +570,8 @@ export class SimSession {
       } catch (e) {
         error = e instanceof Error ? e.message : String(e);
       }
+    } else if (syms !== undefined) {
+      symbols = SymbolTable.fromNm(syms);
     }
     this.debugTables.set(board, { key, symbols, lines });
     this.giveSymbols(board, symbols);
@@ -595,6 +602,11 @@ export class SimSession {
     const kind = this.env.mcus.get(board)?.kind ?? '';
     const registers = (this.bench?.debugOf(board)?.registers() ?? []).map((r) => ({ name: r.name, bits: r.bits }));
     this.deps.post({ type: 'debugInfo', board, symbols: symbolData, lines: lineData, error, kind, registers }, transfer);
+  }
+
+  /** BT101: the uplink as a bench option, when the worker has one. */
+  private uplinkOption(): { uplink?: Uplink } {
+    return this.deps.uplink === undefined ? {} : { uplink: this.deps.uplink };
   }
 
   /** BT97: an MCU that uses symbols beyond the debugger (the ESP32's WiFi) gets its board's, before it runs. */

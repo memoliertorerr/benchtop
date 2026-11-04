@@ -10,7 +10,7 @@ import { esp32McuFactory } from '@benchtop/esp32';
 import { esp32c3McuFactory } from '@benchtop/esp32c3';
 import { rp2040McuFactory } from '@benchtop/rp2040';
 import { rp2350McuFactory } from '@benchtop/rp2350';
-import { assembleBench, type Bench, type BenchCarry, type BenchEnv, type DebugTables, type FirmwareImage, isMicroPythonFqbn, lineTableFromElf, type Mcu, parseElf32, type ProjectDoc, SymbolTable, usesSymbols, validateProject } from '@benchtop/core';
+import { type AllowEntry, assembleBench, type Bench, type BenchCarry, type BenchEnv, type DebugTables, type FirmwareImage, isMicroPythonFqbn, lineTableFromElf, type Mcu, parseElf32, type ProjectDoc, SymbolTable, type Uplink, usesSymbols, validateProject } from '@benchtop/core';
 import { analogSpecFor, benchEnvParts, envSpecFor, netSpecFor } from '@benchtop/parts';
 
 export class UsageError extends Error {
@@ -35,6 +35,13 @@ export interface CliIo {
   esp32c3Rom?(): Uint8Array | undefined;
   /** The stock MicroPython UF2 for the Pico 2's RISC-V cores (BT67), if cached. */
   micropythonPico2?(): Uint8Array | undefined;
+  /**
+   * BT101: the hosts `--network` lets a project's access point reach (absent or empty: none —
+   * nothing leaves the machine).
+   */
+  network?: readonly AllowEntry[];
+  /** BT101, tests only: `host:port` → `address:port` the uplink connects to instead. */
+  networkRedirect?: Readonly<Record<string, string>>;
 }
 
 /** The downloaded files boards need, each undefined when not cached (the board then says so). */
@@ -182,6 +189,7 @@ export function buildBench(
   roms: BenchRoms = {},
   carry?: { carry: BenchCarry; restart: readonly string[] },
   tables: Readonly<Record<string, DebugTables>> = {},
+  uplink?: Uplink,
 ): { bench: Bench; mcus: Mcu[] } {
   const mcus: Mcu[] = [];
   const esp32 = esp32McuFactory(roms.esp32Rom);
@@ -196,7 +204,7 @@ export function buildBench(
       return mcu;
     },
   };
-  return { bench: assembleBench(doc, env, images, { analogSpecFor, envSpecFor, netSpecFor, ...carry }), mcus };
+  return { bench: assembleBench(doc, env, images, { analogSpecFor, envSpecFor, netSpecFor, ...carry, ...(uplink === undefined ? {} : { uplink }) }), mcus };
 }
 
 /** A board part's pin name as the definition spells it (13 ↔ D13 on boards), or undefined. */

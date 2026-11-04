@@ -253,6 +253,24 @@ describe('SimSession', () => {
     expect(pico.registers.map((r) => r.name)).toContain('xpsr');
   });
 
+  it('a board without an ELF gets symbols from nm text (BT100: a gallery example\'s .syms.tsv)', () => {
+    const h = harness();
+    const of = <T extends FromSim['type']>(type: T) => h.messages.filter((m): m is Extract<FromSim, { type: T }> => m.type === type);
+    const bin = (name: string) => ({ format: 'esp32-bin' as const, app: readFixture(`fixtures/firmware/esp32/${name}.bin`), partitions: readFixture(`fixtures/firmware/esp32/${name}.partitions.bin`) });
+    const syms = readFixtureText('fixtures/firmware/esp32/wifi-webserver.syms.tsv');
+    h.session.handle({ type: 'load', doc: project('esp32-wifi-webserver'), firmware: { esp: bin('wifi-webserver') }, debugSyms: { esp: syms } });
+    const [info] = of('debugInfo');
+    expect(info).toMatchObject({ board: 'esp', kind: 'esp32', error: null, lines: null });
+    const table = new SymbolTable(info.symbols!);
+    expect(table.lookup('esp_wifi_init')?.kind).toBe('func');
+    expect(table.lookup('setup')).toBeDefined();
+    // The same firmware and text again: not parsed or sent twice; without the text: none.
+    h.session.handle({ type: 'load', doc: project('esp32-wifi-webserver'), firmware: { esp: bin('wifi-webserver') }, debugSyms: { esp: syms } });
+    expect(of('debugInfo')).toHaveLength(1);
+    h.session.handle({ type: 'load', doc: project('esp32-wifi-webserver'), firmware: { esp: bin('wifi-webserver') } });
+    expect(of('debugInfo').at(-1)).toMatchObject({ board: 'esp', symbols: null });
+  });
+
   it('debugger: info once per firmware, breakpoint stops, step, step over, memory, pause', () => {
     const h = harness();
     const of = <T extends FromSim['type']>(type: T) => h.messages.filter((m): m is Extract<FromSim, { type: T }> => m.type === type);

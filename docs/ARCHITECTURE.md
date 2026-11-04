@@ -677,16 +677,60 @@ bench calls it for every MCU whenever it builds (null without `netSpecFor`).
   (it takes the next free one), route lines that don't parse `http-routes` — all warnings. The
   Inspector edits multi-line text props (the routes) in a text area. `httpRequest(host, ip, port,
   …)` is the matching client the bench's own tools use.
+- **HTTP clients** (the `http-client` part): a host on the LAN like a server (`network`,
+  the next free address from 192.168.4.10 — servers and clients share the range) that sends one
+  request — `method`, `url` (`http://host[:port]/path?query`: a name the AP resolves, i.e. a
+  server part's hostname or a station's DHCP hostname, or an address; `parseHttpUrl`), `body` —
+  each time it is pressed (the Inspector's Send) and every `interval` ms while that is above 0
+  (at least 50 ms; the timer starts with time at a reset, or at a carried build, and a
+  generation counter retires an old one). One request at a time: a press while one is in
+  flight is ignored. Its view (`views/network.ts`) is a small laptop: the request, the last
+  status (green 2xx, amber others, red an error — an unknown host, refused, timed out, https)
+  and the body's start. A URL it can't send to is `http-url` (warning).
 - **Stations** see `radio.accessPoints()` (the APs that are on) and `radio.join(bssid, mac,
   receive, lost)` puts them on an AP's LAN; `lost` runs when the AP goes off (or away in a
-  rebuild). A rebuild hands kept MCUs the new radio: an association moves to the same
+  rebuild). Each MCU gets `radioFor(board)`, so its station is filed under the board's
+  part id. A rebuild hands kept MCUs the new radio: an association moves to the same
   AP's new LAN silently, and the new network keeps the APs' leases and on/off states; a bench
   reset forgets both. `bench.network` exposes the runtime (its APs, LANs, gateways, leases).
+- **What happened**: `net.listen(fn)` reports `connected` (a board's station got its
+  address: the DHCP server acknowledged a REQUEST — `DhcpServer.onack`; a renewal of the same
+  address says nothing), `disconnected` (it left, or the AP went off), `served` (a server part's
+  answer: method, path, query, status, client) and `got` (a client part's response: status or
+  error, body) with bench times — what the runner's `wifi` and `http` assertions read.
+  `net.stations()` lists who is on which LAN (board, MAC, lease, hostname, since);
+  `net.request(network, method, url, body, headers, done)` sends from an AP's gateway — the MCP
+  server's `sim_http`.
+- **The real network** (`uplink.ts`). Off unless both sides opt in: the project — the
+  AP's `internet` prop and its `allow` list (`host:port` entries a line or a comma apart; a DNS
+  name or an IPv4 address, the port required, no wildcards, at most 32: `parseAllowList`) — and
+  the user who started the host: `BenchOptions.uplink` comes only from the bridge (`npm run
+  bridge -- --network …`, the browser) or the CLI (`--network …` on run, test, mcp), each with a
+  list of its own; the bench reaches what both name. With `internet` on, the gateway's DNS
+  answers each allowed name with an address from 198.18.0.0/15 (RFC 2544's benchmarking block:
+  never routed, so it can't shadow a real one), and the gateway (`IpHost.outside`) takes TCP to
+  those addresses and to allowed IPv4 addresses as a transparent proxy: a station's SYN asks
+  the uplink to `connect(host, port)` and the SYN-ACK goes only once it `opened` (a repeated SYN
+  meanwhile is ignored); a refusal — the bridge's or the far end's — is an RST, as from the real
+  server, and a `net-internet` problem on the AP (`liveProblems`, newest per AP, until a reset).
+  Bytes go both ways as they come; the station's FIN half-closes the real socket (`end`), the
+  far end's close FINs the station. Server and client parts route off-subnet traffic through
+  the gateway (`IpHost.router`), so an `http-client` part reaches an allowed host too; its `Host`
+  header names the URL's host. UDP and ICMP never leave. A synchronous uplink (the CLI's) has a
+  `pump(now)` the runtime calls every simulated millisecond while a socket is open. Build
+  problems: `net-allow` (lines that aren't host:port, or none), `net-no-uplink` (the CLI ran
+  without `--network`). The AP's visual `internet` is off, on, busy (a connection out) or error;
+  its view's NET light follows it.
 
 Measured: an ESP32 running `fixtures/sketches/esp32/wifi-ping` (WiFi.begin, DHCP, four pings of
 the gateway with IDF's esp_ping) prints its four replies 0–1 ms each; 6 s simulated take 1.1 s.
 `wifi-http-get`: Arduino's HTTPClient resolves `api.bench` at the gateway and GETs and POSTs
-to the http-server part through lwIP's TCP and ours.
+to the http-server part through lwIP's TCP and ours. Also running: `wifi-webserver` (Arduino's
+WebServer as "esp32-web": the board connects at 1.61 s and answers an http-client part within
+8 ms, switching its LED), and `wifi-tcp-server` + `wifi-tcp-client` on two ESP32s (the client
+finds "echo-server" through the gateway's DNS and gets its line back in capitals 22 ms after
+both connected). The gallery's WiFi category runs all three; the web gives an example its
+`.syms.tsv` (`debugSyms`, see Worker protocol), since a precompiled `.bin` has no ELF.
 
 ### MCUs
 
@@ -2053,9 +2097,11 @@ sequence, files matched by basename or trailing path.
 ## Worker protocol
 
 `apps/web/src/sim/protocol.ts` defines `ToSim` (UI → worker) and `FromSim` (worker → UI)
-messages, versioned by `PROTOCOL_VERSION` (14: the debug ELF beside a load's images and the MCU
+messages, versioned by `PROTOCOL_VERSION` (15: the debug ELF beside a load's images and the MCU
 kind and register names in `debugInfo`, then `edit`/`edited`, then `busWatch` and a frame's `bus`
-chunk, then `storage`). UI → worker: `busWatch` (on/off: the Bus tab is open — while on, every frame carries the
+chunk, then `storage`, then `debugSyms`: a board's symbol table as `nm` text beside `load`, `edit`
+and `setFirmware` when it has no ELF — a gallery example's `.syms.tsv`, which the ESP32's WiFi
+needs; the session parses it with `SymbolTable.fromNm`, symbols only). UI → worker: `busWatch` (on/off: the Bus tab is open — while on, every frame carries the
 bus transactions decoded since the previous one, see "Bus tab"), `storage`
 (`id`, a part, and `list`, `read`, `write` (bytes transferred) or `remove` of its files —
 `bench.storage()`, a microSD card's; answered by a `storage` message with the same id: `ok`, the
@@ -2472,6 +2518,32 @@ worker, which reads the symbols and lines from it — so a compiled sketch has f
 file:line on every board. A dropped .hex, .uf2 or .bin has no symbols: addresses still work. The
 GDB stub stays the AVR's.
 
+### The bridge's network proxy
+
+`apps/bridge/src/network.ts`. Started with `--network host:port[,…]` (the simulator's list
+rules, repeated — the bridge shares no code with the app; a test keeps them equal), the bridge
+opens TCP connections to those hosts for the app's simulated WiFi: `POST /api/net/open {host,
+port}` answers with an event stream (`open` {id} once connected, `data` base64, `close`
+{error}); `POST /api/net/send {id, data}`, `/api/net/end {id}`, `/api/net/close {id}` act on it,
+and the stream's request closing destroys the socket. POSTs only, so a browser always sends an
+Origin, checked as for compiling (the bridge's own page or the Vite dev server); the Host guard
+applies as everywhere. Without `--network` every open is 403 ("nothing leaves this machine"); a
+host:port not on the list 403; at most 16 connections (429); a socket idle 60 s closes.
+`/api/health` lists the hosts (`network`). In the worker, `sim/uplink.ts` (`BridgeUplink`) is
+the bench's uplink over it — fetch with a streamed body read through `SseParser`; sends, half
+closes and closes chained one after another so the bytes stay in order, the ones before the id
+queued; an unreachable bridge, an older one (404) or a proxy error reads "the compile bridge
+isn't running with --network". In the CLI, `uplink.ts` (`NodeUplink`) keeps the sockets on a
+worker thread (`uplink-worker.ts`): the bench runs synchronously, so its pump takes the
+worker's replies with `receiveMessageOnPort` and then sleeps (`Atomics.wait`, ≤ 50 ms at a time)
+while simulated time is ahead of the wall clock since the first connection opened — a
+firmware's timeouts meet real latencies; `--network` reaches the suite's worker threads through
+`workerData` and the MCP server's sessions through the sandboxed io. Tested against local
+servers: the bridge's proxy with an echo server; the CLI with an ESP32 running
+`wifi-http-get` whose access point allows `api.bench:80`, redirected (tests only:
+`CliIo.networkRedirect`) to an HTTP server on its own thread — the GET carries `Host:
+api.bench`.
+
 ## Headless runner
 
 `apps/cli` runs a circuit without a browser, for CI:
@@ -2514,6 +2586,9 @@ nothing from `apps/web`.
   | `env <gas\|temperature\|humidity\|light\|sound> at <p> is <v> ±<tol> at <t>` (or `>`, `<`, `>=`, `<=` `<v>`) | the room's value at a part placed in it (`bench.envSample`); a usage error without an environment part or on a part with no place in it | `gas 812.40 ppm` |
   | `bus i2c <p> wrote\|read <hex bytes> by <t>`, `bus spi <p> sent <hex bytes> by <t>` | some transaction with that part in the bus log — an I2C write or read, an SPI frame's MOSI — carried those bytes in a row by then (when the transaction ended); read every 50 ms so the log's ring can't wrap; a transaction still open at the end counts | `seen at 31.402 ms` |
   | `file <p> <path> contains "<text>" by <t>` | the part's file (a microSD card's, through `bench.storage`; the path matched without case) held the text by then — read at every stop and every 50 ms while the card's version moved; failures say whether the file was missing or what it held | `seen at 50 ms` |
+  | `wifi <board> connected by <t>` | the board's station got its address from an access point's DHCP server (`net.listen`'s `connected`) by then; a usage error without a `wifi-ap` part | `connected to ap as 192.168.4.2 at 1.61 s` |
+  | `http <p> served <METHOD\|*> <path[?query]> by <t>` | an `http-server` part answered such a request by then (a query, when given, must match too) | `served GET /api/hello → 200 at 1.7 s` |
+  | `http <p> got <status> [with "<text>"] by <t>` | an `http-client` part's request came back with that status (and a body holding the text) by then; a failure names the last response (`last: 200`, `last: error: …`) | `got 200 at 2.008 s` |
 
   Visual forms read the part's latest visual state at `t` (frames are collected at every stop)
   and check the part's type up front (an LED, a servo, an LCD and its row count, a NeoPixel, a
@@ -2651,7 +2726,13 @@ Model Context Protocol on stdio — one more front end over the headless runner,
   frames' MOSI and MISO; UART bursts as text — the newest `max` after a bus-kind or part filter,
   open ones marked, with how many more and what the log lost); `sim_files` (a card part's
   files as the sketch left them — list them; read one as text when it is UTF-8, else base64, 64 KB
-  at most; write one from `write` text or `writeBase64`; `remove` one or a directory); `sim_update` (a new
+  at most; write one from `write` text or `writeBase64`; `remove` one or a directory); `sim_wifi`
+  (the access points — SSID, on, channel, signal, security — with the boards joined to
+  each, their addresses and hostnames, the server and client parts on its LAN, and each ESP32
+  board's state; runs nothing); `sim_http` (one request from an AP's gateway to a URL on
+  its LAN — a board's web server by hostname — running the session until the response or
+  `timeout`, default 5 s, stopping at the 10 ms slice it arrived in: status, headers, the body as
+  text up to 64 KB, or why it failed, plus the serial since the last call); `sim_update` (a new
   project document for a live session, rebuilt with carry-over like an edit in the app — boards
   keep running unless `firmware`/`micropython` names them, which re-flashes them; returns the
   boards kept, started and removed and the watched pins that went; if the rebuild fails the

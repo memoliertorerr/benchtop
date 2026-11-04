@@ -57,6 +57,16 @@ function debugElfs(doc: ProjectDoc): Record<string, Uint8Array> {
   return elfs;
 }
 
+/** BT100: each board's symbol table as text (a gallery example's), when it has no ELF. */
+function debugSyms(doc: ProjectDoc): Record<string, string> {
+  const syms: Record<string, string> = {};
+  for (const board of Object.keys(doc.firmware)) {
+    const text = firmwareStore.get(board)?.debugSyms;
+    if (text !== undefined) syms[board] = text;
+  }
+  return syms;
+}
+
 const signatures = new WeakMap<ProjectDoc, string>();
 
 /** What the bench depends on in `doc` (BT77), computed once per document object. */
@@ -85,7 +95,7 @@ function load(): void {
   const doc = editor.doc.value;
   testRecording.value = false; // a new bench ends any recording
   liveViews.clear();
-  sim.load(doc, firmwareImages(doc), debugElfs(doc));
+  sim.load(doc, firmwareImages(doc), debugElfs(doc), debugSyms(doc));
   loadedDoc = doc;
   loadedFirmwareVersion = firmwareVersion;
 }
@@ -94,7 +104,7 @@ function load(): void {
 function edit(): void {
   const doc = editor.doc.value;
   testRecording.value = false; // a recording runs on one document
-  sim.edit(doc, firmwareImages(doc), debugElfs(doc));
+  sim.edit(doc, firmwareImages(doc), debugElfs(doc), debugSyms(doc));
   loadedDoc = doc;
 }
 
@@ -157,7 +167,7 @@ export function firmwareCompiled(board: string): boolean {
   const stored = firmwareStore.get(board);
   firmwareVersion++;
   if (current && stored !== undefined) {
-    sim.setFirmware(board, toImage(stored), stored.debugElf);
+    sim.setFirmware(board, toImage(stored), stored.debugElf, stored.debugSyms);
     loadedFirmwareVersion = firmwareVersion;
     return true;
   }

@@ -45,7 +45,8 @@
  *
  * The virtual network (BT98). With `netSpecFor`, the bench builds a NetRuntime (net/): an
  * access point part gets a LAN and a gateway; every MCU that has WiFi (`usesWifi`) gets its radio
- * whenever a bench builds, and a station's frames travel through the scheduler at bench time.
+ * (BT100: `radioFor(board)`, its station filed under the board's part id) whenever a bench
+ * builds, and a station's frames travel through the scheduler at bench time.
  * A rebuild keeps the APs' leases and on/off states; a reset forgets them.
  *
  * The bus log (BT86). Every I2C and SPI device is attached through a logging proxy made once per
@@ -85,6 +86,7 @@ import type { EnvSpecFor, PointField } from '../env/spec.ts';
 import { usesWifi } from '../net/radio.ts';
 import { NetRuntime } from '../net/runtime.ts';
 import type { NetSpecFor } from '../net/spec.ts';
+import type { Uplink } from '../net/uplink.ts';
 import { buildNetlist, type Netlist } from '../netlist/netlist.ts';
 import { type ResolverLink, SignalResolver } from '../signals/resolver.ts';
 import { Scheduler } from './scheduler.ts';
@@ -128,6 +130,12 @@ export interface BenchOptions {
    * has a virtual network: a LAN per access point, and every MCU with WiFi gets its radio.
    */
   netSpecFor?: NetSpecFor;
+  /**
+   * BT101: the real network, as this host provides it (the bridge in the browser, sockets in the
+   * CLI) — used only by an access point whose `internet` is on, for the hosts it allows. Absent:
+   * such an AP reports `net-no-uplink`.
+   */
+  uplink?: Uplink;
   /**
    * BT78: what the previous bench handed over (`Bench.carry()`): this bench starts at its time
    * and keeps its scheduler, unchanged boards' MCUs and unchanged parts' models.
@@ -840,10 +848,10 @@ export class Bench {
     if (options.netSpecFor !== undefined) {
       // Roles see the type's defaults under the instance's props, as models do.
       const parts = doc.parts.map((p) => ({ id: p.id, type: p.type, props: { ...defOf(p.type)?.defaults, ...p.props } }));
-      this.net = NetRuntime.build(parts, options.netSpecFor, { now: () => this.now(), schedule: (at, fn) => this.scheduler.schedule(at, fn) }, carried?.net ?? null);
+      this.net = NetRuntime.build(parts, options.netSpecFor, { now: () => this.now(), schedule: (at, fn) => this.scheduler.schedule(at, fn) }, carried?.net ?? null, options.uplink ?? null);
       this.buildProblems.push(...this.net.problems());
     }
-    for (const slot of this.mcus) if (usesWifi(slot.mcu)) slot.mcu.joinWifi(this.net?.radio ?? null);
+    for (const slot of this.mcus) if (usesWifi(slot.mcu)) slot.mcu.joinWifi(this.net?.radioFor(slot.partId) ?? null);
     // A carried bench isn't reset: every part shows its state in the next frame.
     if (carried !== null) for (const slot of this.partList) this.invalidate(slot);
   }
@@ -1115,6 +1123,7 @@ export class Bench {
       );
     }
     list.push(...this.dynamicProblems);
+    if (this.net !== null) list.push(...this.net.liveProblems()); // BT101: the uplink's refusals
     for (const p of this.reported.values()) {
       // An LED's current comes from its pins' volts; switch-level volts (5 V straight across
       // it) would claim an overcurrent the circuit doesn't have.

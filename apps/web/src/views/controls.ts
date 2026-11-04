@@ -104,6 +104,7 @@ export const CONTROLS: Readonly<Record<string, readonly Control[]>> = {
   'sound-source': [slider('Level at 1 m', 'dB', 30, 120, 1, 'db'), toggle('On')],
   fan: [slider('Flow', 'm³/min', 0, 20, 0.1, 'flow'), toggle('On')],
   'wifi-ap': [slider('Signal (RSSI)', 'dBm', -100, -20, 1, 'rssi'), toggle('Power')], // BT98
+  'http-client': [{ kind: 'button', label: 'Send', input: press }], // BT100
   person: [slider('Speed', 'm/s', 0, 3, 0.05, 'speed'), toggle('Walking')],
   object: [slider('Speed', 'm/s', 0, 3, 0.05, 'speed'), toggle('Moving')],
   mpu6050: [

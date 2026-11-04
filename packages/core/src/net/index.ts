@@ -8,3 +8,4 @@ export * from './radio.ts';
 export * from './runtime.ts';
 export * from './spec.ts';
 export * from './tcp.ts';
+export * from './uplink.ts';

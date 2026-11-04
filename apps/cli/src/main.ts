@@ -17,12 +17,17 @@
  *   mcp [--root <folder>] [--max-sim <time>] [--max-wall <seconds>]
  *     BT68: a Model Context Protocol server on stdio (mcp/): an AI assistant reads the catalog,
  *     validates and runs circuits and test specs, with every path inside the root folder.
+ * `--network host:port[,host:port…]` (BT101; run, test, mcp): a project's WiFi access point whose
+ * `internet` is on may reach those hosts — the ones its own allow list names too. Without it,
+ * nothing leaves the machine.
  */
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { parseGdbArgs, startGdbServer } from './gdb.ts';
 import { nodeIo } from './node-io.ts';
+import { parseAllowList } from '@benchtop/core';
+import type { CliIo } from './load.ts';
 import { parsePcbArgs, runPcb } from './pcb.ts';
 import { runMcp } from './mcp/command.ts';
 import { junitXml, markdownReport } from './reports.ts';
@@ -37,6 +42,7 @@ const USAGE = `usage: benchtop run <project.json> --firmware <board>=<file.hex|.
          --firmware <board>=<file.elf>
        benchtop pcb <project.json> [--pcb <layout.pcb.json>] --out <folder> [--zip] [--drc]
        benchtop mcp [--root <folder>] [--max-sim <time>] [--max-wall <seconds>]
+  --network host:port[,…]  (run, test, mcp) the real hosts a project's WiFi access point may reach
   assertions: serial contains "<text>" by <time>   ·   serial matches /<regex>/ by <time>
     pin <part>:<pin> is <0|1|z|x> at <time>
     pin <part>:<pin> frequency is <hz> ±<pct>% between <time> and <time>
@@ -45,10 +51,32 @@ const USAGE = `usage: benchtop run <project.json> --firmware <board>=<file.hex|.
     lcd <part> row <n> is "<text>" at <time>   ·   pixel <part>[<i>] is #rrggbb at <time>
     digits <part> show "<text>" at <time>
     env <gas|temperature|humidity|light|sound> at <part> is <v> ±<tol> at <time> (or > < >= <=)
+    wifi <board> connected by <time>   ·   http <server> served <METHOD> <path> by <time>
+    http <client> got <status> [with "<text>"] by <time>
   steps: { "at", "part", "input" } · { "at", "part", "set": { <channel>: <value> } } · { "at", "serial", "board"? }
   times: <number><ns|us|ms|s>, e.g. 500ms, 2s`;
 
-const io = nodeIo;
+let io: typeof nodeIo & Pick<CliIo, 'network'> = nodeIo;
+
+/**
+ * BT101: takes `--network <list>` out of the arguments (any command but gdb and pcb) into `io`;
+ * a usage error for a bad list.
+ */
+function takeNetwork(argv: readonly string[]): string[] | string {
+  const rest: string[] = [];
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] !== '--network') {
+      rest.push(argv[i]);
+      continue;
+    }
+    const value = argv[++i];
+    if (value === undefined) return '--network needs host:port[,host:port…]';
+    const { entries, errors } = parseAllowList(value);
+    if (errors.length > 0) return `--network: ${errors.join('; ')}`;
+    io = { ...io, network: [...(io.network ?? []), ...entries] };
+  }
+  return rest;
+}
 
 function usageReport(message: string): RunReport {
   return { ok: false, exitCode: 2, simulatedNs: 0, wallMs: 0, simulatedMHz: 0, assertions: [], serial: {}, problems: [], error: message };
@@ -109,9 +137,14 @@ function pcb(argv: readonly string[]): number {
 }
 
 function main(argv: readonly string[]): number | Promise<number> {
-  const [command, ...rest] = argv;
-  if (command === 'gdb') return gdb(rest);
-  if (command === 'pcb') return pcb(rest);
+  const [command, ...args] = argv;
+  if (command === 'gdb') return gdb(args);
+  if (command === 'pcb') return pcb(args);
+  const rest = takeNetwork(args);
+  if (typeof rest === 'string') {
+    console.error(`error — ${rest}\n${USAGE}`);
+    return 2;
+  }
   if (command === 'test') return test(rest);
   if (command === 'mcp') return runMcp(rest, io);
   if (command !== 'run') {

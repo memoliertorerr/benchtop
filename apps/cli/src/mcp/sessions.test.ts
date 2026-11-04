@@ -156,6 +156,36 @@ describe('live sessions', () => {
     expect(again.serial.uno).toContain('config: rate=99');
   }, 30_000);
 
+  it('sim_wifi and sim_http (BT100): the ESP32 web server on the access point, asked by its hostname', async () => {
+    const server = testServer({ maxWallMs: 120_000 });
+    const open = (await tool(server, 'sim_open', { project: 'fixtures/projects/esp32-wifi-webserver.json', firmware: { esp: 'fixtures/firmware/esp32/wifi-webserver.bin' } })).value as { session: string };
+    const session = open.session;
+    type Wifi = { accessPoints: { part: string; ssid: string; on: boolean; stations: { board: string; ip: string | null; hostname?: string }[]; clients: { part: string; address: string; request: string; sent: number }[] }[]; boards: Record<string, string> };
+    expect(((await tool(server, 'sim_wifi', { session })).value as Wifi).boards).toEqual({ esp: 'not connected' });
+    await tool(server, 'sim_run', { session, untilSerial: 'server at', duration: '5s' });
+    const wifi = (await tool(server, 'sim_wifi', { session })).value as Wifi;
+    expect(wifi.boards).toEqual({ esp: 'connected to "benchtop" as 192.168.4.2' });
+    expect(wifi.accessPoints[0]).toMatchObject({ part: 'ap', ssid: 'benchtop', on: true, stations: [{ board: 'esp', ip: '192.168.4.2', hostname: 'esp32-web' }] });
+    expect(wifi.accessPoints[0].clients.map((c) => [c.part, c.address, c.request, c.sent])).toEqual([
+      ['on', '192.168.4.10', 'GET http://esp32-web/led?state=on', 0],
+      ['off', '192.168.4.11', 'GET http://esp32-web/led?state=off', 0],
+    ]);
+    type Http = { status?: number; body?: string; headers?: Record<string, string>; error?: string; ran: string; serial: Record<string, string> };
+    const on = (await tool(server, 'sim_http', { session, url: 'http://ESP32-WEB/led?state=on' })).value as Http;
+    expect(on).toMatchObject({ status: 200, body: 'led on' });
+    expect(on.serial.esp).toContain('GET /led on\n'); // the serial output since the last call
+    expect(on.headers?.['content-type']).toBe('text/plain');
+    const state = (await tool(server, 'sim_state', { session, parts: ['led1'] })).value as { parts: Record<string, { brightness: number }> };
+    expect(state.parts.led1.brightness).toBeGreaterThan(0.3);
+    expect((await tool(server, 'sim_http', { session, url: 'http://192.168.4.2/nothing', method: 'POST', body: 'x' })).value).toMatchObject({ status: 404, body: 'not here' });
+    expect((await tool(server, 'sim_http', { session, url: 'http://nobody/' })).value).toMatchObject({ error: expect.stringMatching(/^no host "nobody"/) });
+    expect((await tool(server, 'sim_http', { session, url: 'http://192.168.4.99/', timeout: '200ms' })).value).toMatchObject({ error: 'no response within 200ms', ran: '200ms' });
+    expect((await tool(server, 'sim_http', { session, url: 'https://esp32-web/' })).value).toMatchObject({ error: "https isn't simulated: use http://" });
+    expect((await tool(server, 'sim_http', { session, url: 'http://esp32-web/', network: 'elsewhere' })).value).toMatchObject({ error: 'no access point has the SSID "elsewhere"' });
+    const blinkSession = ((await tool(server, 'sim_open', blink)).value as { session: string }).session;
+    expect((await tool(server, 'sim_http', { session: blinkSession, url: 'http://x/' })).text).toMatch(/no WiFi access point/);
+  }, 120_000);
+
   it('limits: the session count, the duration and the wall-clock budget', async () => {
     const server = testServer({ maxSessions: 2, maxSimNs: 5e9 });
     await tool(server, 'sim_open', blink);

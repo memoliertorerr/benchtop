@@ -61,7 +61,7 @@ describe('bridge request guards', () => {
   it('reports health without an arduino-cli', async () => {
     const reply = await send(port, { path: '/api/health' });
     expect(reply.status).toBe(200);
-    expect(JSON.parse(reply.body)).toEqual({ cli: null, cores: [] });
+    expect(JSON.parse(reply.body)).toEqual({ cli: null, cores: [], network: [] });
   });
 
   it('rejects a rebinding Host header', async () => {

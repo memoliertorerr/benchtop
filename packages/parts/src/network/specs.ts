@@ -4,6 +4,8 @@
  * −100…−20 dBm, an SSID of at most 32 UTF-8 bytes, a WPA key of 8–63 characters (a shorter or
  * longer one makes it open, as a router refuses it; the view says so). BT99: the HTTP server's —
  * an address that doesn't parse means "the next free one", a port outside 1–65535 means 80.
+ * BT100: the HTTP client's — a method it can't send means GET, an interval under 50 ms 50 ms
+ * (0 or less: only when pressed).
  */
 
 import type { NetRole, PartProps, WifiSecurity } from '@benchtop/core';
@@ -34,7 +36,24 @@ export function wifiSecurity(security: unknown, password: string): WifiSecurity 
   return password.length >= 8 && password.length <= 63 ? asked : 'open';
 }
 
+/** The methods a client part may send (anything else sends GET). */
+const CLIENT_METHODS = new Set(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD']);
+/** A client part's shortest interval, ms (a faster one would flood a board's server). */
+export const MIN_CLIENT_INTERVAL_MS = 50;
+
 export function netSpecFor(type: string, props: PartProps): NetRole | undefined {
+  if (type === 'http-client') {
+    const method = typeof props.method === 'string' ? props.method.trim().toUpperCase() : 'GET';
+    const interval = typeof props.interval === 'number' && Number.isFinite(props.interval) && props.interval > 0 ? Math.max(MIN_CLIENT_INTERVAL_MS, Math.round(props.interval)) : 0;
+    return {
+      kind: 'http-client',
+      network: typeof props.network === 'string' ? props.network : '',
+      url: typeof props.url === 'string' ? props.url : '',
+      method: CLIENT_METHODS.has(method) ? method : 'GET',
+      body: typeof props.body === 'string' ? props.body : '',
+      interval,
+    };
+  }
   if (type === 'http-server') {
     const port = typeof props.port === 'number' && Number.isInteger(props.port) && props.port >= 1 && props.port <= 65535 ? props.port : 80;
     return {
@@ -59,5 +78,7 @@ export function netSpecFor(type: string, props: PartProps): NetRole | undefined 
     rssi: num(props.rssi, -50, -100, -20),
     hidden: props.hidden === true,
     on: props.on !== false,
+    internet: props.internet === true,
+    allow: typeof props.allow === 'string' ? props.allow : '',
   };
 }

@@ -1,0 +1,43 @@
+{
+  "format": 1,
+  "name": "esp32-wifi-tcp",
+  "parts": [
+    {
+      "id": "server",
+      "type": "esp32-devkit-v1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "client",
+      "type": "esp32-devkit-v1",
+      "x": 96,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "ap",
+      "type": "wifi-ap",
+      "x": 45,
+      "y": -34,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [],
+  "firmware": {
+    "server": {
+      "kind": "file",
+      "name": "wifi-tcp-server.bin",
+      "format": "esp32-bin"
+    },
+    "client": {
+      "kind": "file",
+      "name": "wifi-tcp-client.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

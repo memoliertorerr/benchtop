@@ -75,7 +75,19 @@ running the real `.bin` image Arduino-ESP32 2.0.17 builds, on Espressif's real m
   waiting in `WAITI` cost almost nothing.
 
 Not on the ESP32 yet: ADC2, the DAC's cosine generator and DMA, touch, I2S, PCNT, CAN, deep
-sleep and PSRAM; WiFi and Bluetooth are out of scope.
+sleep and PSRAM; Bluetooth is out of scope.
+
+**WiFi on the ESP32** — a network inside the bench, no radio and, unless you allow hosts (see
+"The real network" below), nothing leaving your machine:
+put a **WiFi access point** part beside the board and `WiFi.begin("benchtop", "simulated")`
+joins it. The closed WiFi driver is answered at its API (the firmware's symbols tell where its
+functions are), and everything above it is the sketch's own code — the WiFi library, the event
+loop, lwIP — so scans, connecting, a wrong password, DHCP, ping, DNS, `WiFiClient`/`WiFiServer`,
+`HTTPClient` and `WebServer` behave as on a board. The access point hands out addresses and
+names boards by hostname; an **HTTP server** part answers from routes you write (`GET /api/hello
+200 application/json {"count":{{count}}}`); an **HTTP client** part sends a request to a board's
+web server when you press Send (or every so many milliseconds); two ESP32s reach each other by
+hostname. Switch the access point off or weaken its signal while it runs.
 
 **The bench** — breadboards (full, half, mini) where parts snap into holes, wires you draw,
 and ~40 parts: LEDs, RGB LEDs, buttons, switches, potentiometers, LCD1602/2004 (parallel and
@@ -130,7 +142,7 @@ npm install
 npm run dev          # the editor at http://localhost:5173
 ```
 
-**Examples…** opens 80 ready-to-run circuits, each with its sketch, which you can change and
+**Examples…** opens 87 ready-to-run circuits, each with its sketch, which you can change and
 run again (Basics: blink, button, fade, traffic light, a Simon game, serial echo, a Nano on a
 breadboard; Displays: LCDs,
 an LCD thermometer, OLED and an OLED clock, a color TFT, 7-segment, bar graph, NeoPixels; Sensors: DHT22,
@@ -140,7 +152,9 @@ servo knob, a keypad lock, a stepper, an A4988 stepper driver, a relay; Sound: b
 a microphone pitch meter, a VU meter; Power: a regulator meter (turn the bench supply and watch a
 7805 drop out); Storage: an SD card datalogger; Environment: a gas alarm with an extractor fan, a PIR
 hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, a PWM fader, NeoPixel, a
-rainbow ring, an OLED clock, a color TFT, the DAC, the microphone, an I2C scan; Raspberry Pi Pico:
+rainbow ring, an OLED clock, a color TFT, the DAC, the microphone, an I2C scan; ESP32-C3: the RGB LED,
+serial, a potentiometer dimmer, an OLED clock; WiFi: an ESP32 web server switched by HTTP client
+parts, an HTTP client talking to a server part, two ESP32s over TCP; Raspberry Pi Pico:
 blink, a potentiometer, PWM steps, an OLED, a color TFT, both cores at once; Raspberry Pi Pico 2: the same, NeoPixels
 through PIO, a button interrupt and MicroPython blink; Mega: an LED chaser, four
 serial ports, a 16-input analog scanner; Two boards: an Uno ↔ ESP32
@@ -242,6 +256,31 @@ with **Arduino IDE 2** (with the `arduino:avr` and `esp32:esp32` 2.0.17 cores in
 editor can then open a sketch folder, show compile errors on the board and reload the firmware
 when you save. `npm start` builds the app and serves it from the bridge on one origin.
 
+### The real network (optional)
+
+By default nothing leaves your machine: a board on a WiFi access point part sees only the
+bench's own network. To let a sketch reach a real server, both sides opt in:
+
+1. **The project:** select the access point, switch on **internet** and list the hosts in
+   **allow** — `host:port` entries, e.g. `api.example.com:80, 203.0.113.7:8080`.
+2. **Where it runs:** start the bridge with the same hosts —
+
+   ```bash
+   npm run bridge -- --network api.example.com:80
+   ```
+
+   — or pass `--network host:port,…` to `npm run bench -- run` / `test` and to `npm run mcp`.
+
+Only hosts on both lists are reached, and only over TCP, from your machine's own connection
+through the bridge (the browser) or the CLI; a shared project can't reach anything you didn't
+list when you started them. The access point answers DNS for the allowed names itself; UDP (NTP,
+DNS to outside servers) never leaves. The bridge listens on 127.0.0.1 only and takes these
+requests only from the app's own page, at most 16 connections at a time. While a connection is
+open the simulation runs no faster than real time, so a sketch's timeouts meet real network
+delays. HTTPS doesn't work yet: the ESP32's TLS uses its AES, SHA and RSA accelerators, which
+aren't simulated. The router drawing's **NET** light shows the state — green ready, amber while a
+connection is out, red after one failed (the Problems panel says why).
+
 ### Headless runs
 
 ```bash
@@ -274,14 +313,16 @@ Other clients take the same command in their JSON configuration:
 The tools: the part catalog (`list_parts`, `describe_part`), `validate_project`,
 `run_simulation`, `run_tests`, live sessions (`sim_open`, `sim_run`, `sim_input`, `sim_serial`,
 `sim_state`, `sim_bus` — the decoded I2C/SPI/UART traffic, `sim_files` — a microSD card's
-files, `sim_update` — edit the circuit while
+files, `sim_wifi` — the access points and who joined them, `sim_http` — a request to a board's
+web server, `sim_update` — edit the circuit while
 it runs, `sim_reset`, `sim_close`, `sim_list`), the gallery (`list_examples`,
 `open_example`, and each example as a resource), debugging any board in a session (`debug_registers`,
 `debug_memory`, `debug_breakpoints`, `debug_step`), `compile_sketch` (with your arduino-cli)
 and the PCB pair `pcb_check` and `pcb_export`.
 
 What it can touch: it reads files only inside `--root`, writes only to `<root>/.benchtop/`
-(compiled firmware, PCB exports), runs no shell and opens no network connection; the one
+(compiled firmware, PCB exports), runs no shell and opens no network connection (unless started
+with `--network`: then only to those hosts, for a project that allows them too); the one
 program it starts is arduino-cli, for `compile_sketch`. A call simulates at most 60 s
 (`--max-sim`) and spends at most 30 s of wall time (`--max-wall`); at most 8 sessions stay
 open.
@@ -311,7 +352,9 @@ Expectations can also read what parts show and how pins move: `led led1 is lit a
 and 1s`, `pin uno:9 duty is 25% ±1 between 100ms and 1s`, `serial matches /T=\d+/ by 3s`.
 With an environment part, a step can switch or tune a source — `{ "at": "1s", "part": "leak",
 "set": { "rate": 5, "on": true } }` — and `env gas at mq2 > 300 at 4s` (or `is 22 ±0.5`; gas,
-temperature, humidity, light, sound) reads the room at a part.
+temperature, humidity, light, sound) reads the room at a part. On a WiFi bench, `wifi esp
+connected by 3s`, `http api served GET /api/hello by 3s` (an HTTP server part answered it) and
+`http on got 200 with "led on" by 3s` (an HTTP client part's response) read the network.
 
 `test` runs every spec it finds, in parallel, and writes JUnit XML (which CI systems show as test
 results) and a Markdown summary:

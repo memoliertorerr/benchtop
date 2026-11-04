@@ -15,6 +15,7 @@ const QUIET = [
   'apps/web/src/ui/plotter/parse.test.ts', // BT44 1,000 plotter lines in under 2 ms
   'packages/rp2040/src/perf.test.ts', // BT76 the Pico's busy loop: fast core vs rp2040js's
   'apps/web/src/ui/code/tokenize.test.ts', // BT42 a 2,000-line sketch in under 20 ms (BT95: flaked under load)
+  'packages/core/src/signals/resolver.test.ts', // 1,000,000 toggles in under 2 s (2026-11-04: flaked under load)
 ];
 
 export default defineConfig({
