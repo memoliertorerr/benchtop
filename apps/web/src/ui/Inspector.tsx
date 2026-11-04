@@ -15,6 +15,7 @@ import { viewMode } from '../pcb/mode.ts';
 import { lazyComponent } from './lazy.tsx';
 
 const PcbInspector = lazyComponent(() => import('../pcb/PcbInspector.tsx').then((m) => m.PcbInspector));
+const BoardStorage = lazyComponent(() => import('./storage/BoardStorage.tsx').then((m) => m.BoardStorage));
 
 export function Inspector() {
   if (viewMode.value === 'pcb') return <PcbInspector />;
@@ -125,6 +126,7 @@ export function Inspector() {
           )}
         </div>
       )}
+      {def.board !== undefined && <BoardStorage board={part.id} />}
       <PartControls part={part} defaults={def.defaults} />
       {Object.entries(def.defaults).map(([key, fallback]) => {
         if (OWN_SECTION[part.type]?.includes(key)) return null;

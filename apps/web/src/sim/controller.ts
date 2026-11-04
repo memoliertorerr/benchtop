@@ -7,6 +7,10 @@
  * nothing new) leaves the bench alone — `benchSignature` tells them apart. Editing an inline
  * sketch's code (BT42) is not a bench edit either: the worker runs the compiled bytes, so only
  * Compile & Run reaches it. New firmware bytes under the same document still reload.
+ *
+ * BT120: each board's EEPROM or flash data is saved (`memoryStore`) when a run pauses, every 5 s
+ * while it runs and when the page is hidden, and goes back to the worker with every load and edit;
+ * a load of the same project keeps what the worker's boards hold (fresher than the last save).
  */
 
 import { benchSignature, type FirmwareImage, type ProjectDoc } from '@benchtop/core';
@@ -14,6 +18,7 @@ import { CATALOG, envSpecFor } from '@benchtop/parts';
 import { effect, signal } from '@preact/signals';
 import { editor } from '../editor/app-store.ts';
 import { firmwareStore, toImage } from '../editor/firmware-store.ts';
+import { memoryStore } from '../editor/memory-store.ts';
 import { editorNetlist } from '../editor/wiring.ts';
 import { sim, simLoaded, simRunning } from './host.ts';
 import { liveViews } from './live-views.ts';
@@ -67,6 +72,27 @@ function debugSyms(doc: ProjectDoc): Record<string, string> {
   return syms;
 }
 
+/** BT120: the board part ids of `doc` (the parts whose catalog entry is a board). */
+function boardsOf(doc: ProjectDoc): string[] {
+  return doc.parts.filter((p) => CATALOG.get(p.type)?.board !== undefined).map((p) => p.id);
+}
+
+/** The memory store's epoch at the last load: a clear since (another project) means start fresh. */
+let loadedEpoch = -1;
+
+/** BT120: every board's data on the loaded bench into the store; boards that left it, out. */
+export function saveMemory(): void {
+  const doc = loadedDoc;
+  if (!simLoaded.peek() || doc === null) return;
+  const epoch = memoryStore.epoch;
+  const boards = boardsOf(doc);
+  for (const board of boards) {
+    void sim.memory(board, 'read').then((reply) => {
+      if (reply.ok) void memoryStore.put(board, reply.sectors ?? [], epoch);
+    });
+  }
+}
+
 const signatures = new WeakMap<ProjectDoc, string>();
 
 /** What the bench depends on in `doc` (BT77), computed once per document object. */
@@ -95,7 +121,9 @@ function load(): void {
   const doc = editor.doc.value;
   testRecording.value = false; // a new bench ends any recording
   liveViews.clear();
-  sim.load(doc, firmwareImages(doc), debugElfs(doc), debugSyms(doc));
+  const keepMemory = loadedEpoch === memoryStore.epoch;
+  sim.load(doc, firmwareImages(doc), debugElfs(doc), debugSyms(doc), memoryStore.forBoards(boardsOf(doc)), keepMemory);
+  loadedEpoch = memoryStore.epoch;
   loadedDoc = doc;
   loadedFirmwareVersion = firmwareVersion;
 }
@@ -104,7 +132,7 @@ function load(): void {
 function edit(): void {
   const doc = editor.doc.value;
   testRecording.value = false; // a recording runs on one document
-  sim.edit(doc, firmwareImages(doc), debugElfs(doc), debugSyms(doc));
+  sim.edit(doc, firmwareImages(doc), debugElfs(doc), debugSyms(doc), memoryStore.forBoards(boardsOf(doc)));
   loadedDoc = doc;
 }
 
@@ -116,7 +144,16 @@ export function run(): void {
 
 export function pause(): void {
   sim.pause();
+  saveMemory();
 }
+
+// BT120: while it runs, the boards' data is saved every 5 s, and whenever the page is hidden.
+window.setInterval(() => {
+  if (simRunning.peek()) saveMemory();
+}, 5000);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') saveMemory();
+});
 
 /** Starts recording a test: (re)loads if needed, resets to t = 0 and runs, logging every input. */
 export function recordTest(): void {

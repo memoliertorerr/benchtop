@@ -973,6 +973,45 @@ input {
   margin-top: 0;
 }
 
+/* A board's storage (BT120) */
+.storage-entries {
+  display: grid;
+  gap: 2px;
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.storage-entries li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 6px;
+}
+
+.storage-key,
+.storage-value {
+  overflow: hidden;
+  font-family: var(--font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.storage-value {
+  text-align: right;
+}
+
+.storage-bytes {
+  max-height: 160px;
+  margin: 0 0 6px;
+  padding: 6px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  font-size: 11px;
+}
+
 /* microSD card (BT91) */
 .card-files {
   display: grid;

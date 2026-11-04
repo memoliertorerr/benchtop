@@ -79,6 +79,19 @@
     "description": "Type in the serial monitor (9600 baud): the Uno sends every byte straight back."
   },
   {
+    "id": "eeprom-counter",
+    "title": "EEPROM boot counter",
+    "category": "Basics",
+    "project": "uno-eeprom-counter",
+    "boards": {
+      "uno": {
+        "firmware": "uno/eeprom-counter.hex",
+        "sketch": "uno/eeprom-counter"
+      }
+    },
+    "description": "The Uno counts its starts in EEPROM and prints \"boot <n>\": press Reset and the count goes on, as on a real board. The Inspector's Storage section shows the byte it keeps (and saves it with the project); Erase starts the count again."
+  },
+  {
     "id": "potentiometer",
     "title": "Potentiometer",
     "category": "Basics",
@@ -636,6 +649,19 @@
       }
     },
     "description": "A button on D4 with INPUT_PULLUP lights the LED on D2 while held."
+  },
+  {
+    "id": "esp32-prefs-led",
+    "title": "ESP32 Preferences",
+    "category": "ESP32",
+    "project": "esp32-prefs-led",
+    "boards": {
+      "esp": {
+        "firmware": "esp32/prefs-led.bin",
+        "sketch": "esp32/prefs-led"
+      }
+    },
+    "description": "The button on D4 toggles the LED on D2, and Preferences (flash) remembers it: press Reset and the LED comes back as you left it. The Inspector's Storage section shows the NVS entry led.on."
   },
   {
     "id": "esp32-pwm-fader",

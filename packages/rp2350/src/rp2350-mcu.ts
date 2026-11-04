@@ -31,7 +31,7 @@
  *   symbols, the firmware raising WL_REG_ON (GP23) reports `rp2350-cyw43-no-symbols` once.
  */
 
-import type { Debuggable, FirmwareImage, I2cController, Level, Mcu, McuDebug, McuPin, NetState, PinMode, Problem, RunResult, SpiController, SymbolTable, UartPort, WifiRadio, WifiStation } from '@benchtop/core';
+import type { Debuggable, FirmwareImage, I2cController, Level, Mcu, McuDebug, McuPin, NetState, NonVolatile, NvMemory, PinMode, Problem, RunResult, SpiController, SymbolTable, UartPort, WifiRadio, WifiStation } from '@benchtop/core';
 import { RiscvHle } from '@benchtop/riscv';
 import {
   CODE_MICROPYTHON_INSTALL,
@@ -46,7 +46,7 @@ import {
   SpiBridge,
   UsbSerialBridge,
 } from '@benchtop/rp2040';
-import { describeFirmwareFormat, parseElf32, parseUf2, UF2_FAMILY } from '@benchtop/core';
+import { describeFirmwareFormat, parseElf32, parseUf2, SectorMemory, UF2_FAMILY } from '@benchtop/core';
 import { FUNC_NULL, FUNC_UART, FUNC_UART_AUX, PAD_IE, PAD_ISO, PAD_PDE, PAD_PUE, type PinDrive } from './periph/gpio.ts';
 import type { Uart } from './periph/uart.ts';
 import { NoSocDebug, Rp2350Debug } from './debug.ts';
@@ -219,7 +219,7 @@ class Rp2350Uart implements UartPort {
   }
 }
 
-export class Rp2350Mcu implements Mcu, Debuggable, WifiStation {
+export class Rp2350Mcu implements Mcu, Debuggable, WifiStation, NonVolatile {
   readonly kind = 'rp2350' as const;
   readonly clockHz = RP2350_CLOCK_HZ;
   readonly pins: ReadonlyMap<string, McuPin>;
@@ -232,6 +232,8 @@ export class Rp2350Mcu implements Mcu, Debuggable, WifiStation {
   private readonly i2cs: I2cBridge[];
   private readonly spis: SpiBridge[];
   private loaded = false;
+  /** BT118: the flash as hosts keep it (EEPROM emulation, LittleFS): what loads wrote is the program's. */
+  private readonly nvm = new SectorMemory('flash', 0x1000, () => this.soc?.flash ?? new Uint8Array(0), () => this.soc?.flashChanged());
   /** BT67: the interpreter UF2, the MicroPython sketch it runs (null: native firmware) and the flash the interpreter's image makes. */
   private readonly micropython: Uint8Array | undefined;
   private sketch: MicroPythonSketch | null = null;
@@ -297,15 +299,39 @@ export class Rp2350Mcu implements Mcu, Debuggable, WifiStation {
       this.interpreterFlash = this.micropython === undefined ? null : flashImage({ format: 'uf2', bytes: this.micropython });
       this.writeFlash(this.interpreterFlash);
     } else {
+      const regions = imageRegions(image);
       this.sketch = null;
       this.interpreterFlash = null;
-      this.writeFlash(flashImage(image));
+      this.programFlash(regions);
     }
     this.loaded = true;
     this.reset();
   }
 
-  /** Flash as an image leaves it (null: erased). */
+  /**
+   * BT118: an upload — the image's sectors erased and programmed, the rest keeping what the
+   * firmware stored (EEPROM emulation, LittleFS), as a UF2 copy does.
+   */
+  private programFlash(regions: readonly { offset: number; data: Uint8Array }[]): void {
+    if (this.soc === null) return;
+    for (const { offset, data } of regions) this.nvm.eraseSectors(offset, data.length);
+    for (const { offset, data } of regions) {
+      this.soc.flash.set(data, offset);
+      this.nvm.markProgram(offset, data.length);
+    }
+    this.soc.flashChanged();
+  }
+
+  /**
+   * BT118: the flash as hosts keep it — every reset keeps it, a load programs only the image's
+   * sectors. Null for a MicroPython sketch (its interpreter starts on erased flash each run) or
+   * without the bootrom.
+   */
+  nonVolatile(): NvMemory | null {
+    return this.sketch === null && this.soc !== null ? this.nvm : null;
+  }
+
+  /** Flash as an image leaves it (null: erased) — a MicroPython interpreter's, every reset. */
   private writeFlash(flash: Uint8Array | null): void {
     if (this.soc === null) return;
     this.soc.flash.fill(0xff);
@@ -475,15 +501,20 @@ export class Rp2350Mcu implements Mcu, Debuggable, WifiStation {
 /** The flash contents an image makes (bytes from 0x10000000, 0xff where nothing is written). Throws on anything else. */
 function flashImage(image: FirmwareImage): Uint8Array {
   const flash = new Uint8Array(FLASH_SIZE).fill(0xff);
-  let placed = false;
+  for (const { offset, data } of imageRegions(image)) flash.set(data, offset);
+  return flash;
+}
+
+/** BT118: what an image writes into flash, by offset from 0x10000000. Throws on anything else. */
+function imageRegions(image: FirmwareImage): { offset: number; data: Uint8Array }[] {
+  const regions: { offset: number; data: Uint8Array }[] = [];
   const place = (address: number, data: Uint8Array): void => {
     const offset = address - FLASH_BASE;
     if (offset < 0 || offset + data.length > FLASH_SIZE) {
       if (address >= 0x20000000 && address < 0x20082000) throw new Error('RAM-only images are not supported on the RP2350 yet: build the sketch to run from flash');
       throw new Error(`firmware data at 0x${address.toString(16)} is outside the RP2350's 4 MB flash`);
     }
-    flash.set(data, offset);
-    placed = true;
+    regions.push({ offset, data });
   };
   if (image.format === 'uf2') {
     const uf2 = parseUf2(image.bytes);
@@ -496,8 +527,8 @@ function flashImage(image: FirmwareImage): Uint8Array {
     if (elf.machine !== EM_RISCV) throw new Error(`this ELF is for machine ${elf.machine}, not RISC-V (243)`);
     for (const segment of elf.segments) if (segment.data.length > 0) place(segment.paddr, segment.data);
   } else throw new Error(`the RP2350 runs UF2 and ELF images (and MicroPython sketches); got ${describeFirmwareFormat(image.format)}`);
-  if (!placed) throw new Error('the image has no data to load');
-  return flash;
+  if (regions.length === 0) throw new Error('the image has no data to load');
+  return regions;
 }
 
 export function createRp2350Mcu(options: Rp2350McuOptions = {}): Rp2350Mcu {

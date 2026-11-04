@@ -75,7 +75,8 @@ export class Systimer implements Peripheral {
   systemReset(): void {
     this.conf = CLK_EN | UNIT_WORK_EN[0];
     this.base.fill(0);
-    this.since.fill(0);
+    // BT118: counting from the reset (a chip built at a reboot's time starts from 0 there).
+    this.since.fill(this.ctx.now());
     this.captured.fill(0);
     this.valid.fill(false);
     this.loadHi.fill(0);

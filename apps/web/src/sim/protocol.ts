@@ -20,21 +20,26 @@ import type {
   VisualState,
 } from '@benchtop/core';
 
-export const PROTOCOL_VERSION = 15;
+export const PROTOCOL_VERSION = 16;
 
 export type ToSim =
   | { type: 'hello'; protocol: number }
   /** Builds a new bench from `doc` (paused at t = 0) and loads firmware per board part id. */
   /** `debugElf` (BT74): a board's ELF for the debugger's symbols and lines when its image isn't one (a .hex, .uf2 or .bin built from it). */
   /** `debugSyms` (BT100): a board's symbol table as `nm` text (a gallery example's .syms.tsv) when it has no ELF — the ESP32's WiFi needs it. */
-  | { type: 'load'; doc: ProjectDoc; firmware: Record<string, FirmwareImage>; debugElf?: Record<string, Uint8Array>; debugSyms?: Record<string, string> }
+  /**
+   * `memory` (BT120): boards' saved EEPROM or flash data (`MemorySector`s), put back before they
+   * run. `keepMemory`: the same project as the bench loaded now — a board on it keeps what it holds
+   * (fresher than a save), over `memory`.
+   */
+  | { type: 'load'; doc: ProjectDoc; firmware: Record<string, FirmwareImage>; debugElf?: Record<string, Uint8Array>; debugSyms?: Record<string, string>; memory?: Record<string, MemorySector[]>; keepMemory?: boolean }
   /**
    * BT79: the loaded bench's document changed (an edit while loaded): the bench is rebuilt with
    * carry-over — time, unchanged boards (still running their firmware) and unchanged parts'
    * state continue; `firmware` is loaded only into boards that are new or whose firmware ref
    * changed. Keeps running if it was. Answered with `edited`.
    */
-  | { type: 'edit'; doc: ProjectDoc; firmware: Record<string, FirmwareImage>; debugElf?: Record<string, Uint8Array>; debugSyms?: Record<string, string> }
+  | { type: 'edit'; doc: ProjectDoc; firmware: Record<string, FirmwareImage>; debugElf?: Record<string, Uint8Array>; debugSyms?: Record<string, string>; memory?: Record<string, MemorySector[]> }
   /**
    * New firmware for one board of the loaded bench (a fresh compile): loads it and resets that
    * board's MCU only; its clock restarts at the current bench time, other parts keep their state
@@ -86,7 +91,46 @@ export type ToSim =
    */
   | { type: 'recordStart' }
   /** Pauses, runs on to the next whole millisecond, and posts `recorded`. */
-  | { type: 'recordStop' };
+  | { type: 'recordStop' }
+  /**
+   * BT120: a board's EEPROM or flash data (`Bench.nonVolatileOf`): `read` its sectors (to save)
+   * and what they hold (to show), or `erase` it. Answered by a `memory` message with the same `id`.
+   */
+  | { type: 'memory'; id: number; board: string; op: 'read' | 'erase' };
+
+/** BT120: one sector of a board's saved EEPROM or flash data. */
+export interface MemorySector {
+  offset: number;
+  bytes: Uint8Array;
+}
+
+/** BT120: an NVS entry as the Inspector shows it (the value as text; a blob's first bytes in hex). */
+export interface MemoryNvsEntry {
+  namespace: string;
+  key: string;
+  type: string;
+  value: string;
+  /** A blob's or string's length in bytes. */
+  size?: number;
+}
+
+/** BT120: the answer to a `memory` request. */
+export interface MemoryReply {
+  type: 'memory';
+  id: number;
+  board: string;
+  ok: boolean;
+  error?: string;
+  kind?: 'eeprom' | 'flash';
+  size?: number;
+  sectorSize?: number;
+  /** `read`: the data sectors that aren't erased (transferred). */
+  sectors?: MemorySector[];
+  /** `read` on an ESP32 or C3: each NVS partition's entries (and what didn't parse). */
+  nvs?: { partition: string; entries: MemoryNvsEntry[]; problems: string[] }[];
+  /** `read` on an EEPROM: the bytes that aren't erased, as [address, value]. */
+  eeprom?: [number, number][];
+}
 
 /** BT91: what a `storage` request asks of a part's files. */
 export type StorageRequest = { op: 'list' } | { op: 'read'; path: string } | { op: 'write'; path: string; bytes: Uint8Array } | { op: 'remove'; path: string };
@@ -206,4 +250,5 @@ export type FromSim =
   /** A test recording ended (BT50). */
   | { type: 'recorded'; test: RecordedTest }
   | StorageReply
+  | MemoryReply
   | { type: 'error'; message: string };

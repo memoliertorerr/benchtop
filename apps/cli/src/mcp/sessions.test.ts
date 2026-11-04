@@ -186,6 +186,36 @@ describe('live sessions', () => {
     expect((await tool(server, 'sim_http', { session: blinkSession, url: 'http://x/' })).text).toMatch(/no WiFi access point/);
   }, 120_000);
 
+  it('sim_storage (BT119): an ESP32\'s NVS entries and an Uno\'s EEPROM bytes; erase; sim_reset keeps memory unless erase', async () => {
+    const server = testServer({ maxWallMs: 120_000 });
+    const board = (id: string, type: string) => ({ format: 1, name: id, parts: [{ id, type, x: 0, y: 0, rotation: 0, props: {} }], wires: [], firmware: {} });
+    type Storage = { kind: string; size: number; sectorsInUse: string[]; bytes?: Record<string, number>; nvs?: { partition: string; entries: { namespace: string; key: string; type: string; value: string | number; size?: number }[] }[] };
+    const esp = ((await tool(server, 'sim_open', { projectJson: board('esp', 'esp32-devkit-v1'), firmware: { esp: 'fixtures/firmware/esp32/prefs-types.bin' } })).value as { session: string }).session;
+    await tool(server, 'sim_run', { session: esp, untilSerial: 'written', duration: '5s' });
+    const nvs = (await tool(server, 'sim_storage', { session: esp })).value as Storage;
+    expect(nvs).toMatchObject({ kind: 'flash', size: 4 * 1024 * 1024 });
+    expect(nvs.sectorsInUse).toEqual(['0x9000', '0xa000']);
+    const entries = nvs.nvs?.[0].entries ?? [];
+    expect(nvs.nvs?.[0].partition).toBe('nvs');
+    expect(entries.find((e) => e.key === 'u64')).toEqual({ namespace: 'types', key: 'u64', type: 'u64', value: '18000000000000000000' });
+    expect(entries.find((e) => e.key === 'short')).toEqual({ namespace: 'types', key: 'short', type: 'string', value: 'hi' });
+    expect(entries.find((e) => e.key === 'big')).toEqual({ namespace: 'types', key: 'big', type: 'blob', size: 5000, value: Array.from({ length: 64 }, (_, i) => i.toString(16).padStart(2, '0')).join('') });
+    expect(entries.find((e) => e.key === 'n')).toEqual({ namespace: 'other', key: 'n', type: 'u32', value: 7 });
+    // The Uno's boot counter: sim_reset keeps its EEPROM, sim_reset { erase } doesn't.
+    const uno = ((await tool(server, 'sim_open', { projectJson: board('uno', 'arduino-uno'), firmware: { uno: 'fixtures/firmware/uno/eeprom-counter.hex' } })).value as { session: string }).session;
+    await tool(server, 'sim_run', { session: uno, duration: '200ms' });
+    expect(((await tool(server, 'sim_storage', { session: uno })).value as Storage)).toMatchObject({ kind: 'eeprom', size: 1024, sectorsInUse: ['0x0'], bytes: { '0': 1 } });
+    await tool(server, 'sim_reset', { session: uno });
+    await tool(server, 'sim_run', { session: uno, duration: '200ms' });
+    expect(((await tool(server, 'sim_storage', { session: uno })).value as Storage).bytes).toEqual({ '0': 2 });
+    await tool(server, 'sim_reset', { session: uno, erase: true });
+    await tool(server, 'sim_run', { session: uno, duration: '200ms' });
+    expect(((await tool(server, 'sim_storage', { session: uno })).value as Storage).bytes).toEqual({ '0': 1 });
+    expect((await tool(server, 'sim_storage', { session: uno, erase: true })).value).toMatchObject({ erased: true });
+    expect(((await tool(server, 'sim_storage', { session: uno })).value as Storage)).toMatchObject({ sectorsInUse: [], bytes: {} });
+    expect((await tool(server, 'sim_storage', { session: uno, board: 'nope' })).text).toMatch(/no board "nope"/);
+  }, 120_000);
+
   it('sim_wifi (BT117): an ESP32 hosting its own access point — the client parts on it, their addresses from its DHCP server', async () => {
     const server = testServer({ maxWallMs: 120_000 });
     const open = (await tool(server, 'sim_open', { project: 'fixtures/projects/esp32-softap-webserver.json', firmware: { esp: 'fixtures/firmware/esp32/softap-webserver.bin' } })).value as { session: string };

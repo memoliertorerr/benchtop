@@ -27,7 +27,7 @@ import type { Esp32Soc } from '../soc/soc.ts';
 import { CACHE_ENABLE, CACHE_MASK, FlashMmu } from '../soc/mmu.ts';
 import { JEDEC_ID } from '../soc/flash.ts';
 import { RESET_REASON } from '../soc/reset.ts';
-import { buildFlash, type FlashLayout } from './flash-image.ts';
+import { buildFlash, type FlashLayout, type FlashTarget } from './flash-image.ts';
 import { type RomImage, unpackRomData } from './rom.ts';
 
 export const ROM_STACK_TOP = 0x3ffe3f20; // ROM `__stack`
@@ -43,12 +43,14 @@ export interface DirectBootOptions {
   /** The firmware's partition table (`.partitions.bin`); DEFAULT_PARTITIONS without one. */
   partitions?: Uint8Array;
   rom: RomImage;
+  /** BT118: the board's flash, kept across resets: the image is written into it as an upload would. */
+  flash?: FlashTarget;
 }
 
 export type DirectBoot = { ok: true; layout: FlashLayout; entry: number; romEntries: number } | { ok: false; error: string };
 
 export function directBoot(soc: Esp32Soc, options: DirectBootOptions): DirectBoot {
-  const built = buildFlash(options.app, options.partitions);
+  const built = buildFlash(options.app, options.partitions, undefined, options.flash);
   if (!built.ok) return built;
   const layout = built.layout;
   // Check the segment ↔ flash page agreement before touching the SoC.

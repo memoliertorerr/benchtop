@@ -4,6 +4,11 @@
  * (the firmware's own `.partitions.bin`, or DEFAULT_PARTITIONS serialized with its MD5 entry —
  * the app reads it through esp_partition), and the app image at the first app partition. There is
  * no second-stage bootloader at 0x1000: Benchtop does its work (direct-boot.ts).
+ *
+ * BT118: given a board's flash (`FlashTarget`), it writes there what an upload writes — the table
+ * and the app, their sectors erased first (and on a new image the OTA data partition, as
+ * esptool's boot_app0.bin) — and leaves the rest: NVS, SPIFFS/LittleFS, the EEPROM library's
+ * partition keep what the firmware stored.
  */
 
 import { md5 } from '../util/md5.ts';
@@ -18,6 +23,22 @@ export interface FlashLayout {
   image: EspImage;
   partitions: PartitionTable;
   app: Partition;
+  /** BT118: the ranges written: the program's (the partition table, the app image). */
+  written: { offset: number; length: number }[];
+}
+
+/** BT118: a board's flash to write into (kept when it holds the image's flash size; a bigger chip is fine) — it outlives resets. */
+export interface FlashTarget {
+  flash: Uint8Array;
+  /** A new image (an upload): the OTA data partition is erased too. */
+  upload: boolean;
+}
+
+const SECTOR = 0x1000;
+
+/** Erases [offset, offset + length) rounded out to 4 KB sectors. */
+function eraseSectors(flash: Uint8Array, offset: number, length: number): void {
+  flash.fill(0xff, Math.floor(offset / SECTOR) * SECTOR, Math.min(flash.length, Math.ceil((offset + length) / SECTOR) * SECTOR));
 }
 
 export type BuiltFlash = { ok: true; layout: FlashLayout } | { ok: false; error: string };
@@ -42,7 +63,7 @@ export function serializePartitions(table: PartitionTable): Uint8Array {
   return bytes;
 }
 
-export function buildFlash(app: Uint8Array, partitionsBin?: Uint8Array, chip: EspChip = ESP32_CHIP): BuiltFlash {
+export function buildFlash(app: Uint8Array, partitionsBin?: Uint8Array, chip: EspChip = ESP32_CHIP, target?: FlashTarget): BuiltFlash {
   const parsed = parseEspImage(app, chip);
   if (!parsed.ok) return { ok: false, error: `app image: ${parsed.error.message}` };
   const image = parsed.image;
@@ -59,9 +80,17 @@ export function buildFlash(app: Uint8Array, partitionsBin?: Uint8Array, chip: Es
   const app0 = appPartition(partitions);
   if (app0 === undefined) return { ok: false, error: 'the partition table has no app partition' };
   if (image.length > app0.size) return { ok: false, error: `the app (${image.length} bytes) is larger than partition ${app0.label} (${app0.size})` };
-  const flash = new Uint8Array(megabytes * 1024 * 1024).fill(0xff);
-  if (app0.offset + app0.size > flash.length) return { ok: false, error: `partition ${app0.label} ends past the ${megabytes} MB flash` };
+  const size = megabytes * 1024 * 1024;
+  if (app0.offset + app0.size > size) return { ok: false, error: `partition ${app0.label} ends past the ${megabytes} MB flash` };
+  const flash = target !== undefined && target.flash.length >= size ? target.flash : new Uint8Array(size).fill(0xff);
+  eraseSectors(flash, PARTITION_TABLE_OFFSET, tableBytes.length);
   flash.set(tableBytes, PARTITION_TABLE_OFFSET);
+  eraseSectors(flash, app0.offset, image.length);
   flash.set(app.subarray(0, image.length), app0.offset);
-  return { ok: true, layout: { flash, image, partitions, app: app0 } };
+  if (target?.upload === true) for (const p of partitions.partitions) if (p.type === 1 && p.subtype === 0 && p.offset + p.size <= size) eraseSectors(flash, p.offset, p.size);
+  const written = [
+    { offset: PARTITION_TABLE_OFFSET, length: tableBytes.length },
+    { offset: app0.offset, length: image.length },
+  ];
+  return { ok: true, layout: { flash, image, partitions, app: app0, written } };
 }

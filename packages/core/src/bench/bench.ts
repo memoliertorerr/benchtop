@@ -84,6 +84,7 @@ import { cyclesToNanos, nanosToCycles, NS_PER_MS, NS_PER_US, type Nanos } from '
 import { ENV_PERIOD_NS, EnvRuntime } from '../env/runtime.ts';
 import type { EnvSpecFor, PointField } from '../env/spec.ts';
 import { usesWifi } from '../net/radio.ts';
+import { type NvMemory, usesNonVolatile } from './nonvolatile.ts';
 import { NetRuntime } from '../net/runtime.ts';
 import type { NetSpecFor } from '../net/spec.ts';
 import type { Uplink } from '../net/uplink.ts';
@@ -939,6 +940,20 @@ export class Bench {
     return this.mcuSlot(boardPartId).stopped;
   }
 
+  /** BT120: the board part ids with an MCU on this bench, in document order. */
+  boards(): string[] {
+    return this.mcus.map((slot) => slot.partId);
+  }
+
+  /**
+   * BT119: a board's EEPROM or flash as the firmware left it (`NonVolatile`), or null when its MCU
+   * keeps none (no firmware yet, a MicroPython sketch). Throws for a part that isn't a board.
+   */
+  nonVolatileOf(boardPartId: string): NvMemory | null {
+    const mcu = this.mcuSlot(boardPartId).mcu;
+    return usesNonVolatile(mcu) ? mcu.nonVolatile() : null;
+  }
+
   /** A board's debugger view, or undefined when its MCU isn't debuggable. */
   debugOf(boardPartId: string): McuDebug | undefined {
     const mcu = this.mcuSlot(boardPartId).mcu;
@@ -960,6 +975,19 @@ export class Bench {
       this.current = null;
     }
     return this.runUntil(slot.base + cyclesToNanos(slot.mcu.cycles, slot.clockHz));
+  }
+
+  /**
+   * BT118: resets one board's MCU — a power cycle or its reset button: its EEPROM or flash keeps
+   * what the firmware stored (`NonVolatile`) — and restarts its clock at bench time. The rest of
+   * the bench runs on.
+   */
+  resetBoard(boardPartId: string): void {
+    const slot = this.mcuSlot(boardPartId);
+    slot.mcu.reset();
+    slot.base = this.time;
+    slot.stopped = null;
+    this.syncMcu(slot);
   }
 
   /** Loads firmware into a board's MCU (which resets it) and restarts its clock at bench time. */

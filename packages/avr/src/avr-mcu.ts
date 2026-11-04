@@ -64,17 +64,23 @@ import {
   type McuDebug,
   type McuPin,
   type NetState,
+  type NonVolatile,
+  type NvMemory,
   parseElf32,
   parseIntelHex,
   type PinMode,
   PT_LOAD,
   type RunResult,
+  SectorMemory,
   type SpiController,
   type SpiDevice,
   type UartPort,
 } from '@benchtop/core';
 import { AvrDebug } from './debug.ts';
 import { fixFastPwmOrder } from './timer-fix.ts';
+
+/** BT118: the EEPROM's unit for hosts' snapshots (1 KB on the ATmega328P: four of them). */
+const EEPROM_SECTOR = 256;
 
 /** Input thresholds at 5 V (datasheets: VIH min 0.6 VCC, VIL max 0.3 VCC). */
 export const AVR_VIH = 3.0;
@@ -370,7 +376,7 @@ class AvrSpi implements SpiController {
   };
 }
 
-export class AvrMcu implements Mcu, Debuggable {
+export class AvrMcu implements Mcu, Debuggable, NonVolatile {
   readonly kind: AvrChip['kind'];
   readonly clockHz: number;
   readonly pins: ReadonlyMap<string, McuPin>;
@@ -384,6 +390,7 @@ export class AvrMcu implements Mcu, Debuggable {
   private readonly i2c0: AvrI2c;
   private readonly spi0: AvrSpi;
   private readonly eeprom: EEPROMMemoryBackend;
+  private nvm: SectorMemory | null = null;
   private flash: Uint16Array;
   private loaded = false;
   /** @internal Breakpoints by flash word (1 = set), and how many are set. */
@@ -439,6 +446,15 @@ export class AvrMcu implements Mcu, Debuggable {
   /** @internal The EEPROM bytes (kept across resets). */
   get eepromBytes(): Uint8Array {
     return this.eeprom.memory;
+  }
+
+  /**
+   * BT118: the EEPROM as hosts keep it: every reset and every load keeps it (an Arduino upload
+   * through the bootloader writes program flash only).
+   */
+  nonVolatile(): NvMemory {
+    this.nvm ??= new SectorMemory('eeprom', EEPROM_SECTOR, () => this.eeprom.memory);
+    return this.nvm;
   }
 
   /**

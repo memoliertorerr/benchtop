@@ -85,6 +85,22 @@ export const ESP32_CHECKS: Record<string, (r: ExampleRun) => void> = {
     r.runTo(2000);
     expect(r.lit('led1')).toBe(false);
   },
+  'esp32-prefs-led'(r) {
+    // BT120: the LED's state in Preferences: after a reset it comes back as it was left.
+    r.runTo(1000);
+    expect(r.serial('esp')).toContain('start: led off\n');
+    expect(r.lit('led1')).toBe(false);
+    r.input('btn1', { kind: 'press' });
+    r.runTo(1100);
+    r.input('btn1', { kind: 'release' });
+    r.runTo(1200);
+    expect(r.lit('led1')).toBe(true);
+    expect(r.serial('esp')).toContain('led on\n');
+    r.bench.resetBoard('esp');
+    r.runTo(2500);
+    expect(r.serial('esp')).toContain('start: led on\n');
+    expect(r.lit('led1')).toBe(true);
+  },
   'esp32-pwm-fader'(r) {
     r.runTo(1000);
     const middle = brightness(r, 'led1');

@@ -32,8 +32,8 @@
  *   (Espressif's 34:85:18 and three bytes of a hash), so two boards on one LAN differ.
  */
 
-import type { BoardSpec, Debuggable, FirmwareImage, I2cController, I2cDevice, Level, Mcu, McuDebug, McuPin, NetState, PinMode, Problem, RunResult, SpiController, SpiDevice, SymbolTable, UartPort, WifiRadio, WifiStation } from '@benchtop/core';
-import { describeFirmwareFormat, macFromName } from '@benchtop/core';
+import type { BoardSpec, Debuggable, FirmwareImage, I2cController, I2cDevice, Level, Mcu, McuDebug, McuPin, NetState, NonVolatile, NvMemory, PinMode, Problem, RunResult, SpiController, SpiDevice, SymbolTable, UartPort, WifiRadio, WifiStation } from '@benchtop/core';
+import { describeFirmwareFormat, macFromName, SectorMemory } from '@benchtop/core';
 import { STA_LIST_C3, sha256Hex, WifiDriver } from '@benchtop/esp32';
 import { RiscvHle } from '@benchtop/riscv';
 import { directBoot } from './boot/direct-boot.ts';
@@ -43,6 +43,7 @@ import { C3_ROM_CACHE_DIR, C3_ROM_ELF_NAME, C3_ROM_ELF_SHA256 } from './rom-mani
 import { REF_HZ } from './soc/context.ts';
 import { PAD_MODE, PIN_COUNT, SIG } from './soc/gpio.ts';
 import type { SocProblem } from '@benchtop/esp32';
+import { RESET_REASON } from './soc/rtc-cntl.ts';
 import { Esp32c3Soc } from './soc/soc.ts';
 import type { SpiAttachment } from './soc/spi.ts';
 
@@ -50,6 +51,11 @@ export const CODE_C3_ROM_MISSING = 'esp32c3-rom-missing';
 export const CODE_C3_FLOATING_INPUT = 'esp32c3-floating-input';
 export const CODE_C3_WIFI_NO_SYMBOLS = 'esp32c3-wifi-no-symbols';
 export const CODE_C3_WIFI_UNSUPPORTED = 'esp32c3-wifi-unsupported';
+/** BT118: a system reset the firmware asked for (ESP.restart(), a panic's restart). */
+export const CODE_C3_REBOOT = 'esp32c3-reboot';
+
+/** BT118: reboots less than a second apart that end the run (a crash loop), as the ESP32's guard. */
+const RAPID_REBOOT_LIMIT = 5;
 /** BT107: where HLE generators run (hle.ts's resumePc) — in the ROM's gap after .text (ends 0x40059590), before .rodata (0x40059C00 on IBUS). */
 export const C3_HLE_RESUME_PC = 0x40059a00;
 /** BT107: the simulated WiFi driver's task entry, in the same gap. */
@@ -231,7 +237,7 @@ class C3Uart implements UartPort {
   }
 }
 
-export class Esp32c3Mcu implements Mcu, Debuggable, WifiStation {
+export class Esp32c3Mcu implements Mcu, Debuggable, WifiStation, NonVolatile {
   readonly kind = 'esp32c3' as const;
   readonly clockHz = REF_HZ;
   readonly pins: ReadonlyMap<string, McuPin>;
@@ -261,6 +267,15 @@ export class Esp32c3Mcu implements Mcu, Debuggable, WifiStation {
   private radio: WifiRadio | null = null;
   private readonly mac: readonly number[] | undefined;
   private radioReported = false;
+  /** BT118: the board's SPI flash, kept across resets (null until an image boots), and the view hosts get of it. */
+  private flashBytes: Uint8Array | null = null;
+  private nvm: SectorMemory | null = null;
+  /** A load waits for its upload (the next boot also erases the OTA data). */
+  private uploading = false;
+  /** BT118: when the chip last booted (reference cycles), reboots in a row less than 1 s apart, and why a reboot loop ended the run. */
+  private bootTime = 0;
+  private rapidReboots = 0;
+  private rebootLoop = '';
 
   constructor(options: Esp32c3McuOptions = {}) {
     this.rom = romFrom(options.rom);
@@ -302,6 +317,7 @@ export class Esp32c3Mcu implements Mcu, Debuggable, WifiStation {
     if (image.format !== 'esp32-bin') throw new Error(`The ESP32-C3 runs app images (.bin); got ${describeFirmwareFormat(image.format)}.`);
     const previous = this.image;
     this.image = image.partitions === undefined ? { app: image.app } : { app: image.app, partitions: image.partitions };
+    this.uploading = true;
     this.reset();
     if (this.bootError !== '') {
       const error = this.bootError;
@@ -312,14 +328,26 @@ export class Esp32c3Mcu implements Mcu, Debuggable, WifiStation {
   }
 
   reset(): void {
+    this.rebootLoop = '';
+    this.rapidReboots = 0;
     this.soc = this.buildSoc();
+    this.boot(RESET_REASON.POWERON);
+  }
+
+  /** Boots the image on the SoC just built, for `reason` (RTC_CNTL's reset cause), and syncs the pads. */
+  private boot(reason: number): void {
     this.bootError = '';
     this.radioReported = false;
+    this.bootTime = this.soc.time;
     if (typeof this.rom === 'string') {
       this.report('error', CODE_C3_ROM_MISSING, 0, this.rom);
     } else if (this.image !== null) {
-      const boot = directBoot(this.soc, { app: this.image.app, ...(this.image.partitions === undefined ? {} : { partitions: this.image.partitions }), rom: this.rom });
+      // BT118: the chip's flash is the board's, kept across resets; the boot writes the image into it as an upload would.
+      if (this.flashBytes !== null && this.flashBytes.length === this.soc.flash.data.length) this.soc.flash.data = this.flashBytes;
+      const boot = directBoot(this.soc, { app: this.image.app, ...(this.image.partitions === undefined ? {} : { partitions: this.image.partitions }), rom: this.rom, flash: { flash: this.soc.flash.data, upload: this.uploading }, reason });
       if (!boot.ok) this.bootError = `The ESP32-C3 image can't boot: ${boot.error}`;
+      else this.keepFlash(this.soc.flash.data, boot.layout.written);
+      this.uploading = false;
     }
     this.floatingReported.fill(0);
     for (const pin of this.byGpio) {
@@ -333,7 +361,12 @@ export class Esp32c3Mcu implements Mcu, Debuggable, WifiStation {
     if (typeof this.rom === 'string') return { reason: 'halted', detail: this.rom };
     if (this.image === null) return { reason: 'halted', detail: 'No firmware loaded.' };
     if (this.bootError !== '') return { reason: 'halted', detail: this.bootError };
-    this.soc.runUntil(targetCycles);
+    if (this.rebootLoop !== '') return { reason: 'halted', detail: this.rebootLoop };
+    for (;;) {
+      this.soc.runUntil(targetCycles);
+      if (!this.soc.resetRequested) break;
+      if (!this.softwareReset()) return { reason: 'halted', detail: this.rebootLoop };
+    }
     if (this.soc.stopped) return { reason: 'halted', detail: this.soc.stopReason };
     if (this.soc.atBreakpoint) return { reason: 'breakpoint' };
     return { reason: 'target' };
@@ -374,14 +407,55 @@ export class Esp32c3Mcu implements Mcu, Debuggable, WifiStation {
     this.installHle(this.soc);
   }
 
+  /**
+   * BT118: the board's flash as hosts keep it (NVS, file systems, the EEPROM library's partition):
+   * every reset keeps it, a load writes only the partition table and the app. Null until an image boots.
+   */
+  nonVolatile(): NvMemory | null {
+    return this.nvm;
+  }
+
+  /** The flash a boot ran from becomes the board's; what it wrote is the program's. */
+  private keepFlash(flash: Uint8Array, written: readonly { offset: number; length: number }[]): void {
+    if (this.flashBytes !== flash || this.nvm === null) {
+      this.flashBytes = flash;
+      this.nvm = new SectorMemory('flash', 0x1000, () => this.flashBytes ?? new Uint8Array(0));
+    }
+    for (const range of written) this.nvm.markProgram(range.offset, range.length);
+  }
+
   /** BT107: the bench's access points and LANs (null: none); an association moves to a rebuilt bench's. */
   joinWifi(radio: WifiRadio | null): void {
     this.radio = radio;
     this.wifi?.radioChanged();
   }
 
-  private buildSoc(): Esp32c3Soc {
-    const soc = new Esp32c3Soc(this.mac === undefined ? {} : { mac: this.mac });
+  /**
+   * BT118: the system reset the firmware asked for (OPTIONS0.SW_SYS_RST — ESP.restart(), a panic's
+   * restart): a fresh chip at the same time — the bench's clock runs on — keeping what survives a
+   * system reset (flash, RTC fast memory, the RTC timer), booting with reason SW_SYS. False when
+   * reboots less than a second apart end the run.
+   */
+  private softwareReset(): boolean {
+    const old = this.soc;
+    const now = old.time;
+    this.rapidReboots = now - this.bootTime < REF_HZ ? this.rapidReboots + 1 : 0;
+    if (this.rapidReboots >= RAPID_REBOOT_LIMIT) {
+      this.rebootLoop = `reboot loop: ${RAPID_REBOOT_LIMIT} software resets in a row less than 1 s apart`;
+      return false;
+    }
+    const rtcFast = old.memory.rtcFast.slice();
+    const powerOn = old.rtc.powerOn;
+    this.soc = this.buildSoc(now);
+    this.soc.rtc.powerOn = powerOn;
+    this.boot(RESET_REASON.SW_SYS);
+    this.soc.memory.rtcFast.set(rtcFast);
+    this.report('info', CODE_C3_REBOOT, 0, `reboot after a software reset (SW_SYS) at ${(now / REF_HZ).toFixed(6)} s`);
+    return true;
+  }
+
+  private buildSoc(time?: number): Esp32c3Soc {
+    const soc = new Esp32c3Soc({ ...(this.mac === undefined ? {} : { mac: this.mac }), ...(time === undefined ? {} : { time }) });
     soc.breakpoints = this.breakpoints;
     soc.uarts[0].onTx = (byte) => this.uarts[0].emit(byte);
     soc.uarts[1].onTx = (byte) => this.uarts[1].emit(byte);

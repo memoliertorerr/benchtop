@@ -8,6 +8,7 @@
  */
 
 import { type ClientHost, type DebugTables, type FirmwareImage, type HttpResult, ipString, macString, type ProjectDoc, utf8Bytes, utf8String, type VisualState } from '@benchtop/core';
+import { decodeNvs, nvsPartitions } from '@benchtop/esp32';
 import { base64Decode, base64Encode, CATALOG, utf8Text } from '@benchtop/parts';
 import { cachedRoms, loadFirmware, loadTables, projectFromJson } from '../../load.ts';
 import { parseScript, parseTime } from '../../run.ts';
@@ -230,13 +231,76 @@ export const simState: Tool<SimContext> = {
 export const simReset: Tool<SimContext> = {
   name: 'sim_reset',
   title: 'Reset a live simulation',
-  description: 'Resets every board and part of an open session (time back to 0, firmware restarted, inputs released) and clears its serial buffers.',
-  inputSchema: { type: 'object', properties: { session: SESSION }, required: ['session'], additionalProperties: false },
+  description:
+    'Resets every board and part of an open session (time back to 0, firmware restarted, inputs released) and clears its serial buffers. Boards keep their EEPROM or flash — what Preferences, EEPROM or a file system stored — as after a power cycle, unless "erase" is true (sim_storage reads it).',
+  inputSchema: { type: 'object', properties: { session: SESSION, erase: { type: 'boolean', description: 'Erase every board\'s EEPROM or flash data first (the programs stay).' } }, required: ['session'], additionalProperties: false },
   annotations: { readOnlyHint: true, openWorldHint: false },
   run(args, context) {
     const session = context.sessions.get(args.session as string);
+    if (args.erase === true) for (const board of session.boards) session.bench.nonVolatileOf(board)?.erase();
     session.reset();
     return { session: session.id, now: timeText(session.bench.now()) };
+  },
+};
+
+/** EEPROM bytes sim_storage lists at most; NVS blob bytes it shows (as hex). */
+const MAX_EEPROM_BYTES = 1024;
+const MAX_BLOB_HEX = 64;
+
+export const simStorage: Tool<SimContext> = {
+  name: 'sim_storage',
+  title: 'Read or erase a board\'s EEPROM or flash',
+  description:
+    'What a board keeps across resets in an open session, as the firmware left it: an Arduino AVR board\'s EEPROM, an ESP32\'s, ESP32-C3\'s or Raspberry Pi Pico\'s flash (the program aside). For EEPROM, every byte that isn\'t erased (0xFF), by address. For the ESP32s, the NVS entries — what Preferences, nvs_set_* and the WiFi driver stored: namespace, key, type, value (64-bit numbers as decimal strings, blobs as hex, the first 64 bytes). For every board, the sectors in use. "erase": true erases it (the program stays); reset the board after (sim_reset) for the firmware to see it.',
+  inputSchema: {
+    type: 'object',
+    properties: { session: SESSION, board: { type: 'string', maxLength: 64, description: 'The board\'s part id (default: the only board).' }, erase: { type: 'boolean' } },
+    required: ['session'],
+    additionalProperties: false,
+  },
+  annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
+  run(args, context) {
+    const session = context.sessions.get(args.session as string);
+    const board = serialBoard(session, args.board);
+    const memory = session.bench.nonVolatileOf(board);
+    if (memory === null) throw new ToolError(`"${board}" keeps nothing across resets yet (no firmware, or a MicroPython sketch, which starts on erased flash each run)`);
+    if (args.erase === true) {
+      memory.erase();
+      return { session: session.id, board, erased: true, now: timeText(session.bench.now()) };
+    }
+    const sectors = memory.snapshot();
+    const base = { session: session.id, board, kind: memory.kind, size: memory.size, sectorSize: memory.sectorSize, sectorsInUse: sectors.map((s) => `0x${s.offset.toString(16)}`) };
+    if (memory.kind === 'eeprom') {
+      const bytes: Record<string, number> = {};
+      let listed = 0;
+      let more = 0;
+      for (const sector of sectors) {
+        sector.bytes.forEach((value, i) => {
+          if (value === 0xff) return;
+          if (listed >= MAX_EEPROM_BYTES) more++;
+          else {
+            bytes[String(sector.offset + i)] = value;
+            listed++;
+          }
+        });
+      }
+      return { ...base, bytes, ...(more > 0 ? { more } : {}) };
+    }
+    const flash = memory.read(0, memory.size);
+    const nvs = nvsPartitions(flash).map((p) => {
+      const dump = decodeNvs(flash.subarray(p.offset, p.offset + p.size));
+      return {
+        partition: p.label,
+        offset: `0x${p.offset.toString(16)}`,
+        entries: dump.entries.map((e) =>
+          e.value instanceof Uint8Array
+            ? { namespace: e.namespace, key: e.key, type: e.type, size: e.value.length, value: [...e.value.subarray(0, MAX_BLOB_HEX)].map((b) => b.toString(16).padStart(2, '0')).join('') }
+            : { namespace: e.namespace, key: e.key, type: e.type, value: e.value },
+        ),
+        ...(dump.problems.length > 0 ? { problems: dump.problems } : {}),
+      };
+    });
+    return { ...base, ...(nvs.length > 0 ? { nvs } : {}) };
   },
 };
 
@@ -549,4 +613,4 @@ export const simList: Tool<SimContext> = {
   },
 };
 
-export const SIM_TOOLS: readonly Tool<SimContext>[] = [simOpen, simRun, simInput, simSerial, simState, simBus, simFiles, simWifi, simHttp, simUpdate, simReset, simClose, simList];
+export const SIM_TOOLS: readonly Tool<SimContext>[] = [simOpen, simRun, simInput, simSerial, simState, simBus, simFiles, simStorage, simWifi, simHttp, simUpdate, simReset, simClose, simList];

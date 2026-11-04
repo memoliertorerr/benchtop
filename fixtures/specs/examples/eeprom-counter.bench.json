@@ -1,0 +1,22 @@
+{
+  "name": "example: eeprom-counter",
+  "project": "../../projects/uno-eeprom-counter.json",
+  "firmware": {
+    "uno": "../../firmware/uno/eeprom-counter.hex"
+  },
+  "steps": [
+    {
+      "at": "500ms",
+      "reset": "uno"
+    },
+    {
+      "at": "1s",
+      "reset": "uno"
+    }
+  ],
+  "expect": [
+    "serial contains \"boot 1\" by 200ms",
+    "serial contains \"boot 2\" by 700ms",
+    "serial contains \"boot 3\" by 1200ms"
+  ]
+}

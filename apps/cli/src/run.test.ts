@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { REPO_ROOT } from '../../../packages/core/src/firmware/fixtures.test-helper.ts';
 import { loadCachedRom } from '../../../packages/esp32/src/test-support/rom.test-helper.ts';
 import { cachedMicroPython } from '../../../packages/rp2040/src/micropython.test-helper.ts';
-import { parseAssertion, parseRunArgs, parseTime, type RunIo, type RunOptions, type RunReport, runHeadless, UsageError } from './run.ts';
+import { parseAssertion, parseRunArgs, parseScript, parseTime, type RunIo, type RunOptions, type RunReport, runHeadless, UsageError } from './run.ts';
 
 // The headless runner in-process (BT25): files come from the repo, plus virtual ones.
 
@@ -28,6 +28,26 @@ const run = (options: Partial<RunOptions>, virtual: Record<string, string> = {})
   runHeadless({ project: PROJECT, firmware: FIRMWARE, expect: [], ...options }, io(virtual));
 
 describe('runHeadless', () => {
+  it('BT119: a reset step resets one board — its EEPROM keeps the count it stored', () => {
+    const project = { format: 1, name: 'counter', parts: [{ id: 'uno', type: 'arduino-uno', x: 0, y: 0, rotation: 0, props: {} }], wires: [], firmware: {} };
+    const steps = [
+      { at: '500ms', reset: 'uno' },
+      { at: '1s', reset: 'uno' },
+    ];
+    const report = runHeadless(
+      { project: 'p.json', firmware: { uno: 'fixtures/firmware/uno/eeprom-counter.hex' }, script: 's.json', expect: ['serial contains "boot 1" by 200ms', 'serial contains "boot 2" by 700ms', 'serial contains "boot 3" by 1200ms'], duration: '1500ms' },
+      io({ 'p.json': JSON.stringify(project), 's.json': JSON.stringify(steps) }),
+    );
+    expect(report.error).toBeNull();
+    expect(report.assertions.map((a) => [a.text, a.ok])).toEqual([
+      ['serial contains "boot 1" by 200ms', true],
+      ['serial contains "boot 2" by 700ms', true],
+      ['serial contains "boot 3" by 1200ms', true],
+    ]);
+    expect(report.serial.uno).toBe('boot 1\r\nboot 2\r\nboot 3\r\n');
+    expect(() => parseScript([{ at: '1s', reset: 'nope' }], project as never, ['uno'])).toThrow(/"reset" names a board of the project \(uno\), not "nope"/);
+  });
+
   it('passes pin, serial and scripted-input assertions → exit 0', () => {
     const report = run(
       {

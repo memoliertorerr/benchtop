@@ -31,8 +31,8 @@
  * powering the chip it would then talk to over PIO — reports `rp2040-cyw43-no-symbols` once.
  */
 
-import type { Debuggable, FirmwareImage, I2cController, Level, Mcu, McuDebug, McuPin, NetState, PinMode, Problem, RunResult, SpiController, SymbolTable, UartPort, WifiRadio, WifiStation } from '@benchtop/core';
-import { describeFirmwareFormat, parseElf32, parseUf2, placeUf2, UF2_FAMILY } from '@benchtop/core';
+import type { Debuggable, FirmwareImage, I2cController, Level, Mcu, McuDebug, McuPin, NetState, NonVolatile, NvMemory, PinMode, Problem, RunResult, SpiController, SymbolTable, UartPort, WifiRadio, WifiStation } from '@benchtop/core';
+import { describeFirmwareFormat, parseElf32, parseUf2, placeUf2, SectorMemory, UF2_FAMILY } from '@benchtop/core';
 import { type GPIOPin, RP2040 } from 'rp2040js';
 import { I2cBridge, SpiBridge, UsbSerialBridge } from './bridges.ts';
 import { runRomCall } from './bootrom/handlers.ts';
@@ -240,7 +240,7 @@ const WL_REG_ON = 23;
 const WL_HOST_WAKE = 24;
 
 
-export class Rp2040Mcu implements Mcu, Debuggable, WifiStation {
+export class Rp2040Mcu implements Mcu, Debuggable, WifiStation, NonVolatile {
   readonly kind = 'rp2040' as const;
   readonly clockHz = RP2040_CLOCK_HZ;
   readonly pins: ReadonlyMap<string, McuPin>;
@@ -261,6 +261,8 @@ export class Rp2040Mcu implements Mcu, Debuggable, WifiStation {
   private readonly fastCore: boolean;
   /** Flash as the firmware left it: survives resets. */
   private flash = new Uint8Array(FLASH_SIZE).fill(0xff);
+  /** BT118: the flash as hosts keep it (EEPROM emulation, LittleFS): what loads wrote is the program's. */
+  private readonly nvm = new SectorMemory('flash', 0x1000, () => this.flash);
   /** BT109: functions answered in TypeScript (setHle), or null. */
   private hleTable: Rp2040Hle | null = null;
   /** BT110: the Pico W's CYW43439 (null: a Pico), and whether its driver is answered (useSymbols). */
@@ -366,12 +368,29 @@ export class Rp2040Mcu implements Mcu, Debuggable, WifiStation {
     }
   }
 
-  /** Flash as the image leaves it (erased elsewhere), with the HLE table's UDFs. */
+  /**
+   * Flash as the image leaves it, with the HLE table's UDFs. BT118: as a UF2 copy does, the image's
+   * sectors are erased and programmed and the rest keeps what the firmware stored (EEPROM
+   * emulation, LittleFS); a MicroPython sketch's interpreter starts on erased flash every time.
+   */
   private flashImage(): void {
     this.hleTable?.uninstall(this.flash);
-    this.flash.fill(0xff);
-    for (const { address, data } of this.image?.flash ?? []) this.flash.set(data, address - FLASH_BASE);
+    if (this.sketch !== null) this.flash.fill(0xff);
+    const regions = this.image?.flash ?? [];
+    for (const { address, data } of regions) this.nvm.eraseSectors(address - FLASH_BASE, data.length);
+    for (const { address, data } of regions) {
+      this.flash.set(data, address - FLASH_BASE);
+      this.nvm.markProgram(address - FLASH_BASE, data.length);
+    }
     this.hleTable?.install(this.flash);
+  }
+
+  /**
+   * BT118: the flash as hosts keep it — every reset keeps it, a load programs only the image's
+   * sectors. Null for a MicroPython sketch (its interpreter starts on erased flash each run).
+   */
+  nonVolatile(): NvMemory | null {
+    return this.sketch === null ? this.nvm : null;
   }
 
   /**

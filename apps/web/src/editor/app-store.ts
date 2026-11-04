@@ -5,6 +5,7 @@
 
 import { emptyProject } from '@benchtop/core';
 import { effect, signal } from '@preact/signals';
+import { memoryStore } from './memory-store.ts';
 import { createAutosave, loadAutosave, type StorageLike } from './persistence.ts';
 import { createEditorStore } from './store.ts';
 
@@ -19,6 +20,14 @@ function browserStorage(): StorageLike | undefined {
 const storage = browserStorage();
 
 export const editor = createEditorStore(loadAutosave(storage) ?? emptyProject('Untitled'));
+
+// BT120: another project (opened, new, an example, a shared link): no board's saved EEPROM or flash
+// data carries over to it.
+const replaceDoc = editor.replaceDoc.bind(editor);
+editor.replaceDoc = (next) => {
+  void memoryStore.clear();
+  replaceDoc(next);
+};
 
 /** A short note for the status bar (import errors and the like). */
 export const editorMessage = signal<string | null>(null);

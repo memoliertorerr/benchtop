@@ -72,6 +72,15 @@ export class RtcCntl implements Peripheral {
     this.efuse[SYS3 >>> 2] = (this.efuse[SYS3 >>> 2] & ~(7 << 18)) | (3 << 18); // WAFER_VERSION 3
   }
 
+  /** BT118: the power-on the RTC timer counts from — a system reset (a new chip at a reboot) keeps the old one's. */
+  get powerOn(): number {
+    return this.origin;
+  }
+
+  set powerOn(time: number) {
+    this.origin = time;
+  }
+
   /** RTC slow clock cycles since power-on. */
   rtcTime(t = this.ctx.now()): number {
     const sel = this.regs[CLK_CONF >>> 2] >>> 30;

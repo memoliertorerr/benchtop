@@ -654,6 +654,123 @@
     },
     {
       "board": "esp32",
+      "name": "prefs-counter",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/prefs-counter.bin",
+      "sha256": "d5bf78aa879dfbfdb60bc6b565d17139aa9c51c88d1470eb881fc4d9902d289f",
+      "bytes": 271664,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Preferences": "2.0.0"
+      },
+      "source": "e09bf3b14702ccb072c230d6402dc4fdb0262fa687234e01787484c75a6312e9"
+    },
+    {
+      "board": "esp32",
+      "name": "prefs-counter",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/prefs-counter.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Preferences": "2.0.0"
+      },
+      "source": "e09bf3b14702ccb072c230d6402dc4fdb0262fa687234e01787484c75a6312e9"
+    },
+    {
+      "board": "esp32",
+      "name": "prefs-counter",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/prefs-counter.syms.tsv",
+      "sha256": "98cd272b5fb6007bc9e53c3fbbedc45720a3dded5726ae17100ba83f67287094",
+      "bytes": 119972,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Preferences": "2.0.0"
+      },
+      "source": "e09bf3b14702ccb072c230d6402dc4fdb0262fa687234e01787484c75a6312e9"
+    },
+    {
+      "board": "esp32",
+      "name": "prefs-led",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/prefs-led.bin",
+      "sha256": "da9aa37cf33ff2800b5a83e8b861f9795770e1d0a1d76cbfb54d8947c7c72200",
+      "bytes": 271760,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Preferences": "2.0.0"
+      },
+      "source": "680612309c57ee8a66e16a1f63f50ba816bb559b6f8284bab228af49eb141e7f"
+    },
+    {
+      "board": "esp32",
+      "name": "prefs-led",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/prefs-led.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Preferences": "2.0.0"
+      },
+      "source": "680612309c57ee8a66e16a1f63f50ba816bb559b6f8284bab228af49eb141e7f"
+    },
+    {
+      "board": "esp32",
+      "name": "prefs-led",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/prefs-led.syms.tsv",
+      "sha256": "b89f81c9e4a74bd89f2b1cd3d25c7d2aa4c360e692133ebff5f70a69ecf24c5b",
+      "bytes": 120391,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Preferences": "2.0.0"
+      },
+      "source": "680612309c57ee8a66e16a1f63f50ba816bb559b6f8284bab228af49eb141e7f"
+    },
+    {
+      "board": "esp32",
+      "name": "prefs-types",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/prefs-types.bin",
+      "sha256": "b7177dbb73474db03e4ff145016bb18f50e296bffe24e83ce855ab6e0131ab3b",
+      "bytes": 272432,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Preferences": "2.0.0"
+      },
+      "source": "8abab9b9ad29e2c5e4da5a6d0b8da2308d27a25c98bdb5cbcc5686fe81f861f0"
+    },
+    {
+      "board": "esp32",
+      "name": "prefs-types",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/prefs-types.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Preferences": "2.0.0"
+      },
+      "source": "8abab9b9ad29e2c5e4da5a6d0b8da2308d27a25c98bdb5cbcc5686fe81f861f0"
+    },
+    {
+      "board": "esp32",
+      "name": "prefs-types",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/prefs-types.syms.tsv",
+      "sha256": "7abc104e56284c117f6f9b986d953ac5a7cfb966524a2185b8d1950634ba30cd",
+      "bytes": 120724,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Preferences": "2.0.0"
+      },
+      "source": "8abab9b9ad29e2c5e4da5a6d0b8da2308d27a25c98bdb5cbcc5686fe81f861f0"
+    },
+    {
+      "board": "esp32",
       "name": "pwm-fader",
       "fqbn": "esp32:esp32:esp32",
       "file": "esp32/pwm-fader.bin",
@@ -1893,6 +2010,45 @@
     },
     {
       "board": "esp32c3",
+      "name": "prefs-counter",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/prefs-counter.bin",
+      "sha256": "cfb8bfc5d09f01d65cf7e8f7ff9d3dcf99284998ed7fd53273e7da2742e4cc84",
+      "bytes": 258736,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Preferences": "2.0.0"
+      },
+      "source": "538e505ccf6d254961fe2a040db3156166a65073c6a68d456d99fadd373e809d"
+    },
+    {
+      "board": "esp32c3",
+      "name": "prefs-counter",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/prefs-counter.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Preferences": "2.0.0"
+      },
+      "source": "538e505ccf6d254961fe2a040db3156166a65073c6a68d456d99fadd373e809d"
+    },
+    {
+      "board": "esp32c3",
+      "name": "prefs-counter",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/prefs-counter.syms.tsv",
+      "sha256": "b58e79baf10b1ee218657e75f87d286f6a048bc45329cb7c531394002a95c7d2",
+      "bytes": 154796,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Preferences": "2.0.0"
+      },
+      "source": "538e505ccf6d254961fe2a040db3156166a65073c6a68d456d99fadd373e809d"
+    },
+    {
+      "board": "esp32c3",
       "name": "rgb-blink",
       "fqbn": "esp32:esp32:esp32c3",
       "file": "esp32c3/rgb-blink.bin",
@@ -2514,6 +2670,19 @@
       "core": "rp2040:rp2040@6.2.0",
       "libraries": {},
       "source": "504ff95e355202d14ae18857785fcec1b27a3534c3c519f259b0493841223b6b"
+    },
+    {
+      "board": "pico",
+      "name": "eeprom-counter",
+      "fqbn": "rp2040:rp2040:rpipico",
+      "file": "pico/eeprom-counter.uf2",
+      "sha256": "80bffca464cb3423c393ef21c8769c87fbe9061436d1c4b5c8af0325a97affd7",
+      "bytes": 147456,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {
+        "EEPROM": "1.0"
+      },
+      "source": "4e29f60abd223834eb58640feb4e5cf4b97adff37b9ca3fb818749f54412a6d8"
     },
     {
       "board": "pico",
@@ -3551,6 +3720,32 @@
         "Wire": "1.0"
       },
       "source": "99baa0aebca46cd8f48a79e887179259bcd2dbee92df87101782c33a63c88ae4"
+    },
+    {
+      "board": "uno",
+      "name": "eeprom-counter",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/eeprom-counter.elf",
+      "sha256": "bf50a456cfb52cb0fcecc6e99df7bc090ae74d35946e8d40dade6161674c219d",
+      "bytes": 24312,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "EEPROM": "2.0"
+      },
+      "source": "2788c87d88a0f083e2353c22668e91c0054d2f685306cb5c8a106904487a7031"
+    },
+    {
+      "board": "uno",
+      "name": "eeprom-counter",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/eeprom-counter.hex",
+      "sha256": "4a1258fa1492cce9e0904499521e606e24f0ccc3e01eb39e9aeab7071c048a98",
+      "bytes": 4853,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "EEPROM": "2.0"
+      },
+      "source": "2788c87d88a0f083e2353c22668e91c0054d2f685306cb5c8a106904487a7031"
     },
     {
       "board": "uno",

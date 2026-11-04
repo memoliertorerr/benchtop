@@ -13,7 +13,7 @@
 import type { FirmwareImage, MemorySpace, Nanos, PartInput, PinRef, Problem, ProjectDoc, VisualState } from '@benchtop/core';
 import { signal } from '@preact/signals';
 import { FrameRingReader } from './frame-ring.ts';
-import { type FrameStats, type FromSim, PROTOCOL_VERSION, type RecordedTest, type StorageReply, type StorageRequest, type ToSim } from './protocol.ts';
+import { type FrameStats, type FromSim, type MemoryReply, type MemorySector, PROTOCOL_VERSION, type RecordedTest, type StorageReply, type StorageRequest, type ToSim } from './protocol.ts';
 
 export type SimStatus = 'starting' | 'ready' | 'error';
 export type SimFrame = Extract<FromSim, { type: 'frame' }>;
@@ -40,6 +40,8 @@ const anySerialListeners = new Set<(board: string, bytes: Uint8Array, t: Nanos) 
 /** BT91: `storage` requests waiting for their answer, by id. */
 const storageWaiters = new Map<number, (reply: StorageReply) => void>();
 let storageId = 0;
+const memoryWaiters = new Map<number, (reply: MemoryReply) => void>();
+let memoryId = 0;
 let worker: Worker | null = null;
 let ring: FrameRingReader | null = null;
 let ringFrame = 0;
@@ -113,17 +115,17 @@ export const sim = {
    * `debugElf`: boards' ELFs for the debugger when their images aren't ELFs (BT74); `debugSyms`:
    * boards' symbol tables as text when they have no ELF (BT100: gallery examples).
    */
-  load(doc: ProjectDoc, firmware: Record<string, FirmwareImage>, debugElf: Record<string, Uint8Array> = {}, debugSyms: Record<string, string> = {}): void {
+  load(doc: ProjectDoc, firmware: Record<string, FirmwareImage>, debugElf: Record<string, Uint8Array> = {}, debugSyms: Record<string, string> = {}, memory: Record<string, MemorySector[]> = {}, keepMemory = false): void {
     simLoaded.value = false;
     simRunning.value = false;
-    send({ type: 'load', doc, firmware, debugElf, debugSyms });
+    send({ type: 'load', doc, firmware, debugElf, debugSyms, memory, keepMemory });
   },
   /**
    * BT79: the loaded bench's document changed: the worker rebuilds it keeping time, running
    * boards and unchanged parts (`firmware` reaches only new boards). Keeps running if it was.
    */
-  edit(doc: ProjectDoc, firmware: Record<string, FirmwareImage>, debugElf: Record<string, Uint8Array> = {}, debugSyms: Record<string, string> = {}): void {
-    send({ type: 'edit', doc, firmware, debugElf, debugSyms });
+  edit(doc: ProjectDoc, firmware: Record<string, FirmwareImage>, debugElf: Record<string, Uint8Array> = {}, debugSyms: Record<string, string> = {}, memory: Record<string, MemorySector[]> = {}): void {
+    send({ type: 'edit', doc, firmware, debugElf, debugSyms, memory });
   },
   /** Swaps one board's firmware on the loaded bench (load + reset of that board only). */
   setFirmware(board: string, image: FirmwareImage, debugElf?: Uint8Array, debugSyms?: string): void {
@@ -163,6 +165,18 @@ export const sim = {
         const bytes = request.bytes.slice();
         send({ type: 'storage', id, part, op: 'write', path: request.path, bytes }, [bytes.buffer]);
       } else send({ type: 'storage', id, part, ...request });
+    });
+  },
+  /**
+   * BT120: a board's EEPROM or flash data on the loaded bench: `read` (its sectors, to save, and
+   * what they hold, to show) or `erase`. Resolves with the worker's answer.
+   */
+  memory(board: string, op: 'read' | 'erase'): Promise<MemoryReply> {
+    if (worker === null) return Promise.resolve({ type: 'memory', id: 0, board, ok: false, error: 'the simulator is not running' });
+    const id = ++memoryId;
+    return new Promise((resolve) => {
+      memoryWaiters.set(id, resolve);
+      send({ type: 'memory', id, board, op });
     });
   },
   /** BT87: the Bus tab opened (frames carry decoded bus transactions) or closed. */
@@ -239,6 +253,10 @@ function receive(message: FromSim): void {
     case 'storage':
       storageWaiters.get(message.id)?.(message);
       storageWaiters.delete(message.id);
+      return;
+    case 'memory':
+      memoryWaiters.get(message.id)?.(message);
+      memoryWaiters.delete(message.id);
       return;
     case 'debugInfo':
     case 'debugStopped':

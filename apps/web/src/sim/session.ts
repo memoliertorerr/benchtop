@@ -50,10 +50,11 @@ import {
   validateProject,
   type VisualState,
 } from '@benchtop/core';
+import { decodeNvs, nvsPartitions } from '@benchtop/esp32';
 import { analogSpecFor, envSpecFor, netSpecFor } from '@benchtop/parts';
 import { createBenchEnv, type RecordingEnv } from './env.ts';
 import { createFrameRingBuffer, FrameRingWriter } from './frame-ring.ts';
-import { type BusChunk, type BusRow, type DebugStopReason, type FromSim, type ProbeChunk, PROTOCOL_VERSION, type StorageReply, type ToSim } from './protocol.ts';
+import { type BusChunk, type BusRow, type DebugStopReason, type FromSim, type MemoryReply, type MemorySector, type ProbeChunk, PROTOCOL_VERSION, type StorageReply, type ToSim } from './protocol.ts';
 import { TestRecording } from './recording.ts';
 
 /** Most bus records decoded per frame (the newest; the rest are counted as lost). */
@@ -175,10 +176,10 @@ export class SimSession {
         this.post({ type: 'ready', protocol: PROTOCOL_VERSION });
         return;
       case 'load':
-        this.load(message.doc, message.firmware, message.debugElf ?? {}, message.debugSyms ?? {});
+        this.load(message.doc, message.firmware, message.debugElf ?? {}, message.debugSyms ?? {}, message.keepMemory === true && this.bench !== null ? { ...(message.memory ?? {}), ...snapshotAll(this.bench) } : (message.memory ?? {}));
         return;
       case 'edit':
-        this.edit(message.doc, message.firmware, message.debugElf ?? {}, message.debugSyms ?? {});
+        this.edit(message.doc, message.firmware, message.debugElf ?? {}, message.debugSyms ?? {}, message.memory ?? {});
         return;
       case 'setFirmware': {
         const bench = this.requireBench();
@@ -301,6 +302,9 @@ export class SimSession {
       case 'storage':
         this.answerStorage(message);
         return;
+      case 'memory':
+        this.answerMemory(message);
+        return;
       case 'removeProbe': {
         const probe = this.probes.get(message.key);
         if (probe === undefined) return;
@@ -313,7 +317,7 @@ export class SimSession {
     }
   }
 
-  private load(doc: unknown, firmware: Record<string, FirmwareImage>, debugElf: Record<string, Uint8Array>, debugSyms: Record<string, string> = {}): void {
+  private load(doc: unknown, firmware: Record<string, FirmwareImage>, debugElf: Record<string, Uint8Array>, debugSyms: Record<string, string> = {}, memory: Record<string, MemorySector[]> = {}): void {
     this.running = false;
     this.busLog = null; // the new bench's log, from its start
     this.busRestart = true;
@@ -330,6 +334,8 @@ export class SimSession {
     // every view's state and nothing keeps showing what a previous bench left on screen.
     const project = validateProject(doc);
     const bench = assembleBench(project, this.env, firmware, { analogSpecFor, envSpecFor, netSpecFor, ...this.uplinkOption() });
+    // BT120: each board's saved EEPROM or flash data, before its firmware runs a step.
+    for (const board of this.env.mcus.keys()) restoreMemory(bench, board, memory[board]);
     this.listenSerial(bench);
     this.bench = bench;
     this.doc = project;
@@ -359,15 +365,17 @@ export class SimSession {
    * boards, probes (their history continues) and the run state stay; new boards get `firmware`
    * and their debug info. If carrying over fails, the document is loaded afresh instead.
    */
-  private edit(doc: unknown, firmware: Record<string, FirmwareImage>, debugElf: Record<string, Uint8Array>, debugSyms: Record<string, string> = {}): void {
+  private edit(doc: unknown, firmware: Record<string, FirmwareImage>, debugElf: Record<string, Uint8Array>, debugSyms: Record<string, string> = {}, memory: Record<string, MemorySector[]> = {}): void {
     const old = this.bench;
     if (old === null) {
-      this.load(doc, firmware, debugElf, debugSyms);
+      this.load(doc, firmware, debugElf, debugSyms, memory);
       return;
     }
     const project = validateProject(doc); // an invalid document leaves the bench as it was
     this.abandonStepOver(); // its temporary breakpoint lives in an MCU that may carry over
     this.recording = null; // a recording runs on one document
+    // BT120: a board that starts afresh (new firmware, a new type) is the same board: its data now.
+    memory = { ...memory, ...snapshotAll(old) };
     const carry = old.carry();
     let bench: Bench;
     try {
@@ -375,7 +383,7 @@ export class SimSession {
     } catch {
       discardCarry(carry);
       const running = this.running;
-      this.load(project, firmware, debugElf, debugSyms);
+      this.load(project, firmware, debugElf, debugSyms, memory);
       this.post({ type: 'edited', problems: [...(this.bench?.problems() ?? [])], reloaded: true });
       if (running) this.resume();
       return;
@@ -384,6 +392,8 @@ export class SimSession {
     // debugger follow); new boards were added to it as they were created.
     const boards = new Set(project.parts.filter((p) => this.env.part(p.type)?.board !== undefined).map((p) => p.id));
     for (const board of [...this.env.mcus.keys()]) if (!boards.has(board)) this.env.mcus.delete(board);
+    // BT120: a board that starts afresh gets its saved data; one that came over keeps its own.
+    for (const board of this.env.mcus.keys()) if (!bench.carriedBoard(board)) restoreMemory(bench, board, memory[board]);
     for (const board of [...this.serial.keys()]) if (!bench.carriedBoard(board)) this.serial.delete(board);
     for (const board of [...this.cycleMarks.keys()]) if (!bench.carriedBoard(board)) this.cycleMarks.delete(board);
     const ids = new Set(project.parts.map((p) => p.id));
@@ -799,6 +809,48 @@ export class SimSession {
     this.post({ type: 'problems', list, counts });
   }
 
+  /** BT120: a board's EEPROM or flash data — its sectors and what they hold — or erased. */
+  private answerMemory(message: Extract<ToSim, { type: 'memory' }>): void {
+    const reply = (ok: boolean, more: Partial<MemoryReply> = {}): void => {
+      const sectors = more.sectors ?? [];
+      this.deps.post({ type: 'memory', id: message.id, board: message.board, ok, ...more }, sectors.map((s) => s.bytes.buffer as ArrayBuffer));
+    };
+    if (this.bench === null) {
+      reply(false, { error: 'nothing is loaded' });
+      return;
+    }
+    let memory;
+    try {
+      memory = this.bench.nonVolatileOf(message.board);
+    } catch {
+      reply(false, { error: `"${message.board}" isn't a board` });
+      return;
+    }
+    if (memory === null) {
+      reply(false, { error: 'nothing kept yet (no firmware, or a MicroPython sketch: it starts on erased flash each run)' });
+      return;
+    }
+    if (message.op === 'erase') {
+      memory.erase();
+      reply(true, { kind: memory.kind, size: memory.size, sectorSize: memory.sectorSize, sectors: [] });
+      return;
+    }
+    const sectors = memory.snapshot();
+    const base = { kind: memory.kind, size: memory.size, sectorSize: memory.sectorSize };
+    if (memory.kind === 'eeprom') {
+      const eeprom: [number, number][] = [];
+      for (const sector of sectors) sector.bytes.forEach((value, i) => value !== 0xff && eeprom.push([sector.offset + i, value]));
+      reply(true, { ...base, sectors, eeprom });
+      return;
+    }
+    const flash = memory.read(0, memory.size);
+    const nvs = nvsPartitions(flash).map((p) => {
+      const dump = decodeNvs(flash.subarray(p.offset, p.offset + p.size));
+      return { partition: p.label, problems: dump.problems, entries: dump.entries.map((e) => (e.value instanceof Uint8Array ? { namespace: e.namespace, key: e.key, type: e.type, value: hexStart(e.value), size: e.value.length } : { namespace: e.namespace, key: e.key, type: e.type, value: String(e.value) })) };
+    });
+    reply(true, { ...base, sectors, ...(nvs.length > 0 ? { nvs } : {}) });
+  }
+
   /** BT91: a part's files, from `bench.storage()`. */
   private answerStorage(message: Extract<ToSim, { type: 'storage' }>): void {
     const storage = this.bench?.storage(message.part);
@@ -863,4 +915,31 @@ function firmwareKey(image: FirmwareImage | undefined): string {
 
 function problemsKey(list: readonly Problem[]): string {
   return list.map((p) => `${p.severity}|${p.code}|${p.parts.join(',')}|${p.message}`).join('\n');
+}
+
+/** BT120: every board's data as it is now (boards without any are left out). */
+function snapshotAll(bench: Bench): Record<string, MemorySector[]> {
+  const out: Record<string, MemorySector[]> = {};
+  for (const board of bench.boards()) {
+    const sectors = bench.nonVolatileOf(board)?.snapshot();
+    if (sectors !== undefined && sectors.length > 0) out[board] = sectors;
+  }
+  return out;
+}
+
+/** BT120: a board's saved data put back (skipped quietly when it has none to take, or the store's copy doesn't fit). */
+function restoreMemory(bench: Bench, board: string, sectors: readonly MemorySector[] | undefined): void {
+  if (sectors === undefined || sectors.length === 0) return;
+  try {
+    bench.nonVolatileOf(board)?.restore(sectors);
+  } catch {
+    // not a board of this bench
+  }
+}
+
+/** A blob's first bytes in hex (the Inspector shows a glimpse). */
+function hexStart(bytes: Uint8Array, max = 32): string {
+  let out = '';
+  for (let i = 0; i < Math.min(bytes.length, max); i++) out += bytes[i].toString(16).padStart(2, '0');
+  return bytes.length > max ? `${out}…` : out;
 }

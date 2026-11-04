@@ -273,7 +273,11 @@ function busMatches(a: Extract<Assertion, { kind: 'bus' }>, tx: BusTransaction, 
   return false;
 }
 
-export type ScriptStep = { kind: 'input'; at: number; part: string; input: PartInput } | { kind: 'serial'; at: number; board: string; text: string };
+export type ScriptStep =
+  | { kind: 'input'; at: number; part: string; input: PartInput }
+  | { kind: 'serial'; at: number; board: string; text: string }
+  /** BT119: a board reset (a power cycle: its EEPROM or flash keeps what it stored). */
+  | { kind: 'reset'; at: number; board: string };
 
 /** Characters one serial step may send. */
 export const MAX_SERIAL_STEP = 64 * 1024;
@@ -322,10 +326,14 @@ export function parseScript(json: unknown, doc: ProjectDoc, boards: readonly str
   if (!Array.isArray(expect) || expect.some((e) => typeof e !== 'string')) throw new UsageError('script: "expect" must be an array of strings');
   const parts = new Set(doc.parts.map((p) => p.id));
   const parsed = steps.map((raw: unknown, i): ScriptStep | ScriptStep[] => {
-    const step = raw as { at?: unknown; part?: unknown; input?: unknown; set?: unknown; serial?: unknown; board?: unknown } | null;
+    const step = raw as { at?: unknown; part?: unknown; input?: unknown; set?: unknown; serial?: unknown; board?: unknown; reset?: unknown } | null;
     const where = `script step ${i + 1}`;
     if (typeof step !== 'object' || step === null) throw new UsageError(`${where}: must be an object`);
     if (typeof step.at !== 'string') throw new UsageError(`${where}: "at" must be a time string like "100ms"`);
+    if (step.reset !== undefined) {
+      if (typeof step.reset !== 'string' || !boards.includes(step.reset)) throw new UsageError(`${where}: "reset" names a board of the project (${boards.join(', ') || 'none'}), not ${JSON.stringify(step.reset)}`);
+      return { kind: 'reset', at: parseTime(step.at), board: step.reset };
+    }
     if (step.serial !== undefined) {
       if (typeof step.serial !== 'string') throw new UsageError(`${where}: "serial" must be a string`);
       if (step.serial.length > MAX_SERIAL_STEP) throw new UsageError(`${where}: "serial" is longer than ${MAX_SERIAL_STEP} characters`);
@@ -779,6 +787,7 @@ export function runHeadless(options: RunOptions, io: RunIo): RunReport {
       for (const step of script.steps) {
         if (step.at !== t) continue;
         if (step.kind === 'serial') bench.sendSerial(step.board, encoder.encode(step.text));
+        else if (step.kind === 'reset') bench.resetBoard(step.board);
         else bench.input(step.part, step.input);
       }
       collect();

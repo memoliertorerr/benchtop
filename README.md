@@ -109,6 +109,12 @@ driver API, answered the same way on its RISC-V core. On the Pico W, arduino-pic
 the WiFi chip's open driver run as built, and the chip itself is answered below the driver: scans,
 joining (a wrong password, a missing network), DHCP, `HTTPClient` and the rest work the same way.
 
+**Memory that lasts** — EEPROM on the Arduinos, `Preferences` (NVS) and file systems in the
+ESP32s' flash, EEPROM emulation and LittleFS in the Picos' flash keep what a sketch stored across
+resets, `ESP.restart()` and uploads, as on a real board, and the app saves it with the project:
+reload the page and a counter goes on where it was. A board's Inspector shows what it keeps (the
+ESP32s' Preferences by namespace and key) and erases it.
+
 **The bench** — breadboards (full, half, mini) where parts snap into holes, wires you draw,
 and ~40 parts: LEDs, RGB LEDs, buttons, switches, potentiometers, LCD1602/2004 (parallel and
 I2C), SSD1306 OLED, an ILI9341 color TFT (SPI), 7-segment displays, LED bar graph, keypad, rotary encoder, joystick, DIP
@@ -162,16 +168,16 @@ npm install
 npm run dev          # the editor at http://localhost:5173
 ```
 
-**Examples…** opens 92 ready-to-run circuits, each with its sketch, which you can change and
-run again (Basics: blink, button, fade, traffic light, a Simon game, serial echo, a Nano on a
-breadboard; Displays: LCDs,
+**Examples…** opens 95 ready-to-run circuits, each with its sketch, which you can change and
+run again (Basics: blink, button, fade, traffic light, a Simon game, serial echo, an EEPROM boot
+counter, a Nano on a breadboard; Displays: LCDs,
 an LCD thermometer, OLED and an OLED clock, a color TFT, 7-segment, bar graph, NeoPixels; Sensors: DHT22,
 HC-SR04 and a distance meter, DS1307, MPU-6050, an IR remote, a kitchen scale, a flame alarm, a
 gas meter, keypad, rotary encoder; Motors: servo sweep, a
 servo knob, a keypad lock, a stepper, an A4988 stepper driver, a relay; Sound: buzzers, a speaker melody, PCM through PWM,
 a microphone pitch meter, a VU meter; Power: a regulator meter (turn the bench supply and watch a
 7805 drop out); Storage: an SD card datalogger; Environment: a gas alarm with an extractor fan, a PIR
-hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, a PWM fader, NeoPixel, a
+hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, an LED Preferences remember, a PWM fader, NeoPixel, a
 rainbow ring, an OLED clock, a color TFT, the DAC, the microphone, an I2C scan; ESP32-C3: the RGB LED,
 serial, a potentiometer dimmer, an OLED clock; WiFi: an ESP32 web server switched by HTTP client
 parts, an ESP32 hosting its own access point and web server, an ESP32-C3 web server that sets its RGB LED, a Pico W and a Pico 2 W web server switching their onboard LEDs, a Pico W and an ESP32 HTTP client talking to a server part, two ESP32s over TCP, an NTP clock on an OLED;
@@ -335,7 +341,8 @@ Other clients take the same command in their JSON configuration:
 The tools: the part catalog (`list_parts`, `describe_part`), `validate_project`,
 `run_simulation`, `run_tests`, live sessions (`sim_open`, `sim_run`, `sim_input`, `sim_serial`,
 `sim_state`, `sim_bus` — the decoded I2C/SPI/UART traffic, `sim_files` — a microSD card's
-files, `sim_wifi` — the access points and who joined them, `sim_http` — a request to a board's
+files, `sim_storage` — a board's EEPROM, or an ESP32's Preferences, as the sketch left them,
+`sim_wifi` — the access points and who joined them, `sim_http` — a request to a board's
 web server, `sim_update` — edit the circuit while
 it runs, `sim_reset`, `sim_close`, `sim_list`), the gallery (`list_examples`,
 `open_example`, and each example as a resource), debugging any board in a session (`debug_registers`,
@@ -376,7 +383,9 @@ With an environment part, a step can switch or tune a source — `{ "at": "1s", 
 "set": { "rate": 5, "on": true } }` — and `env gas at mq2 > 300 at 4s` (or `is 22 ±0.5`; gas,
 temperature, humidity, light, sound) reads the room at a part. On a WiFi bench, `wifi esp
 connected by 3s`, `http api served GET /api/hello by 3s` (an HTTP server part answered it) and
-`http on got 200 with "led on" by 3s` (an HTTP client part's response) read the network.
+`http on got 200 with "led on" by 3s` (an HTTP client part's response) read the network. A step
+`{ "at": "2s", "reset": "uno" }` resets one board as a power cycle would: its EEPROM or flash
+keeps what the sketch stored (a run starts with them erased).
 
 `test` runs every spec it finds, in parallel, and writes JUnit XML (which CI systems show as test
 results) and a Markdown summary:

@@ -27,7 +27,8 @@ fixtures/firmware/esp32c3/<name>.bin|.partitions.bin|.syms.tsv  the same for the
                                               wifi-layout (the WiFi API's struct layouts),
                                               wifi-scan, wifi-http-get (the ESP32's sketches)
                                               and wifi-rgb-server, the gallery's C3 web server;
-                                              wifi-softap, the ESP32's soft-AP sketch)
+                                              wifi-softap, the ESP32's soft-AP sketch;
+                                              prefs-counter, the ESP32's Preferences boot counter)
 fixtures/firmware/pico*/debug-demo.syms.tsv   the same for the Pico and Pico 2 debug-demos only (the
                                               debugger's tests; `SYMBOL_SKETCHES` in fixture-boards.ts)
 fixtures/firmware/pico/<name>.uf2             Raspberry Pi Pico firmware (arduino-pico 6.2.0; the

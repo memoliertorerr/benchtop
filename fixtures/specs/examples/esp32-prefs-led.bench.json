@@ -1,0 +1,34 @@
+{
+  "name": "example: esp32-prefs-led",
+  "project": "../../projects/esp32-prefs-led.json",
+  "firmware": {
+    "esp": "../../firmware/esp32/prefs-led.bin"
+  },
+  "steps": [
+    {
+      "at": "1s",
+      "part": "btn1",
+      "input": {
+        "kind": "press"
+      }
+    },
+    {
+      "at": "1200ms",
+      "part": "btn1",
+      "input": {
+        "kind": "release"
+      }
+    },
+    {
+      "at": "2s",
+      "reset": "esp"
+    }
+  ],
+  "expect": [
+    "serial contains \"start: led off\" by 1s",
+    "serial contains \"led on\" by 1100ms",
+    "led led1 is lit at 1500ms",
+    "serial contains \"start: led on\" by 3s",
+    "led led1 is lit at 3s"
+  ]
+}

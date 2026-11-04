@@ -787,6 +787,28 @@ from the bench, `onOutputChange` fired synchronously from inside the run) and it
 SPI peripherals. A board part's `BoardSpec` names the
 MCU kind and maps header pins (`13`, `A0`, `GPIO2`) to MCU pin ids (`PB5`, `PC0`, `GPIO2`).
 
+**Non-volatile memory.** A board's EEPROM or flash behaves as the chip's: every reset
+keeps it — the board's (`Bench.resetBoard(id)`: one MCU reset, its clock restarted at bench time,
+the rest of the bench running on), the bench's and the firmware's own restart — and a firmware
+load writes only what an upload writes: on the ESP32 and C3 the partition table and the app
+(their sectors erased first) and, on a new image, the OTA data partition (esptool's
+boot_app0.bin), leaving NVS, SPIFFS/LittleFS and the EEPROM library's partition — `directBoot`
+writes into the board's flash (`FlashTarget`) instead of building a fresh one each reset; on the Picos the image's 4 KB
+sectors (erased, then programmed, as a UF2 copy does), leaving EEPROM emulation and LittleFS; on
+the AVRs program flash only (an Arduino upload through the bootloader leaves EEPROM). A
+MicroPython sketch's interpreter still starts on erased flash every run. MCUs opt in with
+`nonVolatile()` (`bench/nonvolatile.ts`, found by `usesNonVolatile`; not a contract):
+`NvMemory` — kind (`eeprom` or `flash`), size, sector size (4 KB; 256 bytes for EEPROM), a
+`snapshot()` of the data sectors that aren't erased (0xFF), `restore(sectors)` (every data sector
+erased, then the sectors put back — untrusted: off the memory, misaligned, mis-sized or over the
+program, skipped), `erase()` and `read()`. `SectorMemory` implements it over the MCU's array;
+program sectors — those any load wrote since the memory was made — aren't data: snapshots leave
+them out, restore and erase leave them alone. A boot counter on each board
+(`fixtures/sketches/{uno,pico}/eeprom-counter`, `{esp32,esp32c3}/prefs-counter`, the Pico 2's
+`eeprom`) counts on across a board reset, a bench reset, a reload and `ESP.restart()`, through a
+snapshot restored on a fresh bench, and from 1 after an erase
+(`packages/parts/src/integration/nonvolatile.test.ts`).
+
 I2C and SPI are **transaction-level** (`packages/core/src/contracts/bus.ts`): an MCU's
 `I2cController` / `SpiController` calls attached `I2cDevice` / `SpiDevice` part models byte by
 byte; there are no bit-level SDA/SCL edges. The bench attaches a device to the controller whose
@@ -1608,7 +1630,7 @@ sequence, files matched by basename or trailing path.
   RAM-only UF2, PC = its lowest address and SP = 0x20042000 (datasheet §2.8.4.2). A flash with no
   valid vector table halts as "BOOTSEL mode". Clocks, pads and peripherals are as rp2040js resets
   them; the SDK's runtime init programs what it needs. Flash keeps what the firmware programmed
-  across `reset()`.
+  across `reset()` (and across a load, which programs only the image's sectors).
 
   **Firmware.** UF2 (`@benchtop/core`'s `firmware/uf2.ts`, shared with the RP2350:
   512-byte blocks, magics, payload sizes, block numbers and totals — sequences may follow one
@@ -2301,6 +2323,28 @@ sequence, files matched by basename or trailing path.
   in machine mode at the image's entry with sp at the top of the ROM's `.stack_pro`
   (0x3FCD_E710), where the bootloader runs, and the CPU on the crystal.
 
+  **NVS (`nvs.ts`).** `decodeNvs(partition)` reads ESP-IDF's NVS — what Preferences,
+  `nvs_set_*` and the WiFi driver keep — clean-room from the format IDF documents, checked on what
+  `fixtures/sketches/esp32/prefs-types` writes: 4 KB pages (state, sequence, version 0xFE, a header
+  CRC), a 2-bit-per-entry state bitmap, 126 entries of 32 bytes (namespace index, type, span,
+  chunk, CRC, 16-byte key, 8 data bytes). Pages in use are read in sequence order, written entries
+  only, a later item winning for the same namespace and key; namespaces are namespace 0's u8 items;
+  strings and blob chunks carry size and a payload CRC over the next span − 1 entries; a version-2
+  blob is its index item's chunks put together (the fixture's 5000 bytes: 3360 on one page, 1640
+  on the next). The CRC is IDF's `crc32_le(0xFFFFFFFF, …)` — the reflected CRC-32 from 0, inverted
+  at the end (`nvsCrc32("123456789")` = 0xD202D277). Values: numbers to 32 bits as numbers, 64-bit
+  as decimal strings, strings as text, blobs as bytes. The flash is untrusted (a host's saved
+  copy): a bad header or entry CRC, a span off the page, a missing chunk is a `problems` line and
+  skipped — never thrown. `nvsPartitions(flash)` finds the `nvs` partitions in the table at 0x8000.
+
+  **Software resets.** `ESP.restart()` (and a panic's restart) sets RTC_CNTL OPTIONS0's
+  SW_SYS_RST: the SoC stops its run
+  there (`resetRequested`) and the Mcu builds a fresh chip at the same reference time (the bench's
+  clock and `cycles` run on: `Esp32c3SocOptions.time`), keeping what a system reset keeps — the
+  flash, RTC fast memory and the RTC timer's power-on origin; the systimer counts from the reset —
+  and boots with reset cause SW_SYS (3), reported as `esp32c3-reboot` (info). Five reboots in a
+  row less than a second apart end the run ("reboot loop"), as the ESP32's guard does.
+
   **Measured** (serial-hello, plain Node, Apple M1): the greeting's first byte leaves 19 ms of
   simulated time after the entry (≈ 1.07 M instructions, mostly startup's self-calibration and
   heap init); idle in `delay()` the core sleeps in WFI between ticks, ≈ 575 instructions a
@@ -2374,7 +2418,7 @@ sequence, files matched by basename or trailing path.
 ## Worker protocol
 
 `apps/web/src/sim/protocol.ts` defines `ToSim` (UI → worker) and `FromSim` (worker → UI)
-messages, versioned by `PROTOCOL_VERSION` (15: the debug ELF beside a load's images and the MCU
+messages, versioned by `PROTOCOL_VERSION` (16: `memory` and the saved memory beside `load`/`edit`; the debug ELF beside a load's images and the MCU
 kind and register names in `debugInfo`, then `edit`/`edited`, then `busWatch` and a frame's `bus`
 chunk, then `storage`, then `debugSyms`: a board's symbol table as `nm` text beside `load`, `edit`
 and `setFirmware` when it has no ELF — a gallery example's `.syms.tsv`, which the ESP32's WiFi
@@ -2383,8 +2427,15 @@ bus transactions decoded since the previous one, see "Bus tab"), `storage`
 (`id`, a part, and `list`, `read`, `write` (bytes transferred) or `remove` of its files —
 `bench.storage()`, a microSD card's; answered by a `storage` message with the same id: `ok`, the
 storage's `version`, the files or the bytes, or an `error`; `sim.storage()` returns a promise),
+`memory` (`id`, a board and `read` or `erase` of its EEPROM or flash data —
+`Bench.nonVolatileOf`; answered by a `memory` message with the same id: `ok`, kind, size, sector
+size, the data sectors that aren't erased (transferred, to save) and what they hold, to show — an
+EEPROM's written bytes as [address, value], each NVS partition's entries (values as text, a blob's
+first 32 bytes in hex, 64-bit numbers as decimal) and problems — or an `error`; `sim.memory()`),
 `hello`, `load` (a
-project plus firmware images per board), `edit` (the loaded bench's new document; the worker
+project plus firmware images per board; `memory`, saved sectors per board, put back before the
+boards run, and `keepMemory` — the same project as the bench it replaces: a board there keeps
+what it holds now, over the saved copy), `edit` (the loaded bench's new document; the worker
 rebuilds it with carry-over, keeps the serial history, breakpoints and symbols of the boards that
 carried over, re-probes the probes without restarting their history — the UI appends — and
 posts a new `frameRing` only when the part list changed; the images reach only boards that
@@ -2538,7 +2589,14 @@ uses. Recoloring a wire, moving its waypoints or moving a part whose pins touch 
 leaves the bench alone; the editor's netlist and the signature are computed once per document
 object (≈ 4 ms for the largest fixture, perf-100-leds, netlist included). Firmware bytes
 live in IndexedDB by board id (`editor/firmware-store.ts`, session-only fallback, files over
-4 MB refused); the document keeps only the `FirmwareRef`. A `.hex`/`.elf` dropped onto a board,
+4 MB refused); the document keeps only the `FirmwareRef`. So do the boards' EEPROM and flash data
+(`editor/memory-store.ts`: its own database, `benchtop-memory`, by board id; what comes back is
+checked), saved by the controller when a run pauses, every 5 s while it runs and when the page is
+hidden (`saveMemory`: each board's `memory` read), sent with every `load` and `edit`, and cleared
+when another project opens (`editor.replaceDoc` — a file, New, an example, a shared link), with an
+epoch so a read still in flight then can't write the old project's data back. A board that an edit
+starts afresh gets the old bench's data, not the store's (fresher). So a counter in EEPROM or
+Preferences is where the board left it after a reload of the page. A `.hex`/`.elf` dropped onto a board,
 or chosen with the inspector's "Load firmware…", attaches it. Part states (from frames or the
 frame ring) go through `sim/frame-dispatch.ts`: each updates only the views it names (a view
 drawn later gets its part's latest state), straight onto the elements — never through Preact. While running, interactive
@@ -2714,6 +2772,16 @@ them into the `files` prop (256 KB at most — the edit restarts the card with t
 power-up** — the `files` prop's files with ✕, a new text file (name and contents) and
 **Upload…** (`card-files.ts`: `withFiles`, `withoutFile`, `previewOf`, Node-tested).
 
+### A board's storage in the Inspector
+
+Selecting a board shows a **Storage** section under its firmware (`ui/storage/BoardStorage.tsx`,
+lazy-loaded): while a bench is loaded, what `sim.memory(board, 'read')` returns — EEPROM or flash
+data in use, then an EEPROM's written bytes (address: value) or the ESP32s' NVS entries
+(`namespace.key` and the value; the type and a blob's size as a tooltip), at most 40 rows —
+refreshed every 2 s while running and by **Refresh**; **Erase** erases it in the worker (the
+firmware sees it at its next reset) and drops the saved copy. With nothing loaded it says what is
+saved for the board and erases that.
+
 ### Bus tab
 
 The Bus tab (`apps/web/src/ui/bus/`; lazy-loaded) shows the I2C, SPI and UART traffic of
@@ -2842,7 +2910,9 @@ nothing from `apps/web`.
   — one channel input `set:<channel>=<v>` per key, in key order, booleans as 1/0, at most 32 —
   or `{ at, serial, board? }`: text sent to the
   board's UART 0 as the serial monitor would (`board` optional with one board; ≤ 64 Ki
-  characters). Steps apply at exactly their time, in file order.
+  characters), or `{ at, reset: <board> }`: that board reset (`Bench.resetBoard` — a power cycle;
+  its EEPROM or flash keeps what it stored, and the rest of the bench runs on). Runs start with
+  erased memory. Steps apply at exactly their time, in file order.
 - Assertions (`--expect`, repeatable, plus the script's): `serial contains "<text>" by <time>`
   (`serial[<board>]` with several boards; escapes `\"`, `\\`, `\n`) passes at the first
   match at or before that time — matched as the bytes stream in, so output past the report's
@@ -3015,7 +3085,12 @@ Model Context Protocol on stdio — one more front end over the headless runner,
   framebuffers — summarized unless `full`) and pin levels and volts; `sim_bus` (the I2C,
   SPI and UART transactions decoded since the last call — I2C address, R/W, bytes, NACKs; SPI
   frames' MOSI and MISO; UART bursts as text — the newest `max` after a bus-kind or part filter,
-  open ones marked, with how many more and what the log lost); `sim_files` (a card part's
+  open ones marked, with how many more and what the log lost); `sim_storage` (a board's
+  EEPROM or flash as the firmware left it — `Bench.nonVolatileOf(board)` — the sectors in use; an
+  EEPROM's non-erased bytes by address (1024 at most, then a count); an ESP32's NVS entries, decoded
+  by `@benchtop/esp32`'s `decodeNvs` from each `nvs` partition the table lists: namespace, key,
+  type, value — 64-bit numbers as decimal strings, blobs as the first 64 bytes in hex with their
+  size; `erase` erases the data, the program staying); `sim_files` (a card part's
   files as the sketch left them — list them; read one as text when it is UTF-8, else base64, 64 KB
   at most; write one from `write` text or `writeBase64`; `remove` one or a directory); `sim_wifi`
   (the access points — SSID, on, channel, signal, security — with the boards joined to
@@ -3031,7 +3106,8 @@ Model Context Protocol on stdio — one more front end over the headless runner,
   project document for a live session, rebuilt with carry-over like an edit in the app — boards
   keep running unless `firmware`/`micropython` names them, which re-flashes them; returns the
   boards kept, started and removed and the watched pins that went; if the rebuild fails the
-  session is closed and the call says so); `sim_reset`, `sim_close`, `sim_list`.
+  session is closed and the call says so); `sim_reset` (boards keep their EEPROM and flash, as
+  after a power cycle, unless `erase`), `sim_close`, `sim_list`.
 - Examples (`tools/examples.ts`): `list_examples` and `open_example` (a session on an
   example's own firmware, with its sketch sources) and the resources `benchtop://examples/<id>`
   (card, project document, sketches) come from `fixtures/examples.json` in the Benchtop

@@ -37,7 +37,7 @@
  *   (24:0A:C4 and three bytes of a hash), so two boards on one LAN differ.
  */
 
-import type { BoardSpec, Debuggable, FirmwareImage, I2cController, I2cDevice, Level, Mcu, McuDebug, McuPin, NetState, PinMode, Problem, RunResult, SpiController, SpiDevice, SymbolTable, UartPort, WifiRadio, WifiStation } from '@benchtop/core';
+import { type BoardSpec, type Debuggable, type FirmwareImage, type I2cController, type I2cDevice, type Level, type Mcu, type McuDebug, type McuPin, type NetState, type NonVolatile, type NvMemory, type PinMode, type Problem, type RunResult, SectorMemory, type SpiController, type SpiDevice, type SymbolTable, type UartPort, type WifiRadio, type WifiStation } from '@benchtop/core';
 import { macFromName } from '@benchtop/core';
 import { Esp32Debug } from './debug/debug.ts';
 import { describeFirmwareFormat } from '@benchtop/core';
@@ -257,7 +257,7 @@ class Esp32Uart implements UartPort {
   }
 }
 
-export class Esp32Mcu implements Mcu, Debuggable, WifiStation {
+export class Esp32Mcu implements Mcu, Debuggable, WifiStation, NonVolatile {
   readonly kind = 'esp32' as const;
   readonly clockHz = REF_HZ;
   readonly pins: ReadonlyMap<string, McuPin>;
@@ -287,6 +287,11 @@ export class Esp32Mcu implements Mcu, Debuggable, WifiStation {
   private radio: WifiRadio | null = null;
   private readonly mac: readonly number[] | undefined;
   private radioReported = false;
+  /** BT118: the board's SPI flash, kept across resets (null until an image boots), and the view hosts get of it. */
+  private flashBytes: Uint8Array | null = null;
+  private nvm: SectorMemory | null = null;
+  /** A load waits for its upload (the next boot also erases the OTA data). */
+  private uploading = false;
 
   constructor(options: Esp32McuOptions = {}) {
     this.rom = romFrom(options.rom);
@@ -332,6 +337,7 @@ export class Esp32Mcu implements Mcu, Debuggable, WifiStation {
     if (image.format !== 'esp32-bin') throw new Error(`The ESP32 runs app images (.bin); got ${describeFirmwareFormat(image.format)}.`);
     const previous = this.image;
     this.image = image.partitions === undefined ? { app: image.app } : { app: image.app, partitions: image.partitions };
+    this.uploading = true;
     this.reset();
     if (this.bootError !== '') {
       const error = this.bootError;
@@ -348,8 +354,11 @@ export class Esp32Mcu implements Mcu, Debuggable, WifiStation {
     if (typeof this.rom === 'string') {
       this.report('error', CODE_ROM_MISSING, 0, this.rom);
     } else if (this.image !== null) {
-      const boot = directBoot(this.soc, { app: this.image.app, ...(this.image.partitions === undefined ? {} : { partitions: this.image.partitions }), rom: this.rom });
+      const flash = this.flashBytes === null ? {} : { flash: { flash: this.flashBytes, upload: this.uploading } };
+      const boot = directBoot(this.soc, { app: this.image.app, ...(this.image.partitions === undefined ? {} : { partitions: this.image.partitions }), rom: this.rom, ...flash });
       if (!boot.ok) this.bootError = `The ESP32 image can't boot: ${boot.error}`;
+      else this.keepFlash(boot.layout.flash, boot.layout.written);
+      this.uploading = false;
     }
     this.floatingReported.fill(0);
     // The new SoC's pads read the nets as the pins last saw them; listeners hear what changed.
@@ -397,6 +406,24 @@ export class Esp32Mcu implements Mcu, Debuggable, WifiStation {
       this.symbols = byName;
     }
     this.installHle(this.soc);
+  }
+
+  /**
+   * BT118: the board's flash as hosts keep it — NVS, SPIFFS/LittleFS, the EEPROM library's
+   * partition: every reset keeps it, a load writes only the partition table and the app (and erases
+   * the OTA data). Null until an image boots.
+   */
+  nonVolatile(): NvMemory | null {
+    return this.nvm;
+  }
+
+  /** The flash a boot ran from becomes the board's; what it wrote is the program's. */
+  private keepFlash(flash: Uint8Array, written: readonly { offset: number; length: number }[]): void {
+    if (this.flashBytes !== flash || this.nvm === null) {
+      this.flashBytes = flash;
+      this.nvm = new SectorMemory('flash', 0x1000, () => this.flashBytes ?? new Uint8Array(0));
+    }
+    for (const range of written) this.nvm.markProgram(range.offset, range.length);
   }
 
   /** BT98: the bench's access points and LANs (null: none); an association moves to a rebuilt bench's. */

@@ -23,6 +23,15 @@ function flips(r: ExampleRun, part: string): number {
 }
 
 export const UNO_CHECKS: Record<string, (r: ExampleRun) => void> = {
+  'eeprom-counter'(r) {
+    // BT120: the count lives in EEPROM: a board reset (a power cycle) goes on from it.
+    r.runTo(300);
+    expect(r.serial('uno')).toBe('boot 1\r\n');
+    r.bench.resetBoard('uno');
+    r.runTo(600);
+    expect(r.serial('uno')).toBe('boot 1\r\nboot 2\r\n');
+    expect(r.bench.nonVolatileOf('uno')?.read(0, 1)).toEqual(Uint8Array.of(2));
+  },
   'regulator-meter'(r) {
     // BT85: 5.00 V from the 7805 at 9 V in; at 6 V in it drops out to 4 V and says so
     r.runTo(400);

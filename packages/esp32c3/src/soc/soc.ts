@@ -217,6 +217,8 @@ class C3Bus implements RiscvBus, RiscvCodeBus {
 
 export interface Esp32c3SocOptions {
   flashSize?: number;
+  /** BT118: the reference time the chip starts at (a system reset's new chip: the old one's time). */
+  time?: number;
   /** BT107: the eFuse's factory MAC (default EFUSE_MAC, 34:85:18:00:C3:01). */
   mac?: readonly number[];
 }
@@ -266,7 +268,14 @@ export class Esp32c3Soc implements SocContext {
   private readonly csrs = new Map<number, number>();
   private pccrOffset = 0;
 
+  /**
+   * BT118: the firmware asked for a system reset (RTC_CNTL OPTIONS0.SW_SYS_RST — esp_restart): the
+   * run stops there, and the Mcu boots a fresh chip at this time.
+   */
+  resetRequested = false;
+
   constructor(options: Esp32c3SocOptions = {}) {
+    this.time = options.time ?? 0;
     this.flash = new FlashChip(options.flashSize ?? DEFAULT_FLASH_SIZE);
     this.bus = new C3Bus(this);
     this.core = new RiscvCore(this.bus, { profile: RV32IMAC, misa: MISA_RV32IMC, resetPc: ROM_BASE, mvendorid: 0x612, marchid: 0, mimpid: 0, pmpEntries: 16 });
@@ -279,6 +288,10 @@ export class Esp32c3Soc implements SocContext {
     this.periph.register(EXTMEM_BASE, new Extmem());
     this.rtc = options.mac === undefined ? new RtcCntl(this) : new RtcCntl(this, options.mac);
     this.periph.register(RTC_CNTL_BASE, this.rtc);
+    this.rtc.onSoftwareReset = () => {
+      this.resetRequested = true;
+      if (this.running) this.core.requestStop();
+    };
     this.systimer = new Systimer(this);
     this.periph.register(SYSTIMER_BASE, this.systimer);
     this.timg = [new Timg(this, 0, [SRC.TG0_T0, SRC.TG0_WDT]), new Timg(this, 1, [SRC.TG1_T0, SRC.TG1_WDT])];
@@ -373,7 +386,7 @@ export class Esp32c3Soc implements SocContext {
   runUntil(target: number): void {
     const core = this.core;
     this.atBreakpoint = false;
-    while (this.time < target && !this.stopped) {
+    while (this.time < target && !this.stopped && !this.resetRequested) {
       this.events.fireDue(this.time);
       let end = Math.min(target, this.events.next);
       if (!core.waiting) end = Math.min(end, this.time + SLICE);
@@ -409,7 +422,7 @@ export class Esp32c3Soc implements SocContext {
         return;
       }
     }
-    if (!this.stopped) this.events.fireDue(this.time);
+    if (!this.stopped && !this.resetRequested) this.events.fireDue(this.time);
   }
 
   // ── Debugging (BT93): the one core ─────────────────────────────────────────────────────

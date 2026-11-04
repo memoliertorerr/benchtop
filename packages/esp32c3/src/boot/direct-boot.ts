@@ -18,7 +18,7 @@
  *     moves it to the 160 MHz PLL).
  */
 
-import { buildFlash, type EspChip, type FlashLayout, type ImageRegions } from '@benchtop/esp32';
+import { buildFlash, type EspChip, type FlashLayout, type FlashTarget, type ImageRegions } from '@benchtop/esp32';
 import { RESET_REASON } from '../soc/rtc-cntl.ts';
 import { type Esp32c3Soc, MMU_ENTRIES } from '../soc/soc.ts';
 import { DROM_FLASH_BASE, IROM_BASE } from '../soc/memory.ts';
@@ -44,6 +44,10 @@ export interface C3DirectBootOptions {
   app: Uint8Array;
   partitions?: Uint8Array;
   rom: C3Rom;
+  /** BT118: the board's flash, kept across resets: the image is written into it as an upload would. */
+  flash?: FlashTarget;
+  /** BT118: why it boots (RTC_CNTL's reset cause): power-on unless a system reset's. */
+  reason?: number;
 }
 
 export type C3DirectBoot = { ok: true; layout: FlashLayout; entry: number } | { ok: false; error: string };
@@ -55,7 +59,7 @@ export function mmuEntryOf(address: number): number {
 }
 
 export function directBoot(soc: Esp32c3Soc, options: C3DirectBootOptions): C3DirectBoot {
-  const built = buildFlash(options.app, options.partitions, ESP32C3_CHIP);
+  const built = buildFlash(options.app, options.partitions, ESP32C3_CHIP, options.flash);
   if (!built.ok) return built;
   const layout = built.layout;
   if (layout.flash.length > soc.flash.data.length) return { ok: false, error: `the image wants ${layout.flash.length >>> 20} MB of flash; the chip has ${soc.flash.data.length >>> 20} MB` };
@@ -78,11 +82,14 @@ export function directBoot(soc: Esp32c3Soc, options: C3DirectBootOptions): C3Dir
       plan.set(entry, flashPage);
     }
   }
-  soc.flash.data.fill(0xff);
-  soc.flash.data.set(layout.flash);
+  // BT118: the board's own flash (the Mcu's, written by buildFlash) is the chip's as it is.
+  if (layout.flash !== soc.flash.data) {
+    soc.flash.data.fill(0xff);
+    soc.flash.data.set(layout.flash);
+  }
   try {
     for (const section of options.rom.code) soc.memory.load(section.address, section.data);
-    bootImage(soc, layout, options.rom, plan, RESET_REASON.POWERON);
+    bootImage(soc, layout, options.rom, plan, options.reason ?? RESET_REASON.POWERON);
   } catch (error) {
     return { ok: false, error: (error as Error).message };
   }

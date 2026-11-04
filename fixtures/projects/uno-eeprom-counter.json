@@ -1,0 +1,22 @@
+{
+  "format": 1,
+  "name": "uno-eeprom-counter",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "eeprom-counter.hex",
+      "format": "hex"
+    }
+  }
+}
