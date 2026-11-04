@@ -1,0 +1,32 @@
+{
+  "name": "example: esp32-softap-webserver",
+  "project": "../../projects/esp32-softap-webserver.json",
+  "firmware": {
+    "esp": "../../firmware/esp32/softap-webserver.bin"
+  },
+  "steps": [
+    {
+      "at": "2s",
+      "part": "on",
+      "input": {
+        "kind": "press"
+      }
+    },
+    {
+      "at": "3s",
+      "part": "off",
+      "input": {
+        "kind": "press"
+      }
+    }
+  ],
+  "expect": [
+    "serial contains \"ap esp32-ap at 192.168.4.1\" by 2s",
+    "serial contains \"joined\" by 2s",
+    "http on got 200 with \"led on\" by 2500ms",
+    "led led1 is lit at 2500ms",
+    "serial contains \"GET /led on\" by 2500ms",
+    "http off got 200 with \"led off\" by 3500ms",
+    "led led1 is dark at 3500ms"
+  ]
+}

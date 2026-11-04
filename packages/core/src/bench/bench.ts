@@ -849,6 +849,8 @@ export class Bench {
       // Roles see the type's defaults under the instance's props, as models do.
       const parts = doc.parts.map((p) => ({ id: p.id, type: p.type, props: { ...defOf(p.type)?.defaults, ...p.props } }));
       this.net = NetRuntime.build(parts, options.netSpecFor, { now: () => this.now(), schedule: (at, fn) => this.scheduler.schedule(at, fn) }, carried?.net ?? null, options.uplink ?? null);
+      // BT116: the soft APs of boards that came over running stay up; the others' firmware starts again.
+      if (carried !== null) this.net.keepSoftAps(this.keptBoards);
       this.buildProblems.push(...this.net.problems());
     }
     for (const slot of this.mcus) if (usesWifi(slot.mcu)) slot.mcu.joinWifi(this.net?.radioFor(slot.partId) ?? null);

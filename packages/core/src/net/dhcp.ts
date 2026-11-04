@@ -6,9 +6,16 @@
  * ARP check found it in use); INFORM gets the options. Replies are broadcast — RFC 2131 allows
  * it, and every client accepts it — except to a client that already has its address (ciaddr),
  * which gets them unicast.
+ *
+ * BT115: `DhcpClient`, for the runtime's own hosts on a LAN whose DHCP server is a board's (a soft
+ * access point): DISCOVER, the first OFFER, REQUEST for it, ACK — the host takes the address, mask
+ * and router (`IpHost.configure`). Everything is broadcast with the broadcast flag set, as from a
+ * client without an address; a DISCOVER or REQUEST unanswered after RETRY_MS goes again; a NAK
+ * starts over. Leases aren't renewed (the bench's runs are shorter than any lease).
  */
 
-import { be16, be32, ipString, type Mac, macAt, macString, setBe16, setBe32 } from './packet.ts';
+import type { IpHost } from './host.ts';
+import { BROADCAST_IP, BROADCAST_MAC, be16, be32, ipString, type Mac, macAt, macString, setBe16, setBe32 } from './packet.ts';
 
 export const DHCP_SERVER_PORT = 67;
 export const DHCP_CLIENT_PORT = 68;
@@ -183,4 +190,152 @@ function bytes(v: number): number[] {
 /** "192.168.4.2 (esp32-0a1b2c)" for a lease, as the AP's view lists it. */
 export function leaseText(ip: number, hostname: string | undefined): string {
   return hostname === undefined || hostname === '' ? ipString(ip) : `${ipString(ip)} (${hostname})`;
+}
+
+/** A server's reply's fields the client uses (BOOTREPLY). */
+export interface DhcpReplyMessage {
+  type: number;
+  xid: number;
+  yiaddr: number;
+  chaddr: number[];
+  serverId: number;
+  netmask: number;
+  router: number;
+  dns: number;
+  leaseSeconds: number;
+}
+
+/** A BOOTREPLY, or undefined. */
+export function parseDhcpReply(p: Uint8Array): DhcpReplyMessage | undefined {
+  if (p.length < FIXED + 4 || p[0] !== 2 || p[1] !== 1 || p[2] !== 6 || be32(p, 236) !== MAGIC) return undefined;
+  const m: DhcpReplyMessage = { type: 0, xid: be32(p, 4), yiaddr: be32(p, 16), chaddr: macAt(p, 28), serverId: 0, netmask: 0, router: 0, dns: 0, leaseSeconds: 0 };
+  for (let i = FIXED; i < p.length; ) {
+    const code = p[i];
+    if (code === 255) break;
+    if (code === 0) {
+      i++;
+      continue;
+    }
+    if (i + 1 >= p.length) return undefined;
+    const length = p[i + 1];
+    const at = i + 2;
+    if (at + length > p.length) return undefined;
+    if (code === 53 && length >= 1) m.type = p[at];
+    else if (code === 54 && length >= 4) m.serverId = be32(p, at);
+    else if (code === 1 && length >= 4) m.netmask = be32(p, at);
+    else if (code === 3 && length >= 4) m.router = be32(p, at);
+    else if (code === 6 && length >= 4) m.dns = be32(p, at);
+    else if (code === 51 && length >= 4) m.leaseSeconds = be32(p, at);
+    i = at + length;
+  }
+  return m.type === 0 ? undefined : m;
+}
+
+/** A client message (BOOTREQUEST): DISCOVER, or REQUEST for `requested` from `server`. */
+export function dhcpRequestMessage(type: number, xid: number, mac: Mac, hostname: string, requested = 0, server = 0): Uint8Array {
+  const options: number[] = [53, 1, type, 55, 3, 1, 3, 6];
+  if (requested !== 0) options.push(50, 4, ...bytes(requested));
+  if (server !== 0) options.push(54, 4, ...bytes(server));
+  const name = [...hostname].slice(0, 32).map((c) => c.charCodeAt(0) & 0x7f);
+  if (name.length > 0) options.push(12, name.length, ...name);
+  options.push(255);
+  const p = new Uint8Array(FIXED + options.length + ((4 - ((FIXED + options.length) % 4)) % 4));
+  p[0] = 1;
+  p[1] = 1;
+  p[2] = 6;
+  setBe32(p, 4, xid);
+  setBe16(p, 10, 0x8000); // broadcast: the client has no address to take a unicast reply
+  p.set(mac, 28);
+  setBe32(p, 236, MAGIC);
+  p.set(options, FIXED);
+  return p;
+}
+
+/** A DISCOVER or REQUEST unanswered after this goes again, ms. */
+export const DHCP_RETRY_MS = 1000;
+
+/** What a DHCP client got: its address, the mask, router and DNS server, from `server`. */
+export interface DhcpLease {
+  ip: number;
+  netmask: number;
+  router: number;
+  dns: number;
+  server: number;
+}
+
+/** A DHCP client for an IpHost without an address (BT115). */
+export class DhcpClient {
+  private readonly host: IpHost;
+  private readonly hostname: string;
+  private readonly onBound: (lease: DhcpLease) => void;
+  private xid: number;
+  /** 'idle' until start; then discovering, requesting, bound — or stopped. */
+  state: 'idle' | 'discovering' | 'requesting' | 'bound' | 'stopped' = 'idle';
+  lease: DhcpLease | null = null;
+  private offered = 0;
+  private server = 0;
+  private generation = 0;
+
+  constructor(host: IpHost, hostname: string, onBound: (lease: DhcpLease) => void) {
+    this.host = host;
+    this.hostname = hostname;
+    this.onBound = onBound;
+    this.xid = (Math.imul(host.mac[3] << 16 | host.mac[4] << 8 | host.mac[5], 2654435761) ^ 0x5eed) >>> 0;
+    host.bindUdp(DHCP_CLIENT_PORT, (_from, data) => this.reply(data));
+  }
+
+  /** Asks for an address (DISCOVER), and again until it has one. */
+  start(): void {
+    this.lease = null;
+    this.host.configure(0, 0, 0);
+    this.discover();
+  }
+
+  /** No more messages; the host keeps whatever address it has. */
+  stop(): void {
+    this.state = 'stopped';
+    this.generation++;
+  }
+
+  private discover(): void {
+    this.state = 'discovering';
+    this.xid = (this.xid + 1) >>> 0;
+    this.send(dhcpRequestMessage(DHCP.DISCOVER, this.xid, this.host.mac, this.hostname));
+    this.retry('discovering', () => this.discover());
+  }
+
+  private request(): void {
+    this.state = 'requesting';
+    this.send(dhcpRequestMessage(DHCP.REQUEST, this.xid, this.host.mac, this.hostname, this.offered, this.server));
+    this.retry('requesting', () => this.request());
+  }
+
+  private retry(state: DhcpClient['state'], again: () => void): void {
+    const generation = ++this.generation;
+    const clock = this.host.clock;
+    clock.schedule(clock.now() + DHCP_RETRY_MS * 1e6, () => {
+      if (generation === this.generation && this.state === state) again();
+    });
+  }
+
+  private send(message: Uint8Array): void {
+    this.host.sendUdp(BROADCAST_IP, DHCP_CLIENT_PORT, DHCP_SERVER_PORT, message, BROADCAST_MAC);
+  }
+
+  private reply(data: Uint8Array): void {
+    const m = parseDhcpReply(data);
+    if (m === undefined || m.xid !== this.xid || !m.chaddr.every((b, i) => b === this.host.mac[i])) return;
+    if (this.state === 'discovering' && m.type === DHCP.OFFER && m.yiaddr !== 0) {
+      this.offered = m.yiaddr;
+      this.server = m.serverId;
+      this.request();
+    } else if (this.state === 'requesting' && m.type === DHCP.ACK && m.yiaddr === this.offered) {
+      this.generation++;
+      this.state = 'bound';
+      const lease: DhcpLease = { ip: m.yiaddr, netmask: m.netmask || 0xffffff00, router: m.router, dns: m.dns, server: m.serverId };
+      this.lease = lease;
+      this.host.configure(lease.ip, lease.netmask, lease.router);
+      this.onBound(lease);
+    } else if (this.state === 'requesting' && m.type === DHCP.NAK) this.discover();
+  }
 }

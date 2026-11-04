@@ -7,7 +7,7 @@
  * last call, new problems and the watched pins' measurements over the run.
  */
 
-import { type DebugTables, type FirmwareImage, type HttpResult, ipString, type ProjectDoc, utf8Bytes, utf8String, type VisualState } from '@benchtop/core';
+import { type ClientHost, type DebugTables, type FirmwareImage, type HttpResult, ipString, macString, type ProjectDoc, utf8Bytes, utf8String, type VisualState } from '@benchtop/core';
 import { base64Decode, base64Encode, CATALOG, utf8Text } from '@benchtop/parts';
 import { cachedRoms, loadFirmware, loadTables, projectFromJson } from '../../load.ts';
 import { parseScript, parseTime } from '../../run.ts';
@@ -406,7 +406,7 @@ export const simWifi: Tool<SimContext> = {
   name: 'sim_wifi',
   title: 'Read the virtual WiFi network',
   description:
-    'The virtual network of an open session (runs nothing): each WiFi access point part — SSID, on or off, channel, signal, security — with the boards joined to it (MAC, the address its DHCP server gave, the hostname they sent, since when), the HTTP server and client parts on its LAN with their addresses, and for every ESP32, ESP32-C3 and Pico W board whether it is connected. Boards reach each other and the server parts by hostname through the gateway\'s DNS (192.168.4.1).',
+    'The virtual network of an open session (runs nothing): each WiFi access point part — SSID, on or off, channel, signal, security — with the boards joined to it (MAC, the address its DHCP server gave, the hostname they sent, since when), the HTTP server and client parts on its LAN with their addresses; the access points boards host themselves (softAccessPoints: an ESP32\'s WiFi.softAP — its SSID, channel, security and the stations on it, boards and client parts, with the addresses the board\'s own DHCP server gave); and for every ESP32, ESP32-C3 and Pico W board whether it is connected (and what it hosts). Boards reach each other and the server parts by hostname through the gateway\'s DNS (192.168.4.1).',
   inputSchema: { type: 'object', properties: { session: SESSION }, required: ['session'], additionalProperties: false },
   annotations: { readOnlyHint: true, openWorldHint: false },
   run(args, context) {
@@ -414,12 +414,17 @@ export const simWifi: Tool<SimContext> = {
     const net = session.bench.network;
     const stations = net?.stations() ?? [];
     const boards: Record<string, string> = {};
+    const softs = net?.softAccessPoints ?? [];
     for (const board of session.boards) {
       const type = session.doc.parts.find((p) => p.id === board)?.type ?? '';
       const station = stations.find((st) => st.board === board);
-      if (station !== undefined) boards[board] = station.ip === 0 ? `joined "${station.ssid}", no address yet` : `connected to "${station.ssid}" as ${ipString(station.ip)}`;
-      else if (hasWifi(type)) boards[board] = 'not connected';
+      const hosting = softs.find((soft) => soft.board === board);
+      const as = station === undefined ? (hasWifi(type) ? 'not connected' : '') : station.ip === 0 ? `joined "${station.ssid}", no address yet` : `connected to "${station.ssid}" as ${ipString(station.ip)}`;
+      // BT117: an AP the board hosts (alone, or beside its station: AP+STA).
+      const text = hosting === undefined ? as : `${as === 'not connected' ? '' : `${as}; `}hosting "${hosting.config.ssid}"`;
+      if (text !== '') boards[board] = text;
     }
+    const clients = net?.clientHosts ?? [];
     return {
       session: session.id,
       now: timeText(session.bench.now()),
@@ -433,12 +438,33 @@ export const simWifi: Tool<SimContext> = {
         gateway: '192.168.4.1',
         stations: stations.filter((st) => st.ap === ap.id).map((st) => ({ board: st.board, mac: st.mac, ip: st.ip === 0 ? null : ipString(st.ip), ...(st.hostname === '' ? {} : { hostname: st.hostname }), since: SINCE(st.since) })),
         servers: ap.servers.map((sv) => ({ part: sv.id, address: `${ipString(sv.host.ip)}:${sv.role.port}`, ...(sv.role.hostname === '' ? {} : { hostname: sv.role.hostname }), requests: sv.http.count })),
-        clients: (net?.clientHosts ?? []).filter((c) => c.ap === ap).map((c) => ({ part: c.id, address: ipString(c.host.ip), request: `${c.role.method} ${c.role.url}`, ...(c.role.interval > 0 ? { everyMs: c.role.interval } : {}), sent: c.sent, ...(c.status !== 0 ? { last: c.status } : c.error !== '' ? { last: c.error } : {}) })),
+        clients: clients.filter((c) => c.ap === ap).map(clientInfo),
       })),
+      // BT117: access points boards host (an ESP32's soft-AP): no gateway of ours — the board's own DHCP server and stack.
+      softAccessPoints: softs.map((soft) => ({
+        board: soft.board,
+        ssid: soft.config.ssid,
+        channel: soft.config.channel,
+        security: soft.config.security,
+        ...(soft.config.hidden ? { hidden: true } : {}),
+        maxStations: soft.config.maxStations,
+        stations: [...soft.stations.entries()].map(([mac, st]) => {
+          const part = clients.find((c) => c.soft === soft && macString(c.mac) === mac)?.id;
+          const hostname = soft.hostnames.get(mac) ?? '';
+          return { ...(st.board !== '' ? { board: st.board } : part !== undefined ? { part } : {}), mac, ip: st.ip === 0 ? null : ipString(st.ip), ...(hostname === '' ? {} : { hostname }), since: SINCE(st.since) };
+        }),
+        clients: clients.filter((c) => c.soft === soft).map(clientInfo),
+      })),
+      ...(clients.some((c) => c.ap === null && c.soft === null) ? { waiting: clients.filter((c) => c.ap === null && c.soft === null).map((c) => ({ part: c.id, network: c.role.network })) } : {}),
       boards,
     };
   },
 };
+
+/** A client part as sim_wifi lists it. */
+function clientInfo(c: ClientHost): object {
+  return { part: c.id, address: c.host === null || c.host.ip === 0 ? null : ipString(c.host.ip), request: `${c.role.method} ${c.role.url}`, ...(c.role.interval > 0 ? { everyMs: c.role.interval } : {}), sent: c.sent, ...(c.status !== 0 ? { last: c.status } : c.error !== '' ? { last: c.error } : {}) };
+}
 
 /** Most body bytes sim_http returns. */
 const MAX_HTTP_BODY = 64 * 1024;

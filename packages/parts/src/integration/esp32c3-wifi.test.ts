@@ -3,6 +3,7 @@ import { type Esp32c3Mcu, esp32c3McuFactory } from '@benchtop/esp32c3';
 import { describe, expect, it } from 'vitest';
 import { readFixture, readFixtureText } from '../../../core/src/firmware/fixtures.test-helper.ts';
 import { loadCachedC3Rom } from '../../../esp32c3/src/test-support/rom.test-helper.ts';
+import { AP_STA_EVENT, STA_INFO, STA_LIST_C3 } from '../../../esp32/src/wifi/types.ts';
 import { benchEnvParts } from '../catalog.ts';
 import { netSpecFor } from '../network/specs.ts';
 
@@ -74,6 +75,21 @@ describe('WiFi on the ESP32-C3 (BT107)', () => {
     const server = bench.network!.serverHosts[0];
     expect(server.http.log.map((e) => `${e.method} ${e.path} ${e.status}`)).toEqual(['GET /api/hello 200', 'POST /api/echo 200']);
     expect(bench.network!.accessPoints[0].dns.asked).toContain('api.bench');
+  });
+
+  it('BT117: the C3 hosts an access point too (the same driver): client parts take addresses from its DHCP server and get its pages', () => {
+    const { bench, text, mcu } = load('wifi-softap', { project: 'esp32c3-softap' });
+    runTo(bench, 4000, () => text().split('\n').filter((l) => l.startsWith('assigned ')).length === 2);
+    // Its station list is the C3's: 10 entries (ESP_WIFI_MAX_CONN_NUM).
+    expect(text()).toContain(`layout ${AP_STA_EVENT.SIZE} ${AP_STA_EVENT.AID} ${AP_STA_EVENT.SIZE} ${STA_INFO.SIZE} ${STA_INFO.RSSI} ${STA_LIST_C3.SIZE} ${STA_LIST_C3.NUM}\n`);
+    expect(text()).toMatch(/ap at 192\.168\.4\.1 34:85:18(:[0-9A-F]{2}){3}\n/);
+    expect(bench.network?.softAccessPoints[0].config).toMatchObject({ ssid: 'benchtop-ap', security: 'wpa2', channel: 6 });
+    expect(text().split('\n').filter((l) => l.startsWith('assigned ')).sort()).toEqual(['assigned 192.168.4.2', 'assigned 192.168.4.3']);
+    bench.input('count', { kind: 'press' });
+    runTo(bench, bench.now() / NS_PER_MS + 500, () => false);
+    const visual = bench.collectFrame().parts.find(([id]) => id === 'count')?.[1];
+    expect(visual).toMatchObject({ status: '200', body: '2' });
+    expect(mcu().soc.periph.radioAccesses).toBe(0);
   });
 
   it('without symbols the closed driver touches the radio: esp32c3-wifi-no-symbols, once', () => {

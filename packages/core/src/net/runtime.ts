@@ -27,19 +27,28 @@
  * sketch's configTime() works on the virtual network. The time is the bench's: 'wall' anchors it
  * to the host's clock when the bench resets (a rebuild keeps the anchor), an ISO date-time pins
  * the bench's start to it.
+ *
+ * BT115: soft access points — a board's radio can host one (`hostAp`) while its firmware runs it:
+ * a LAN with the board's AP interface as its other end and no gateway of ours (the board's own
+ * network stack is the router and DHCP server). Other boards' scans list it and their stations join
+ * it; a client part whose `network` names its SSID (and no AP part has it) waits for it, joins when
+ * it appears — taking an address from the board's DHCP server (dhcp.ts DhcpClient) — and leaves when
+ * it goes. The runtime watches DHCP on that LAN (requests' hostnames, the board's ACKs) for
+ * `stations()`, the connected events and names. A reset or rebuild drops soft APs: the board's
+ * firmware hosts them again.
  */
 
 import type { PartInput, PartProps, Problem, VisualState } from '../contracts/part.ts';
-import { DHCP_CLIENT_PORT, DHCP_SERVER_PORT, DhcpServer, leaseText } from './dhcp.ts';
+import { DHCP, DHCP_CLIENT_PORT, DHCP_SERVER_PORT, DhcpClient, DhcpServer, leaseText, parseDhcp, parseDhcpReply } from './dhcp.ts';
 import { DNS_PORT, dnsName, DnsServer } from './dns.ts';
 import { IpHost, type OutsideTcp } from './host.ts';
 import { httpRequest, type HttpResult, HttpServer, parseHttpUrl, parseRoutes, utf8Bytes, utf8String } from './http.ts';
 import { type LanClock, type LanPort, VirtualLan } from './lan.ts';
 import { isNtpName, NTP_PORT, sntpAnswer } from './sntp.ts';
 import { type AllowEntry, allows, OUTSIDE_FIRST, parseAllowList, type Uplink, type UplinkSocket } from './uplink.ts';
-import { BROADCAST_IP, BROADCAST_MAC, ipString, type Mac, macFromName, macString, parseIp } from './packet.ts';
+import { BROADCAST_IP, BROADCAST_MAC, ETHERTYPE_IPV4, ipString, type Mac, macFromName, macString, parseEthernet, parseIp, parseIpv4, parseUdp, PROTO_UDP } from './packet.ts';
 import type { TcpConnection } from './tcp.ts';
-import type { AccessPointInfo, WifiLink, WifiRadio } from './radio.ts';
+import type { AccessPointInfo, SoftApConfig, SoftApEvents, SoftApLink, WifiLink, WifiRadio } from './radio.ts';
 import type { AccessPointRole, HttpClientRole, HttpServerRole, NetSpecFor } from './spec.ts';
 
 export const GATEWAY_IP = 0xc0a80401; // 192.168.4.1
@@ -235,6 +244,156 @@ export class AccessPoint {
   }
 }
 
+/** BT115: what scans hear of a soft AP (a board's radio, beside the bench's). */
+const SOFT_AP_RSSI = -45;
+
+/** BT115: an access point a board hosts: its LAN, the board's AP interface on it, its stations. */
+export class SoftAp {
+  /** The hosting board's part id (events and `stations()` name the AP by it). */
+  readonly board: string;
+  readonly config: SoftApConfig;
+  readonly bssid: Mac;
+  readonly clock: LanClock;
+  readonly lan: VirtualLan;
+  readonly stations = new Map<string, Station>();
+  /** DHCP seen on the LAN: the board's ACKs (MAC → address) and the requests' hostnames. */
+  readonly leases = new Map<string, number>();
+  readonly hostnames = new Map<string, string>();
+  /** The board's AP interface on the LAN. */
+  readonly port: LanPort;
+  private readonly events: SoftApEvents;
+  emit: (event: NetEvent) => void = () => {};
+  /** BT116: takes it off its runtime's list as it closes (set again by a runtime a rebuild hands it to). */
+  release: () => void = () => {};
+  closed = false;
+
+  constructor(board: string, config: SoftApConfig, bssid: Mac, clock: LanClock, events: SoftApEvents) {
+    this.board = board;
+    this.config = config;
+    this.bssid = [...bssid];
+    this.clock = clock;
+    this.events = events;
+    this.lan = new VirtualLan(clock);
+    this.port = {
+      mac: this.bssid,
+      deliver: (frame) => {
+        this.snoop(frame, false);
+        if (!this.closed) events.receive(frame);
+      },
+    };
+    this.lan.attach(this.port, false);
+  }
+
+  get id(): string {
+    return this.board;
+  }
+
+  info(): AccessPointInfo {
+    const c = this.config;
+    return { ssid: c.ssid, bssid: this.bssid, channel: c.channel, rssi: SOFT_AP_RSSI, security: c.security, password: c.password, hidden: c.hidden };
+  }
+
+  /** A frame from the board onto the LAN. */
+  send(frame: Uint8Array): void {
+    if (this.closed) return;
+    this.snoop(frame, true);
+    this.lan.send(this.port, frame);
+  }
+
+  /**
+   * A station joins (undefined when full); `board` '' for a client part. BT116: a station already
+   * on with that MAC (a board moving to a rebuilt bench's radio) takes its new port silently,
+   * keeping its address and join time: the board hears nothing.
+   */
+  join(port: LanPort, board: string, lost: () => void): Station | undefined {
+    const key = macString(port.mac);
+    const previous = this.stations.get(key);
+    if (previous === undefined && this.stations.size >= this.config.maxStations) return undefined;
+    if (previous !== undefined) this.lan.detach(previous.port);
+    this.lan.attach(port, true);
+    const station: Station = { port, lost, board, ip: previous?.ip ?? 0, since: previous?.since ?? this.clock.now() };
+    this.stations.set(key, station);
+    if (previous === undefined) this.events.joined([...port.mac]);
+    return station;
+  }
+
+  /** BT116: the board turns a station away: it is dropped and told, the board hears `left`. */
+  kick(mac: Mac): boolean {
+    const key = macString(mac);
+    const station = this.stations.get(key);
+    if (station === undefined) return false;
+    this.stations.delete(key);
+    this.lan.detach(station.port);
+    this.events.left([...station.port.mac]);
+    if (station.board !== '') this.emit({ kind: 'disconnected', at: this.clock.now(), board: station.board, ap: this.id });
+    station.lost();
+    return true;
+  }
+
+  /** A station leaves (its own doing). */
+  leave(station: Station): void {
+    const key = macString(station.port.mac);
+    this.lan.detach(station.port);
+    if (this.stations.get(key) !== station) return;
+    this.stations.delete(key);
+    if (!this.closed) this.events.left([...station.port.mac]);
+    if (station.board !== '') this.emit({ kind: 'disconnected', at: this.clock.now(), board: station.board, ap: this.id });
+  }
+
+  /** The AP is gone: every station dropped and told (BT116: `bench`: the bench closed it, not the board). */
+  close(bench = false): void {
+    if (this.closed) return;
+    this.closed = true;
+    this.release();
+    if (bench) this.events.closed?.();
+    const dropped = [...this.stations.values()];
+    this.stations.clear();
+    for (const station of dropped) {
+      this.lan.detach(station.port);
+      if (station.board !== '') this.emit({ kind: 'disconnected', at: this.clock.now(), board: station.board, ap: this.id });
+      station.lost();
+    }
+    this.lan.detach(this.port);
+  }
+
+  /** A station's name on this LAN (its DHCP hostname), "gateway" (the board, at its router address), or undefined. */
+  resolve(name: string, router: number): number | undefined {
+    const n = dnsName(name);
+    if (n === 'gateway' && router !== 0) return router;
+    for (const [mac, hostname] of this.hostnames) {
+      if (dnsName(hostname) !== n) continue;
+      const ip = this.leases.get(mac);
+      if (ip !== undefined) return ip;
+    }
+    return undefined;
+  }
+
+  /** DHCP on the LAN: a request's hostname (from a station), an ACK's address (from the board). */
+  private snoop(frame: Uint8Array, fromBoard: boolean): void {
+    const eth = parseEthernet(frame);
+    if (eth === undefined || eth.type !== ETHERTYPE_IPV4) return;
+    const ip = parseIpv4(eth.payload);
+    if (ip === undefined || ip.protocol !== PROTO_UDP) return;
+    const udp = parseUdp(ip.src, ip.dst, ip.payload);
+    if (udp === undefined) return;
+    if (!fromBoard && udp.dstPort === DHCP_SERVER_PORT) {
+      const m = parseDhcp(udp.data);
+      if (m !== undefined && m.hostname !== '') this.hostnames.set(macString(m.chaddr), m.hostname);
+      return;
+    }
+    if (fromBoard && udp.srcPort === DHCP_SERVER_PORT) {
+      const m = parseDhcpReply(udp.data);
+      if (m === undefined || m.type !== DHCP.ACK || m.yiaddr === 0) return;
+      const key = macString(m.chaddr);
+      this.leases.set(key, m.yiaddr);
+      const station = this.stations.get(key);
+      if (station === undefined || station.ip === m.yiaddr) return;
+      station.ip = m.yiaddr;
+      if (station.board !== '') this.emit({ kind: 'connected', at: this.clock.now(), board: station.board, ap: this.id, ip: m.yiaddr });
+    }
+  }
+}
+
 /** A server part (BT99): its host on an AP's LAN and the HTTP server on it. */
 export class ServerHost {
   readonly id: string;
@@ -262,15 +421,15 @@ export class ServerHost {
  * A request from `host` on `ap`'s LAN to `url` (http://host[:port]/path): the host part resolved
  * by the AP's names (or an address), then `httpRequest`. `done` gets the response or an error.
  */
-function requestOnLan(ap: AccessPoint, host: IpHost, method: string, url: string, body: Uint8Array, headers: Record<string, string>, done: (result: HttpResult | string) => void): void {
+function requestOnLan(net: { resolve(name: string): number | undefined; ssid: string }, host: IpHost, method: string, url: string, body: Uint8Array, headers: Record<string, string>, done: (result: HttpResult | string) => void): void {
   const parsed = parseHttpUrl(url);
   if (typeof parsed === 'string') {
     done(parsed);
     return;
   }
-  const ip = parseIp(parsed.host) ?? ap.resolve(parsed.host);
+  const ip = parseIp(parsed.host) ?? net.resolve(parsed.host);
   if (ip === undefined) {
-    done(`no host "${parsed.host}" on "${ap.role.ssid}" (not a server part's hostname or a joined board's)`);
+    done(`no host "${parsed.host}" on "${net.ssid}" (not a server part's hostname or a joined board's)`);
     return;
   }
   httpRequest(host, ip, parsed.port, { method, path: parsed.path, headers, body, hostname: parsed.host }, done);
@@ -280,8 +439,17 @@ function requestOnLan(ap: AccessPoint, host: IpHost, method: string, url: string
 export class ClientHost {
   readonly id: string;
   readonly role: HttpClientRole;
-  readonly ap: AccessPoint;
-  readonly host: IpHost;
+  /** The AP part whose LAN it sits on — null when its network is a board's soft AP (BT115). */
+  readonly ap: AccessPoint | null;
+  /** Its host on the LAN (BT115: on a soft AP only while joined). */
+  host: IpHost | null;
+  /** BT115: the soft AP it is on, its station there and its DHCP client. */
+  soft: SoftAp | null = null;
+  private station: Station | null = null;
+  private dhcp: DhcpClient | null = null;
+  readonly clock: LanClock;
+  /** The runtime's event sink. */
+  emit: (event: NetEvent) => void = () => {};
   /** Requests sent since the reset. */
   sent = 0;
   /** The last response's status (0: an error, or none yet), error and body. */
@@ -294,23 +462,94 @@ export class ClientHost {
   private generation = 0;
   shown = '';
 
-  constructor(id: string, role: HttpClientRole, ap: AccessPoint, ip: number) {
+  constructor(id: string, role: HttpClientRole, ap: AccessPoint | null, ip: number, clock: LanClock) {
     this.id = id;
     this.role = role;
     this.ap = ap;
-    this.host = new IpHost(ap.lan, { mac: macFromName(`http-client:${id}`), ip, netmask: NETMASK, router: GATEWAY_IP });
-    ap.lan.attach(this.host, false);
+    this.clock = clock;
+    if (ap === null) this.host = null;
+    else {
+      this.host = new IpHost(ap.lan, { mac: this.mac, ip, netmask: NETMASK, router: GATEWAY_IP });
+      ap.lan.attach(this.host, false);
+    }
+  }
+
+  get mac(): Mac {
+    return macFromName(`http-client:${this.id}`);
+  }
+
+  /** BT115: on `soft`'s LAN as a station, asking its board's DHCP server for an address. */
+  joinSoft(soft: SoftAp): void {
+    this.leaveSoft();
+    const host = new IpHost(soft.lan, { mac: this.mac, ip: 0, netmask: 0 });
+    const station = soft.join(host, '', () => this.dropped());
+    if (station === undefined) return; // the AP is full
+    this.host = host;
+    this.soft = soft;
+    this.station = station;
+    this.dhcp = new DhcpClient(host, this.id, () => {});
+    this.dhcp.start();
+  }
+
+  /**
+   * BT116: a rebuild's client part takes over the previous bench's one on the same soft AP — its
+   * host, station and lease — so nobody on the LAN notices.
+   */
+  adopt(old: ClientHost): void {
+    this.host = old.host;
+    this.soft = old.soft;
+    this.station = old.station;
+    this.dhcp = old.dhcp;
+    if (this.station !== null) this.station.lost = () => this.dropped();
+    old.host = null;
+    old.soft = null;
+    old.station = null;
+    old.dhcp = null;
+  }
+
+  /** BT115: off the soft AP (its own leaving, or a reset). */
+  leaveSoft(): void {
+    if (this.soft !== null && this.station !== null) this.soft.leave(this.station);
+    this.dropped();
+  }
+
+  private dropped(): void {
+    this.dhcp?.stop();
+    this.dhcp = null;
+    this.station = null;
+    this.soft = null;
+    if (this.ap === null) this.host = null;
+  }
+
+  /** Whether it has an address to send from (always on an AP part; on a soft AP once its lease came). */
+  get ready(): boolean {
+    return this.host !== null && (this.soft === null || this.dhcp?.state === 'bound');
   }
 
   /** Sends the request now, unless one is still in flight. */
   send(): void {
     if (this.busy) return;
+    const { method, url } = this.role;
+    const host = this.host;
+    if (!this.ready || host === null) {
+      this.sent++;
+      this.status = 0;
+      this.error = `not on "${this.role.network}" yet`;
+      this.body = '';
+      this.emit({ kind: 'got', at: this.clock.now(), part: this.id, method, url, status: 0, error: this.error, body: '' });
+      return;
+    }
     this.busy = true;
     this.sent++;
-    const { method, url } = this.role;
     const body = this.role.body === '' ? new Uint8Array(0) : utf8Bytes(this.role.body);
     const generation = this.generation;
-    requestOnLan(this.ap, this.host, method, url, body, {}, (result) => {
+    const soft = this.soft;
+    const ap = this.ap;
+    const net =
+      soft !== null
+        ? { resolve: (name: string) => soft.resolve(name, host.router), ssid: soft.config.ssid }
+        : { resolve: (name: string) => ap?.resolve(name), ssid: ap?.role.ssid ?? this.role.network };
+    requestOnLan(net, host, method, url, body, {}, (result) => {
       if (generation !== this.generation) return;
       this.busy = false;
       if (typeof result === 'string') {
@@ -322,7 +561,7 @@ export class ClientHost {
         this.error = '';
         this.body = utf8String(result.body);
       }
-      this.ap.emit({ kind: 'got', at: this.ap.clock.now(), part: this.id, method, url, status: this.status, error: this.error, body: this.body });
+      this.emit({ kind: 'got', at: this.clock.now(), part: this.id, method, url, status: this.status, error: this.error, body: this.body });
     });
   }
 
@@ -332,7 +571,7 @@ export class ClientHost {
     this.busy = false;
     const every = this.role.interval * 1e6;
     if (every <= 0) return;
-    const clock = this.ap.clock;
+    const clock = this.clock;
     const tick = (): void => {
       if (generation !== this.generation) return;
       this.send();
@@ -348,7 +587,8 @@ export class ClientHost {
 
   visual(): VisualState {
     const status = this.status !== 0 ? String(this.status) : this.error !== '' ? 'error' : '';
-    const body = this.error !== '' ? this.error : this.body.length > CLIENT_BODY_CHARS ? `${this.body.slice(0, CLIENT_BODY_CHARS - 1)}…` : this.body;
+    let body = this.error !== '' ? this.error : this.body.length > CLIENT_BODY_CHARS ? `${this.body.slice(0, CLIENT_BODY_CHARS - 1)}…` : this.body;
+    if (this.ap === null && this.sent === 0 && !this.ready) body = `waiting for "${this.role.network}"`;
     return { url: this.role.url, method: this.role.method, status, body, sent: this.sent, busy: this.busy };
   }
 }
@@ -362,6 +602,8 @@ export class NetRuntime {
   private readonly aps: AccessPoint[];
   private readonly servers: ServerHost[];
   private readonly clients: ClientHost[];
+  /** BT115: the soft APs boards host now, by board part id. */
+  private readonly softAps = new Map<string, SoftAp>();
   private readonly buildProblems: Problem[];
   private readonly listeners: ((event: NetEvent) => void)[] = [];
   private readonly clock: LanClock;
@@ -383,6 +625,7 @@ export class NetRuntime {
       ap.emit = (event) => this.emit(event);
       if (ap.allow.length > 0) ap.gateway.outside = (ip, port) => this.outside(ap, ip, port);
     }
+    for (const client of clients) client.emit = (event) => this.emit(event);
     this.radio = this.radioFor('');
   }
 
@@ -437,6 +680,11 @@ export class NetRuntime {
     for (const part of asked) {
       const role = part.role;
       const ap = role.network === '' ? aps[0] : aps.find((a) => a.role.ssid === role.network);
+      if (ap === undefined && role.kind === 'http-client' && role.network !== '') {
+        // BT115: a network no AP part has — a board's soft AP, joined when one hosts it.
+        clients.push(new ClientHost(part.id, role, null, 0, clock));
+        continue;
+      }
       if (ap === undefined) {
         problems.push({ severity: 'warning', code: 'net-no-access-point', message: role.network === '' ? `${part.id} needs a WiFi access point on the bench: it sits on its network.` : `${part.id} sits on the network "${role.network}", and no access point has that SSID.`, parts: [part.id] });
         continue;
@@ -453,7 +701,7 @@ export class NetRuntime {
       used.push(ip);
       ap.dhcp.reserved.add(ip);
       if (role.kind === 'http-client') {
-        clients.push(new ClientHost(part.id, role, ap, ip));
+        clients.push(new ClientHost(part.id, role, ap, ip, clock));
         continue;
       }
       const server = new ServerHost(part.id, role, ap, ip);
@@ -472,9 +720,46 @@ export class NetRuntime {
     servers.sort(byOrder);
     clients.sort(byOrder);
     const net = new NetRuntime(aps, servers, clients, problems, clock, uplink);
+    if (previous !== null) net.carrySoftAps(previous);
     // A carried bench isn't reset: its clients' timers start now (a reset re-arms them).
     for (const client of clients) client.arm();
     return net;
+  }
+
+  /**
+   * BT116: a rebuild keeps the soft APs boards host, their stations and leases: the boards'
+   * firmware runs on (`keepSoftAps` closes those of boards that don't). A client part on one takes
+   * over its previous self's place; a new one joins; one gone (or moved) leaves.
+   */
+  private carrySoftAps(previous: NetRuntime): void {
+    for (const soft of previous.softAps.values()) if (!soft.closed) this.adoptSoftAp(soft);
+    previous.softAps.clear();
+    const taken = new Set<ClientHost>();
+    for (const client of this.clients) {
+      if (client.ap !== null) continue;
+      const old = previous.clients.find((c) => c.id === client.id && c.soft !== null && !c.soft.closed && c.role.network === client.role.network);
+      if (old !== undefined) {
+        client.adopt(old);
+        taken.add(old);
+        continue;
+      }
+      const soft = [...this.softAps.values()].find((s) => s.config.ssid === client.role.network);
+      if (soft !== undefined) client.joinSoft(soft);
+    }
+    for (const old of previous.clients) if (!taken.has(old) && old.soft !== null) old.leaveSoft();
+  }
+
+  private adoptSoftAp(soft: SoftAp): void {
+    this.softAps.set(soft.board, soft);
+    soft.emit = (event) => this.emit(event);
+    soft.release = () => {
+      if (this.softAps.get(soft.board) === soft) this.softAps.delete(soft.board);
+    };
+  }
+
+  /** BT116: after a rebuild, closes the soft APs of boards that didn't come over running (their firmware starts again). */
+  keepSoftAps(kept: ReadonlySet<string>): void {
+    for (const soft of [...this.softAps.values()]) if (!kept.has(soft.board)) soft.close(true);
   }
 
   /** What the build found wrong (a server without its AP, a bad address, route lines skipped, a bad URL, an allow list). */
@@ -603,7 +888,7 @@ export class NetRuntime {
     for (const listener of this.listeners) listener(event);
   }
 
-  /** BT100: every station on an AP's LAN now, by AP in document order. */
+  /** BT100: every station on an AP's LAN now, by AP in document order (BT115: then the soft APs' boards' stations). */
   stations(): StationInfo[] {
     const out: StationInfo[] = [];
     for (const ap of this.aps) {
@@ -611,7 +896,17 @@ export class NetRuntime {
         out.push({ board: station.board, ap: ap.id, ssid: ap.role.ssid, mac, ip: ap.dhcp.leases.get(mac) ?? 0, hostname: ap.dhcp.hostnames.get(mac) ?? '', since: station.since });
       }
     }
+    for (const soft of this.softAps.values()) {
+      for (const [mac, station] of soft.stations) {
+        out.push({ board: station.board, ap: soft.id, ssid: soft.config.ssid, mac, ip: soft.leases.get(mac) ?? 0, hostname: soft.hostnames.get(mac) ?? '', since: station.since });
+      }
+    }
     return out;
+  }
+
+  /** BT115: the soft APs boards host now. */
+  get softAccessPoints(): readonly SoftAp[] {
+    return [...this.softAps.values()];
   }
 
   /**
@@ -629,12 +924,13 @@ export class NetRuntime {
       done(`the access point "${ap.role.ssid}" is off`);
       return;
     }
-    requestOnLan(ap, ap.gateway, method, url, body, headers, done);
+    requestOnLan({ resolve: (name) => ap.resolve(name), ssid: ap.role.ssid }, ap.gateway, method, url, body, headers, done);
   }
 
   /** A bench reset: every AP as the document has it, no stations, no leases; clients start over. */
   reset(): void {
     this.closeUplink();
+    this.closeSoftAps(); // BT115: the boards' firmware hosts them again
     for (const ap of this.aps) {
       for (const station of ap.stations.values()) ap.lan.detach(station.port);
       ap.stations.clear();
@@ -654,7 +950,7 @@ export class NetRuntime {
       server.shown = '';
     }
     for (const client of this.clients) {
-      client.host.reset();
+      client.host?.reset();
       client.sent = 0;
       client.status = 0;
       client.error = '';
@@ -673,9 +969,11 @@ export class NetRuntime {
       ap.lan.detach(ap.gateway);
       for (const server of ap.servers) ap.lan.detach(server.host);
     }
+    // BT116: soft APs and the client parts on them stay up for the next bench (`build`'s
+    // `previous` carries them); a bench that is simply dropped leaves them to nobody.
     for (const client of this.clients) {
       client.stop();
-      client.ap.lan.detach(client.host);
+      if (client.ap !== null && client.host !== null) client.ap.lan.detach(client.host);
     }
     this.listeners.length = 0;
   }
@@ -729,12 +1027,46 @@ export class NetRuntime {
   /** BT100: the radio a board's MCU gets — its station is filed under the board's part id. */
   radioFor(board: string): WifiRadio {
     return {
-      accessPoints: () => this.aps.filter((ap) => ap.on).map((ap) => ap.info()),
+      accessPoints: () => [...this.aps.filter((ap) => ap.on).map((ap) => ap.info()), ...[...this.softAps.values()].filter((soft) => soft.board !== board).map((soft) => soft.info())],
       join: (bssid, mac, receive, lost) => this.join(board, bssid, mac, receive, lost),
+      hostAp: (config, bssid, events) => this.hostAp(board, config, bssid, events),
     };
   }
 
+  /** BT115: `board` hosts an AP (replacing any it hosted); client parts on its SSID join it. */
+  private hostAp(board: string, config: SoftApConfig, bssid: Mac, events: SoftApEvents): SoftApLink {
+    const old = this.softAps.get(board);
+    if (old !== undefined) this.closeSoftAp(old);
+    const soft = new SoftAp(board, config, bssid, this.clock, events);
+    this.adoptSoftAp(soft);
+    for (const client of this.clients) if (client.ap === null && client.soft === null && client.role.network === config.ssid) client.joinSoft(soft);
+    return {
+      send: (frame) => soft.send(frame),
+      stations: () => [...soft.stations.values()].map((station) => [...station.port.mac]),
+      drop: (mac) => soft.kick(mac),
+      // Whichever runtime holds it then (a rebuild hands it on): `release` takes it off that one's list.
+      close: () => soft.close(),
+    };
+  }
+
+  /** BT115: a soft AP is gone: its stations dropped, its client parts waiting again (BT116: the board told). */
+  private closeSoftAp(soft: SoftAp): void {
+    soft.close(true);
+  }
+
+  private closeSoftAps(): void {
+    for (const soft of [...this.softAps.values()]) this.closeSoftAp(soft);
+  }
+
   private join(board: string, bssid: Mac, mac: Mac, receive: (frame: Uint8Array) => void, lost: () => void): WifiLink | undefined {
+    const soft = [...this.softAps.values()].find((s) => s.board !== board && s.bssid.every((b, i) => b === bssid[i]));
+    if (soft !== undefined) {
+      // BT115: a station on another board's soft AP.
+      const port: LanPort = { mac: [...mac], deliver: receive };
+      const station = soft.join(port, board, lost);
+      if (station === undefined) return undefined;
+      return { send: (frame) => soft.lan.send(port, frame), leave: () => soft.leave(station) };
+    }
     const ap = this.aps.find((a) => a.on && a.bssid.every((b, i) => b === bssid[i]));
     if (ap === undefined) return undefined;
     const key = macString(mac);

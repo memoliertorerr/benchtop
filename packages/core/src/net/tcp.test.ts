@@ -291,7 +291,7 @@ describe('client parts, events and requests from the gateway (BT100)', () => {
     expect(net.problems().map((p) => [p.code, p.parts[0]])).toEqual([['http-url', 'bad']]);
     // Servers and clients share the automatic addresses: api .10, then the clients .11 on.
     expect(net.serverHosts.map((h) => h.host.ip)).toEqual([0xc0a8040a]);
-    expect(net.clientHosts.map((h) => [h.id, h.host.ip])).toEqual([
+    expect(net.clientHosts.map((h) => [h.id, h.host?.ip])).toEqual([
       ['poll', 0xc0a8040b],
       ['post', 0xc0a8040c],
       ['nobody', 0xc0a8040d],

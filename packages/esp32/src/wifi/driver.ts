@@ -28,11 +28,23 @@
  * 6 s later (BEACON_TIMEOUT, the inactive time). A rebuilt bench hands a new radio: an
  * association to an AP still there moves to its new LAN silently.
  *
+ * BT116: the soft-AP. While WiFi is started in AP or AP+STA mode the driver hosts an access point
+ * on the bench's radio (`hostAp`) from the AP configuration — IDF's default ("ESP_" and the AP
+ * MAC's last three bytes, open, channel 1, 4 stations) until `esp_wifi_set_config(WIFI_IF_AP)`,
+ * which hosts it again with the new one (an empty SSID: none). Other boards' scans list it and
+ * their stations, or client parts, join its LAN; the firmware's own lwIP and DHCP server answer
+ * them. A station joining posts AP_STACONNECTED (its MAC and the AID it gets, the lowest free),
+ * leaving AP_STADISCONNECTED; `esp_wifi_ap_get_sta_list` lists them; `esp_wifi_deauth_sta` turns
+ * them away. Frames for the AP interface queue up beside the station's and go to its rx callback;
+ * `esp_wifi_internal_tx(WIFI_IF_AP)` sends on the AP's LAN. Hosting again, or the AP going down,
+ * posts AP_STADISCONNECTED for each station first. A rebuilt bench keeps the AP (the runtime hands
+ * it on); a reset of the board drops it (`dispose`).
+ *
  * Without symbols the firmware's WiFi calls run the real driver into the radio's registers;
  * the Mcu reports that (`esp32-wifi-no-symbols`) the first time it happens.
  */
 
-import type { AccessPointInfo, WifiLink, WifiRadio, WifiSecurity } from '@benchtop/core';
+import type { AccessPointInfo, SoftApConfig, SoftApLink, WifiLink, WifiRadio, WifiSecurity } from '@benchtop/core';
 import { type HleTask, SCRATCH_SIZE, type Upcall } from '../hle/hle.ts';
 import * as T from './types.ts';
 
@@ -82,6 +94,25 @@ const AUTH_OF: Readonly<Record<WifiSecurity, number>> = {
   wpa3: T.WIFI_AUTH.WPA3_PSK,
   'wpa2-wpa3': T.WIFI_AUTH.WPA2_WPA3_PSK,
 };
+
+/** BT116: a soft-AP's security for IDF's auth mode (WPA2-Enterprise, which the bench lacks, as WPA2). */
+const SECURITY_OF: Readonly<Record<number, WifiSecurity>> = {
+  [T.WIFI_AUTH.OPEN]: 'open',
+  [T.WIFI_AUTH.WEP]: 'wep',
+  [T.WIFI_AUTH.WPA_PSK]: 'wpa',
+  [T.WIFI_AUTH.WPA2_PSK]: 'wpa2',
+  [T.WIFI_AUTH.WPA_WPA2_PSK]: 'wpa-wpa2',
+  [T.WIFI_AUTH.WPA2_ENTERPRISE]: 'wpa2',
+  [T.WIFI_AUTH.WPA3_PSK]: 'wpa3',
+  [T.WIFI_AUTH.WPA2_WPA3_PSK]: 'wpa2-wpa3',
+};
+
+/** BT116: the soft-AP's defaults (IDF's): its stations at most, and what the AP hears of each. */
+const AP_DEFAULT_STATIONS = 4;
+const AP_STATION_RSSI = -45;
+const PHY_FLAGS_11BGN = 0b111;
+/** Events about the station (dropping it cancels them; the soft-AP's stay). */
+const STATION_EVENTS: readonly number[] = [T.WIFI_EVENT.SCAN_DONE, T.WIFI_EVENT.STA_CONNECTED, T.WIFI_EVENT.STA_DISCONNECTED];
 
 /** An access point as the driver sees it: the radio's, with IDF's auth mode. */
 interface VirtualAp extends AccessPointInfo {
@@ -192,6 +223,13 @@ export class WifiDriver {
   framesDropped = 0;
   /** lwIP's receive functions per interface (esp_wifi_internal_reg_rxcb). */
   readonly rxCallbacks = [0, 0];
+  /** BT116: the soft-AP's stations, in joining order, with the association ids it gave them. */
+  readonly apStations: { mac: number[]; aid: number }[] = [];
+  /** BT116: the soft-AP on the bench while it is up (null: not hosting). */
+  private softAp: SoftApLink | null = null;
+  /** Bumped whenever the soft-AP is closed or hosted again: an old one's callbacks do nothing. */
+  private apGeneration = 0;
+  private readonly apRxQueue: Uint8Array[] = [];
   private readonly host: WifiHost;
   private readonly fn = new Map<string, number>();
   private readonly pending: Pending[] = [];
@@ -282,6 +320,8 @@ export class WifiDriver {
       },
       esp_wifi_get_max_tx_power: (call) => this.out8(call, 0, this.maxTxPower),
       esp_wifi_ap_get_sta_list: (call) => this.staList(call),
+      esp_wifi_ap_get_sta_aid: (call) => this.staAid(call),
+      esp_wifi_deauth_sta: (call) => this.deauth(call),
       esp_wifi_set_ant_gpio: ok,
       esp_wifi_get_ant_gpio: ok,
       esp_wifi_set_ant: ok,
@@ -316,22 +356,28 @@ export class WifiDriver {
         if (event.apply !== null && !event.apply()) continue;
         yield* this.post(call, event.id, event.data);
       }
-      for (let frame = this.rxQueue.shift(); frame !== undefined; frame = this.rxQueue.shift()) {
-        const receive = this.rxCallbacks[T.WIFI_IF.STA];
-        if (receive === 0 || this.link === null) {
-          this.framesDropped++;
-          continue;
-        }
-        const buffer = yield call.call(this.address('malloc'), frame.length);
-        if (buffer === 0) {
-          this.framesDropped++;
-          continue;
-        }
-        call.writeBytes(buffer, frame);
-        this.framesIn++;
-        yield call.call(receive, buffer, frame.length, buffer);
-      }
+      yield* this.deliver(call, this.rxQueue, T.WIFI_IF.STA, () => this.link !== null);
+      yield* this.deliver(call, this.apRxQueue, T.WIFI_IF.AP, () => this.softAp !== null);
       yield call.call(this.address('vTaskDelay'), this.started || this.pending.length > 0 ? 1 : 50);
+    }
+  }
+
+  /** Hands lwIP an interface's queued frames, each in a buffer from `malloc` (BT116: the AP's too). */
+  private *deliver(call: WifiCall, queue: Uint8Array[], ifx: number, up: () => boolean): Generator<Upcall, void, number> {
+    for (let frame = queue.shift(); frame !== undefined; frame = queue.shift()) {
+      const receive = this.rxCallbacks[ifx];
+      if (receive === 0 || !up()) {
+        this.framesDropped++;
+        continue;
+      }
+      const buffer = yield call.call(this.address('malloc'), frame.length);
+      if (buffer === 0) {
+        this.framesDropped++;
+        continue;
+      }
+      call.writeBytes(buffer, frame);
+      this.framesIn++;
+      yield call.call(receive, buffer, frame.length, buffer);
     }
   }
 
@@ -356,8 +402,22 @@ export class WifiDriver {
       if (created !== 1) return T.ESP_ERR_NO_MEM;
       this.taskCreated = true;
     }
+    if (this.apConfig.every((b) => b === 0)) this.defaultApConfig();
     this.inited = true;
     return T.ESP_OK;
+  }
+
+  /** BT116: IDF's soft-AP configuration before any is set: "ESP_XXXXXX" (the AP MAC's last bytes), open, channel 1. */
+  private defaultApConfig(): void {
+    const C = T.AP_CONFIG;
+    const mac = this.macs[T.WIFI_IF.AP];
+    const ssid = utf8(`ESP_${mac.slice(3).map((b) => b.toString(16).toUpperCase().padStart(2, '0')).join('')}`);
+    this.apConfig.fill(0);
+    this.apConfig.set(ssid, C.SSID);
+    this.apConfig[C.SSID_LEN] = ssid.length;
+    this.apConfig[C.CHANNEL] = 1;
+    this.apConfig[C.MAX_CONNECTION] = AP_DEFAULT_STATIONS;
+    this.apConfig[C.BEACON_INTERVAL] = 100;
   }
 
   private deinit(): number {
@@ -383,9 +443,16 @@ export class WifiDriver {
       this.dropStation();
       yield* this.post(call, T.WIFI_EVENT.STA_STOP, null);
     }
-    if ((before & 2) !== 0 && (after & 2) === 0) yield* this.post(call, T.WIFI_EVENT.AP_STOP, null);
+    if ((before & 2) !== 0 && (after & 2) === 0) {
+      // BT116: the soft-AP goes down: its stations are told off first.
+      for (const station of this.closeAp()) yield* this.post(call, T.WIFI_EVENT.AP_STADISCONNECTED, this.apStaData(station));
+      yield* this.post(call, T.WIFI_EVENT.AP_STOP, null);
+    }
     if ((before & 1) === 0 && (after & 1) !== 0) yield* this.post(call, T.WIFI_EVENT.STA_START, null);
-    if ((before & 2) === 0 && (after & 2) !== 0) yield* this.post(call, T.WIFI_EVENT.AP_START, null);
+    if ((before & 2) === 0 && (after & 2) !== 0) {
+      yield* this.post(call, T.WIFI_EVENT.AP_START, null);
+      this.hostAp();
+    }
     return T.ESP_OK;
   }
 
@@ -412,7 +479,7 @@ export class WifiDriver {
     this.associated = null;
     this.connecting = false;
     this.scanning = false;
-    this.pending.length = 0;
+    for (let i = this.pending.length - 1; i >= 0; i--) if (STATION_EVENTS.includes(this.pending[i].id)) this.pending.splice(i, 1);
     this.unlink();
   }
 
@@ -422,9 +489,10 @@ export class WifiDriver {
     this.rxQueue.length = 0;
   }
 
-  /** Joins `ap`'s LAN; false when it is gone. */
-  private linkTo(ap: AccessPointInfo): boolean {
-    this.unlink();
+  /** Joins `ap`'s LAN (`fresh`: leaving the current one first); false when it is gone. */
+  private linkTo(ap: AccessPointInfo, fresh = true): boolean {
+    if (fresh) this.unlink();
+    this.rxQueue.length = 0;
     const link =
       this.host.radio()?.join(
         ap.bssid,
@@ -454,14 +522,30 @@ export class WifiDriver {
   }
 
   /**
-   * A rebuilt bench's radio: an association moves to the same AP's new LAN without a word; if
-   * that AP is gone, it is lost as if switched off.
+   * A rebuilt bench's radio: an association moves to the same AP's new LAN without a word (BT116:
+   * joined there before leaving the old one, so a soft-AP the rebuild kept hears nothing); if that
+   * AP is gone, it is lost as if switched off. A soft-AP the bench closed meanwhile is hosted again.
    */
   radioChanged(): void {
+    if (this.softAp === null && this.started && (this.mode & 2) !== 0) this.hostAp();
     const ap = this.associated;
-    if (ap === null || this.link === null) return;
+    const old = this.link;
+    if (ap === null || old === null) return;
     const now = this.host.radio()?.accessPoints().find((a) => a.bssid.every((b, i) => b === ap.bssid[i]));
-    if (now === undefined || !this.linkTo(now)) this.apLost();
+    this.link = null;
+    if (now === undefined || !this.linkTo(now, false)) {
+      old.leave();
+      this.apLost();
+      return;
+    }
+    old.leave();
+  }
+
+  /** BT116: the board is gone (a reset builds a new driver): off the AP it was on, its soft-AP closed. */
+  dispose(): void {
+    this.unlink();
+    this.closeAp();
+    this.pending.length = 0;
   }
 
   // ── Configuration ─────────────────────────────────────────────────────────────────────
@@ -474,6 +558,11 @@ export class WifiDriver {
     if (call.arg(1) === 0) return T.ESP_ERR_INVALID_ARG;
     const target = ifx === T.WIFI_IF.STA ? this.staConfig : this.apConfig;
     target.set(call.readBytes(call.arg(1), target.length));
+    if (ifx === T.WIFI_IF.AP && this.started) {
+      // BT116: the soft-AP takes the new configuration at once: its stations are dropped.
+      for (const station of this.closeAp()) this.schedule(0, T.WIFI_EVENT.AP_STADISCONNECTED, this.apStaData(station));
+      this.hostAp();
+    }
     return T.ESP_OK;
   }
 
@@ -514,7 +603,7 @@ export class WifiDriver {
 
   private getChannel(call: WifiCall): number {
     if (!this.inited) return T.ESP_ERR_WIFI_NOT_INIT;
-    if (call.arg(0) !== 0) call.write8(call.arg(0), this.associated?.channel ?? 1);
+    if (call.arg(0) !== 0) call.write8(call.arg(0), this.associated?.channel ?? (this.softAp !== null ? this.softApConfig()?.channel ?? 1 : 1));
     if (call.arg(1) !== 0) call.write32(call.arg(1), 0);
     return T.ESP_OK;
   }
@@ -531,11 +620,123 @@ export class WifiDriver {
     return T.ESP_OK;
   }
 
+  /** esp_wifi_ap_get_sta_list: the soft-AP's stations (11b/g/n, the RSSI the AP hears), then their number. */
   private staList(call: WifiCall): number {
     if (!this.inited) return T.ESP_ERR_WIFI_NOT_INIT;
     if ((this.mode & 2) === 0) return T.ESP_ERR_WIFI_MODE;
-    call.fill(call.arg(0), this.host.staListSize ?? T.STA_LIST.SIZE);
+    const at = call.arg(0);
+    if (at === 0) return T.ESP_ERR_INVALID_ARG;
+    const size = this.host.staListSize ?? T.STA_LIST.SIZE;
+    call.fill(at, size);
+    const n = Math.min(this.apStations.length, (size - 4) / T.STA_INFO.SIZE);
+    for (let i = 0; i < n; i++) {
+      const entry = at + i * T.STA_INFO.SIZE;
+      call.writeBytes(entry + T.STA_INFO.MAC, this.apStations[i].mac);
+      call.write8(entry + T.STA_INFO.RSSI, AP_STATION_RSSI & 0xff);
+      call.write32(entry + T.STA_INFO.FLAGS, PHY_FLAGS_11BGN);
+    }
+    call.write32(at + size - 4, n);
     return T.ESP_OK;
+  }
+
+  /** esp_wifi_ap_get_sta_aid(mac, &aid). */
+  private staAid(call: WifiCall): number {
+    if (!this.inited) return T.ESP_ERR_WIFI_NOT_INIT;
+    if ((this.mode & 2) === 0) return T.ESP_ERR_WIFI_MODE;
+    if (call.arg(0) === 0 || call.arg(1) === 0) return T.ESP_ERR_INVALID_ARG;
+    const mac = [...call.readBytes(call.arg(0), 6)];
+    const station = this.apStations.find((s) => s.mac.every((b, i) => b === mac[i]));
+    if (station === undefined) return T.ESP_ERR_NOT_FOUND;
+    call.write16(call.arg(1), station.aid);
+    return T.ESP_OK;
+  }
+
+  /** esp_wifi_deauth_sta(aid): turns a station away (0: every one); AP_STADISCONNECTED follows from `left`. */
+  private deauth(call: WifiCall): number {
+    if (!this.inited) return T.ESP_ERR_WIFI_NOT_INIT;
+    if (!this.started) return T.ESP_ERR_WIFI_NOT_STARTED;
+    if ((this.mode & 2) === 0) return T.ESP_ERR_WIFI_MODE;
+    const aid = call.arg(0) & 0xffff;
+    const link = this.softAp;
+    if (link === null) return T.ESP_OK;
+    for (const station of [...this.apStations]) if (aid === 0 || station.aid === aid) link.drop(station.mac);
+    return T.ESP_OK;
+  }
+
+  // ── The soft-AP (BT116) ───────────────────────────────────────────────────────────────
+
+  /** The AP configuration as the bench's soft-AP takes it; null for an empty SSID (nothing to host). */
+  private softApConfig(): SoftApConfig | null {
+    const C = T.AP_CONFIG;
+    const c = this.apConfig;
+    const length = c[C.SSID_LEN];
+    const ssid = cString(c, C.SSID, length > 0 && length <= 32 ? length : 32);
+    if (ssid === '') return null;
+    const auth = (c[C.AUTHMODE] | (c[C.AUTHMODE + 1] << 8) | (c[C.AUTHMODE + 2] << 16) | (c[C.AUTHMODE + 3] << 24)) >>> 0;
+    const security = SECURITY_OF[auth] ?? 'wpa2';
+    const channel = c[C.CHANNEL] >= 1 && c[C.CHANNEL] <= CHANNELS ? c[C.CHANNEL] : 1;
+    const most = ((this.host.staListSize ?? T.STA_LIST.SIZE) - 4) / T.STA_INFO.SIZE;
+    const maxStations = c[C.MAX_CONNECTION] === 0 ? AP_DEFAULT_STATIONS : Math.min(c[C.MAX_CONNECTION], most);
+    return { ssid, password: security === 'open' ? '' : cString(c, C.PASSWORD, 64), security, channel, hidden: c[C.SSID_HIDDEN] !== 0, maxStations };
+  }
+
+  /** Hosts the soft-AP on the bench's radio from the AP configuration (none without a radio that hosts, or an SSID). */
+  private hostAp(): void {
+    this.closeAp();
+    const config = this.softApConfig();
+    const radio = this.host.radio();
+    if (config === null || radio?.hostAp === undefined) return;
+    const generation = this.apGeneration;
+    const mine = (): boolean => generation === this.apGeneration;
+    this.softAp =
+      radio.hostAp(config, this.macs[T.WIFI_IF.AP], {
+        receive: (frame) => {
+          if (!mine()) return;
+          if (this.apRxQueue.length < RX_QUEUE) this.apRxQueue.push(frame);
+          else this.framesDropped++;
+        },
+        joined: (mac) => {
+          if (!mine()) return;
+          let aid = 1;
+          while (this.apStations.some((s) => s.aid === aid)) aid++;
+          const station = { mac: [...mac], aid };
+          this.apStations.push(station);
+          this.schedule(0, T.WIFI_EVENT.AP_STACONNECTED, this.apStaData(station));
+        },
+        left: (mac) => {
+          if (!mine()) return;
+          const i = this.apStations.findIndex((s) => s.mac.every((b, k) => b === mac[k]));
+          if (i < 0) return;
+          const [station] = this.apStations.splice(i, 1);
+          this.schedule(0, T.WIFI_EVENT.AP_STADISCONNECTED, this.apStaData(station));
+        },
+        closed: () => {
+          if (!mine()) return;
+          this.apGeneration++;
+          this.softAp = null;
+          this.apStations.length = 0;
+          this.apRxQueue.length = 0;
+        },
+      }) ?? null;
+  }
+
+  /** Closes the soft-AP; returns the stations it had (the caller says whether they hear of it). */
+  private closeAp(): { mac: number[]; aid: number }[] {
+    const link = this.softAp;
+    const stations = this.apStations.splice(0);
+    this.apGeneration++;
+    this.softAp = null;
+    this.apRxQueue.length = 0;
+    link?.close();
+    return stations;
+  }
+
+  /** wifi_event_ap_staconnected_t / _stadisconnected_t. */
+  private apStaData(station: { mac: number[]; aid: number }): Uint8Array {
+    const data = new Uint8Array(T.AP_STA_EVENT.SIZE);
+    data.set(station.mac, T.AP_STA_EVENT.MAC);
+    data[T.AP_STA_EVENT.AID] = station.aid;
+    return data;
   }
 
   private out32(call: WifiCall, arg: number, value: number): number {
@@ -763,10 +964,17 @@ export class WifiDriver {
     return T.ESP_OK;
   }
 
-  /** esp_wifi_internal_tx(ifx, buffer, len) and _by_ref(…, netstack_buf): the frame is copied now. */
+  /** esp_wifi_internal_tx(ifx, buffer, len) and _by_ref(…, netstack_buf): the frame is copied now (BT116: on the soft-AP's LAN for WIFI_IF_AP). */
   private transmit(call: WifiCall): number {
     const ifx = call.arg(0);
     const length = call.arg(2) & 0xffff;
+    if (ifx === T.WIFI_IF.AP) {
+      if (this.softAp === null) return T.ESP_ERR_WIFI_NOT_STARTED;
+      if (length < 14 || length > 1600) return T.ESP_ERR_INVALID_ARG;
+      this.framesOut++;
+      this.softAp.send(call.readBytes(call.arg(1), length));
+      return T.ESP_OK;
+    }
     if (ifx !== T.WIFI_IF.STA || this.link === null) return T.ESP_ERR_WIFI_NOT_ASSOC;
     if (length < 14 || length > 1600) return T.ESP_ERR_INVALID_ARG;
     this.framesOut++;

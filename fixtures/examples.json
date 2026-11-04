@@ -807,6 +807,19 @@
     "description": "An ESP32 joins the bench's WiFi access point as \"esp32-web\" and serves pages with Arduino's WebServer; the two HTTP client parts switch its LED through /led?state=on and off — press Send on each."
   },
   {
+    "id": "esp32-softap-webserver",
+    "title": "ESP32 access point web server",
+    "category": "WiFi",
+    "project": "esp32-softap-webserver",
+    "boards": {
+      "esp": {
+        "firmware": "esp32/softap-webserver.bin",
+        "sketch": "esp32/softap-webserver"
+      }
+    },
+    "description": "No router needed: the ESP32 hosts its own WiFi network, \"esp32-ap\", with WiFi.softAP and hands out addresses itself. The two HTTP client parts join that network and switch its LED at 192.168.4.1/led?state=on and off — press Send on each."
+  },
+  {
     "id": "esp32c3-wifi-rgb-server",
     "title": "ESP32-C3 RGB web server",
     "category": "WiFi",

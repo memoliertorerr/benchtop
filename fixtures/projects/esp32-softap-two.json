@@ -1,0 +1,35 @@
+{
+  "format": 1,
+  "name": "esp32-softap-two",
+  "parts": [
+    {
+      "id": "host",
+      "type": "esp32-devkit-v1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "guest",
+      "type": "esp32-devkit-v1",
+      "x": 96,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [],
+  "firmware": {
+    "host": {
+      "kind": "file",
+      "name": "wifi-softap.bin",
+      "format": "esp32-bin"
+    },
+    "guest": {
+      "kind": "file",
+      "name": "softap-client.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

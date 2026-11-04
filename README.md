@@ -102,7 +102,9 @@ names boards by hostname; an **HTTP server** part answers from routes you write 
 web server when you press Send (or every so many milliseconds); two ESP32s reach each other by
 hostname; `configTime()` gets the time from the access point, which answers for pool.ntp.org
 itself (your computer's clock, or a fixed date you set). Switch the access point off or weaken
-its signal while it runs. The ESP32-C3 runs the same WiFi sketches: its firmware calls the same
+its signal while it runs. An ESP32 can also be the access point: `WiFi.softAP("my-ap", "password")`
+puts its network on the bench, its own DHCP server hands out addresses, and HTTP client parts (set
+their network to its SSID) or other ESP32s join it — alone or beside an access point part (AP+STA). The ESP32-C3 runs the same WiFi sketches: its firmware calls the same
 driver API, answered the same way on its RISC-V core. On the Pico W, arduino-pico's WiFi, lwIP and
 the WiFi chip's open driver run as built, and the chip itself is answered below the driver: scans,
 joining (a wrong password, a missing network), DHCP, `HTTPClient` and the rest work the same way.
@@ -172,7 +174,7 @@ a microphone pitch meter, a VU meter; Power: a regulator meter (turn the bench s
 hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, a PWM fader, NeoPixel, a
 rainbow ring, an OLED clock, a color TFT, the DAC, the microphone, an I2C scan; ESP32-C3: the RGB LED,
 serial, a potentiometer dimmer, an OLED clock; WiFi: an ESP32 web server switched by HTTP client
-parts, an ESP32-C3 web server that sets its RGB LED, a Pico W and a Pico 2 W web server switching their onboard LEDs, a Pico W and an ESP32 HTTP client talking to a server part, two ESP32s over TCP, an NTP clock on an OLED;
+parts, an ESP32 hosting its own access point and web server, an ESP32-C3 web server that sets its RGB LED, a Pico W and a Pico 2 W web server switching their onboard LEDs, a Pico W and an ESP32 HTTP client talking to a server part, two ESP32s over TCP, an NTP clock on an OLED;
 Raspberry Pi Pico:
 blink, a potentiometer, PWM steps, an OLED, a color TFT, both cores at once; Raspberry Pi Pico 2: the same, NeoPixels
 through PIO, a button interrupt and MicroPython blink; Mega: an LED chaser, four

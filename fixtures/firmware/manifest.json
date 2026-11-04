@@ -930,6 +930,96 @@
     },
     {
       "board": "esp32",
+      "name": "softap-client",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/softap-client.bin",
+      "sha256": "e84d4e69406e37e8406e2f97f59d19819bf364d4e35953dee8106d7b073ff437",
+      "bytes": 900640,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "HTTPClient": "2.0.0",
+        "WiFi": "2.0.0",
+        "WiFiClientSecure": "2.0.0"
+      },
+      "source": "e01a78ef141f8ef565cafa603b3e4eda97aa3d19cca61cd1b34eb8ff098b2122"
+    },
+    {
+      "board": "esp32",
+      "name": "softap-client",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/softap-client.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "HTTPClient": "2.0.0",
+        "WiFi": "2.0.0",
+        "WiFiClientSecure": "2.0.0"
+      },
+      "source": "e01a78ef141f8ef565cafa603b3e4eda97aa3d19cca61cd1b34eb8ff098b2122"
+    },
+    {
+      "board": "esp32",
+      "name": "softap-client",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/softap-client.syms.tsv",
+      "sha256": "7a9738e4542cd865fb49bb43766ea9f2eccdc2193cc8aa3a8c9ff3b33beeee6a",
+      "bytes": 295795,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "HTTPClient": "2.0.0",
+        "WiFi": "2.0.0",
+        "WiFiClientSecure": "2.0.0"
+      },
+      "source": "e01a78ef141f8ef565cafa603b3e4eda97aa3d19cca61cd1b34eb8ff098b2122"
+    },
+    {
+      "board": "esp32",
+      "name": "softap-webserver",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/softap-webserver.bin",
+      "sha256": "7c92321ec82ef259c1075d3a475aa73e222ca2676227e1a751bc7f8bee9afa50",
+      "bytes": 763248,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "FS": "2.0.0",
+        "WebServer": "2.0.0",
+        "WiFi": "2.0.0"
+      },
+      "source": "d56243c5cce8562ef671e0d1b671313eae0a513a4277eae5564b1db046e0a2ef"
+    },
+    {
+      "board": "esp32",
+      "name": "softap-webserver",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/softap-webserver.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "FS": "2.0.0",
+        "WebServer": "2.0.0",
+        "WiFi": "2.0.0"
+      },
+      "source": "d56243c5cce8562ef671e0d1b671313eae0a513a4277eae5564b1db046e0a2ef"
+    },
+    {
+      "board": "esp32",
+      "name": "softap-webserver",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/softap-webserver.syms.tsv",
+      "sha256": "3d485e28cad4fc706f05b54ae9f4de386a566ef5602b26baa950806a44d316e3",
+      "bytes": 271164,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "FS": "2.0.0",
+        "WebServer": "2.0.0",
+        "WiFi": "2.0.0"
+      },
+      "source": "d56243c5cce8562ef671e0d1b671313eae0a513a4277eae5564b1db046e0a2ef"
+    },
+    {
+      "board": "esp32",
       "name": "spi-loopback",
       "fqbn": "esp32:esp32:esp32",
       "file": "esp32/spi-loopback.bin",
@@ -1140,6 +1230,51 @@
     },
     {
       "board": "esp32",
+      "name": "wifi-apsta",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/wifi-apsta.bin",
+      "sha256": "a19a1690b7e24bd964c4840d6f1cadf49c9088e25d9a8d87af7be408d24e8651",
+      "bytes": 760976,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "FS": "2.0.0",
+        "WebServer": "2.0.0",
+        "WiFi": "2.0.0"
+      },
+      "source": "45765240e2f1f1d59b63c52f33badb72607dd2db9243132ad4fce667f0dac237"
+    },
+    {
+      "board": "esp32",
+      "name": "wifi-apsta",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/wifi-apsta.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "FS": "2.0.0",
+        "WebServer": "2.0.0",
+        "WiFi": "2.0.0"
+      },
+      "source": "45765240e2f1f1d59b63c52f33badb72607dd2db9243132ad4fce667f0dac237"
+    },
+    {
+      "board": "esp32",
+      "name": "wifi-apsta",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/wifi-apsta.syms.tsv",
+      "sha256": "e0b0abb2cf1f5c3d065b3a2914ca3d1e7c63efaea8b4edf55016234dfe8aae06",
+      "bytes": 269691,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "FS": "2.0.0",
+        "WebServer": "2.0.0",
+        "WiFi": "2.0.0"
+      },
+      "source": "45765240e2f1f1d59b63c52f33badb72607dd2db9243132ad4fce667f0dac237"
+    },
+    {
+      "board": "esp32",
       "name": "wifi-connect",
       "fqbn": "esp32:esp32:esp32",
       "file": "esp32/wifi-connect.bin",
@@ -1299,6 +1434,51 @@
         "WiFi": "2.0.0"
       },
       "source": "9916a2f6759c18300fd1114853cce4a821440bc62c5940feb0268a6b44ca50d2"
+    },
+    {
+      "board": "esp32",
+      "name": "wifi-softap",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/wifi-softap.bin",
+      "sha256": "20d76da0145fd33d0f87520646701e664c40703c681559c4d253f3e6112e54dc",
+      "bytes": 762672,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "FS": "2.0.0",
+        "WebServer": "2.0.0",
+        "WiFi": "2.0.0"
+      },
+      "source": "7f09f5e1cf8959fd584dc6c0a90fb345088f433453afee67576c4cbcb55149a2"
+    },
+    {
+      "board": "esp32",
+      "name": "wifi-softap",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/wifi-softap.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "FS": "2.0.0",
+        "WebServer": "2.0.0",
+        "WiFi": "2.0.0"
+      },
+      "source": "7f09f5e1cf8959fd584dc6c0a90fb345088f433453afee67576c4cbcb55149a2"
+    },
+    {
+      "board": "esp32",
+      "name": "wifi-softap",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/wifi-softap.syms.tsv",
+      "sha256": "9a50d02e69e1d938447632271efafa40775a99d6803f4c53b68920b148293101",
+      "bytes": 270825,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "FS": "2.0.0",
+        "WebServer": "2.0.0",
+        "WiFi": "2.0.0"
+      },
+      "source": "7f09f5e1cf8959fd584dc6c0a90fb345088f433453afee67576c4cbcb55149a2"
     },
     {
       "board": "esp32",
@@ -2010,6 +2190,51 @@
         "WiFi": "2.0.0"
       },
       "source": "df095b12032fb809740567a7b0e9dd66dec3fcea22da6625c75ed6b7f7e763b2"
+    },
+    {
+      "board": "esp32c3",
+      "name": "wifi-softap",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/wifi-softap.bin",
+      "sha256": "074dbe7d1ac3e63f0949bd1d7bec67822c5cf96c85cac6dee0ce97073659ec36",
+      "bytes": 759952,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "FS": "2.0.0",
+        "WebServer": "2.0.0",
+        "WiFi": "2.0.0"
+      },
+      "source": "990e81bbc75841869a763f2129d8f0da30f8d0ada91190c41f1373e72f69187f"
+    },
+    {
+      "board": "esp32c3",
+      "name": "wifi-softap",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/wifi-softap.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "FS": "2.0.0",
+        "WebServer": "2.0.0",
+        "WiFi": "2.0.0"
+      },
+      "source": "990e81bbc75841869a763f2129d8f0da30f8d0ada91190c41f1373e72f69187f"
+    },
+    {
+      "board": "esp32c3",
+      "name": "wifi-softap",
+      "fqbn": "esp32:esp32:esp32c3",
+      "file": "esp32c3/wifi-softap.syms.tsv",
+      "sha256": "0ed2efa2e8453841a4b36e6a944be54952a80fcde32ebec0777e666ff3594a12",
+      "bytes": 306360,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "FS": "2.0.0",
+        "WebServer": "2.0.0",
+        "WiFi": "2.0.0"
+      },
+      "source": "990e81bbc75841869a763f2129d8f0da30f8d0ada91190c41f1373e72f69187f"
     },
     {
       "board": "mega",

@@ -8,6 +8,7 @@
 export const ESP_OK = 0;
 export const ESP_ERR_NO_MEM = 0x101;
 export const ESP_ERR_INVALID_ARG = 0x102;
+export const ESP_ERR_NOT_FOUND = 0x105;
 export const ESP_ERR_NOT_SUPPORTED = 0x106;
 export const ESP_ERR_WIFI_NOT_INIT = 0x3001;
 export const ESP_ERR_WIFI_NOT_STARTED = 0x3002;
@@ -28,7 +29,7 @@ export const WIFI_MODE = { NULL: 0, STA: 1, AP: 2, APSTA: 3 } as const;
 export const WIFI_IF = { STA: 0, AP: 1 } as const;
 
 /** wifi_event_t. */
-export const WIFI_EVENT = { READY: 0, SCAN_DONE: 1, STA_START: 2, STA_STOP: 3, STA_CONNECTED: 4, STA_DISCONNECTED: 5, AP_START: 12, AP_STOP: 13 } as const;
+export const WIFI_EVENT = { READY: 0, SCAN_DONE: 1, STA_START: 2, STA_STOP: 3, STA_CONNECTED: 4, STA_DISCONNECTED: 5, AP_START: 12, AP_STOP: 13, AP_STACONNECTED: 14, AP_STADISCONNECTED: 15 } as const;
 
 /** wifi_err_reason_t values the station reports. */
 export const WIFI_REASON = { AUTH_LEAVE: 3, ASSOC_LEAVE: 8, BEACON_TIMEOUT: 200, NO_AP_FOUND: 201, AUTH_FAIL: 202, HANDSHAKE_TIMEOUT: 204, CONNECTION_FAIL: 205 } as const;
@@ -43,7 +44,7 @@ export const AP_RECORD = { SIZE: 80, BSSID: 0, SSID: 6, PRIMARY: 39, SECOND: 40,
 export const STA_CONFIG = { SIZE: 140, SSID: 0, PASSWORD: 32, SCAN_METHOD: 96, BSSID_SET: 100, BSSID: 101, CHANNEL: 107, LISTEN_INTERVAL: 108, SORT_METHOD: 112, THRESHOLD: 116 } as const;
 
 /** wifi_ap_config_t (116 bytes). */
-export const AP_CONFIG = { SIZE: 116, SSID: 0, PASSWORD: 32, SSID_LEN: 96, CHANNEL: 97, AUTHMODE: 100, SSID_HIDDEN: 104, MAX_CONNECTION: 105 } as const;
+export const AP_CONFIG = { SIZE: 116, SSID: 0, PASSWORD: 32, SSID_LEN: 96, CHANNEL: 97, AUTHMODE: 100, SSID_HIDDEN: 104, MAX_CONNECTION: 105, BEACON_INTERVAL: 106 } as const;
 
 /** wifi_scan_config_t (32 bytes): scan_time is { active: { min, max }, passive }. */
 export const SCAN_CONFIG = { SIZE: 32, SSID: 0, BSSID: 4, CHANNEL: 8, SHOW_HIDDEN: 9, SCAN_TYPE: 12, ACTIVE_MIN: 16, ACTIVE_MAX: 20, PASSIVE: 24 } as const;
@@ -59,6 +60,12 @@ export const STA_DISCONNECTED = { SIZE: 41, SSID: 0, SSID_LEN: 32, BSSID: 33, RE
 
 /** wifi_country_t (12 bytes): cc[3], schan, nchan, max_tx_power, policy (u32 at 8). */
 export const COUNTRY = { SIZE: 12, CC: 0, SCHAN: 3, NCHAN: 4, MAX_TX_POWER: 5, POLICY: 8 } as const;
+
+/** BT116: wifi_event_ap_staconnected_t and wifi_event_ap_stadisconnected_t (8 bytes each: mac, aid, is_mesh_child; wifi-softap's layout line). */
+export const AP_STA_EVENT = { SIZE: 8, MAC: 0, AID: 6, MESH_CHILD: 7 } as const;
+
+/** BT116: wifi_sta_info_t (12 bytes): mac, rssi, then phy_11b/g/n, phy_lr and is_mesh_child as bits 0–4 of a u32. */
+export const STA_INFO = { SIZE: 12, MAC: 0, RSSI: 6, FLAGS: 8 } as const;
 
 /** wifi_sta_list_t (184 bytes): 15 wifi_sta_info_t of 12 bytes, then num. */
 export const STA_LIST = { SIZE: 184, NUM: 180 } as const;

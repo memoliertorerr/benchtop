@@ -32,8 +32,47 @@ export interface WifiLink {
   leave(): void;
 }
 
+/** BT115: an access point a board hosts (its soft-AP): what other stations' scans see. */
+export interface SoftApConfig {
+  readonly ssid: string;
+  readonly password: string;
+  readonly security: WifiSecurity;
+  /** 1–13. */
+  readonly channel: number;
+  readonly hidden: boolean;
+  /** Stations it takes at most (more are turned away). */
+  readonly maxStations: number;
+}
+
+/** BT115: what the hosting board hears of its soft-AP. */
+export interface SoftApEvents {
+  /** A frame for the board's AP interface, at the bench time it arrives. */
+  receive(frame: Uint8Array): void;
+  /** A station associated (its MAC). */
+  joined(mac: Mac): void;
+  /** A station left, or was dropped. */
+  left(mac: Mac): void;
+  /**
+   * BT116: the bench closed the AP itself (a reset, or a rebuild without this board) — not when the
+   * board's own `close()` did. Its stations are gone, without a `left` each.
+   */
+  closed?(): void;
+}
+
+/** BT115: the board's side of its soft-AP. */
+export interface SoftApLink {
+  /** An Ethernet II frame from the board's AP interface onto its LAN. */
+  send(frame: Uint8Array): void;
+  /** The stations on it now. */
+  stations(): Mac[];
+  /** BT116: turns a station away (a deauthentication): `left` follows; false when it isn't on. */
+  drop(mac: Mac): boolean;
+  /** The AP is gone (its stations are dropped). */
+  close(): void;
+}
+
 export interface WifiRadio {
-  /** The access points on now. */
+  /** The access points on now (BT115: other boards' soft-APs too, not the asking board's own). */
   accessPoints(): readonly AccessPointInfo[];
   /**
    * Joins the LAN of the access point `bssid` (it must be on) as `mac`: frames for `mac` and
@@ -41,6 +80,12 @@ export interface WifiRadio {
    * point goes off (or away in a rebuild). Undefined when there is no such access point.
    */
   join(bssid: Mac, mac: Mac, receive: (frame: Uint8Array) => void, lost: () => void): WifiLink | undefined;
+  /**
+   * BT115: hosts an access point on the bench as `bssid` (the board's AP MAC): other boards' scans
+   * list it and their stations join its LAN, the board's AP interface the LAN's other end. One a
+   * board: hosting again replaces the old one. Optional — a radio without soft-APs (a test's) lacks it.
+   */
+  hostAp?(config: SoftApConfig, bssid: Mac, events: SoftApEvents): SoftApLink | undefined;
 }
 
 /** An MCU with WiFi: the bench hands it its radio (null: none) whenever it builds. */

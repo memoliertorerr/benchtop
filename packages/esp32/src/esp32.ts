@@ -435,6 +435,8 @@ export class Esp32Mcu implements Mcu, Debuggable, WifiStation {
 
   /** BT97: answers the firmware's WiFi calls on `soc` when its symbols name them. */
   private installHle(soc: Esp32Soc): void {
+    // BT116: the old driver's association and soft-AP end with it (a reset: the firmware starts again).
+    this.wifi?.dispose();
     this.wifi = null;
     soc.cores[0].setHle(null);
     soc.cores[1].setHle(null);

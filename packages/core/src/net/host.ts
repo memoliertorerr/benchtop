@@ -9,6 +9,10 @@
  * as an ARP queue would). Packets for other addresses are ignored — except, BT101, TCP to an
  * address beyond the subnet that `outside` takes (the gateway's uplink): it answers for that
  * address as a transparent proxy would, so the station sees the far server's address.
+ *
+ * BT115: a host can start without an address (ip 0) and take one later (`configure`, a DHCP
+ * client's lease, dhcp.ts DhcpClient); while it has none it takes every UDP datagram, whatever
+ * its destination address, as a DHCP client's raw socket would.
  */
 
 import type { LanClock, LanPort, VirtualLan } from './lan.ts';
@@ -56,10 +60,10 @@ const ARP_QUEUE = 8;
 
 export class IpHost implements LanPort, TcpOwner {
   readonly mac: Mac;
-  readonly ip: number;
-  readonly netmask: number;
+  ip: number;
+  netmask: number;
   /** BT101: where packets beyond the subnet go (0: nowhere — they wait for an ARP reply that never comes). */
-  readonly router: number;
+  router: number;
   readonly arpTable = new Map<number, number[]>();
   /** Echo requests answered. */
   echoes = 0;
@@ -89,6 +93,13 @@ export class IpHost implements LanPort, TcpOwner {
     this.netmask = options.netmask >>> 0;
     this.router = (options.router ?? 0) >>> 0;
     this.iss = Math.imul(this.ip, 2654435761) >>> 0;
+  }
+
+  /** BT115: the address, mask and router a lease gave (0, 0, 0: none again). */
+  configure(ip: number, netmask: number, router: number): void {
+    this.ip = ip >>> 0;
+    this.netmask = netmask >>> 0;
+    this.router = router >>> 0;
   }
 
   /** A bench reset: no connections, nothing learned, nothing waiting. */
@@ -235,7 +246,8 @@ export class IpHost implements LanPort, TcpOwner {
     if (eth.type !== ETHERTYPE_IPV4) return;
     const packet = parseIpv4(eth.payload);
     if (packet === undefined) return;
-    const forUs = packet.dst === this.ip || packet.dst === BROADCAST_IP || packet.dst === this.subnetBroadcast;
+    // BT115: without an address, every UDP datagram (a DHCP offer may come to the offered address).
+    const forUs = packet.dst === this.ip || packet.dst === BROADCAST_IP || packet.dst === this.subnetBroadcast || (this.ip === 0 && packet.protocol === PROTO_UDP);
     if (!forUs) {
       if (packet.protocol === PROTO_TCP && this.outside !== null && (packet.dst & this.netmask) !== (this.ip & this.netmask)) this.outsideIn(packet.src, eth.src, packet.payload, packet.dst);
       return;

@@ -35,6 +35,22 @@ export const ESP32_CHECKS: Record<string, (r: ExampleRun) => void> = {
     expect(r.lit('led1')).toBe(false);
     expect(r.serial('esp')).toContain('GET /led on\nGET /led off\n');
   },
+  'esp32-softap-webserver'(r) {
+    // BT117: the ESP32 is the access point; the client parts take addresses from its DHCP server.
+    r.runTo(1500);
+    expect(r.serial('esp')).toContain('ap esp32-ap at 192.168.4.1\n');
+    expect(r.serial('esp').match(/joined [0-9a-f:]{17}\n/g)).toHaveLength(2);
+    expect(r.lit('led1')).toBe(false);
+    r.input('on', { kind: 'press' });
+    r.runTo(1600);
+    expect(r.visual('on')).toMatchObject({ status: '200', body: 'led on', sent: 1 });
+    expect(r.lit('led1')).toBe(true);
+    r.input('off', { kind: 'press' });
+    r.runTo(1700);
+    expect(r.visual('off')).toMatchObject({ status: '200', body: 'led off' });
+    expect(r.lit('led1')).toBe(false);
+    expect(r.serial('esp')).toContain('GET /led on\nGET /led off\n');
+  },
   'esp32-wifi-http'(r) {
     r.runTo(2000);
     expect(r.serial('esp')).toContain('GET 200 {"hello":"world","count":1}\n');

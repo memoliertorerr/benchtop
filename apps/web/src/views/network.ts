@@ -186,6 +186,8 @@ interface ClientNodes {
   body: SVGTextElement[];
   count: SVGTextElement;
   activity: SVGCircleElement;
+  /** BT117: " · <network>" after the count when the part names its network (a board's soft AP, say). */
+  network: string;
 }
 
 const clientNodes = new WeakMap<HTMLElement, ClientNodes>();
@@ -210,7 +212,7 @@ function drawClient(def: PartDefinition, svg: SVGSVGElement): ClientNodes {
     body.push(line);
     svg.append(line);
   }
-  return { request, status, body, count, activity };
+  return { request, status, body, count, activity, network: '' };
 }
 
 function shortUrl(url: string): string {
@@ -238,7 +240,9 @@ export const httpClientView: ViewFactory = {
     n.status.setAttribute('fill', '#7f8a96');
     for (const line of n.body) line.textContent = '';
     const every = typeof props.interval === 'number' && props.interval > 0 ? `every ${props.interval} ms` : 'press Send';
-    n.count.textContent = every;
+    const network = typeof props.network === 'string' ? props.network : '';
+    n.network = network === '' ? '' : ` · ${network.length > 14 ? `${network.slice(0, 13)}…` : network}`;
+    n.count.textContent = `${every}${n.network}`;
   },
   update(el: HTMLElement, visual: VisualState) {
     const n = clientNodes.get(el);
@@ -253,7 +257,7 @@ export const httpClientView: ViewFactory = {
       const flat = visual.body.replace(/\s+/g, ' ').trim();
       n.body.forEach((line, i) => (line.textContent = flat.slice(i * BODY_LINE_CHARS, (i + 1) * BODY_LINE_CHARS)));
     }
-    if (typeof visual.sent === 'number') n.count.textContent = `${visual.sent} sent`;
+    if (typeof visual.sent === 'number') n.count.textContent = `${visual.sent} sent${n.network}`;
     if (typeof visual.busy === 'boolean') n.activity.setAttribute('fill', visual.busy ? LED_ON : LED_OFF);
   },
 };

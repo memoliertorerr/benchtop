@@ -686,7 +686,9 @@ bench calls it for every MCU whenever it builds (null without `netSpecFor`).
   generation counter retires an old one). One request at a time: a press while one is in
   flight is ignored. Its view (`views/network.ts`) is a small laptop: the request, the last
   status (green 2xx, amber others, red an error — an unknown host, refused, timed out, https)
-  and the body's start. A URL it can't send to is `http-url` (warning).
+  and the body's start; the base line names its `network` when one is set ("press Send ·
+  esp32-ap"), since on a board's soft AP that is what it waits for. A URL it can't send to is
+  `http-url` (warning).
 - **Stations** see `radio.accessPoints()` (the APs that are on) and `radio.join(bssid, mac,
   receive, lost)` puts them on an AP's LAN; `lost` runs when the AP goes off (or away in a
   rebuild). Each MCU gets `radioFor(board)`, so its station is filed under the board's
@@ -732,6 +734,32 @@ bench calls it for every MCU whenever it builds (null without `netSpecFor`).
   clock). So `configTime(0, 0, "pool.ntp.org")` works with nothing leaving the machine: the
   ntp-clock fixture prints its first time ≈ 3 s into a run (WiFi at 1.6 s, then lwIP's SNTP), one
   second apart after.
+- **Soft access points.** A board's radio can host an access point while its firmware runs
+  one: `WifiRadio.hostAp(config, bssid, { receive, joined, left })` (radio.ts; optional, so test
+  radios needn't) makes a `SoftAp` (runtime.ts) — a LAN whose other end is the board's AP
+  interface (a wired port with the board's AP MAC) and no gateway of ours: the board's own network
+  stack routes and serves DHCP. Other boards' scans list it (the host's own don't; RSSI −45 dBm),
+  their stations join it (`join` finds soft APs by BSSID; `maxStations` turns more away), and the
+  board hears each `joined`/`left` (its driver's AP_STACONNECTED/STADISCONNECTED). The runtime reads
+  DHCP on that LAN — stations' requests (hostnames), the board's ACKs (addresses) — for
+  `stations()`, the connected events (a board station's lease) and names; a station leaving or the
+  AP closing (the firmware's stop, a reset, a rebuild — the firmware hosts it again) gives the
+  disconnected events, a station dropped hears its `lost`. A client part whose `network` names an
+  SSID no AP part has waits for a board to host it ("waiting for …" in its view; no build problem),
+  joins as a station when one does, takes an address with `DhcpClient` (dhcp.ts: DISCOVER, OFFER,
+  REQUEST, ACK, broadcast with the broadcast flag, retried every second, no renewal) — `IpHost` can
+  start without an address and takes every UDP datagram until it has one — and reaches the board by
+  address, its stations by DHCP hostname, the board as "gateway"; when the AP goes it waits again.
+  The board's side also has `drop(mac)` (a deauthentication: `left` follows, the station
+  hears `lost`), and its events a `closed()` for an AP the bench closed (a reset; a rebuild
+  without the board) rather than the board. A rebuild keeps soft APs: `carry()` disposes the old
+  runtime without closing them, the next `build(previous)` takes them over with their stations
+  and DHCP view, and the bench then closes those whose board didn't come over running
+  (`keepSoftAps(keptBoards)`). A client part on one takes over its previous self's host, station
+  and lease (`ClientHost.adopt`); one new to it joins, one gone leaves. A station already on a soft
+  AP that joins again with the same MAC (a kept board moving to the new radio: the ESP32 driver
+  joins there before leaving the old link) takes its new port silently, keeping its address — so
+  nobody on the LAN hears anything of the edit.
 
 Measured: an ESP32 running `fixtures/sketches/esp32/wifi-ping` (WiFi.begin, DHCP, four pings of
 the gateway with IDF's esp_ping) prints its four replies 0–1 ms each; 6 s simulated take 1.1 s.
@@ -741,7 +769,10 @@ WebServer as "esp32-web": the board connects at 1.61 s and answers an http-clien
 8 ms, switching its LED), and `wifi-tcp-server` + `wifi-tcp-client` on two ESP32s (the client
 finds "echo-server" through the gateway's DNS and gets its line back in capitals 22 ms after
 both connected). The gallery's WiFi category runs all three (and an ESP32-C3 web server,
-`wifi-rgb-server`, whose `/led?color=…` sets the board's RGB LED); the web gives an example its
+`wifi-rgb-server`, whose `/led?color=…` sets the board's RGB LED; and an ESP32 access point web
+server, `esp32/softap-webserver`: the board hosts "esp32-ap" with no AP part on the bench, the two
+client parts take 192.168.4.2 and .3 from its DHCP server within 1.5 s and switch its LED at
+192.168.4.1); the web gives an example its
 `.syms.tsv` (`debugSyms`, see Worker protocol), since a precompiled `.bin` has no ELF.
 
 ### MCUs
@@ -1465,6 +1496,35 @@ sequence, files matched by basename or trailing path.
   inactive time. The factory gives every ESP32 board its own eFuse MAC — 24:0A:C4 and three bytes
   hashed from its part id — so two boards on one LAN differ (`Esp32McuOptions.mac`; the SoC's
   default stays 24:0A:C4:00:00:01).
+
+  **The soft-AP.** While WiFi is started in AP or AP+STA mode, `WifiDriver` hosts an
+  access point on the bench (`WifiRadio.hostAp`, see Virtual network) as the AP MAC (the base MAC
+  + 1) from the AP configuration: IDF's default until one is set ("ESP_" and the AP MAC's last
+  three bytes, open, channel 1, 4 stations — `esp_wifi_init` fills it), then
+  `esp_wifi_set_config(WIFI_IF_AP)`'s, hosted again at once (Arduino's `WiFi.softAP` starts the
+  AP, then sets its configuration); an empty SSID (`WiFi.softAPdisconnect`) hosts nothing. Auth
+  modes map to the bench's securities (WPA2-Enterprise as WPA2; open: no password); the station
+  limit is `max_connection` (0: 4), at most the chip's list (15 on the ESP32, 10 on the C3).
+  A station joining gets the lowest free AID and posts AP_STACONNECTED (`wifi_event_ap_staconnected_t`:
+  MAC, AID, is_mesh_child — 8 bytes), leaving posts AP_STADISCONNECTED (the same layout in IDF
+  4.4), both from the WiFi task; `esp_wifi_ap_get_sta_list` fills `wifi_sta_info_t`s (12 bytes:
+  MAC, RSSI −45, 11b/g/n bits) and `num`; `esp_wifi_ap_get_sta_aid` finds one; `esp_wifi_deauth_sta`
+  turns one (AID 0: every one) away. Frames for the AP interface queue beside the station's (32
+  at most) and go to its rx callback the same way; `esp_wifi_internal_tx(WIFI_IF_AP)` sends on
+  the AP's LAN (ESP_ERR_WIFI_NOT_STARTED while it isn't hosted). The firmware's own lwIP serves
+  it: esp_netif starts its DHCP server (192.168.4.1/24 by default, `WiFi.softAPConfig` another)
+  on AP_START, and IP_EVENT_AP_STAIPASSIGNED is its own. A new configuration while it runs, or the
+  AP going down (`esp_wifi_stop`, a mode without AP), posts AP_STADISCONNECTED for each station
+  first (stations hear `lost`). `esp_wifi_get_channel` reports the AP's channel when no station
+  link sets it. AP+STA runs both: a station on an AP part and the soft-AP side by side (two
+  subnets — the soft-AP and an AP part both default to 192.168.4.0/24, as on hardware, so a
+  sketch moves its AP with softAPConfig); the real ESP32's soft-AP follows its station's channel,
+  ours keeps its own. `dispose()` ends a driver (a reset builds a new one): its station leaves,
+  its AP closes. Measured layouts: `fixtures/sketches/esp32/wifi-softap` prints them (`layout 8 6
+  8 12 6 184 180`); it hosts "benchtop-ap" with a WebServer, `softap-client` joins it from a
+  second ESP32 with no AP part on the bench (DHCP 192.168.4.2, three GETs, then leaves), and
+  `wifi-apsta` hosts "bridge-ap" at 192.168.5.1 while on the bench's "benchtop"
+  (`packages/parts/src/integration/softap.test.ts`; the driver alone: `wifi/softap.test.ts`).
 
   **Crypto accelerators (`soc/crypto/`).** Arduino-ESP32 2.0.17 builds mbedTLS with
   CONFIG_MBEDTLS_HARDWARE_AES, _SHA and _MPI, so its hashes, ciphers and bignum work run on the
@@ -2960,7 +3020,11 @@ Model Context Protocol on stdio — one more front end over the headless runner,
   at most; write one from `write` text or `writeBase64`; `remove` one or a directory); `sim_wifi`
   (the access points — SSID, on, channel, signal, security — with the boards joined to
   each, their addresses and hostnames, the server and client parts on its LAN, and each ESP32
-  and ESP32-C3 board's state; runs nothing); `sim_http` (one request from an AP's gateway to a URL on
+  and ESP32-C3 board's state; `softAccessPoints`, the APs boards host — board, SSID, channel,
+  security, station limit, the stations on each (a board, or a client part matched by MAC) with
+  the address the board's own DHCP server gave and the hostname they sent, and the client parts on
+  it — `waiting`, client parts whose network nobody hosts yet, and a hosting board's state as
+  `hosting "<ssid>"`, after its station's in AP+STA; runs nothing); `sim_http` (one request from an AP's gateway to a URL on
   its LAN — a board's web server by hostname — running the session until the response or
   `timeout`, default 5 s, stopping at the 10 ms slice it arrived in: status, headers, the body as
   text up to 64 KB, or why it failed, plus the serial since the last call); `sim_update` (a new

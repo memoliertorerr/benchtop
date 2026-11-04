@@ -1,0 +1,41 @@
+{
+  "format": 1,
+  "name": "esp32-apsta",
+  "parts": [
+    {
+      "id": "esp",
+      "type": "esp32-devkit-v1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "ap",
+      "type": "wifi-ap",
+      "x": 90,
+      "y": 10,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "phone",
+      "type": "http-client",
+      "x": 90,
+      "y": -34,
+      "rotation": 0,
+      "props": {
+        "network": "bridge-ap",
+        "url": "http://192.168.5.1/"
+      }
+    }
+  ],
+  "wires": [],
+  "firmware": {
+    "esp": {
+      "kind": "file",
+      "name": "wifi-apsta.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

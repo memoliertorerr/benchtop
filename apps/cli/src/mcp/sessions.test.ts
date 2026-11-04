@@ -186,6 +186,34 @@ describe('live sessions', () => {
     expect((await tool(server, 'sim_http', { session: blinkSession, url: 'http://x/' })).text).toMatch(/no WiFi access point/);
   }, 120_000);
 
+  it('sim_wifi (BT117): an ESP32 hosting its own access point — the client parts on it, their addresses from its DHCP server', async () => {
+    const server = testServer({ maxWallMs: 120_000 });
+    const open = (await tool(server, 'sim_open', { project: 'fixtures/projects/esp32-softap-webserver.json', firmware: { esp: 'fixtures/firmware/esp32/softap-webserver.bin' } })).value as { session: string };
+    const session = open.session;
+    type Wifi = {
+      accessPoints: unknown[];
+      softAccessPoints: { board: string; ssid: string; channel: number; security: string; maxStations: number; stations: { part?: string; board?: string; ip: string | null; hostname?: string }[]; clients: { part: string; address: string | null }[] }[];
+      waiting?: { part: string; network: string }[];
+      boards: Record<string, string>;
+    };
+    const before = (await tool(server, 'sim_wifi', { session })).value as Wifi;
+    expect(before).toMatchObject({ accessPoints: [], softAccessPoints: [], waiting: [{ part: 'on', network: 'esp32-ap' }, { part: 'off', network: 'esp32-ap' }], boards: { esp: 'not connected' } });
+    await tool(server, 'sim_run', { session, duration: '1500ms' });
+    const wifi = (await tool(server, 'sim_wifi', { session })).value as Wifi;
+    expect(wifi.boards).toEqual({ esp: 'hosting "esp32-ap"' });
+    expect(wifi.waiting).toBeUndefined();
+    expect(wifi.softAccessPoints).toHaveLength(1);
+    expect(wifi.softAccessPoints[0]).toMatchObject({ board: 'esp', ssid: 'esp32-ap', channel: 1, security: 'wpa2', maxStations: 4 });
+    expect(wifi.softAccessPoints[0].stations.map((st) => [st.part, st.ip, st.hostname])).toEqual([
+      ['on', '192.168.4.2', 'on'],
+      ['off', '192.168.4.3', 'off'],
+    ]);
+    expect(wifi.softAccessPoints[0].clients.map((c) => [c.part, c.address])).toEqual([
+      ['on', '192.168.4.2'],
+      ['off', '192.168.4.3'],
+    ]);
+  }, 120_000);
+
   // Skipped where the Pico W firmware is withheld (the published repository; THIRD_PARTY_NOTICES.md).
   it.skipIf(withheldFirmware('picow/wifi-webserver.uf2') !== undefined)('sim_wifi and sim_http (BT112): a Pico W web server, its onboard LED switched over HTTP', async () => {
     const server = testServer({ maxWallMs: 120_000 });
