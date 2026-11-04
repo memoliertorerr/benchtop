@@ -84,6 +84,8 @@ describe('request guards', () => {
     expect(isAllowedFqbn('esp32:esp32:esp32')).toBe(true);
     expect(isAllowedFqbn('rp2040:rp2040:rpipico')).toBe(true); // BT61
     expect(isAllowedFqbn('rp2040:rp2040:rpipico2:arch=riscv')).toBe(true); // BT66
+    expect(isAllowedFqbn('rp2040:rp2040:rpipicow')).toBe(true); // BT110
+    expect(isAllowedFqbn('rp2040:rp2040:rpipico2w:arch=riscv')).toBe(true); // BT113
     expect(isAllowedFqbn('rp2040:rp2040:rpipico2')).toBe(false); // Arm cores: not simulated
     expect(isAllowedFqbn('rp2040:rp2040:rpipico2:arch=arm')).toBe(false);
     expect(isAllowedFqbn('rp2040:rp2040:rpipico2:arch=riscv,opt=x')).toBe(false);

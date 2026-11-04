@@ -820,6 +820,45 @@
     "description": "An ESP32-C3 joins the access point as \"c3-web\" and serves /led?color=red, green, blue, white, off or an rrggbb hex color, which sets its board's RGB LED; press Send on the HTTP client parts."
   },
   {
+    "id": "picow-wifi-webserver",
+    "title": "Pico W web server",
+    "category": "WiFi",
+    "project": "picow-wifi-webserver",
+    "boards": {
+      "picow": {
+        "firmware": "picow/wifi-webserver.uf2",
+        "sketch": "picow/wifi-webserver"
+      }
+    },
+    "description": "A Raspberry Pi Pico W joins the access point as \"picow-web\" and serves pages with arduino-pico's WebServer; the HTTP client parts switch its onboard LED (on the WiFi chip) through /led?state=on and off — press Send on each."
+  },
+  {
+    "id": "picow-wifi-http",
+    "title": "Pico W HTTP client",
+    "category": "WiFi",
+    "project": "picow-wifi-http",
+    "boards": {
+      "picow": {
+        "firmware": "picow/wifi-http-get.uf2",
+        "sketch": "picow/wifi-http-get"
+      }
+    },
+    "description": "A Raspberry Pi Pico W joins the access point, finds api.bench through its DNS and GETs and POSTs to the HTTP server part with HTTPClient; edit the server's routes in the Inspector."
+  },
+  {
+    "id": "pico2w-wifi-webserver",
+    "title": "Pico 2 W web server",
+    "category": "WiFi",
+    "project": "pico2w-wifi-webserver",
+    "boards": {
+      "pico2w": {
+        "firmware": "pico2w/wifi-webserver.uf2",
+        "sketch": "pico2w/wifi-webserver"
+      }
+    },
+    "description": "A Raspberry Pi Pico 2 W (its RP2350's RISC-V cores) joins the access point as \"pico2w-web\" and serves pages with arduino-pico's WebServer; the HTTP client parts switch its onboard LED through /led?state=on and off."
+  },
+  {
     "id": "esp32-wifi-http",
     "title": "ESP32 HTTP client",
     "category": "WiFi",

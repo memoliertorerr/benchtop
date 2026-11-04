@@ -30,6 +30,14 @@ function testsuite(spec: SpecResult): string {
   const r = spec.report;
   const name = xmlText(spec.name);
   const lines: string[] = [];
+  if (spec.skipped !== undefined) {
+    lines.push(`  <testsuite name="${name}" file="${xmlText(spec.file)}" tests="1" failures="0" errors="0" skipped="1" time="0.000">`);
+    lines.push(`    <testcase name="run" classname="${name}" time="0">`);
+    lines.push(`      <skipped message="${xmlText(spec.skipped)}"/>`);
+    lines.push('    </testcase>');
+    lines.push('  </testsuite>');
+    return lines.join('\n');
+  }
   if (r.exitCode === 2) {
     lines.push(`  <testsuite name="${name}" file="${xmlText(spec.file)}" tests="1" failures="0" errors="1" time="${seconds(r.wallMs)}">`);
     lines.push(`    <testcase name="run" classname="${name}" time="${seconds(r.wallMs)}">`);
@@ -66,12 +74,13 @@ function testsuite(spec: SpecResult): string {
 }
 
 export function junitXml(report: SuiteReport): string {
-  const tests = report.specs.reduce((n, s) => n + (s.report.exitCode === 2 ? 1 : s.report.assertions.length), 0);
+  const tests = report.specs.reduce((n, s) => n + (s.skipped !== undefined || s.report.exitCode === 2 ? 1 : s.report.assertions.length), 0);
   const failures = report.specs.reduce((n, s) => n + s.report.assertions.filter((a) => !a.ok).length, 0);
   const errors = report.specs.filter((s) => s.report.exitCode === 2).length;
+  const skipped = report.specs.filter((s) => s.skipped !== undefined).length;
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    `<testsuites name="benchtop" tests="${tests}" failures="${failures}" errors="${errors}" time="${seconds(report.wallMs)}">`,
+    `<testsuites name="benchtop" tests="${tests}" failures="${failures}" errors="${errors}"${skipped > 0 ? ` skipped="${skipped}"` : ''} time="${seconds(report.wallMs)}">`,
     ...report.specs.map(testsuite),
     '</testsuites>',
     '',
@@ -98,10 +107,15 @@ export function markdownReport(report: SuiteReport): string {
   const assertions = report.specs.flatMap((s) => s.report.assertions);
   const passed = assertions.filter((a) => a.ok).length;
   const errors = report.specs.filter((s) => s.report.exitCode === 2).length;
-  const verdict = report.exitCode === 0 ? 'all passed' : report.exitCode === 1 ? 'failures' : errors === 1 ? '1 spec could not run' : `${errors} specs could not run`;
+  const skipped = report.specs.filter((s) => s.skipped !== undefined).length;
+  const verdict = report.exitCode === 0 ? `all passed${skipped > 0 ? `, ${skipped} skipped` : ''}` : report.exitCode === 1 ? 'failures' : errors === 1 ? '1 spec could not run' : `${errors} specs could not run`;
   const out = [`## Benchtop: ${report.specs.length} specs, ${passed}/${assertions.length} assertions — ${verdict}`, '', '| | Spec | Assertions | Simulated |', '|---|---|---|---|'];
   for (const s of report.specs) {
     const r = s.report;
+    if (s.skipped !== undefined) {
+      out.push(`| ⏭️ | ${plain(s.name)} | skipped: ${plain(s.skipped)} | — |`);
+      continue;
+    }
     const mark = r.exitCode === 0 ? '✅' : r.exitCode === 1 ? '❌' : '⚠️';
     const counts = r.exitCode === 2 ? 'did not run' : `${r.assertions.filter((a) => a.ok).length}/${r.assertions.length}`;
     out.push(`| ${mark} | ${plain(s.name)} | ${counts} | ${r.exitCode === 2 ? '—' : formatNs(r.simulatedNs)} |`);

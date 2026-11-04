@@ -16,7 +16,7 @@ import { type Tool, ToolError } from '../server.ts';
 import { PROJECT_ARGS, projectJsonArg, safeName, type ToolContext, writeOutputs } from './context.ts';
 
 /** The FQBN a board part type compiles with (the web app's editor/fqbn.ts names the same; a test checks). */
-const FQBN_BY_TYPE: Readonly<Record<string, string>> = { 'arduino-nano': 'arduino:avr:nano' };
+const FQBN_BY_TYPE: Readonly<Record<string, string>> = { 'arduino-nano': 'arduino:avr:nano', 'raspberry-pi-pico-w': 'rp2040:rp2040:rpipicow', 'raspberry-pi-pico-2w': 'rp2040:rp2040:rpipico2w:arch=riscv' };
 const FQBN_BY_MCU: Readonly<Record<string, string>> = {
   atmega328p: 'arduino:avr:uno',
   atmega2560: 'arduino:avr:mega',

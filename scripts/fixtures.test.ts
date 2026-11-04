@@ -4,6 +4,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { withheldFirmware } from '../packages/core/src/firmware/fixtures.test-helper.ts';
 import { ADDR2LINE_ORACLES, FIXTURE_BOARDS, fixtureFqbn, type Manifest, sketchOutputs } from './fixture-boards.ts';
 
 // Checks the committed fixture firmware against its manifest. Never runs the compiler:
@@ -29,6 +30,12 @@ describe('fixture firmware manifest', () => {
     expect(manifest.outputs.length).toBeGreaterThan(0);
     for (const output of manifest.outputs) {
       const path = join(FIRMWARE, output.file);
+      // The published repository leaves some out (withheld-firmware.json, THIRD_PARTY_NOTICES.md):
+      // only files its manifest marks not redistributable.
+      if (withheldFirmware(output.file) !== undefined) {
+        expect(output.redistributable, output.file).toBe(false);
+        continue;
+      }
       expect(existsSync(path), output.file).toBe(true);
       const bytes = readFileSync(path);
       expect(bytes.length, output.file).toBe(output.bytes);

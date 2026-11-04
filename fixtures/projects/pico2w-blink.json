@@ -1,0 +1,22 @@
+{
+  "format": 1,
+  "name": "pico2w-blink",
+  "parts": [
+    {
+      "id": "pico2w",
+      "type": "raspberry-pi-pico-2w",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [],
+  "firmware": {
+    "pico2w": {
+      "kind": "file",
+      "name": "blink.uf2",
+      "format": "uf2"
+    }
+  }
+}

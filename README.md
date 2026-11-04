@@ -40,6 +40,18 @@ in the Code tab and press Run — nothing compiles; the stock MicroPython 1.29 f
 files over USB serial the way an IDE puts them there, and `machine.Pin`, `ADC`, `PWM`, `I2C`,
 `SPI`, `neopixel`, `_thread` (on core 1) and the REPL work (see "MicroPython" below).
 
+**Raspberry Pi Pico W**: the same RP2040 with the CYW43439 WiFi chip, whose closed firmware isn't
+run — the chip is answered at its driver's lowest layer (the firmware's symbols tell where), so
+the LED (it sits on the WiFi chip) and WiFi (below) work through the driver as on the board
+(`rp2040:rp2040:rpipicow`). The **Raspberry Pi Pico 2 W** is the same around the RP2350's RISC-V
+side (`rp2040:rp2040:rpipico2w:arch=riscv`): its WiFi scans, joins and serves pages. In the
+simulator arduino-pico's `HTTPClient` halts on it: its RISC-V C library copies strings a word at a
+time without checking alignment, and the simulated RISC-V cores trap such stores, as we understand
+the real ones do (not yet confirmed on a board). Their test firmware isn't published: it links the
+WiFi chip's driver and firmware, whose licenses don't allow redistributing it
+([THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)). Build it with `npm run fixtures -- --only picow`
+and `-- --only pico2w` (arduino-pico 6.2.0) to run their tests and gallery examples.
+
 **Raspberry Pi Pico 2** (RP2350, its RISC-V side): a RISC-V core written for Benchtop (the
 Hazard3's RV32IMAC with its extensions) runs both harts through the chip's real bootrom, which
 boots the `.uf2` the Arduino-Pico core builds for `rp2040:rp2040:rpipico2:arch=riscv` — GPIO,
@@ -78,7 +90,7 @@ running the real `.bin` image Arduino-ESP32 2.0.17 builds, on Espressif's real m
 Not on the ESP32 yet: ADC2, the DAC's cosine generator and DMA, touch, I2S, PCNT, CAN, deep
 sleep and PSRAM; Bluetooth is out of scope.
 
-**WiFi on the ESP32 and the ESP32-C3** — a network inside the bench, no radio and, unless you allow hosts (see
+**WiFi on the ESP32, the ESP32-C3 and the Pico W** — a network inside the bench, no radio and, unless you allow hosts (see
 "The real network" below), nothing leaving your machine:
 put a **WiFi access point** part beside the board and `WiFi.begin("benchtop", "simulated")`
 joins it. The closed WiFi driver is answered at its API (the firmware's symbols tell where its
@@ -91,7 +103,9 @@ web server when you press Send (or every so many milliseconds); two ESP32s reach
 hostname; `configTime()` gets the time from the access point, which answers for pool.ntp.org
 itself (your computer's clock, or a fixed date you set). Switch the access point off or weaken
 its signal while it runs. The ESP32-C3 runs the same WiFi sketches: its firmware calls the same
-driver API, answered the same way on its RISC-V core.
+driver API, answered the same way on its RISC-V core. On the Pico W, arduino-pico's WiFi, lwIP and
+the WiFi chip's open driver run as built, and the chip itself is answered below the driver: scans,
+joining (a wrong password, a missing network), DHCP, `HTTPClient` and the rest work the same way.
 
 **The bench** — breadboards (full, half, mini) where parts snap into holes, wires you draw,
 and ~40 parts: LEDs, RGB LEDs, buttons, switches, potentiometers, LCD1602/2004 (parallel and
@@ -146,7 +160,7 @@ npm install
 npm run dev          # the editor at http://localhost:5173
 ```
 
-**Examples…** opens 89 ready-to-run circuits, each with its sketch, which you can change and
+**Examples…** opens 92 ready-to-run circuits, each with its sketch, which you can change and
 run again (Basics: blink, button, fade, traffic light, a Simon game, serial echo, a Nano on a
 breadboard; Displays: LCDs,
 an LCD thermometer, OLED and an OLED clock, a color TFT, 7-segment, bar graph, NeoPixels; Sensors: DHT22,
@@ -158,7 +172,7 @@ a microphone pitch meter, a VU meter; Power: a regulator meter (turn the bench s
 hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, a PWM fader, NeoPixel, a
 rainbow ring, an OLED clock, a color TFT, the DAC, the microphone, an I2C scan; ESP32-C3: the RGB LED,
 serial, a potentiometer dimmer, an OLED clock; WiFi: an ESP32 web server switched by HTTP client
-parts, an ESP32-C3 web server that sets its RGB LED, an HTTP client talking to a server part, two ESP32s over TCP, an NTP clock on an OLED;
+parts, an ESP32-C3 web server that sets its RGB LED, a Pico W and a Pico 2 W web server switching their onboard LEDs, a Pico W and an ESP32 HTTP client talking to a server part, two ESP32s over TCP, an NTP clock on an OLED;
 Raspberry Pi Pico:
 blink, a potentiometer, PWM steps, an OLED, a color TFT, both cores at once; Raspberry Pi Pico 2: the same, NeoPixels
 through PIO, a button interrupt and MicroPython blink; Mega: an LED chaser, four
@@ -442,7 +456,8 @@ npm run screenshots  # refresh docs/images from the running dev server (needs Ch
 
 The tests run real compiled firmware (`fixtures/`) and assert on pins, bytes and timing. The
 ESP32 tests need the ROM (`npm run fetch:esp32-rom`), the MicroPython tests the stock firmware
-(`npm run fetch:micropython`).
+(`npm run fetch:micropython`). The Pico W and Pico 2 W tests need firmware you build yourself
+(see the Pico W above); without it they and their specs are reported as skipped.
 
 ## Accuracy and limitations
 
@@ -484,7 +499,9 @@ backed by tests (for example, ESP32 blink toggles every 500.000 ms of simulated 
 - **Test firmware** in `fixtures/firmware/` is compiled from the sketches in
   `fixtures/sketches/` and contains code from the Arduino cores, ESP-IDF and Arduino libraries
   under their own licenses (LGPL-2.1, Apache-2.0, BSD, MIT); details and where to get their
-  sources are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+  sources are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The Pico W and Pico 2 W
+  firmware isn't redistributed (the WiFi chip's driver and firmware don't allow it); the same
+  file says how to build it.
 
 ## License
 

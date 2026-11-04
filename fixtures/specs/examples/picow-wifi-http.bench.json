@@ -1,0 +1,14 @@
+{
+  "name": "example: picow-wifi-http",
+  "project": "../../projects/picow-wifi-http.json",
+  "firmware": {
+    "picow": "../../firmware/picow/wifi-http-get.uf2"
+  },
+  "expect": [
+    "wifi picow connected by 4s",
+    "serial contains \"GET 200 {\\\"hello\\\":\\\"world\\\",\\\"count\\\":1}\" by 5s",
+    "serial contains \"POST 200 ping\" by 5s",
+    "http api served GET /api/hello by 5s",
+    "http api served POST /api/echo by 5s"
+  ]
+}

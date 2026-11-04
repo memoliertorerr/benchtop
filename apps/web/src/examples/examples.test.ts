@@ -3,10 +3,10 @@ import { join } from 'node:path';
 import { parseProject } from '@benchtop/core';
 import { CATALOG } from '@benchtop/parts';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { REPO_ROOT } from '../../../../packages/core/src/firmware/fixtures.test-helper.ts';
+import { REPO_ROOT, withheldFirmware } from '../../../../packages/core/src/firmware/fixtures.test-helper.ts';
 import { type Manifest, SKETCH_SOURCE, sketchSourceSha256 } from '../../../../scripts/fixture-boards.ts';
 import { micropythonFqbnOf } from '../editor/fqbn.ts';
-import { CATEGORIES, EXAMPLES, loadFirmware, loadMicroPython, loadProject, loadSketch, loadSymbols } from './manifest.ts';
+import { ALL_EXAMPLES, CATEGORIES, EXAMPLES, loadFirmware, loadMicroPython, loadProject, loadSketch, loadSymbols } from './manifest.ts';
 
 // BT38/BT43: every gallery example is a committed project that parses, whose boards are boards
 // in it; its loaders return exactly the committed files; its sketch is the fixture sketch folder,
@@ -30,7 +30,7 @@ const manifest = JSON.parse(readFileSync(join(REPO_ROOT, 'fixtures', 'firmware',
 
 describe('examples gallery (BT38, BT43, BT45, BT47, BT56)', () => {
   it('has unique ids, the planned categories and examples', () => {
-    expect(new Set(EXAMPLES.map((e) => e.id)).size).toBe(EXAMPLES.length);
+    expect(new Set(ALL_EXAMPLES.map((e) => e.id)).size).toBe(ALL_EXAMPLES.length);
     expect([...CATEGORIES]).toEqual(['Basics', 'Displays', 'Sensors', 'Motors', 'Sound', 'Power', 'Storage', 'Environment', 'ESP32', 'ESP32-C3', 'WiFi', 'Raspberry Pi Pico', 'Raspberry Pi Pico 2', 'Mega', 'Two boards']);
     for (const e of EXAMPLES) expect(CATEGORIES).toContain(e.category);
     const planned = [
@@ -54,13 +54,28 @@ describe('examples gallery (BT38, BT43, BT45, BT47, BT56)', () => {
       'esp32-ntp-clock',
       // BT108
       'esp32c3-wifi-rgb-server',
+      // BT112
+      'picow-wifi-webserver',
+      'picow-wifi-http',
+      // BT114
+      'pico2w-wifi-webserver',
     ];
-    for (const id of planned) expect(EXAMPLES.some((e) => e.id === id), id).toBe(true);
+    for (const id of planned) expect(ALL_EXAMPLES.some((e) => e.id === id), id).toBe(true);
     for (const category of CATEGORIES) expect(EXAMPLES.some((e) => e.category === category), category).toBe(true);
   });
 
-  for (const example of EXAMPLES) {
-    it(`${example.id}: project, boards, firmware and sketch are the committed files, the firmware built from that sketch`, async () => {
+  it('offers every example whose firmware this tree has; leaves out only those whose firmware is withheld (the published repository)', () => {
+    for (const example of ALL_EXAMPLES) {
+      if (EXAMPLES.includes(example)) continue;
+      const missing = Object.values(example.boards).filter((b) => 'firmware' in b && !existsSync(join(REPO_ROOT, 'fixtures', 'firmware', b.firmware)));
+      expect(missing.length, `${example.id} is hidden but has its firmware`).toBeGreaterThan(0);
+      for (const b of missing) if ('firmware' in b) expect(withheldFirmware(b.firmware), `${example.id}: ${b.firmware} is missing`).toBeDefined();
+    }
+  });
+
+  for (const example of ALL_EXAMPLES) {
+    // Skipped where its firmware is withheld (the published repository; THIRD_PARTY_NOTICES.md) — the test above says so.
+    it.skipIf(!EXAMPLES.includes(example))(`${example.id}: project, boards, firmware and sketch are the committed files, the firmware built from that sketch`, async () => {
       const file = JSON.parse(readFileSync(join(REPO_ROOT, 'fixtures', 'projects', `${example.project}.json`), 'utf8'));
       const parsed = parseProject(file);
       expect(parsed.ok).toBe(true);
@@ -111,14 +126,14 @@ describe('examples gallery (BT38, BT43, BT45, BT47, BT56)', () => {
     for (const example of wifi) {
       for (const files of Object.values(example.boards)) {
         if (!('firmware' in files)) continue;
-        const committed = readFileSync(join(REPO_ROOT, 'fixtures', 'firmware', files.firmware.replace(/\.bin$/, '.syms.tsv')), 'utf8');
+        const committed = readFileSync(join(REPO_ROOT, 'fixtures', 'firmware', files.firmware.replace(/\.(bin|uf2)$/, '.syms.tsv')), 'utf8');
         expect(await loadSymbols(files), `${example.id}: ${files.firmware}`).toBe(committed);
       }
     }
   });
 
   it('has no spec for an example that no longer exists', () => {
-    const ids = new Set(EXAMPLES.map((e) => e.id));
+    const ids = new Set(ALL_EXAMPLES.map((e) => e.id));
     const specs = readdirSync(join(REPO_ROOT, 'fixtures', 'specs', 'examples')).filter((n) => n.endsWith('.bench.json'));
     expect(specs.map((n) => n.slice(0, -'.bench.json'.length)).filter((id) => !ids.has(id))).toEqual([]);
   });

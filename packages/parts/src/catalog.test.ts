@@ -17,6 +17,8 @@ describe('part catalog', () => {
         'esp32-c3-devkitm-1',
         'raspberry-pi-pico',
         'raspberry-pi-pico-2',
+        'raspberry-pi-pico-w',
+        'raspberry-pi-pico-2w',
         'breadboard',
         'breadboard-half',
         'breadboard-mini',

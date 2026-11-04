@@ -22,11 +22,22 @@
  *   over USB serial through the raw REPL exactly as on the Pico (@benchtop/rp2040's
  *   MicroPythonInstaller); every reset starts from the interpreter's image with an empty
  *   filesystem and writes the sketch again.
+ * - The Pico 2 W (BT113): `{ cyw43 }` attaches the CYW43439 as on the Pico W (@benchtop/rp2040's
+ *   cyw43/, the same model behind its chip-neutral call view): `useSymbols` answers its driver's
+ *   ll layer through @benchtop/riscv's RiscvHle (a fresh table each boot; generators resume at
+ *   RP2350_HLE_RESUME_PC, Arm code in the bootrom the harts never execute), the pin `WL_GPIO0` is
+ *   the chip's GPIO 0 (the LED), GP24 its host-wake; bring-up leaves GP23/24/25 as the real gSPI
+ *   setup does, at the RP2350's IO_BANK0, PADS (isolation cleared) and SIO offsets. Without
+ *   symbols, the firmware raising WL_REG_ON (GP23) reports `rp2350-cyw43-no-symbols` once.
  */
 
-import type { Debuggable, FirmwareImage, I2cController, Level, Mcu, McuDebug, McuPin, NetState, PinMode, Problem, RunResult, SpiController, UartPort } from '@benchtop/core';
+import type { Debuggable, FirmwareImage, I2cController, Level, Mcu, McuDebug, McuPin, NetState, PinMode, Problem, RunResult, SpiController, SymbolTable, UartPort, WifiRadio, WifiStation } from '@benchtop/core';
+import { RiscvHle } from '@benchtop/riscv';
 import {
   CODE_MICROPYTHON_INSTALL,
+  Cyw43,
+  Cyw43Pin,
+  PICO_W_MAC,
   CODE_MICROPYTHON_MISSING,
   I2cBridge,
   MICROPYTHON_MISSING_MESSAGE,
@@ -51,12 +62,27 @@ const EM_RISCV = 243;
 const VIH = 2.0;
 const VIL = 0.8;
 
+export const CODE_CYW43_NO_SYMBOLS = 'rp2350-cyw43-no-symbols';
+export const CODE_CYW43_UNSUPPORTED = 'rp2350-cyw43-unsupported';
+/**
+ * BT113: where RISC-V HLE generators run and their calls out return — in the bootrom's Arm code
+ * (0x7E00–0x7FFF lies past the RISC-V bootrom's .text, .romtable and .entry, which end at 0x7E00),
+ * which the harts never execute.
+ */
+export const RP2350_HLE_RESUME_PC = 0x7ff0;
+/** GP23 powers the CYW43 (WL_REG_ON), GP24 is its host-wake, GP25 its chip select. */
+const WL_REG_ON = 23;
+const WL_HOST_WAKE = 24;
+const WL_CS = 25;
+
 export interface Rp2350McuOptions {
   /** bootrom-combined.bin (32 KB). */
   rom?: Uint8Array;
   /** BT67: the stock MicroPython UF2 for the Pico 2's RISC-V cores (@benchtop/rp2040's MICROPYTHON_PICO2_RISCV). */
   micropython?: Uint8Array;
   onProblem?: (problem: Problem) => void;
+  /** BT113: a Pico 2 W's RP2350, with the CYW43439 (its MAC: 28:CD:C1:00:00:01 by default). */
+  cyw43?: { mac?: readonly number[] };
 }
 
 class Rp2350Pin implements McuPin {
@@ -109,6 +135,12 @@ class Rp2350Pin implements McuPin {
   }
 
   private volts = 0;
+
+  /** BT113: an input the board drives itself (the CYW43's host-wake on GP24). */
+  force(level: number): void {
+    this.inputLevel = level;
+    this.apply();
+  }
 
   /** Pushes the input level and, on GPIO26–29, the ADC input to the SoC (again after a reset). */
   apply(): void {
@@ -187,7 +219,7 @@ class Rp2350Uart implements UartPort {
   }
 }
 
-export class Rp2350Mcu implements Mcu, Debuggable {
+export class Rp2350Mcu implements Mcu, Debuggable, WifiStation {
   readonly kind = 'rp2350' as const;
   readonly clockHz = RP2350_CLOCK_HZ;
   readonly pins: ReadonlyMap<string, McuPin>;
@@ -204,6 +236,12 @@ export class Rp2350Mcu implements Mcu, Debuggable {
   private readonly micropython: Uint8Array | undefined;
   private sketch: MicroPythonSketch | null = null;
   private interpreterFlash: Uint8Array | null = null;
+  /** BT113: the Pico 2 W's CYW43439 (null: a Pico 2), its LED pin, and the firmware's symbols. */
+  readonly cyw43: Cyw43 | null = null;
+  private readonly wlPin: Cyw43Pin | null = null;
+  private symbols: Map<string, number> | null = null;
+  private cyw43Answered = false;
+  private cyw43Reported = false;
 
   constructor(options: Rp2350McuOptions = {}) {
     this.onProblem = options.onProblem ?? null;
@@ -219,6 +257,22 @@ export class Rp2350Mcu implements Mcu, Debuggable {
     const rom = options.rom;
     this.soc = rom !== undefined && rom.length === ROM_IMAGE.bytes ? new Rp2350Soc({ rom, onProblem: (p) => this.problem(p.severity, p.code, p.message) }) : null;
     const soc = this.soc;
+    if (options.cyw43 !== undefined && soc !== null) {
+      const chip = new Cyw43({
+        mac: options.cyw43.mac ?? PICO_W_MAC,
+        hostWake: (level) => this.pinList[WL_HOST_WAKE].force(level ? 1 : 0),
+        gpioChanged: (gpio) => {
+          if (gpio === 0) this.wlPin?.fire();
+        },
+        now: () => soc.now(),
+        createAlarm: (callback) => soc.rpjsClock.createAlarm(callback),
+        unsupported: (what) => this.problem('warning', CODE_CYW43_UNSUPPORTED, what),
+        busUp: () => this.cyw43Pins(),
+      });
+      this.cyw43 = chip;
+      this.wlPin = new Cyw43Pin(chip);
+      pins.set(this.wlPin.id, this.wlPin);
+    }
     const gpio = { count: PIN_COUNT, funcsel: (n: number) => soc?.io.funcsel(n) ?? 0x1f };
     this.usb = soc === null ? null : new UsbSerialBridge(() => soc.usb as NonNullable<typeof soc.usb>, () => soc.rpjsClock);
     this.i2cs = soc === null ? [] : [0, 1].map((i) => new I2cBridge(i, () => soc.i2c[i], gpio));
@@ -226,6 +280,7 @@ export class Rp2350Mcu implements Mcu, Debuggable {
     if (soc !== null) {
       soc.onPinsChanged = () => {
         for (const pin of this.pinList) pin.check();
+        if (this.cyw43 !== null) this.wlRegOn();
       };
       for (const uart of this.uarts) uart.wire();
       for (const spi of this.spis) spi.wire();
@@ -294,6 +349,84 @@ export class Rp2350Mcu implements Mcu, Debuggable {
       pin.seen = -1;
       pin.check();
     }
+    this.cyw43Reported = false;
+    if (this.cyw43 !== null) {
+      this.cyw43.reset();
+      this.wlPin?.fire();
+      this.installCyw43();
+    }
+  }
+
+  /**
+   * BT113: the firmware's symbols, for what the simulator answers by function name (the Pico 2
+   * W's CYW43). Hosts call it after `load`; it holds for every later reset. A Pico 2 ignores it.
+   */
+  useSymbols(table: SymbolTable | null): void {
+    if (this.cyw43 === null) return;
+    if (table === null) this.symbols = null;
+    else {
+      const byName = new Map<string, number>();
+      for (let i = 0; i < table.size; i++) {
+        const entry = table.entry(i);
+        if (!byName.has(entry.name) || entry.kind === 'func') byName.set(entry.name, entry.address);
+      }
+      this.symbols = byName;
+    }
+    this.installCyw43();
+  }
+
+  /** BT111/BT113: the bench's access points and LANs for a Pico 2 W's station (a Pico 2 has none). */
+  joinWifi(radio: WifiRadio | null): void {
+    this.cyw43?.setRadio(radio);
+  }
+
+  /** BT113: a fresh HLE table on both harts answering the CYW43 driver, when the symbols name it. */
+  private installCyw43(): void {
+    const soc = this.soc;
+    if (soc === null || this.cyw43 === null) return;
+    this.cyw43Answered = false;
+    for (const hart of soc.harts) hart.setHle(null);
+    const symbols = this.symbols;
+    if (symbols === null) return;
+    const hle = new RiscvHle(RP2350_HLE_RESUME_PC);
+    const { installed, missing } = this.cyw43.install(hle, (name) => symbols.get(name));
+    if (missing.length > 0) this.problem('error', CODE_CYW43_UNSUPPORTED, `This firmware uses the Pico 2 W's WiFi chip, but it lacks ${missing.join(', ')}, which the simulated chip calls: WiFi won't run.`);
+    if (!installed) return;
+    for (const hart of soc.harts) hart.setHle(hle);
+    this.cyw43Answered = true;
+  }
+
+  /** BT113: GP23 (WL_REG_ON) driven high: the real driver powering the chip, with nothing to answer it. */
+  private wlRegOn(): void {
+    if (this.cyw43Answered || this.cyw43Reported || this.soc === null) return;
+    const drive: PinDrive = { kind: 0, level: 0 };
+    this.soc.drive(WL_REG_ON, drive);
+    if (drive.kind !== 1 || drive.level !== 1) return;
+    this.cyw43Reported = true;
+    this.problem('error', CODE_CYW43_NO_SYMBOLS, "This firmware powers the Pico 2 W's WiFi chip (GP23, WL_REG_ON). The simulator answers the chip at its driver's API by function name, so it needs the firmware's symbols: run the sketch's .elf beside its .uf2 (arduino-cli builds both; Compile & Run passes it), or a .syms.tsv as the fixtures keep. Until then the chip doesn't answer: no WiFi, and the LED stays dark.");
+  }
+
+  /**
+   * BT113: the pins as the CYW43's real bus bring-up leaves them (which the model answers in its
+   * place), through the RP2350's registers as the SDK writes them: GP23 and GP25 SIO outputs
+   * driven high (GP23 pulled up), GP24 a SIO input — pads with input enabled and isolation off.
+   */
+  private cyw43Pins(): void {
+    const soc = this.soc;
+    if (soc === null) return;
+    const IO_BANK0 = 0x40028000;
+    const PADS_BANK0 = 0x40038000;
+    const SIO = 0xd0000000;
+    const F_SIO = 5;
+    for (const [pin, output] of [[WL_REG_ON, true], [WL_HOST_WAKE, false], [WL_CS, true]] as const) {
+      soc.write(0, IO_BANK0 + 8 * pin + 4, F_SIO, 4);
+      let pad = (soc.pads.pad(pin) | PAD_IE) & ~(0x80 | PAD_ISO); // IE on, OD and ISO off
+      if (pin === WL_REG_ON) pad = (pad | PAD_PUE) & ~PAD_PDE;
+      soc.write(0, PADS_BANK0 + 4 + 4 * pin, pad, 4);
+      soc.write(0, SIO + (output ? 0x038 : 0x040), 1 << pin, 4); // GPIO_OE_SET / _CLR
+      if (output) soc.write(0, SIO + 0x018, 1 << pin, 4); // GPIO_OUT_SET
+    }
+    this.pinList[WL_HOST_WAKE].apply();
   }
 
   runUntil(targetCycles: number): RunResult {

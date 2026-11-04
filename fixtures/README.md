@@ -32,14 +32,33 @@ fixtures/firmware/pico*/debug-demo.syms.tsv   the same for the Pico and Pico 2 d
 fixtures/firmware/pico/<name>.uf2             Raspberry Pi Pico firmware (arduino-pico 6.2.0; the
                                               ELF, 1.3 MB of mostly DWARF, isn't committed;
                                               multicore runs setup1/loop1 on core 1)
+fixtures/firmware/picow/<name>.uf2|.syms.tsv  Raspberry Pi Pico W firmware (arduino-pico 6.2.0, rpipicow)
+                                              and its symbols — the CYW43's driver is answered by
+                                              name (blink: the LED on WL_GPIO0; wifi-layout,
+                                              wifi-scan, wifi-http-get, wifi-connect, wifi-webserver)
+                                              — not in this repository: the cyw43-driver's license
+                                              and Infineon's blob don't allow redistributing it
+                                              (THIRD_PARTY_NOTICES.md); the manifest marks it
+                                              "redistributable": false, and you build it yourself
 fixtures/firmware/pico2/<name>.uf2            Raspberry Pi Pico 2 firmware for the RP2350's RISC-V
                                               cores (arduino-pico 6.2.0, arch=riscv; the Pico's
                                               analog-read, pwm-fade, i2c-oled, spi-tft, button-irq
                                               and neopixel rebuilt for it; i2c-scan, the Pico's
                                               bus scan, for both: a write to an empty address
                                               must end at once)
+fixtures/firmware/pico2w/<name>.uf2|.syms.tsv Raspberry Pi Pico 2 W firmware for the RP2350's RISC-V
+                                              cores (rpipico2w, arch=riscv) and its symbols (blink,
+                                              wifi-scan, wifi-http-get — it halts on a misaligned
+                                              store in the C library's strcpy —, wifi-webserver)
+                                              — not in this repository either, as the Pico W's
+fixtures/withheld-firmware.json               the firmware this repository leaves out, and why.
+                                              A listed file that is missing is skipped by the
+                                              tests that need it (withheldFirmware in
+                                              fixtures.test-helper.ts) and by the spec suite, and
+                                              the gallery leaves its examples out; built, it runs
 fixtures/rp2040/<name>.c, .ld → .elf, .lst    freestanding RP2040 test programs (romcalls: every bootrom
-                                              function through the lookup tables; core1: both cores)
+                                              function through the lookup tables; core1: both cores;
+                                              hle: functions the HLE answers, on both cores)
 fixtures/xtensa/<name>.S → <name>.bin, .lst   Xtensa test programs (harness.inc: conventions)
 fixtures/xtensa/corpus/                       objdump decode corpora for the decoder tests (manifest.json)
 fixtures/riscv/programs/<name>.S → .bin, .lst RISC-V test programs (harness.inc: conventions)
@@ -62,6 +81,7 @@ npm run fixtures                         # build every sketch, rewrite the manif
 npm run fixtures -- --only uno/blink     # build one sketch, update its manifest entries
 npm run fixtures -- --check              # rebuild into a temp dir, compare with the manifest
 npm run fixtures -- --only pico/blink    # one Pico sketch
+npm run fixtures -- --only picow         # every sketch of a board folder (the Pico W's)
 npm run fixtures -- --only rp2040/romcalls # one RP2040 test program
 npm run fixtures -- --only xtensa/smoke  # one Xtensa test program
 npm run fixtures -- --only xtensa/corpus # the decode corpora (needs serial-hello built first)

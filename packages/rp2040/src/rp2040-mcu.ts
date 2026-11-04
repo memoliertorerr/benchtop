@@ -19,17 +19,29 @@
  * programs across resets, as on the board. A MicroPython sketch (BT63) runs on the stock
  * interpreter UF2 the options carry, put on the board over USB serial at every reset
  * (micropython.ts).
+ *
+ * BT109: `setHle(table)` answers firmware functions in TypeScript (hle.ts): the table's UDFs go
+ * into flash over each replaced function's entry (again after every image write), and a UDF the
+ * table owns is run before anything else the break handler does, on either core.
+ *
+ * BT110: `{ cyw43 }` makes it a Pico W's RP2040: the CYW43439 (cyw43/cyw43.ts) answers its
+ * driver's ll layer once `useSymbols` names it; its WL_GPIO0 (the board's LED) is the pin
+ * `WL_GPIO0`; it drives host-wake on GP24; ADC3 (GP29) reads low, as arduino-pico's CheckPicoW
+ * expects of a Pico W. Without symbols, the firmware raising WL_REG_ON (GP23) — the real driver
+ * powering the chip it would then talk to over PIO — reports `rp2040-cyw43-no-symbols` once.
  */
 
-import type { Debuggable, FirmwareImage, I2cController, Level, Mcu, McuDebug, McuPin, NetState, PinMode, Problem, RunResult, SpiController, UartPort } from '@benchtop/core';
+import type { Debuggable, FirmwareImage, I2cController, Level, Mcu, McuDebug, McuPin, NetState, PinMode, Problem, RunResult, SpiController, SymbolTable, UartPort, WifiRadio, WifiStation } from '@benchtop/core';
 import { describeFirmwareFormat, parseElf32, parseUf2, placeUf2, UF2_FAMILY } from '@benchtop/core';
 import { type GPIOPin, RP2040 } from 'rp2040js';
 import { I2cBridge, SpiBridge, UsbSerialBridge } from './bridges.ts';
 import { runRomCall } from './bootrom/handlers.ts';
-import { buildBootrom, ROM_SIZE } from './bootrom/layout.ts';
+import { buildBootrom, HLE_RESUME, ROM_SIZE } from './bootrom/layout.ts';
 import { Rp2040Clock } from './clock.ts';
 import { DualCore } from './core1.ts';
 import { Rp2040Debug } from './debug.ts';
+import { Cyw43, Cyw43Pin, PICO_W_MAC } from './cyw43/cyw43.ts';
+import { Rp2040Hle } from './hle.ts';
 import { createFastCore, type FastCore, type StockCore } from './m0/fast-core.ts';
 import { CODE_MICROPYTHON_INSTALL, CODE_MICROPYTHON_MISSING, MICROPYTHON_MISSING_MESSAGE, MicroPythonInstaller, type MicroPythonSketch } from './micropython.ts';
 
@@ -217,9 +229,18 @@ export interface Rp2040McuOptions {
   micropython?: Uint8Array;
   /** BT75: 'stock' keeps rp2040js's own core (the lockstep test's reference); default the fast one. */
   core?: 'fast' | 'stock';
+  /** BT110: a Pico W's RP2040, with the CYW43439 (its MAC: Raspberry Pi's 28:CD:C1:00:00:01 by default). */
+  cyw43?: { mac?: readonly number[] };
 }
 
-export class Rp2040Mcu implements Mcu, Debuggable {
+export const CODE_CYW43_NO_SYMBOLS = 'rp2040-cyw43-no-symbols';
+export const CODE_CYW43_UNSUPPORTED = 'rp2040-cyw43-unsupported';
+/** GP23 powers the CYW43 (WL_REG_ON), GP24 is its host-wake (and gSPI data). */
+const WL_REG_ON = 23;
+const WL_HOST_WAKE = 24;
+
+
+export class Rp2040Mcu implements Mcu, Debuggable, WifiStation {
   readonly kind = 'rp2040' as const;
   readonly clockHz = RP2040_CLOCK_HZ;
   readonly pins: ReadonlyMap<string, McuPin>;
@@ -240,6 +261,13 @@ export class Rp2040Mcu implements Mcu, Debuggable {
   private readonly fastCore: boolean;
   /** Flash as the firmware left it: survives resets. */
   private flash = new Uint8Array(FLASH_SIZE).fill(0xff);
+  /** BT109: functions answered in TypeScript (setHle), or null. */
+  private hleTable: Rp2040Hle | null = null;
+  /** BT110: the Pico W's CYW43439 (null: a Pico), and whether its driver is answered (useSymbols). */
+  readonly cyw43: Cyw43 | null;
+  private cyw43Answered = false;
+  private cyw43Reported = false;
+  private readonly wlPin: Cyw43Pin | null;
   private nanosPerCycle = 1e9 / 125e6;
   /** Extra cycles the current ROM call charged. */
   private charged = 0;
@@ -268,6 +296,25 @@ export class Rp2040Mcu implements Mcu, Debuggable {
       const pin = new Rp2040Pin(this, n);
       this.pinList.push(pin);
       pins.set(pin.id, pin);
+    }
+    if (options.cyw43 !== undefined) {
+      const chip = new Cyw43({
+        mac: options.cyw43.mac ?? PICO_W_MAC,
+        hostWake: (level) => this.hostWake(level),
+        gpioChanged: (gpio) => {
+          if (gpio === 0) this.wlPin?.fire();
+        },
+        now: () => this.clock.nanos,
+        createAlarm: (callback) => this.clock.createAlarm(callback),
+        unsupported: (what) => this.problem('warning', CODE_CYW43_UNSUPPORTED, what),
+        busUp: () => this.cyw43Pins(),
+      });
+      this.cyw43 = chip;
+      this.wlPin = new Cyw43Pin(chip);
+      pins.set(this.wlPin.id, this.wlPin);
+    } else {
+      this.cyw43 = null;
+      this.wlPin = null;
     }
     this.pins = pins;
     this.usb = new UsbSerialBridge(() => this.rp.usbCtrl, () => this.clock);
@@ -305,18 +352,109 @@ export class Rp2040Mcu implements Mcu, Debuggable {
     this.clock = this.newClock();
     this.haltReason = null;
     this.charged = 0;
+    this.hleTable?.reset();
     this.rp = this.newChip();
     for (const pin of this.pinList) pin.apply();
+    this.cyw43Reported = false;
+    if (this.cyw43 !== null) {
+      this.cyw43.reset();
+      this.wlPin?.fire();
+    }
     if (this.sketch !== null && this.image === null) {
       this.problem('error', CODE_MICROPYTHON_MISSING, MICROPYTHON_MISSING_MESSAGE);
       this.haltReason = { reason: 'halted', detail: MICROPYTHON_MISSING_MESSAGE };
     }
   }
 
-  /** Flash as the image leaves it (erased elsewhere). */
+  /** Flash as the image leaves it (erased elsewhere), with the HLE table's UDFs. */
   private flashImage(): void {
+    this.hleTable?.uninstall(this.flash);
     this.flash.fill(0xff);
     for (const { address, data } of this.image?.flash ?? []) this.flash.set(data, address - FLASH_BASE);
+    this.hleTable?.install(this.flash);
+  }
+
+  /**
+   * BT109: answers the functions `hle` lists in TypeScript from now on (null: none), on this chip
+   * and every later one. Returns the names of listed functions outside flash, which it can't trap.
+   */
+  setHle(hle: Rp2040Hle | null): string[] {
+    this.hleTable?.uninstall(this.flash);
+    this.hleTable = hle;
+    return hle === null ? [] : hle.install(this.flash);
+  }
+
+  /** BT109: the HLE table setHle gave (tests, the CYW43 model). */
+  get hle(): Rp2040Hle | null {
+    return this.hleTable;
+  }
+
+  /**
+   * BT110: the firmware's symbols, for what the simulator answers by function name (the Pico
+   * W's CYW43). Hosts call it after `load`; it holds for every later reset. A Pico ignores it.
+   */
+  useSymbols(table: SymbolTable | null): void {
+    if (this.cyw43 === null) return;
+    this.cyw43Answered = false;
+    if (table === null) {
+      this.setHle(null);
+      return;
+    }
+    const byName = new Map<string, number>();
+    for (let i = 0; i < table.size; i++) {
+      const entry = table.entry(i);
+      if (!byName.has(entry.name) || entry.kind === 'func') byName.set(entry.name, entry.address & ~1);
+    }
+    const hle = new Rp2040Hle(HLE_RESUME);
+    const { installed, missing } = this.cyw43.install(hle, (name) => byName.get(name));
+    if (missing.length > 0) this.problem('error', CODE_CYW43_UNSUPPORTED, `This firmware uses the Pico W's WiFi chip, but it lacks ${missing.join(', ')}, which the simulated chip calls: WiFi won't run.`);
+    this.cyw43Answered = installed;
+    const outside = this.setHle(installed ? hle : null);
+    if (outside.length > 0) this.problem('warning', CODE_CYW43_UNSUPPORTED, `The CYW43 driver's ${outside.join(', ')} run from RAM, where the simulator can't answer them.`);
+  }
+
+  /** BT111: the bench's access points and LANs for a Pico W's station (a Pico has none). */
+  joinWifi(radio: WifiRadio | null): void {
+    this.cyw43?.setRadio(radio);
+  }
+
+  /**
+   * BT111: the pins as the CYW43's real bus bring-up leaves them (which the model answers in its
+   * place): GP23 and GP25 SIO outputs driven high (GP23 pulled up), GP24 a SIO input with its pad's
+   * input enabled — through the registers, as the SDK's gpio_init/gpio_set_dir/gpio_put write them.
+   */
+  private cyw43Pins(): void {
+    const rp = this.rp;
+    const IO_BANK0 = 0x40014000;
+    const PADS_BANK0 = 0x4001c000;
+    const SIO = 0xd0000000;
+    for (const [pin, output] of [[WL_REG_ON, true], [WL_HOST_WAKE, false], [25, true]] as const) {
+      rp.writeUint32(IO_BANK0 + 8 * pin + 4, F_SIO);
+      const pad = PADS_BANK0 + 4 + 4 * pin;
+      let value = (rp.readUint32(pad) | 0x40) & ~0x80; // IE on, OD off
+      if (pin === WL_REG_ON) value = (value | 0x08) & ~0x04; // pulled up
+      rp.writeUint32(pad, value);
+      rp.writeUint32(SIO + (output ? 0x24 : 0x28), 1 << pin); // GPIO_OE_SET / _CLR
+      if (output) rp.writeUint32(SIO + 0x14, 1 << pin); // GPIO_OUT_SET
+    }
+    const wake = this.pinList[WL_HOST_WAKE];
+    wake.apply(); // the input again, now that the pad listens: the interrupt sees its level
+  }
+
+  /** BT110: the CYW43's host-wake line on GP24 (the driver's GPIO interrupt watches it). */
+  private hostWake(level: boolean): void {
+    const pin = this.pinList[WL_HOST_WAKE];
+    pin.inputLevel = level;
+    pin.apply();
+  }
+
+  /** BT110: GP23 (WL_REG_ON) changed: the real driver powering the chip, with nothing to answer it. */
+  private wlRegOn(): void {
+    if (this.cyw43Answered || this.cyw43Reported) return;
+    const g = this.rp.gpio[WL_REG_ON];
+    if (g.functionSelect !== F_SIO || !g.outputEnable || !g.outputValue) return;
+    this.cyw43Reported = true;
+    this.problem('error', CODE_CYW43_NO_SYMBOLS, "This firmware powers the Pico W's WiFi chip (GP23, WL_REG_ON). The simulator answers the chip at its driver's API by function name, so it needs the firmware's symbols: run the sketch's .elf beside its .uf2 (arduino-cli builds both; Compile & Run passes it), or a .syms.tsv as the fixtures keep. Until then the chip doesn't answer: no WiFi, and the LED stays dark.");
   }
 
   /** A fresh chip: our bootrom, the persistent flash, RAM contents of a RAM image, every hook wired. */
@@ -362,6 +500,7 @@ export class Rp2040Mcu implements Mcu, Debuggable {
       const p = pin;
       rp.gpio[p.index].addListener(() => p.fire());
     }
+    if (this.cyw43 !== null) rp.gpio[WL_REG_ON].addListener(() => this.wlRegOn());
     const sketch = this.sketch;
     this.usb.wire(
       sketch === null || this.image === null
@@ -741,7 +880,13 @@ export class Rp2040Mcu implements Mcu, Debuggable {
   /** A BKPT: a ROM call inside the bootrom, else a breakpoint with no debugger attached. */
   private onBreak(code: number): void {
     const core = this.rp.core;
-    const pc = (core.PC - 2) >>> 0;
+    // An exception entry leaves the vector's Thumb bit in PC (rp2040js): the halfword's address is even.
+    const pc = ((core.PC - 2) & ~1) >>> 0;
+    const hle = this.hleTable;
+    if (hle !== null && hle.has(pc)) {
+      hle.run(this.rp, core, pc, (message) => this.halt('fault', message));
+      return;
+    }
     if (pc < ROM_SIZE && code !== 0) {
       const handled = runRomCall(code, {
         rp2040: this.rp,

@@ -70,13 +70,14 @@ function parseExample(raw: unknown, i: number): Example {
   return { id: text('id'), title: text('title'), description: text('description'), category, project: text('project'), boards, ...(typeof e.pcb === 'string' ? { pcb: e.pcb } : {}) };
 }
 
-export const EXAMPLES: readonly Example[] = (examplesJson as unknown[]).map(parseExample);
+/** Every entry of fixtures/examples.json — also those whose firmware this tree leaves out (EXAMPLES is the gallery). */
+export const ALL_EXAMPLES: readonly Example[] = (examplesJson as unknown[]).map(parseExample);
 
 // The examples' files, by repo-relative path. Literal patterns (the bundler needs them):
 // projects and sketches as text, AVR firmware (Uno, Nano, Mega) as text, ESP32 images and Pico
 // and Pico 2 UF2s as asset URLs.
 const PROJECTS = import.meta.glob(
-  '../../../../fixtures/projects/{regulator-meter,sd-datalogger,blink-led,button-pullup,pwm-fade,traffic-light,simon,debug-demo,analog-pot,logic-demo,lcd-4bit,lcd-i2c,lcd-thermometer,ssd1306-adafruit,oled-clock,seven-seg-mux,bargraph,neopixel,dht22,hcsr04,distance-meter,ds1307,mpu6050,keypad,encoder,servo-sweep,servo-knob,keypad-lock,stepper-28byj48,relay,buzzer,speaker-melody,pcm-playback,mic-level,vu-meter,esp32-blink,esp32-serial,esp32-button,esp32-pwm-fader,esp32-neopixel,esp32-rainbow-ring,esp32-oled-clock,esp32-dac-sine,esp32-mic-level,esp32-i2c,esp32-wifi-webserver,esp32-wifi-http,esp32-wifi-tcp,esp32-ntp-clock,esp32c3-rgb-blink,esp32c3-serial,esp32c3-pot-led,esp32c3-oled-clock,esp32c3-wifi-rgb-server,uart-chat,uno-esp32-uart-divider,nano-analog,mega-chaser,mega-serial-ports,mega-analog,tft-demo,esp32-tft-demo,ir-remote,scale,flame-alarm,gas-meter,a4988-stepper,env-gas-fan,env-pir-hallway,env-parking,env-thermostat,pico-blink,pico-analog-read,pico-pwm-fade,pico-i2c-oled,pico-spi-tft,pico-neopixel,pico-pio-square,pico-multicore,pico2-blink,pico2-analog-read,pico2-pwm-fade,pico2-i2c-oled,pico2-spi-tft,pico2-neopixel,pico2-button-irq}.json',
+  '../../../../fixtures/projects/{regulator-meter,sd-datalogger,blink-led,button-pullup,pwm-fade,traffic-light,simon,debug-demo,analog-pot,logic-demo,lcd-4bit,lcd-i2c,lcd-thermometer,ssd1306-adafruit,oled-clock,seven-seg-mux,bargraph,neopixel,dht22,hcsr04,distance-meter,ds1307,mpu6050,keypad,encoder,servo-sweep,servo-knob,keypad-lock,stepper-28byj48,relay,buzzer,speaker-melody,pcm-playback,mic-level,vu-meter,esp32-blink,esp32-serial,esp32-button,esp32-pwm-fader,esp32-neopixel,esp32-rainbow-ring,esp32-oled-clock,esp32-dac-sine,esp32-mic-level,esp32-i2c,esp32-wifi-webserver,esp32-wifi-http,esp32-wifi-tcp,esp32-ntp-clock,esp32c3-rgb-blink,esp32c3-serial,esp32c3-pot-led,esp32c3-oled-clock,esp32c3-wifi-rgb-server,uart-chat,uno-esp32-uart-divider,nano-analog,mega-chaser,mega-serial-ports,mega-analog,tft-demo,esp32-tft-demo,ir-remote,scale,flame-alarm,gas-meter,a4988-stepper,env-gas-fan,env-pir-hallway,env-parking,env-thermostat,pico-blink,pico-analog-read,pico-pwm-fade,pico-i2c-oled,pico-spi-tft,pico-neopixel,pico-pio-square,pico-multicore,pico2-blink,pico2-analog-read,pico2-pwm-fade,pico2-i2c-oled,pico2-spi-tft,pico2-neopixel,pico2-button-irq,picow-wifi-webserver,picow-wifi-http,pico2w-wifi-webserver}.json',
   { import: 'default' },
 ) as Record<string, () => Promise<unknown>>;
 const HEX = import.meta.glob(
@@ -93,6 +94,8 @@ const BIN = import.meta.glob(
     '../../../../fixtures/firmware/esp32c3/{rgb-blink,serial-hello,pot-led,oled-clock,wifi-rgb-server}.bin',
     '../../../../fixtures/firmware/pico/{blink,analog-read,pwm-fade,i2c-oled,spi-tft,neopixel,pio-square,multicore}.uf2',
     '../../../../fixtures/firmware/pico2/{blink,analog-read,pwm-fade,i2c-oled,spi-tft,neopixel,button-irq}.uf2',
+    '../../../../fixtures/firmware/picow/{wifi-webserver,wifi-http-get}.uf2',
+    '../../../../fixtures/firmware/pico2w/wifi-webserver.uf2',
   ],
   { query: '?url', import: 'default' },
 ) as Record<string, () => Promise<string>>;
@@ -105,6 +108,8 @@ const SKETCHES = import.meta.glob(
     '../../../../fixtures/sketches/esp32c3/{rgb-blink,serial-hello,pot-led,oled-clock,wifi-rgb-server}/*.{ino,h,hpp,c,cpp}',
     '../../../../fixtures/sketches/pico/{blink,analog-read,pwm-fade,i2c-oled,spi-tft,neopixel,pio-square,multicore}/*.{ino,h,hpp,c,cpp}',
     '../../../../fixtures/sketches/pico2/{blink,analog-read,pwm-fade,i2c-oled,spi-tft,neopixel,button-irq}/*.{ino,h,hpp,c,cpp}',
+    '../../../../fixtures/sketches/picow/{wifi-webserver,wifi-http-get}/*.{ino,h,hpp,c,cpp}',
+    '../../../../fixtures/sketches/pico2w/wifi-webserver/*.{ino,h,hpp,c,cpp}',
   ],
   { query: '?raw', import: 'default' },
 ) as Record<string, () => Promise<string>>;
@@ -112,16 +117,21 @@ const SKETCHES = import.meta.glob(
 /**
  * BT100: the symbol tables (`nm` output, .syms.tsv) of the ESP32 examples that need them beyond
  * the debugger — WiFi firmware runs only with its driver's API answered by name. BT108: and the
- * ESP32-C3's.
+ * ESP32-C3's; BT112: the Pico W's (its CYW43 is answered by name too — for every sketch, the LED).
  */
 const SYMS = import.meta.glob(
-  ['../../../../fixtures/firmware/esp32/{wifi-webserver,wifi-http-get,wifi-tcp-server,wifi-tcp-client,ntp-clock}.syms.tsv', '../../../../fixtures/firmware/esp32c3/wifi-rgb-server.syms.tsv'],
+  [
+    '../../../../fixtures/firmware/esp32/{wifi-webserver,wifi-http-get,wifi-tcp-server,wifi-tcp-client,ntp-clock}.syms.tsv',
+    '../../../../fixtures/firmware/esp32c3/wifi-rgb-server.syms.tsv',
+    '../../../../fixtures/firmware/picow/{wifi-webserver,wifi-http-get}.syms.tsv',
+    '../../../../fixtures/firmware/pico2w/wifi-webserver.syms.tsv',
+  ],
   { query: '?raw', import: 'default' },
 ) as Record<string, () => Promise<string>>;
 
 /** A board's symbol table as text (BT100), or undefined when the example ships none. */
 export async function loadSymbols(board: { firmware: string }): Promise<string | undefined> {
-  const load = SYMS[`${ROOT}firmware/${board.firmware.replace(/\.bin$/, '.syms.tsv')}`];
+  const load = SYMS[`${ROOT}firmware/${board.firmware.replace(/\.(bin|uf2)$/, '.syms.tsv')}`];
   return load === undefined ? undefined : load();
 }
 
@@ -129,6 +139,19 @@ export async function loadSymbols(board: { firmware: string }): Promise<string |
 const MICROPYTHON = import.meta.glob('../../../../fixtures/micropython/{blink,neopixel}/*.py', { query: '?raw', import: 'default' }) as Record<string, () => Promise<string>>;
 
 const ROOT = '../../../../fixtures/';
+
+/**
+ * Whether this tree has every board's firmware. The published repository leaves the Pico W and
+ * Pico 2 W firmware out (THIRD_PARTY_NOTICES.md: the CYW43 driver's license), so the globs find
+ * none of it and those examples aren't offered until it's built (`npm run fixtures -- --only
+ * picow`, `--only pico2w`). examples.test.ts holds the private tree to all of them.
+ */
+function hasFirmware(example: Example): boolean {
+  return Object.values(example.boards).every((b) => 'micropython' in b || HEX[`${ROOT}firmware/${b.firmware}`] !== undefined || BIN[`${ROOT}firmware/${b.firmware}`] !== undefined);
+}
+
+/** The gallery: the examples whose firmware this tree has. */
+export const EXAMPLES: readonly Example[] = ALL_EXAMPLES.filter(hasFirmware);
 
 /** The example's project document (unparsed). */
 const PCBS = import.meta.glob('../../../../fixtures/pcb/blink.pcb.json', { query: '?raw', import: 'default' }) as Record<string, () => Promise<string>>;

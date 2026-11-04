@@ -1,0 +1,25 @@
+{
+ "reason": "its licenses do not allow redistribution: it links the cyw43-driver and Infineon’s CYW43439 firmware (THIRD_PARTY_NOTICES.md says how to build it yourself)",
+ "files": [
+  "pico2w/blink.syms.tsv",
+  "pico2w/blink.uf2",
+  "pico2w/wifi-http-get.syms.tsv",
+  "pico2w/wifi-http-get.uf2",
+  "pico2w/wifi-scan.syms.tsv",
+  "pico2w/wifi-scan.uf2",
+  "pico2w/wifi-webserver.syms.tsv",
+  "pico2w/wifi-webserver.uf2",
+  "picow/blink.syms.tsv",
+  "picow/blink.uf2",
+  "picow/wifi-connect.syms.tsv",
+  "picow/wifi-connect.uf2",
+  "picow/wifi-http-get.syms.tsv",
+  "picow/wifi-http-get.uf2",
+  "picow/wifi-layout.syms.tsv",
+  "picow/wifi-layout.uf2",
+  "picow/wifi-scan.syms.tsv",
+  "picow/wifi-scan.uf2",
+  "picow/wifi-webserver.syms.tsv",
+  "picow/wifi-webserver.uf2"
+ ]
+}

@@ -52,7 +52,7 @@ export const TOOLS: readonly Tool<ExamplesContext>[] = [listParts, describePart,
 
 function instructions(sandbox: Sandbox, limits: McpLimits): string {
   return [
-    'Benchtop simulates Arduino Uno/Nano/Mega, ESP32, ESP32-C3 and Raspberry Pi Pico/Pico 2 circuits running real compiled firmware (or inline MicroPython on the Picos), headless.',
+    'Benchtop simulates Arduino Uno/Nano/Mega, ESP32, ESP32-C3 and Raspberry Pi Pico/Pico W/Pico 2 circuits running real compiled firmware (or inline MicroPython on the Picos), headless.',
     'A project is a JSON document of placed parts and wires; list_parts and describe_part show the part types, their pins and props; validate_project checks one.',
     'run_simulation runs a project with firmware, timed inputs and assertions (pin levels, frequency and duty, serial text, LEDs, displays) and reports what happened; run_tests runs *.bench.json specs.',
     'For step-by-step work open a live session (sim_open, or open_example on a gallery example from list_examples) and drive it with sim_run, sim_input, sim_serial and sim_state; debug_* tools debug any board\'s firmware in a session (registers, memory, breakpoints, steps).',

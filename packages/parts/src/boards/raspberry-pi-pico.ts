@@ -21,6 +21,13 @@
  *
  * The Raspberry Pi Pico 2 (BT66, `raspberry-pi-pico-2`) has the same footprint, pinout, TP5/LED
  * and supplies around an RP2350A: the same definition with its own type, title and MCU.
+ *
+ * The Raspberry Pi Pico W (BT110, `raspberry-pi-pico-w`): the same footprint and pinout (the Pico
+ * W datasheet's), an RP2040 with the CYW43439 WiFi chip on GP23/24/25/29 (none on the header). Its
+ * LED is on the chip's WL_GPIO0, so in place of TP5 it has `WL_GPIO0` — the LED's anode, no pad on
+ * the board — mapped to the Mcu pin of the same name, which the RP2040 factory also takes as the
+ * sign of a Pico W (its CYW43 model, @benchtop/rp2040's cyw43/). The Raspberry Pi Pico 2 W (BT113,
+ * `raspberry-pi-pico-2w`) is the same around an RP2350 (its RISC-V harts here).
  */
 
 import { type PartContext, type PinDef, type PinRole, Strength } from '@benchtop/core';
@@ -60,33 +67,39 @@ const pins: PinDef[] = PICO_PINOUT.map((name, i) => {
   if (name.startsWith('GND') || name === 'AGND') pin.volts = 0;
   return pin;
 });
-pins.push({ name: 'TP5', x: 5.05, y: 3.2, role: 'digital' });
+/** The LED's pin: TP5 (GP25) on the Pico and Pico 2, WL_GPIO0 (the CYW43's) on the Pico W. */
+function boardPins(ledPin: string): PinDef[] {
+  return [...pins, { name: ledPin, x: 5.05, y: 3.2, role: 'digital' }];
+}
 
-const pinMap: Record<string, string> = { TP5: 'GPIO25' };
-for (const name of PICO_PINOUT) if (/^GP\d+$/.test(name)) pinMap[name] = `GPIO${name.slice(2)}`;
+function boardPinMap(ledPin: string, ledMcuPin: string): Record<string, string> {
+  const map: Record<string, string> = { [ledPin]: ledMcuPin };
+  for (const name of PICO_PINOUT) if (/^GP\d+$/.test(name)) map[name] = `GPIO${name.slice(2)}`;
+  return map;
+}
 
-/** A Pico-footprint board around `mcu`. */
-function pico(type: string, title: string, mcu: 'rp2040' | 'rp2350') {
+/** A Pico-footprint board around `mcu`, its LED on `ledPin` (the Mcu's `ledMcuPin`). */
+function pico(type: string, title: string, mcu: 'rp2040' | 'rp2350', ledPin = 'TP5', ledMcuPin = 'GPIO25') {
   return definePart({
     type,
     title,
     category: 'boards',
     size: { w: PICO_WIDTH, h: PICO_HEIGHT },
-    pins,
+    pins: boardPins(ledPin),
     buses: [['GND.1', 'GND.2', 'GND.3', 'GND.4', 'GND.5', 'GND.6', 'GND.7', 'AGND']],
     defaults: { usbPowered: true },
-    board: { mcu, pinMap },
-    createModel: picoModel,
+    board: { mcu, pinMap: boardPinMap(ledPin, ledMcuPin) },
+    createModel: (ctx: PartContext, props: { usbPowered: boolean }) => picoModel(ctx, props, ledPin),
   });
 }
 
-function picoModel(ctx: PartContext, props: { usbPowered: boolean }) {
+function picoModel(ctx: PartContext, props: { usbPowered: boolean }, ledPin: string) {
   if (props.usbPowered !== false) {
     ctx.pin('VBUS').driveVolts(5, Strength.supply);
     ctx.pin('VSYS').driveVolts(5, Strength.supply);
   }
   const led = new DutyChannel(ctx);
-  ctx.pin('TP5').onChange((state) => led.set(state.level === 1 && state.strength >= Strength.weak));
+  ctx.pin(ledPin).onChange((state) => led.set(state.level === 1 && state.strength >= Strength.weak));
   return {
     visual: () => ({ led: led.brightness }),
     reset() {
@@ -98,3 +111,5 @@ function picoModel(ctx: PartContext, props: { usbPowered: boolean }) {
 
 export const raspberryPiPico = pico('raspberry-pi-pico', 'Raspberry Pi Pico', 'rp2040');
 export const raspberryPiPico2 = pico('raspberry-pi-pico-2', 'Raspberry Pi Pico 2', 'rp2350');
+export const raspberryPiPicoW = pico('raspberry-pi-pico-w', 'Raspberry Pi Pico W', 'rp2040', 'WL_GPIO0', 'WL_GPIO0');
+export const raspberryPiPico2W = pico('raspberry-pi-pico-2w', 'Raspberry Pi Pico 2 W', 'rp2350', 'WL_GPIO0', 'WL_GPIO0');

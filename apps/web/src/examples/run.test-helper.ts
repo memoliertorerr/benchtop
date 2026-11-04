@@ -63,19 +63,19 @@ export function runExample(example: Example): ExampleRun {
   // MicroPython for whichever board the project has; a Pico 2 needs the bootrom too (BT66, BT67).
   const types = new Set(parsed.doc.parts.map((p) => p.type));
   const python = boards.some((b) => 'micropython' in b);
-  const pico2 = types.has('raspberry-pi-pico-2');
+  const pico2 = types.has('raspberry-pi-pico-2') || types.has('raspberry-pi-pico-2w');
   const micropython = python && types.has('raspberry-pi-pico') ? cachedMicroPython() : undefined;
   const micropythonPico2 = python && pico2 ? cachedMicroPython(MICROPYTHON_PICO2_RISCV) : undefined;
   const rp2350Rom = pico2 ? cachedRp2350Rom() : undefined;
   const env = createBenchEnv({ esp32Rom: rom, micropython, rp2350Rom, micropythonPico2, esp32c3Rom });
   const bench = assembleBench(parsed.doc, env, images, { analogSpecFor, envSpecFor, netSpecFor });
   // BT100: a board whose firmware has a symbol table beside it gets it, as the app gives a
-  // gallery example's (the ESP32's WiFi driver API is answered by name).
+  // gallery example's (the ESP32's WiFi driver API is answered by name; BT112: the Pico W's CYW43).
   for (const [board, files] of Object.entries(example.boards)) {
     if (!('firmware' in files)) continue;
-    const syms = join(REPO_ROOT, 'fixtures', 'firmware', files.firmware.replace(/\.bin$/, '.syms.tsv'));
+    const syms = join(REPO_ROOT, 'fixtures', 'firmware', files.firmware.replace(/\.(bin|uf2)$/, '.syms.tsv'));
     const mcu = env.mcus.get(board);
-    if (files.firmware.endsWith('.bin') && existsSync(syms) && mcu !== undefined && usesSymbols(mcu)) mcu.useSymbols(SymbolTable.fromNm(readFileSync(syms, 'utf8')));
+    if (/\.(bin|uf2)$/.test(files.firmware) && existsSync(syms) && mcu !== undefined && usesSymbols(mcu)) mcu.useSymbols(SymbolTable.fromNm(readFileSync(syms, 'utf8'), /^picow?\//.test(files.firmware)));
   }
   const text: Record<string, string> = {};
   for (const board of Object.keys(example.boards)) {

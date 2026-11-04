@@ -1,0 +1,32 @@
+{
+  "name": "example: picow-wifi-webserver",
+  "project": "../../projects/picow-wifi-webserver.json",
+  "firmware": {
+    "picow": "../../firmware/picow/wifi-webserver.uf2"
+  },
+  "steps": [
+    {
+      "at": "3s",
+      "part": "on",
+      "input": {
+        "kind": "press"
+      }
+    },
+    {
+      "at": "3500ms",
+      "part": "off",
+      "input": {
+        "kind": "press"
+      }
+    }
+  ],
+  "expect": [
+    "wifi picow connected by 3s",
+    "serial contains \"server at 192.168.4.2\" by 3s",
+    "http on got 200 with \"led on\" by 3200ms",
+    "led picow is lit at 3300ms",
+    "serial contains \"GET /led on\" by 3300ms",
+    "http off got 200 with \"led off\" by 3700ms",
+    "led picow is dark at 3800ms"
+  ]
+}

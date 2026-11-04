@@ -6,7 +6,7 @@
  * rule because nothing a client sends becomes a path here, only an id from the fixed list.
  */
 
-import { join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import type { DebugTables, FirmwareImage, ProjectDoc } from '@benchtop/core';
 import { parseJson, projectFromJson, readText } from '../../load.ts';
 import type { CliIo } from '../../load.ts';
@@ -41,9 +41,24 @@ export class ExampleLibrary {
     this.io = io;
   }
 
+  /**
+   * The examples whose firmware this tree has: the published repository leaves the Pico W and
+   * Pico 2 W firmware out (THIRD_PARTY_NOTICES.md), and their examples with it.
+   */
   list(): ExampleEntry[] {
-    this.entries ??= parseJson(readText(this.io, join(this.repo, 'fixtures/examples.json'), 'examples'), 'fixtures/examples.json') as ExampleEntry[];
+    this.entries ??= (parseJson(readText(this.io, join(this.repo, 'fixtures/examples.json'), 'examples'), 'fixtures/examples.json') as ExampleEntry[]).filter((e) =>
+      Object.values(e.boards).every((b) => 'micropython' in b || this.exists(join(this.repo, 'fixtures/firmware', b.firmware))),
+    );
     return this.entries;
+  }
+
+  private exists(path: string): boolean {
+    const name = basename(path);
+    try {
+      return this.io.list(dirname(path)).some((f) => !f.directory && f.name === name);
+    } catch {
+      return false;
+    }
   }
 
   get(id: string): ExampleEntry {
@@ -122,7 +137,7 @@ export const listExamples: Tool<ExamplesContext> = {
   name: 'list_examples',
   title: 'List the examples',
   description:
-    'The examples gallery: ready-made circuits with their firmware (Arduino Uno/Nano/Mega, ESP32, ESP32-C3, Raspberry Pi Pico and Pico 2, MicroPython), by category. open_example runs one live; the resource benchtop://examples/<id> holds its project document and sketch — a good starting point for a project of your own.',
+    'The examples gallery: ready-made circuits with their firmware (Arduino Uno/Nano/Mega, ESP32, ESP32-C3, Raspberry Pi Pico, Pico W and Pico 2, MicroPython), by category. open_example runs one live; the resource benchtop://examples/<id> holds its project document and sketch — a good starting point for a project of your own.',
   inputSchema: {
     type: 'object',
     properties: {

@@ -9,6 +9,8 @@ const FQBNS: Readonly<Record<string, string>> = {
   'arduino-mega': 'arduino:avr:mega',
   'esp32-devkit-v1': 'esp32:esp32:esp32',
   'raspberry-pi-pico': 'rp2040:rp2040:rpipico',
+  'raspberry-pi-pico-w': 'rp2040:rp2040:rpipicow', // BT110
+  'raspberry-pi-pico-2w': 'rp2040:rp2040:rpipico2w:arch=riscv', // BT113: its RISC-V cores
 };
 /** Boards without their own entry: the FQBN of their MCU's reference board. */
 const MCU_FQBNS = {
@@ -32,8 +34,11 @@ const MICROPYTHON_FQBNS: Readonly<Record<string, string>> = {
   rp2350: 'micropython:rp2:pico2',
 };
 
+/** BT110: boards whose MicroPython would be another UF2 (the Pico W's: a download not made). */
+const NO_MICROPYTHON = new Set(['raspberry-pi-pico-w', 'raspberry-pi-pico-2w']);
+
 /** The FQBN of a MicroPython sketch for a board part type, or undefined where MicroPython doesn't run. */
 export function micropythonFqbnOf(partType: string): string | undefined {
   const mcu = CATALOG.get(partType)?.board?.mcu;
-  return mcu === undefined ? undefined : MICROPYTHON_FQBNS[mcu];
+  return mcu === undefined || NO_MICROPYTHON.has(partType) ? undefined : MICROPYTHON_FQBNS[mcu];
 }

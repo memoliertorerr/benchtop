@@ -6,7 +6,7 @@ import { UsageError } from './load.ts';
 import { nodeIo } from './node-io.ts';
 import { junitXml, markdownReport, xmlText } from './reports.ts';
 import { parseSpec } from './spec.ts';
-import { discoverSpecs, parseTestArgs, runSuite, type SuiteIo, type SuiteReport } from './suite.ts';
+import { discoverSpecs, parseTestArgs, runSuite, specLine, type SuiteIo, type SuiteReport, suiteLine } from './suite.ts';
 
 // BT48: test specs, the suite runner and its reports. The fixture suite (fixtures/specs/) runs
 // in-process and on worker threads; its reports match the committed golden files (JUnit times
@@ -194,6 +194,33 @@ describe('test specs (BT48)', () => {
     expect(md).toContain('- fixtures/specs/broken.bench.json: unknown field "firmwares"');
     expect(md).toContain('- `pin uno:13 is 0 at 250ms` — level 1');
     expect(md).toContain('- `serial contains "goodbye" by 100ms` — not seen by 100 ms');
+  });
+
+  it('skips a spec whose firmware the tree withholds (listed in withheld-firmware.json and missing), never one whose firmware is just missing', async () => {
+    const io = filesIo({
+      'fixtures/withheld-firmware.json': JSON.stringify({ reason: 'the CYW43 driver’s license', files: ['picow/gone.uf2', 'uno/blink.hex'] }),
+      'fixtures/specs/withheld.bench.json': JSON.stringify({ project: '../projects/picow-blink.json', firmware: { picow: '../firmware/picow/gone.uf2' }, expect: ['serial contains "led 1" by 1s'] }),
+      'fixtures/specs/missing.bench.json': JSON.stringify({ project: '../projects/picow-blink.json', firmware: { picow: '../firmware/picow/nope.uf2' }, expect: ['serial contains "led 1" by 1s'] }),
+      'fixtures/specs/built.bench.json': JSON.stringify({ project: '../projects/blink-led.json', firmware: { uno: '../firmware/uno/blink.hex' }, expect: ['pin uno:13 is 1 at 250ms'] }),
+    });
+    const skipped = await runSuite(['fixtures/specs/withheld.bench.json'], io, 1);
+    expect(skipped).toMatchObject({ ok: true, exitCode: 0 });
+    expect(skipped.specs[0].skipped).toBe('fixtures/firmware/picow/gone.uf2 is left out of this tree: the CYW43 driver’s license');
+    expect(skipped.specs[0].report.assertions).toEqual([]); // nothing ran, nothing passed
+    expect(specLine(skipped.specs[0])).toMatch(/^skip {2}withheld — fixtures\/firmware\/picow\/gone\.uf2 is left out/);
+    expect(suiteLine(skipped)).toMatch(/^1 specs: 0 passed, 0 failed, 0 errors, 1 skipped — 0\/0 assertions/);
+    const xml = junitXml(skipped);
+    wellFormed(xml);
+    expect(xml).toContain('<testsuites name="benchtop" tests="1" failures="0" errors="0" skipped="1"');
+    expect(xml).toContain('<skipped message="fixtures/firmware/picow/gone.uf2 is left out of this tree: the CYW43 driver’s license"/>');
+    expect(markdownReport(skipped)).toContain('## Benchtop: 1 specs, 0/0 assertions — all passed, 1 skipped');
+    expect(markdownReport(skipped)).toContain('| ⏭️ | withheld | skipped: fixtures/firmware/picow/gone.uf2 is left out of this tree: the CYW43 driver’s license | — |');
+    // A listed file that is there (built back) runs; a missing file the list doesn't name is an
+    // error, as without any list (the private tree).
+    const built = await runSuite(['fixtures/specs/built.bench.json'], io, 1);
+    expect(built.specs[0].skipped).toBeUndefined();
+    expect(built.specs[0].report.assertions.map((a) => a.ok)).toEqual([true]);
+    expect((await runSuite(['fixtures/specs/missing.bench.json'], io, 1)).exitCode).toBe(2);
   });
 
   it('escapes XML text and replaces characters XML forbids', () => {

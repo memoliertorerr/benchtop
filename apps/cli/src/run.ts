@@ -13,7 +13,7 @@
  *   timed by when its last character arrived); `pin … frequency is <hz> [Hz] ±<pct>% between
  *   <t1> and <t2>` (rising edges in the window) and `pin … duty is <pct>% ±<points> between …`
  *   (time high over the window), both from a probe; and what parts show at a time: `led <part> is
- *   <lit|dark>` (brightness ≥ 0.3 / ≤ 0.05), `servo <part> angle is <deg> ±<deg>`, `lcd <part>
+ *   <lit|dark>` (brightness ≥ 0.3 / ≤ 0.05; BT110: a Pico's onboard LED too), `servo <part> angle is <deg> ±<deg>`, `lcd <part>
  *   row <n> is "<text>"` (rows from 0, trailing spaces ignored), `pixel <part>[<i>] is #rrggbb`
  *   (a NeoPixel part, or the ESP32-C3-DevKitM-1's RGB LED as pixel 0),
  *   `digits <part> show "<text>"`. ± may be written +- or +/-.
@@ -391,9 +391,13 @@ const LCD_SIZES: Readonly<Record<string, { cols: number; rows: number }>> = {
   'lcd2004-i2c': { cols: 20, rows: 4 },
 };
 
+/** BT110: boards whose visual state has an onboard LED's brightness as `led`. */
+const BOARD_LEDS = new Set(['raspberry-pi-pico', 'raspberry-pi-pico-2', 'raspberry-pi-pico-w', 'raspberry-pi-pico-2w']);
+
 /** Which part types each visual expectation reads, for usage errors. */
 const VISUAL_TYPES: Readonly<Record<'led' | 'servo' | 'lcd' | 'pixel' | 'digits', { test: (type: string) => boolean; what: string }>> = {
-  led: { test: (t) => t === 'led', what: 'an LED' },
+  // BT110: the Picos' onboard LED too (their visual's `led`; the Pico W's sits on the CYW43).
+  led: { test: (t) => t === 'led' || BOARD_LEDS.has(t), what: 'an LED (or a Pico, by its onboard LED)' },
   servo: { test: (t) => t === 'servo', what: 'a servo' },
   lcd: { test: (t) => Object.hasOwn(LCD_SIZES, t), what: 'a character LCD' },
   // BT94: the ESP32-C3-DevKitM-1's own RGB LED is a WS2812 too (its pixels[0]).
@@ -459,7 +463,7 @@ function checkVisual(
 ): { ok: boolean; detail: string } {
   switch (a.kind) {
     case 'led': {
-      const b = num(visual?.brightness) ?? 0; // an LED that never reported is dark
+      const b = num(visual?.brightness) ?? num(visual?.led) ?? 0; // an LED that never reported is dark
       return { ok: a.lit ? b >= LIT : b <= DARK, detail: `brightness ${b.toFixed(2)}` };
     }
     case 'servo': {

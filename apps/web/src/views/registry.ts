@@ -35,7 +35,7 @@ export function viewFor(type: string): ViewFactory {
   if (type.startsWith('breadboard')) return breadboardView;
   if (type === 'stepper-28byj48') return stepper28byj48View;
   if (type === 'a4988') return a4988View;
-  if (type === 'raspberry-pi-pico' || type === 'raspberry-pi-pico-2') return raspberryPiPicoView;
+  if (type === 'raspberry-pi-pico' || type === 'raspberry-pi-pico-2' || type === 'raspberry-pi-pico-w' || type === 'raspberry-pi-pico-2w') return raspberryPiPicoView;
   if (type === 'esp32-c3-devkitm-1') return esp32C3DevkitM1View;
   if (type === 'speaker') return speakerView;
   if (type === 'microphone') return microphoneView;

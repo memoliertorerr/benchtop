@@ -1625,6 +1625,99 @@ sequence, files matched by basename or trailing path.
   SysTick at its own reload, a TIMER interrupt reaching only the core that enabled it, SEV
   waking WFE, FIFO_ST's flags, and a reset and second launch (`core1.test.ts`); MicroPython's
   `_thread` prints from core 1 (`micropython.test.ts`).
+  **High-level emulation (`hle.ts`).** As on the ESP32 (Xtensa) and the ESP32-C3
+  (`@benchtop/riscv`), a firmware function can be answered by TypeScript —
+  `Rp2040Mcu.setHle(table)`, `Rp2040Hle.replace(address, name, handler)` — for the Pico W's
+  CYW43 at its driver's API. Both cores decode per halfword (rp2040js's if-chain, the fast core's
+  `OP_OF`), so the trap is in memory: `install` writes `UDF #0x48` over each replaced function's
+  first halfword in flash and keeps the original (restored by `setHle(null)`; written again after
+  every image write — `load`, and a MicroPython reset). A UDF reaches rp2040js's `onBreak`, where
+  the adapter asks the table first (`has(pc)`, the PC's Thumb bit masked: an exception entry
+  leaves it set), so nothing else pays, on the stock and the fast core and on core 1 (DualCore
+  puts the running core in `rp.core`). Only functions in flash: one the startup copies to SRAM
+  would need its load address. The call is AAPCS: r0–r3, more at sp, r0 back, return through
+  `BXWritePC(lr)` — a replaced exception handler returns through EXC_RETURN. A generator's call
+  gets a 144-byte frame (16 bytes of stack arguments, 128 of scratch, 8-aligned) with the
+  caller's lr kept beside it; its steps run at `HLE_RESUME` (0x0E00, a `udf #0x48` in our
+  bootrom), where calls out return (lr = 0x0E01), and the frame is found again by sp — each
+  core has its own stack, and an interrupt taken meanwhile stacks below the frame.
+  `fixtures/rp2040/hle.c` (freestanding) tests five arguments, generators, two waiting at once
+  and a recursion 50 deep around one, stack arguments and scratch memory in a call out, a
+  replaced SysTick handler, and both cores inside a generator at the same time (`hle.test.ts`;
+  the stock core gives the same results for core 0's part — its SEV doesn't wake core 1).
+
+  **The Pico W's CYW43439 (`cyw43/`).** A Pico W firmware (arduino-pico's
+  `rp2040:rp2040:rpipicow`) carries the open cyw43-driver and the chip's closed firmware blob,
+  which the driver would upload over a PIO-driven gSPI bus (GP23 WL_REG_ON, GP24 data and
+  host-wake, GP25 CS, GP29 clock). Neither the bus nor the chip is modeled; the driver's own
+  low-level layer — the functions of `cyw43_ll.c`, the only code that talks to the bus — is
+  answered by name through the HLE, and everything above it runs as built: `cyw43_ctrl.c` (the
+  join state machine fed by async events, scan bookkeeping, link up/down to lwIP), the SDK's
+  `cyw43_arch` and async context, lwIP, arduino-pico's WiFi. `Cyw43` answers `cyw43_ll_init`
+  (keeps the `cyw43_ll_t` address and the callback data, the `cyw43_t`), `cyw43_ll_bus_init`
+  (the chip is up: no upload), `cyw43_ll_wifi_get_mac` (the OTP MAC — CYW43_USE_OTP_MAC — so
+  the board's), `cyw43_ll_gpio_set/get` (WL_GPIO0–2; WL_GPIO0 is the LED), `cyw43_ll_wifi_on`,
+  power management and multicast filters (accepted), `cyw43_ll_ioctl` (GET_VAR answers zeros),
+  and the poll path: work for the firmware (async events, received frames) waits in a queue
+  while the chip holds host-wake (GP24) high; the SDK's level-high GPIO interrupt on GP24
+  schedules `cyw43_do_poll` on the async context, `cyw43_poll_func` asks `cyw43_ll_has_work`,
+  and `cyw43_ll_process_packets` hands each item, written into the `cyw43_ll_t`'s own 2108
+  bytes (the replaced layer doesn't use them), to `cyw43_cb_process_async_event` or
+  `cyw43_cb_process_ethernet` (arduino-pico links `__wrap_cyw43_cb_process_ethernet`), then
+  drops host-wake. `Rp2040Mcu({ cyw43 })` attaches it: `useSymbols` installs the answers, the
+  pin `WL_GPIO0` is the chip's GPIO 0, GP24's input is host-wake, ADC3 (GP29) reads 0 —
+  arduino-pico's `CheckPicoW()` reads ADC3 and GP25 and takes a low ADC3 for a Pico W; without
+  symbols the firmware raising GP23 (the real driver powering the chip) reports
+  `rp2040-cyw43-no-symbols` once (the sketch runs on: the real driver's bus bring-up times out
+  and each LED write returns an error). The `raspberry-pi-pico-w` part is the Pico's footprint
+  and header with a `WL_GPIO0` point at the LED in place of TP5; the RP2040 factory makes a
+  Pico W of any board whose pin map names `WL_GPIO0` (no contract change), with Raspberry Pi's
+  28:CD:C1 and three bytes hashed from the part id as its MAC. `fixtures/sketches/picow/blink`
+  blinks the LED through `cyw43_ll_gpio_set` every 500 ms (`cyw43/cyw43.test.ts`,
+  `packages/parts/src/integration/picow.test.ts`); the compile bridge and the MCP server build
+  for `rp2040:rp2040:rpipicow`; MicroPython isn't offered on it (the Pico W's UF2 isn't fetched).
+
+  **The Pico W's station.** The same chip on the bench's radio (`Rp2040Mcu.joinWifi` →
+  `Cyw43.setRadio`), in the chip's own words: what cyw43_ll.c would have parsed out of the bus
+  becomes `cyw43_async_event_t`s (140 bytes; the scan result, 92, at offset 48 — measured with the
+  Pico W's toolchain by `fixtures/sketches/picow/wifi-layout`) for cyw43_ctrl.c. A scan
+  (`cyw43_ll_wifi_scan`) dwells 40 ms on each of 13 channels and reports each access point as an
+  ESCAN_RESULT (status 8) when it reaches that channel — `auth_mode` as cyw43_ll.c computes it
+  (privacy 1, WPA 2, RSN 4: a WPA2 network is 5, which arduino-pico shows as CCMP) — hidden ones
+  only to a scan for their SSID, then the end (status 0). A join (`cyw43_ll_wifi_join`) searches the
+  same way and answers as the chip does, which cyw43_ctrl.c's join state machine reads: found,
+  security matching and key right — AUTH (0), LINK (up; the station joins the AP's LAN here),
+  SET_SSID (0), then for a protected network PSK_SUP keyed (6) 20 ms later; the driver's state is
+  then complete and it brings lwIP's link up. Not found — or with security the join can't speak
+  (a key for an open network, none for a protected one: the chip prunes it) — SET_SSID (3), "no
+  network". A wrong key: AUTH, then PSK_SUP failed a second later: "bad auth". A new join cancels
+  one under way. The SET_DISASSOC ioctl (`WiFi.disconnect()` → `cyw43_wifi_leave`) and an access
+  point switched off (after 6 s without beacons) report DISASSOC: link down. `cyw43_ll_send_ethernet`
+  puts lwIP's frames on the LAN (a pbuf chain when the caller says so; refused while not
+  associated, as by the chip), and the LAN's frames for the station queue (32 at most) for the poll
+  path into `__wrap_cyw43_cb_process_ethernet`. The ioctls answer GET_VAR "cur_etheraddr" (the
+  MAC), GET_RSSI, GET_SSID and GET_CHANNEL. The soft-AP (`cyw43_ll_wifi_ap_*`) reports
+  `rp2040-cyw43-unsupported`. Bring-up also leaves the pins as the real gSPI setup does (GP23 and
+  GP25 driven high, GP24 a SIO input with its pad listening): without that, host-wake's level
+  interrupt never fired and work only moved on the driver's 50 ms housekeeping polls, which stop
+  after ≈ 2.5 s. arduino-pico's side, seen through it: after `WiFi.mode()` its `begin()` returns at
+  once (ESP8266 compatibility); its `status()` maps the driver's link — down 0, joined 3 with an
+  address (else 6), fail / no network / bad auth 4; its first DHCP discover goes out before the
+  association completes and is lost (as on a board), so the address comes with lwIP's retry, ≈ 2 s
+  after the join. Measured: `fixtures/sketches/picow/wifi-scan` (scan, join, DHCP) runs 6 s
+  simulated in ≈ 0.3 s wall, `wifi-http-get` GETs and POSTs to an http-server part in ≈ 0.45 s
+  (`packages/parts/src/integration/picow.test.ts`, which also drives `wifi-connect`: a wrong key,
+  an absent SSID, leaving, an AP switched off, an open network).
+
+  **The Pico W in the gallery.** The board's own drawing (`views/raspberry-pi-pico.ts`, the
+  Pico's with the CYW43439 under its shield can, the PCB antenna past it and the SWD pads moved up
+  beside the RP2040); the gallery's WiFi category gains a Pico W web server (`picow/wifi-webserver`:
+  "picow-web", `/led?state=on|off` switching the onboard LED through the CYW43, two HTTP client
+  parts) and a Pico W HTTP client (`picow/wifi-http-get`), each with a spec and a check in
+  `examples-run-picow.test.ts`; the app's symbol glob carries their `.syms.tsv` (read as Thumb);
+  `sim_wifi` lists Pico W boards (a board whose pin map names `WL_GPIO0`). The web server joins
+  ≈ 2.0 s into a run and answers an HTTP client part within 5 ms.
+
 
   **PIO and DMA.** rp2040js runs PIO from `setTimeout`, apart from simulated time and
   ignoring clock dividers and delays; the adapter turns that off and steps the eight state
@@ -2004,6 +2097,29 @@ sequence, files matched by basename or trailing path.
   function on core 1, launched through the bootrom, as on the Pico.
   `machine.ADC`, `Pin`, `time.sleep_ms` and `neopixel` (`machine.bitstream`, timed by the cycle
   counter) work as on the Pico.
+
+  **The Pico 2 W.** `createRp2350Mcu({ cyw43 })` attaches the Pico W's CYW43439 model
+  (`@benchtop/rp2040`'s `cyw43/`, behind its chip-neutral `Cyw43Call`/`Cyw43Hle` view — the Thumb `Rp2040Hle` and `@benchtop/riscv`'s `RiscvHle` both satisfy it, as the ESP32's
+  `WifiCall` did for the C3). `useSymbols` answers the driver's ll layer on both harts through a
+  `RiscvHle` — a fresh one every boot, since its generator frames don't survive a reset — whose
+  generators resume at `RP2350_HLE_RESUME_PC` (0x7FF0): bootrom Arm code past the RISC-V bootrom's
+  `.text`, `.romtable` and `.entry` (which end at 0x7E00), so no hart ever executes it, and an
+  instruction fetch there is legal. The pin `WL_GPIO0` is the chip's GPIO 0, GP24 its host-wake
+  (`Rp2350Pin.force`), and bring-up writes GP23/24/25 as the SDK does at the RP2350's IO_BANK0
+  (0x40028000), PADS_BANK0 (0x40038000 — isolation cleared, input enabled) and SIO (OUT_SET 0x018,
+  OE_SET 0x038, OE_CLR 0x040). Without symbols the firmware raising GP23 reports
+  `rp2350-cyw43-no-symbols` once. `raspberry-pi-pico-2w` is the Pico W's footprint around the
+  RP2350; the RP2350 factory makes a Pico 2 W of a pin map naming `WL_GPIO0` (no contract change).
+  arduino-pico builds it as `rp2040:rp2040:rpipico2w:arch=riscv`; `fixtures/sketches/pico2w/blink`
+  blinks the LED through `cyw43_ll_gpio_set` every 500 ms (`packages/rp2350/src/cyw43.test.ts`).
+  Its WiFi on the bench is the Pico W's (`packages/parts/src/integration/pico2w.test.ts`):
+  `pico2w/wifi-scan` scans, joins and gets 192.168.4.2; `pico2w/wifi-webserver` (the gallery's
+  Pico 2 W web server, "pico2w-web") switches the LED for an HTTP client part. Found:
+  `pico2w/wifi-http-get` halts in pico-sdk's `__halt_on_unhandled_exception` with mcause 6 (store
+  address misaligned) — arduino-pico 6.2.0's RISC-V C library `strcpy` copies a word at a time with
+  no alignment check, `String::concat` in HTTPClient's request hands it an odd destination, and
+  Hazard3 traps misaligned stores as this core does; the firmware has no handler that emulates
+  them. Kept as found (a test pins it); a real Pico 2 W in RISC-V mode settles it (HUMAN_CHECKS).
 
 - **ESP32-C3** — `@benchtop/esp32c3`: Espressif's RISC-V chip on one `@benchtop/riscv`
   core, running Arduino-ESP32 2.0.17 images (FQBN `esp32:esp32:esp32c3`) booted directly with
@@ -2679,7 +2795,7 @@ nothing from `apps/web`.
   | `serial matches /<re>/<imsu> by <t>` | the first match in the kept serial text (1 MB) ends by `t` (the time its last chunk arrived); ≤ 1024-character pattern, no `g`/`y` | `no match by …`, or the match and when |
   | `pin <p>:<pin> frequency is <hz> [Hz] ±<pct>% between <t1> and <t2>` | (rising edges − 1) / (last − first rise) within ±pct % | `measured 489.80 Hz`, or how few rising edges |
   | `pin <p>:<pin> duty is <pct>% ±<points> between <t1> and <t2>` | time high / window within ±points | `measured 53.13 %` |
-  | `led <p> is lit\|dark at <t>` | brightness ≥ 0.3 (lit) / ≤ 0.05 (dark); never reported = dark | `brightness 0.91` |
+  | `led <p> is lit\|dark at <t>` | brightness ≥ 0.3 (lit) / ≤ 0.05 (dark); never reported = dark; also a Pico, Pico 2 or Pico W part by its onboard LED (its visual's `led`) | `brightness 0.91` |
   | `servo <p> angle is <deg> ±<deg> at <t>` | the horn's angle within the tolerance | `angle 45.2°` |
   | `lcd <p> row <n> is "<text>" at <t>` | row n (from 0) equals the text, trailing spaces ignored; display off = blank | `row 1 is "t=1"` |
   | `pixel <p>[<i>] is #rrggbb at <t>` | the pixel's 0xRRGGBB | `#38b748`, or the pixel count |
@@ -2755,6 +2871,20 @@ every example has its spec on the same project and firmware, and no spec outlive
 Two values there are measured, not designed: the rainbow ring's first pixel (#004e07 at 1.2 s,
 #000e47 at 2 s) and PCM's average duty (50.1 %) — its rising-edge rate reads ~57 kHz, not the
 62.5 kHz carrier, because pulses shorter than one emulator step have no edges (see the Uno's timer fix).
+
+### Firmware the published repository leaves out
+
+The Pico W and Pico 2 W fixtures (`fixtures/firmware/picow/`, `pico2w/`) link the cyw43-driver
+and Infineon's CYW43439 firmware, whose licenses don't allow redistributing them
+(THIRD_PARTY_NOTICES.md). The fixtures manifest marks them `"redistributable": false`
+(`redistributable` per board folder in `scripts/fixture-boards.ts`); this repository leaves
+those outputs out, and `fixtures/withheld-firmware.json` gives the reason and the files. A file listed there and missing is
+*withheld*: the tests that need it skip (`withheldFirmware()` in `fixtures.test-helper.ts` with
+`describe.skipIf`), the spec suite reports its specs as skipped, not passed (`withheldReason` in
+`suite.ts`: a JUnit `<skipped>`, a ⏭️ Markdown row, "N skipped" in the summary line), and the
+gallery and the MCP server's `list_examples` leave out examples whose firmware isn't there
+(examples.test.ts checks only withheld files are missing). Built (`npm run fixtures -- --only picow`, `--only pico2w`), a
+listed file runs again; without the list, every fixture must be there and a missing one fails.
 
 ### GDB remote stub
 

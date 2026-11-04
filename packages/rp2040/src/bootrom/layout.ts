@@ -12,7 +12,8 @@
  *   0x0100  stubs; 0x0800 function table; 0x0880 data table; 0x0a00/0x0b00 the soft float and
  *           soft double tables, each preceded (at table − 2) by its size in words, which the
  *           SDK checks; 0x0c00 the copyright string, 0x0c80 the git revision word;
- *           0x0d00 debug_trampoline (real Thumb: blx r7; bkpt #0).
+ *           0x0d00 debug_trampoline (real Thumb: blx r7; bkpt #0); 0x0e00 HLE_RESUME (BT109:
+ *           `udf #0x48`, where high-level emulation's generators run — hle.ts).
  */
 
 import { FP_OFFSETS } from './float.ts';
@@ -63,6 +64,8 @@ const COPYRIGHT = 0x0c00;
 const GIT_REVISION = 0x0c80;
 export const DEBUG_TRAMPOLINE = 0x0d00;
 export const DEBUG_TRAMPOLINE_END = 0x0d02;
+/** BT109: where HLE generators run and their calls out return (hle.ts): a UDF nothing else reaches. */
+export const HLE_RESUME = 0x0e00;
 const TABLE_WORDS = 32;
 
 /** The functions the function table lists: code → stub id. */
@@ -151,6 +154,7 @@ export function buildBootrom(): BootromLayout {
   word(GIT_REVISION, 0x00000000);
   half(DEBUG_TRAMPOLINE, 0x47b8); // blx r7
   half(DEBUG_TRAMPOLINE_END, 0xbe00); // bkpt #0
+  half(HLE_RESUME, 0xde48); // udf #0x48 (hle.ts HLE_UDF)
 
   at = DATA_TABLE;
   for (const [code, value] of [

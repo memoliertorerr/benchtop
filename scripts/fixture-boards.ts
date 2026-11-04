@@ -40,6 +40,13 @@ export interface FixtureBoard {
   debugSymbols?: string;
   /** BT93: board menu options for single sketches, appended to the FQBN (`{ 'cdc-hello': 'CDCOnBoot=cdc' }`). */
   options?: Readonly<Record<string, string>>;
+  /**
+   * False: the outputs link code whose license doesn't allow redistributing them, so the public
+   * repository leaves them out (the manifest marks them "redistributable": false; the snapshot drops
+   * them and lists them in fixtures/withheld-firmware.json — THIRD_PARTY_NOTICES.md). Built and
+   * committed here as any other.
+   */
+  redistributable?: false;
 }
 
 export const FIXTURE_BOARDS: Readonly<Record<string, FixtureBoard>> = {
@@ -92,6 +99,24 @@ export const FIXTURE_BOARDS: Readonly<Record<string, FixtureBoard>> = {
     outputs: [{ from: 'uf2', ext: 'uf2' }],
     debugSymbols: 'arm-none-eabi-nm',
   },
+  // BT110: the Raspberry Pi Pico W (arduino-pico 6.2.0): an RP2040 with the CYW43439, whose
+  // driver the simulator answers at its API by name — every sketch keeps its symbols.
+  picow: {
+    fqbn: 'rp2040:rp2040:rpipicow',
+    outputs: [{ from: 'uf2', ext: 'uf2' }],
+    symbols: 'arm-none-eabi-nm',
+    // The cyw43-driver (LICENSE.RP: Raspberry Pi devices only; LICENSE: non-commercial) and
+    // Infineon's CYW43439 firmware are linked in: not redistributable.
+    redistributable: false,
+  },
+  // BT113: the Raspberry Pi Pico 2 W on its RISC-V cores — the RP2350 with the CYW43439, answered
+  // at its driver's API by name: every sketch keeps its symbols.
+  pico2w: {
+    fqbn: 'rp2040:rp2040:rpipico2w:arch=riscv',
+    outputs: [{ from: 'uf2', ext: 'uf2' }],
+    symbols: 'riscv32-unknown-elf-nm',
+    redistributable: false, // as the Pico W's
+  },
   // BT65: the Raspberry Pi Pico 2's RP2350 on its RISC-V cores (arduino-pico 6.2.0, arch=riscv).
   pico2: {
     fqbn: 'rp2040:rp2040:rpipico2:arch=riscv',
@@ -137,6 +162,8 @@ export interface ManifestOutput {
   libraries: Record<string, string>;
   /** sketchSourceSha256 of the sketch folder it was built from (BT43; absent before). */
   source?: string;
+  /** False: the public repository leaves this file out (its board's `redistributable`). */
+  redistributable?: false;
 }
 
 export interface Manifest {

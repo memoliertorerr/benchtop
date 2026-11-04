@@ -5,6 +5,9 @@
  *
  *   node scripts/build-fixtures.ts                 build everything, rewrite the manifest
  *   node scripts/build-fixtures.ts --only uno/blink build one sketch, update its entries
+ *   node scripts/build-fixtures.ts --only picow     every sketch of one board folder (the Pico W
+ *                                                  and Pico 2 W firmware isn't published —
+ *                                                  THIRD_PARTY_NOTICES.md — so this builds it)
  *   node scripts/build-fixtures.ts --check         rebuild into a temp dir and compare hashes
  *                                                  with the manifest; writes nothing
  *
@@ -59,7 +62,7 @@ async function main(): Promise<number> {
   const known = new Set(['--check', '--only', ...(only === undefined ? [] : [only])]);
   const unknown = args.filter((a) => !known.has(a));
   if (unknown.length > 0 || (onlyIndex >= 0 && only === undefined)) {
-    console.error(`usage: node scripts/build-fixtures.ts [--only <board>/<name> | --only xtensa/<name> | --only xtensa/corpus | --only rp2040/<name> | --only riscv/<name> | --only riscv/corpus] [--check]`);
+    console.error(`usage: node scripts/build-fixtures.ts [--only <board>/<name> | --only <board> | --only xtensa/<name> | --only xtensa/corpus | --only rp2040/<name> | --only riscv/<name> | --only riscv/corpus] [--check]`);
     return 1;
   }
 
@@ -84,7 +87,7 @@ async function main(): Promise<number> {
     return 1;
   }
 
-  const sketches = listSketches().filter((s) => only === undefined || `${s.board}/${s.name}` === only);
+  const sketches = listSketches().filter((s) => only === undefined || `${s.board}/${s.name}` === only || s.board === only);
   if (sketches.length === 0) {
     console.error(only === undefined ? 'no sketches under fixtures/sketches/' : `no sketch ${only}`);
     return 1;
@@ -145,6 +148,7 @@ async function main(): Promise<number> {
           core: `${platform?.id ?? '?'}@${platform?.version ?? '?'}`,
           libraries: sortKeys(libraries),
           source: sourceSha256,
+          ...(FIXTURE_BOARDS[sketch.board]?.redistributable === false ? { redistributable: false as const } : {}),
         });
         if (!check) {
           mkdirSync(join(FIRMWARE, sketch.board), { recursive: true });
@@ -166,6 +170,7 @@ async function main(): Promise<number> {
           core: `${platform?.id ?? '?'}@${platform?.version ?? '?'}`,
           libraries: sortKeys(libraries),
           source: sourceSha256,
+          ...(FIXTURE_BOARDS[sketch.board]?.redistributable === false ? { redistributable: false as const } : {}),
         });
         if (!check) writeFileSync(join(FIRMWARE, file), bytes);
       }
@@ -183,6 +188,7 @@ async function main(): Promise<number> {
           core: `${platform?.id ?? '?'}@${platform?.version ?? '?'}`,
           libraries: sortKeys(libraries),
           source: sourceSha256,
+          ...(FIXTURE_BOARDS[sketch.board]?.redistributable === false ? { redistributable: false as const } : {}),
         });
         if (!check) writeFileSync(join(FIRMWARE, file), bytes);
       }

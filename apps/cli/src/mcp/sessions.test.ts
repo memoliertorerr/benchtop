@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { REPO_ROOT } from '../../../../packages/core/src/firmware/fixtures.test-helper.ts';
+import { REPO_ROOT, withheldFirmware } from '../../../../packages/core/src/firmware/fixtures.test-helper.ts';
 import { request, testServer, tool } from './mcp.test-helper.ts';
 
 // BT69: live sessions and the examples through the MCP server — the Uno blink measured on a
@@ -186,6 +186,22 @@ describe('live sessions', () => {
     expect((await tool(server, 'sim_http', { session: blinkSession, url: 'http://x/' })).text).toMatch(/no WiFi access point/);
   }, 120_000);
 
+  // Skipped where the Pico W firmware is withheld (the published repository; THIRD_PARTY_NOTICES.md).
+  it.skipIf(withheldFirmware('picow/wifi-webserver.uf2') !== undefined)('sim_wifi and sim_http (BT112): a Pico W web server, its onboard LED switched over HTTP', async () => {
+    const server = testServer({ maxWallMs: 120_000 });
+    const open = (await tool(server, 'sim_open', { project: 'fixtures/projects/picow-wifi-webserver.json', firmware: { picow: 'fixtures/firmware/picow/wifi-webserver.uf2' } })).value as { session: string };
+    const session = open.session;
+    type Wifi = { accessPoints: { stations: { board: string; ip: string | null; hostname?: string; mac: string }[] }[]; boards: Record<string, string> };
+    expect(((await tool(server, 'sim_wifi', { session })).value as Wifi).boards).toEqual({ picow: 'not connected' });
+    await tool(server, 'sim_run', { session, untilSerial: 'server at', duration: '5s' });
+    const wifi = (await tool(server, 'sim_wifi', { session })).value as Wifi;
+    expect(wifi.boards).toEqual({ picow: 'connected to "benchtop" as 192.168.4.2' });
+    expect(wifi.accessPoints[0].stations[0]).toMatchObject({ board: 'picow', ip: '192.168.4.2', hostname: 'picow-web', mac: expect.stringMatching(/^28:cd:c1:/) });
+    expect((await tool(server, 'sim_http', { session, url: 'http://picow-web/led?state=on' })).value).toMatchObject({ status: 200, body: 'led on' });
+    const state = (await tool(server, 'sim_state', { session, parts: ['picow'] })).value as { parts: Record<string, { led: number }> };
+    expect(state.parts.picow.led).toBeGreaterThan(0.3);
+  }, 120_000);
+
   it('sim_wifi and sim_http (BT108): an ESP32-C3 web server, its RGB LED set over HTTP', async () => {
     const server = testServer({ maxWallMs: 120_000 });
     const open = (await tool(server, 'sim_open', { project: 'fixtures/projects/esp32c3-wifi-rgb-server.json', firmware: { c3: 'fixtures/firmware/esp32c3/wifi-rgb-server.bin' } })).value as { session: string };
@@ -220,7 +236,10 @@ describe('live sessions', () => {
 });
 
 describe('examples', () => {
-  const listed = JSON.parse(readFileSync(join(REPO_ROOT, 'fixtures/examples.json'), 'utf8')) as { id: string }[];
+  // Less those whose firmware is withheld (the published repository; THIRD_PARTY_NOTICES.md): never any here.
+  const listed = (JSON.parse(readFileSync(join(REPO_ROOT, 'fixtures/examples.json'), 'utf8')) as { id: string; boards: Record<string, { firmware?: string }> }[]).filter((e) =>
+    Object.values(e.boards).every((b) => b.firmware === undefined || withheldFirmware(b.firmware) === undefined),
+  );
 
   it('list_examples is the gallery\'s list; open_example runs one with its sketch', async () => {
     const server = testServer();

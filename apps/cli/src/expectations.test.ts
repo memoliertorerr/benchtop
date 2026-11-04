@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { REPO_ROOT } from '../../../packages/core/src/firmware/fixtures.test-helper.ts';
+import { REPO_ROOT, withheldFirmware } from '../../../packages/core/src/firmware/fixtures.test-helper.ts';
 import { parseAssertion, type RunIo, type RunReport, runHeadless } from './run.ts';
 
 // BT49: the richer expectations — parts' visual state, pin timing over a window, serial regexes —
@@ -61,6 +61,13 @@ describe('visual expectations', () => {
       ['digits disp show "1234" at 2s', true, 'shows "1234"'],
       ['digits disp shows "4321" at 2s', false, 'shows "1234"'],
     ]);
+  });
+
+  // Skipped where the Pico W firmware is withheld (the published repository; THIRD_PARTY_NOTICES.md).
+  it.skipIf(withheldFirmware('picow/blink.uf2') !== undefined)('BT110: led <board> reads a Pico W’s onboard LED (on its CYW43, symbols from the .syms.tsv beside the UF2)', () => {
+    const r = runHeadless({ project: 'fixtures/projects/picow-blink.json', firmware: { picow: 'fixtures/firmware/picow/blink.uf2' }, expect: ['led picow is lit at 250ms', 'led picow is dark at 750ms', 'led picow is lit at 1250ms'], duration: '1.3s' }, io);
+    expect(r.error).toBeNull();
+    expect(verdicts(r).map(([, ok]) => ok)).toEqual([true, true, true]);
   });
 
   it('refuses a visual expectation on the wrong kind of part, or an LCD row it lacks', () => {

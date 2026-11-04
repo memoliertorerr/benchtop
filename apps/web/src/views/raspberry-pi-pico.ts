@@ -5,7 +5,10 @@
  * pinout name, as the back silkscreen is), the micro-USB connector at the top, the green LED
  * (lit by GP25's brightness) and the BOOTSEL button beside it, the RP2040, the flash chip, the
  * crystal and the three SWD pads at the bottom. The Pico 2 (BT66) is the same board with an
- * RP2350 and its own name and year.
+ * RP2350 and its own name and year. The Pico W (BT112) keeps the header and the LED's place (lit
+ * by the CYW43's WL_GPIO0 now) and adds what its photos show: the CYW43439 under a silver shield
+ * can toward the far end, the PCB antenna past it (bare board, a meander trace), and the SWD pads
+ * moved up beside the RP2040. The Pico 2 W (BT113) is that board with an RP2350.
  */
 
 import type { PartDefinition, VisualState } from '@benchtop/core';
@@ -63,17 +66,29 @@ function draw(def: PartDefinition): { svg: SVGSVGElement; led: SVGRectElement; g
   svg.append(text(w / 2, 24.8, rp2350 ? 'RP2350' : 'RP2040', 1.1, 'middle', '#c9cbcf'));
   svg.append(text(w / 2, 26.6, rp2350 ? 'RP2350A' : 'RP2-B2', 0.8, 'middle', '#8e9095'));
   svg.append(el('circle', { cx: w / 2 - 2.7, cy: 22.8, r: 0.25, fill: '#55575c' }));
-  // Board name and the SWD pads at the bottom edge.
-  svg.append(text(w / 2, 35.5, def.title, 1.0, 'middle'));
-  svg.append(text(w / 2, 37.1, rp2350 ? '© 2024' : '© 2020', 0.75, 'middle'));
+  const picoW = def.type === 'raspberry-pi-pico-w' || def.type === 'raspberry-pi-pico-2w';
+  if (picoW) {
+    // The CYW43439 under its shield can, and the PCB antenna at the far end (no copper pour).
+    svg.append(el('rect', { x: 4.3, y: 37.2, width: w - 8.6, height: 7.6, rx: 0.4, fill: '#cfd2d6', stroke: '#9a9ea4', 'stroke-width': 0.2 }));
+    svg.append(el('rect', { x: 4.9, y: 37.8, width: w - 9.8, height: 6.4, rx: 0.3, fill: 'none', stroke: '#b4b8bd', 'stroke-width': 0.12 }));
+    svg.append(text(w / 2, 41, 'CYW43439', 0.85, 'middle', '#6d7177'));
+    svg.append(el('rect', { x: 3.4, y: 45.6, width: w - 6.8, height: 4.6, rx: 0.3, fill: '#2a7d48' }));
+    const zig: string[] = [];
+    for (let i = 0; i <= 8; i++) zig.push(`${4.6 + i * 1.5},${i % 2 === 0 ? 46.6 : 49.2}`);
+    svg.append(el('polyline', { points: zig.join(' '), fill: 'none', stroke: '#d9b44a', 'stroke-width': 0.35, 'stroke-linejoin': 'round' }));
+  }
+  // Board name and the SWD pads: at the bottom edge, or beside the RP2040 on the Pico W.
+  svg.append(text(w / 2, picoW ? 33.4 : 35.5, def.title, 1.0, 'middle'));
+  svg.append(text(w / 2, picoW ? 34.9 : 37.1, rp2350 ? '© 2024' : picoW ? '© 2022' : '© 2020', 0.75, 'middle'));
+  const swdY = picoW ? 31.1 : h - 1.6;
   for (const [i, label] of ['SWCLK', 'GND', 'SWDIO'].entries()) {
     const x = w / 2 - 2.54 + i * 2.54;
-    svg.append(el('circle', { cx: x, cy: h - 1.6, r: 0.75, fill: '#d9b44a', stroke: '#a8862b', 'stroke-width': 0.15 }));
-    svg.append(text(x, h - 3.1, label, 0.55, 'middle'));
+    svg.append(el('circle', { cx: x, cy: swdY, r: 0.75, fill: '#d9b44a', stroke: '#a8862b', 'stroke-width': 0.15 }));
+    if (!picoW) svg.append(text(x, swdY - 1.5, label, 0.55, 'middle'));
   }
   // Castellated pads (half-holes on the edge) and their labels.
   for (const pin of def.pins) {
-    if (pin.name === 'TP5') {
+    if (pin.name === 'TP5' || pin.name === 'WL_GPIO0') {
       svg.append(el('circle', { cx: pin.x, cy: pin.y, r: 0.45, fill: '#d9b44a', stroke: '#a8862b', 'stroke-width': 0.1 }));
       continue;
     }

@@ -1,0 +1,50 @@
+{
+  "format": 1,
+  "name": "picow-wifi-webserver",
+  "parts": [
+    {
+      "id": "picow",
+      "type": "raspberry-pi-pico-w",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "ap",
+      "type": "wifi-ap",
+      "x": 30,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "on",
+      "type": "http-client",
+      "x": 30,
+      "y": 30,
+      "rotation": 0,
+      "props": {
+        "url": "http://picow-web/led?state=on"
+      }
+    },
+    {
+      "id": "off",
+      "type": "http-client",
+      "x": 64,
+      "y": 30,
+      "rotation": 0,
+      "props": {
+        "url": "http://picow-web/led?state=off"
+      }
+    }
+  ],
+  "wires": [],
+  "firmware": {
+    "picow": {
+      "kind": "file",
+      "name": "wifi-webserver.uf2",
+      "format": "uf2"
+    }
+  }
+}

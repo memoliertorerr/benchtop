@@ -4,11 +4,14 @@
  * bus contracts. DOM-free.
  */
 import type { BoardSpec, Mcu, Problem } from '@benchtop/core';
+import { macFromName } from '@benchtop/core';
 import { createRp2040Mcu } from './rp2040-mcu.ts';
 
 export * from './bootrom/float.ts';
 export * from './bootrom/layout.ts';
 export * from './bridges.ts';
+export * from './cyw43/cyw43.ts';
+export * from './hle.ts';
 export * from './micropython.ts';
 export * from './micropython-manifest.ts';
 export * from './rp2040-mcu.ts';
@@ -20,7 +23,10 @@ export * from './rp2040-mcu.ts';
  */
 export function rp2040McuFactory(board: BoardSpec, partId: string, report?: (problem: Problem) => void, micropython?: Uint8Array): Mcu | undefined {
   if (board.mcu !== 'rp2040') return undefined;
-  const mcu = createRp2040Mcu(micropython === undefined ? {} : { micropython });
+  // BT110: a board that maps a pin to WL_GPIO0 is a Pico W — the RP2040 with the CYW43439, its
+  // MAC Raspberry Pi's 28:CD:C1 and three bytes hashed from the part id (two boards differ).
+  const picoW = Object.values(board.pinMap).includes('WL_GPIO0');
+  const mcu = createRp2040Mcu({ ...(micropython === undefined ? {} : { micropython }), ...(picoW ? { cyw43: { mac: macFromName(partId, [0x28, 0xcd, 0xc1]) } } : {}) });
   if (report !== undefined) {
     const seen = new Map<string, { messages: string[]; count: number }>();
     mcu.onProblem = (problem) => {

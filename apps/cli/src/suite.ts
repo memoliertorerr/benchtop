@@ -23,6 +23,47 @@ export interface SpecResult {
   file: string;
   name: string;
   report: RunReport;
+  /**
+   * Why the spec didn't run because its firmware was deliberately left out of this tree (the
+   * published repository's withheld-firmware.json lists it): a skip, not a pass. Absent otherwise.
+   */
+  skipped?: string;
+}
+
+/**
+ * The file in a fixtures folder (next to its firmware/) that names the firmware the published
+ * repository leaves out and why — written by the snapshot, absent in the private tree, where every
+ * fixture must be there (THIRD_PARTY_NOTICES.md).
+ */
+export const WITHHELD_FIRMWARE = 'withheld-firmware.json';
+
+/**
+ * Why `path` (a fixtures/firmware/… file) is missing from this tree on purpose — listed in the
+ * withheld-firmware.json beside firmware/ and not there — or undefined (built back, it runs).
+ */
+export function withheldReason(io: CliIo, path: string): string | undefined {
+  const norm = path.replaceAll('\\', '/');
+  const at = norm.lastIndexOf('/firmware/');
+  if (at < 0) return undefined;
+  let bytes: Uint8Array;
+  try {
+    bytes = io.readFile(`${norm.slice(0, at)}/${WITHHELD_FIRMWARE}`);
+  } catch {
+    return undefined;
+  }
+  try {
+    const list = JSON.parse(new TextDecoder().decode(bytes)) as { reason?: unknown; files?: unknown };
+    const file = norm.slice(at + '/firmware/'.length);
+    if (!Array.isArray(list.files) || !list.files.includes(file)) return undefined;
+    try {
+      io.readFile(path);
+      return undefined;
+    } catch {
+      return typeof list.reason === 'string' ? list.reason : 'left out of this tree';
+    }
+  } catch {
+    return undefined;
+  }
 }
 
 export interface SuiteReport {
@@ -98,6 +139,12 @@ function errored(file: string, name: string, message: string): SpecResult {
 export function runSpecFile(file: string, io: CliIo): SpecResult {
   try {
     const spec = loadSpec(io, file);
+    for (const path of Object.values(spec.options.firmware ?? {})) {
+      const why = withheldReason(io, path);
+      if (why === undefined) continue;
+      const report: RunReport = { ok: true, exitCode: 0, simulatedNs: 0, wallMs: 0, simulatedMHz: 0, assertions: [], serial: {}, problems: [], error: null };
+      return { file, name: spec.name, report, skipped: `${path} is left out of this tree: ${why}` };
+    }
     return { file, name: spec.name, report: runHeadless(spec.options, io) };
   } catch (error) {
     return errored(file, defaultSpecName(file), error instanceof Error ? error.message : String(error));
@@ -148,6 +195,7 @@ function runInWorkers(files: readonly string[], count: number, results: (SpecRes
 /** One line per spec, for the terminal. */
 export function specLine(spec: SpecResult): string {
   const r = spec.report;
+  if (spec.skipped !== undefined) return `skip  ${spec.name} — ${spec.skipped}`;
   if (r.exitCode === 2) return `ERROR ${spec.name} — ${r.error ?? 'unknown error'}`;
   const passed = r.assertions.filter((a) => a.ok).length;
   const head = `${r.ok ? 'ok   ' : 'FAIL '} ${spec.name} — ${passed}/${r.assertions.length} assertions, ${formatNs(r.simulatedNs)} simulated in ${(r.wallMs / 1000).toFixed(2)} s`;
@@ -157,7 +205,8 @@ export function specLine(spec: SpecResult): string {
 
 /** The closing line. */
 export function suiteLine(report: SuiteReport): string {
-  const count = (code: number) => report.specs.filter((s) => s.report.exitCode === code).length;
+  const count = (code: number) => report.specs.filter((s) => s.skipped === undefined && s.report.exitCode === code).length;
+  const skipped = report.specs.filter((s) => s.skipped !== undefined).length;
   const assertions = report.specs.flatMap((s) => s.report.assertions);
-  return `${report.specs.length} specs: ${count(0)} passed, ${count(1)} failed, ${count(2)} errors — ${assertions.filter((a) => a.ok).length}/${assertions.length} assertions passed in ${(report.wallMs / 1000).toFixed(2)} s`;
+  return `${report.specs.length} specs: ${count(0)} passed, ${count(1)} failed, ${count(2)} errors${skipped > 0 ? `, ${skipped} skipped` : ''} — ${assertions.filter((a) => a.ok).length}/${assertions.length} assertions passed in ${(report.wallMs / 1000).toFixed(2)} s`;
 }

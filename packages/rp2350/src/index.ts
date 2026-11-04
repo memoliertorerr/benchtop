@@ -4,6 +4,7 @@
  * adapter over it. DOM-free.
  */
 import type { BoardSpec, Mcu, Problem } from '@benchtop/core';
+import { macFromName } from '@benchtop/core';
 import { createRp2350Mcu } from './rp2350-mcu.ts';
 
 export * from './boot.ts';
@@ -25,7 +26,13 @@ export interface Rp2350Files {
  */
 export function rp2350McuFactory(board: BoardSpec, partId: string, report?: (problem: Problem) => void, files: Rp2350Files = {}): Mcu | undefined {
   if (board.mcu !== 'rp2350') return undefined;
-  const mcu = createRp2350Mcu({ ...(files.rom === undefined ? {} : { rom: files.rom }), ...(files.micropython === undefined ? {} : { micropython: files.micropython }) });
+  // BT113: a board that maps a pin to WL_GPIO0 is a Pico 2 W — its MAC 28:CD:C1 and a hash of the part id.
+  const picoW = Object.values(board.pinMap).includes('WL_GPIO0');
+  const mcu = createRp2350Mcu({
+    ...(files.rom === undefined ? {} : { rom: files.rom }),
+    ...(files.micropython === undefined ? {} : { micropython: files.micropython }),
+    ...(picoW ? { cyw43: { mac: macFromName(partId, [0x28, 0xcd, 0xc1]) } } : {}),
+  });
   if (report !== undefined) {
     const seen = new Map<string, { messages: string[]; count: number }>();
     mcu.onProblem = (problem) => {

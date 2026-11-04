@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PICO_PINOUT, raspberryPiPico, raspberryPiPico2 } from './raspberry-pi-pico.ts';
+import { PICO_PINOUT, raspberryPiPico, raspberryPiPico2, raspberryPiPico2W, raspberryPiPicoW } from './raspberry-pi-pico.ts';
 
 // BT61: the Pico's pin table against its datasheet (pinout and mechanical drawing).
 
@@ -59,5 +59,29 @@ describe('Raspberry Pi Pico 2 board part (BT66)', () => {
     expect(raspberryPiPico2.board?.pinMap).toEqual(raspberryPiPico.board?.pinMap);
     expect(raspberryPiPico2.defaults).toEqual(raspberryPiPico.defaults);
     expect(raspberryPiPico2.buses).toEqual(raspberryPiPico.buses);
+  });
+});
+
+describe('Raspberry Pi Pico W board part (BT110)', () => {
+  it('is the Pico with the CYW43: the same footprint and header, its LED on WL_GPIO0 instead of TP5', () => {
+    expect(raspberryPiPicoW.type).toBe('raspberry-pi-pico-w');
+    expect(raspberryPiPicoW.board?.mcu).toBe('rp2040');
+    expect(raspberryPiPicoW.size).toEqual(raspberryPiPico.size);
+    const names = (def: typeof raspberryPiPico): string[] => def.pins.map((p) => p.name);
+    expect(names(raspberryPiPicoW).filter((n) => n !== 'WL_GPIO0')).toEqual(names(raspberryPiPico).filter((n) => n !== 'TP5'));
+    const map = raspberryPiPicoW.board?.pinMap ?? {};
+    expect(map.WL_GPIO0).toBe('WL_GPIO0');
+    expect(map.TP5).toBeUndefined();
+    expect(Object.values(map)).not.toContain('GPIO25'); // the CYW43's CS: not on the header
+    expect(raspberryPiPicoW.buses).toEqual(raspberryPiPico.buses);
+  });
+});
+
+describe('Raspberry Pi Pico 2 W board part (BT113)', () => {
+  it('is the Pico W around an RP2350: the same pins and pin map', () => {
+    expect(raspberryPiPico2W.type).toBe('raspberry-pi-pico-2w');
+    expect(raspberryPiPico2W.board?.mcu).toBe('rp2350');
+    expect(raspberryPiPico2W.pins).toEqual(raspberryPiPicoW.pins);
+    expect(raspberryPiPico2W.board?.pinMap).toEqual(raspberryPiPicoW.board?.pinMap);
   });
 });

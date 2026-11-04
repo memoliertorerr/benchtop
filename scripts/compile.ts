@@ -18,7 +18,7 @@ import { runArduinoCli } from './arduino-cli.ts';
 export { arduinoCliCandidates, findArduinoCli } from './arduino-cli.ts';
 
 /** The Pico 2 builds for its RISC-V cores only (BT66: the simulator has no Arm cores). */
-export const FQBN_ALLOWLIST: readonly string[] = ['arduino:avr:uno', 'arduino:avr:nano', 'arduino:avr:mega', 'esp32:esp32:esp32', 'esp32:esp32:esp32c3', 'rp2040:rp2040:rpipico', 'rp2040:rp2040:rpipico2:arch=riscv'];
+export const FQBN_ALLOWLIST: readonly string[] = ['arduino:avr:uno', 'arduino:avr:nano', 'arduino:avr:mega', 'esp32:esp32:esp32', 'esp32:esp32:esp32c3', 'rp2040:rp2040:rpipico', 'rp2040:rp2040:rpipicow', 'rp2040:rp2040:rpipico2:arch=riscv', 'rp2040:rp2040:rpipico2w:arch=riscv'];
 export function isAllowedFqbn(fqbn: unknown): fqbn is string {
   return typeof fqbn === 'string' && FQBN_ALLOWLIST.includes(fqbn);
 }

@@ -103,6 +103,35 @@ project (the sketches) is in `fixtures/sketches/`, the exact core and library ve
 the manifest, and `npm run fixtures` rebuilds and relinks every image with them; the sources of
 the LGPL components are available from the links above.
 
+### Pico W and Pico 2 W test firmware: not redistributed
+
+The Raspberry Pi Pico W and Pico 2 W fixtures (`fixtures/firmware/picow/` and
+`fixtures/firmware/pico2w/`: their UF2s and symbol tables) are **not in this repository**, and
+`fixtures/withheld-firmware.json` lists them. Every Pico W or Pico 2 W build of the Arduino-Pico
+core links two components whose terms don't allow us to redistribute the result:
+
+- the [cyw43-driver](https://github.com/georgerobotics/cyw43-driver) (the WiFi chip's driver,
+  © George Robotics), under either its `LICENSE.RP`, which permits use solely with Raspberry Pi
+  semiconductor devices (a simulator isn't one), or its `LICENSE`, which is non-commercial and
+  solely for personal benefit;
+- Infineon's CYW43439 firmware (the chip's closed binary), which Arduino-Pico 6.2.0 ships with no
+  license file.
+
+Benchtop's own model of the chip (`packages/rp2040/src/cyw43/`) answers the driver's calls; it
+contains neither component and is MIT like the rest of this project. The sketches are in the
+repository (`fixtures/sketches/picow/`, `fixtures/sketches/pico2w/`). To run the Pico W and
+Pico 2 W tests, specs and gallery examples, build the firmware yourself with arduino-cli and the
+Arduino-Pico core 6.2.0 (`rp2040:rp2040@6.2.0`, see `fixtures/README.md`):
+
+```bash
+npm run fixtures -- --only picow
+npm run fixtures -- --only pico2w
+```
+
+or one sketch at a time (`npm run fixtures -- --only picow/blink`). Until you do, those tests
+and specs are reported as skipped and the gallery leaves those examples out. What you build is
+for your own use under those licenses; don't redistribute it.
+
 The decode corpora in `fixtures/xtensa/corpus/` are `xtensa-esp32-elf-objdump` output for this
 project's test programs and for the instruction words of the `serial-hello` fixture; the Xtensa
 test programs in `fixtures/xtensa/` and the RP2040 test programs in `fixtures/rp2040/` are this
