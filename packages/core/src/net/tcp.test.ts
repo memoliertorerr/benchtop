@@ -220,7 +220,7 @@ describe('HTTP (BT99)', () => {
 
 describe('server parts on the bench network (BT99)', () => {
   const roles: Record<string, NetRole> = {
-    ap: { kind: 'access-point', ssid: 'benchtop', password: 'simulated', security: 'wpa2', channel: 6, rssi: -50, hidden: false, on: true, internet: false, allow: '' },
+    ap: { kind: 'access-point', ssid: 'benchtop', password: 'simulated', security: 'wpa2', channel: 6, rssi: -50, hidden: false, on: true, internet: false, allow: '', clock: 'off' },
     api: { kind: 'http-server', network: '', address: 0, port: 80, hostname: 'api.bench', routes: 'GET /api/hello 200 application/json {"hello":"world"}' },
     web: { kind: 'http-server', network: 'benchtop', address: 0xc0a8040a, port: 8080, hostname: 'web.bench', routes: 'GET / 200 text/html ok\nbogus line' },
     lost: { kind: 'http-server', network: 'elsewhere', address: 0, port: 80, hostname: '', routes: '' },
@@ -276,7 +276,7 @@ describe('client parts, events and requests from the gateway (BT100)', () => {
   });
 
   const roles: Record<string, NetRole> = {
-    ap: { kind: 'access-point', ssid: 'benchtop', password: 'simulated', security: 'wpa2', channel: 6, rssi: -50, hidden: false, on: true, internet: false, allow: '' },
+    ap: { kind: 'access-point', ssid: 'benchtop', password: 'simulated', security: 'wpa2', channel: 6, rssi: -50, hidden: false, on: true, internet: false, allow: '', clock: 'off' },
     api: { kind: 'http-server', network: '', address: 0, port: 80, hostname: 'api.bench', routes: 'GET /api/hello 200 application/json {"n":{{count}}}\nPOST /echo 200 text/plain got {{body}}' },
     poll: { kind: 'http-client', network: '', url: 'http://api.bench/api/hello?x=1', method: 'GET', body: '', interval: 500 },
     post: { kind: 'http-client', network: '', url: 'http://192.168.4.10/echo', method: 'POST', body: 'hi', interval: 0 },

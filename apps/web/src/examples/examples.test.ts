@@ -50,6 +50,8 @@ describe('examples gallery (BT38, BT43, BT45, BT47, BT56)', () => {
       'pico2-micropython-blink',
       // BT100
       'esp32-wifi-webserver', 'esp32-wifi-http', 'esp32-wifi-tcp',
+      // BT105
+      'esp32-ntp-clock',
     ];
     for (const id of planned) expect(EXAMPLES.some((e) => e.id === id), id).toBe(true);
     for (const category of CATEGORIES) expect(EXAMPLES.some((e) => e.category === category), category).toBe(true);

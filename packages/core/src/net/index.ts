@@ -6,6 +6,7 @@ export * from './lan.ts';
 export * from './packet.ts';
 export * from './radio.ts';
 export * from './runtime.ts';
+export * from './sntp.ts';
 export * from './spec.ts';
 export * from './tcp.ts';
 export * from './uplink.ts';

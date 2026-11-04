@@ -141,3 +141,26 @@ describe('WiFi station on the bench (BT98)', () => {
   });
 });
 
+describe('time on the virtual network (BT105)', () => {
+  it('configTime(0, 0, "pool.ntp.org") gets the AP\u2019s clock from the gateway; the sketch counts on from it', () => {
+    const { bench, text } = load('ntp-clock', { clock: '2026-01-02T03:04:05Z' });
+    runTo(bench, 6000, () => (text().match(/2026-01-02 /g) ?? []).length >= 3);
+    const lines = text().split('\r\n').filter((l) => /^\d{4}-/.test(l));
+    expect(lines.length).toBeGreaterThanOrEqual(3);
+    // The first answer comes once WiFi is up (≈ 1.6 s) — the time is the date plus bench time.
+    const first = Date.parse(`${lines[0].replace(' ', 'T')}Z`);
+    expect(first - Date.parse('2026-01-02T03:04:05Z')).toBeGreaterThanOrEqual(1000);
+    expect(first - Date.parse('2026-01-02T03:04:05Z')).toBeLessThanOrEqual(5000);
+    const seconds = lines.map((l) => Date.parse(`${l.replace(' ', 'T')}Z`) / 1000);
+    for (let i = 1; i < seconds.length; i++) expect(seconds[i] - seconds[i - 1]).toBe(1);
+    expect(bench.network!.accessPoints[0].sntpAnswered).toBeGreaterThanOrEqual(1);
+    expect(bench.network!.accessPoints[0].dns.asked).toContain('pool.ntp.org');
+  }, 60_000);
+
+  it('with the clock off the sketch keeps waiting', () => {
+    const { bench, text } = load('ntp-clock', { clock: 'off' });
+    runTo(bench, 4000, () => false);
+    expect(text()).toContain('waiting for time');
+    expect(text()).not.toMatch(/\d{4}-\d\d-\d\d /);
+  }, 60_000);
+});

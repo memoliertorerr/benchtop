@@ -286,7 +286,7 @@ describe('the DHCP server (BT98)', () => {
 });
 
 describe('the bench network (BT98)', () => {
-  const role: AccessPointRole = { kind: 'access-point', ssid: 'benchtop', password: 'simulated', security: 'wpa2', channel: 6, rssi: -50, hidden: false, on: true, internet: false, allow: '' };
+  const role: AccessPointRole = { kind: 'access-point', ssid: 'benchtop', password: 'simulated', security: 'wpa2', channel: 6, rssi: -50, hidden: false, on: true, internet: false, allow: '', clock: 'off' };
   const build = (clock: LanClock, previous: NetRuntime | null = null): NetRuntime =>
     NetRuntime.build([{ id: 'ap', type: 'wifi-ap', props: {} }, { id: 'led', type: 'led', props: {} }], (type) => (type === 'wifi-ap' ? role : undefined), clock, previous);
 
@@ -325,7 +325,7 @@ describe('the bench network (BT98)', () => {
 });
 
 describe('stations and their events (BT100)', () => {
-  const role: AccessPointRole = { kind: 'access-point', ssid: 'benchtop', password: 'simulated', security: 'wpa2', channel: 6, rssi: -50, hidden: false, on: true, internet: false, allow: '' };
+  const role: AccessPointRole = { kind: 'access-point', ssid: 'benchtop', password: 'simulated', security: 'wpa2', channel: 6, rssi: -50, hidden: false, on: true, internet: false, allow: '', clock: 'off' };
   const dhcpFrame = (type: number, extra: { requested?: number; server?: number } = {}): Uint8Array =>
     ethernet(BROADCAST_MAC, STATION, ETHERTYPE_IPV4, ipv4({ protocol: PROTO_UDP, src: 0, dst: 0xffffffff, payload: udp(0, 0xffffffff, DHCP_CLIENT_PORT, DHCP_SERVER_PORT, dhcpMessage(type, STATION, extra)) }));
 

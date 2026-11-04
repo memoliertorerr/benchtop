@@ -123,6 +123,39 @@
     },
     {
       "board": "esp32",
+      "name": "crypto-kat",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/crypto-kat.bin",
+      "sha256": "9b318e5e7ebc17f4d8e0b2ee79ebf05832dd412c24b8309f62a342ec7f01323b",
+      "bytes": 275888,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "d36af346ac2c607b79ae21f166936c65458f71459434c409fedebbee0330d6d1"
+    },
+    {
+      "board": "esp32",
+      "name": "crypto-kat",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/crypto-kat.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "d36af346ac2c607b79ae21f166936c65458f71459434c409fedebbee0330d6d1"
+    },
+    {
+      "board": "esp32",
+      "name": "crypto-kat",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/crypto-kat.syms.tsv",
+      "sha256": "5fc23352a52f13c56185350c836c6904782ceb8ed7c748d13c930915457156a7",
+      "bytes": 117525,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "d36af346ac2c607b79ae21f166936c65458f71459434c409fedebbee0330d6d1"
+    },
+    {
+      "board": "esp32",
       "name": "dac-sine",
       "fqbn": "esp32:esp32:esp32",
       "file": "esp32/dac-sine.bin",
@@ -252,6 +285,51 @@
       "core": "esp32:esp32@2.0.17",
       "libraries": {},
       "source": "3a0ec821dad475a5a00e1e72922552c044a6c90f3a8510ad883d2bf43ce0b2d3"
+    },
+    {
+      "board": "esp32",
+      "name": "https-get",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/https-get.bin",
+      "sha256": "0c6a827f7a4fac9870a407b613bdad951af76f4c0f0418af16edcd0d4e33107c",
+      "bytes": 900384,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "HTTPClient": "2.0.0",
+        "WiFi": "2.0.0",
+        "WiFiClientSecure": "2.0.0"
+      },
+      "source": "301baadba15a4e82fff6b9b2a1caada9faa087e1107d36117f7721bddc570b59"
+    },
+    {
+      "board": "esp32",
+      "name": "https-get",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/https-get.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "HTTPClient": "2.0.0",
+        "WiFi": "2.0.0",
+        "WiFiClientSecure": "2.0.0"
+      },
+      "source": "301baadba15a4e82fff6b9b2a1caada9faa087e1107d36117f7721bddc570b59"
+    },
+    {
+      "board": "esp32",
+      "name": "https-get",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/https-get.syms.tsv",
+      "sha256": "dc1b665d4e95ad1fee30fbc4ac24d68e52c8ca23b035572edad052ee165c2f19",
+      "bytes": 295023,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "HTTPClient": "2.0.0",
+        "WiFi": "2.0.0",
+        "WiFiClientSecure": "2.0.0"
+      },
+      "source": "301baadba15a4e82fff6b9b2a1caada9faa087e1107d36117f7721bddc570b59"
     },
     {
       "board": "esp32",
@@ -471,6 +549,60 @@
     },
     {
       "board": "esp32",
+      "name": "ntp-clock",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/ntp-clock.bin",
+      "sha256": "21ac716b4a366cb8e86dd4ac22ce97b97dad4e34a0c042475a1e167e06532ffe",
+      "bytes": 776512,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "2.0.0",
+        "WiFi": "2.0.0",
+        "Wire": "2.0.0"
+      },
+      "source": "1a2f7e2d8725e9c14ca579fe8ac938d8da155b456c1024a66b97f8ecebc7d9fc"
+    },
+    {
+      "board": "esp32",
+      "name": "ntp-clock",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/ntp-clock.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "2.0.0",
+        "WiFi": "2.0.0",
+        "Wire": "2.0.0"
+      },
+      "source": "1a2f7e2d8725e9c14ca579fe8ac938d8da155b456c1024a66b97f8ecebc7d9fc"
+    },
+    {
+      "board": "esp32",
+      "name": "ntp-clock",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/ntp-clock.syms.tsv",
+      "sha256": "874c100d1610dc3c74e6302a46815ef3f8b01db88f2f3cff8d82ed860152b26e",
+      "bytes": 269677,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "2.0.0",
+        "WiFi": "2.0.0",
+        "Wire": "2.0.0"
+      },
+      "source": "1a2f7e2d8725e9c14ca579fe8ac938d8da155b456c1024a66b97f8ecebc7d9fc"
+    },
+    {
+      "board": "esp32",
       "name": "oled-clock",
       "fqbn": "esp32:esp32:esp32",
       "file": "esp32/oled-clock.bin",
@@ -651,6 +783,39 @@
       "core": "esp32:esp32@2.0.17",
       "libraries": {},
       "source": "45e5a6483b5a027810b44cd2da28a76c43714706440e353f74a8fadaed8b5223"
+    },
+    {
+      "board": "esp32",
+      "name": "rsa-kat",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/rsa-kat.bin",
+      "sha256": "7c9aef8b57c4c9eb602127715a77e304f44edb83dd4b9244cb519674cd99d0ab",
+      "bytes": 268832,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "c7f8d349b8df4f54a3334ca72c56fcee6eb377a326bad55528e98b96137c7841"
+    },
+    {
+      "board": "esp32",
+      "name": "rsa-kat",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/rsa-kat.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "c7f8d349b8df4f54a3334ca72c56fcee6eb377a326bad55528e98b96137c7841"
+    },
+    {
+      "board": "esp32",
+      "name": "rsa-kat",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/rsa-kat.syms.tsv",
+      "sha256": "39ff620e2a9ac731b44a1412039221d7a2f85e4b527b52e048f5aa4cdb3aba94",
+      "bytes": 118226,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "c7f8d349b8df4f54a3334ca72c56fcee6eb377a326bad55528e98b96137c7841"
     },
     {
       "board": "esp32",

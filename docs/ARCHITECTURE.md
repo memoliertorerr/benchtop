@@ -721,6 +721,17 @@ bench calls it for every MCU whenever it builds (null without `netSpecFor`).
   problems: `net-allow` (lines that aren't host:port, or none), `net-no-uplink` (the CLI ran
   without `--network`). The AP's visual `internet` is off, on, busy (a connection out) or error;
   its view's NET light follows it.
+- **Time** (`sntp.ts`). The AP's `clock` prop — 'wall' (the default), an ISO date-time,
+  or 'off' — makes its gateway an SNTP server (RFC 4330 client/server mode on UDP 123: a mode-3
+  request of 48 bytes or more gets mode 4, stratum 2, its transmit timestamp back as originate —
+  what lwIP's SNTP client checks — and receive/transmit = the clock now) and the DNS answer for
+  pool.ntp.org (and its subdomains), time.google.com, time.cloudflare.com, time.nist.gov,
+  time.windows.com and time.apple.com. The clock is bench time plus a base: 'wall' takes the
+  host's clock when the bench resets (a rebuild keeps the base), a date pins the bench's start
+  to it (deterministic tests), and a value that is neither is `net-clock` (warning; the host's
+  clock). So `configTime(0, 0, "pool.ntp.org")` works with nothing leaving the machine: the
+  ntp-clock fixture prints its first time ≈ 3 s into a run (WiFi at 1.6 s, then lwIP's SNTP), one
+  second apart after.
 
 Measured: an ESP32 running `fixtures/sketches/esp32/wifi-ping` (WiFi.begin, DHCP, four pings of
 the gateway with IDF's esp_ping) prints its four replies 0–1 ms each; 6 s simulated take 1.1 s.
@@ -1451,6 +1462,48 @@ sequence, files matched by basename or trailing path.
   inactive time. The factory gives every ESP32 board its own eFuse MAC — 24:0A:C4 and three bytes
   hashed from its part id — so two boards on one LAN differ (`Esp32McuOptions.mac`; the SoC's
   default stays 24:0A:C4:00:00:01).
+
+  **Crypto accelerators (`soc/crypto/`).** Arduino-ESP32 2.0.17 builds mbedTLS with
+  CONFIG_MBEDTLS_HARDWARE_AES, _SHA and _MPI, so its hashes, ciphers and bignum work run on the
+  accelerators at 0x3FF01000 (AES), 0x3FF02000 (RSA) and 0x3FF03000 (SHA). They are modeled at
+  the register level (the math in TypeScript: `sha-math.ts` FIPS 180-4, `aes-math.ts` FIPS 197),
+  each operation complete when started — BUSY reads 0, IDLE 1 (the real blocks take tens of
+  cycles a block, which firmware only polls through). DPORT_PERI_CLK_EN / PERI_RST_EN (0x01C,
+  0x020: AES bit 0, SHA bit 1, RSA bit 2) gate them: unclocked or in reset a block reads 0 and
+  drops writes; going into reset clears it. **SHA:** TEXT (32 words) holds a 512- or 1024-bit
+  block as big-endian words (IDF's `sha_ll_fill_text_block` byte-swaps; the ROM's
+  `ets_sha_finish` pads in the registers), and per type t (SHA-1, -256, -384, -512) START,
+  CONTINUE, LOAD and BUSY sit at 0x80 + 0x10·t; TEXT is shared but each engine — SHA-1,
+  SHA-256, SHA-384/512 together — keeps its own state, so messages of different engines
+  interleave (IDF locks them separately, and TLS 1.2 hashes its transcript with SHA-256 and
+  SHA-384 at once: a single shared state broke the first HTTPS handshake); LOAD puts the
+  digest into TEXT, SHA-384/512's 64-bit words as high then low (what
+  `sha_ll_read_digest` swaps back). **AES:** MODE 0–2 encrypt and 4–6 decrypt with a 128/192/256-bit
+  key, KEY_0–7 and TEXT_0–3 as little-endian words (IDF memcpys them; the ROM packs byte 0
+  lowest) — the order at AES_ENDIAN's reset value, which IDF never changes (other values are
+  kept, not modeled); the key is expanded once per key. Tested through the registers on FIPS
+  vectors and against Node's crypto, and end to end by `fixtures/sketches/esp32/crypto-kat`
+  (mbedTLS SHA-1/256/384/512 and AES ECB/CBC, printed and compared with Node).
+  **RSA (`rsa.ts`):** four 512-byte memory blocks — M (0x000), Z (0x200), Y (0x400), X
+  (0x600) — of words least significant first, M_DASH, MODEXP_MODE/START, MULT_MODE/START,
+  INTERRUPT (1 once done; write 1 clears; IDF polls it — CONFIG_MBEDTLS_MPI_USE_INTERRUPT is off)
+  and CLEAN (1 when ready). As the ROM's `ets_bigint_*` drivers drive it: MULT with MULT_MODE =
+  n/16 − 1 (n words) is a Montgomery multiplication Z ← X·Z·R⁻¹ mod M (R = 2^(32n)) — IDF's port
+  exponentiates with these on the ESP32 (ESP_MPI_USE_MONT_EXP: the hardware MODEXP is slow for
+  public keys); MULT_MODE ≥ 8 a plain multiplication (L = 16·(mode − 7) words: A in X's low
+  half, B in Z's high half, the L-word product into Z); MODEXP Z ← X^Y mod M. BigInt does the
+  arithmetic, M' isn't needed and is kept. DPORT_RSA_PD_CTRL bit 0 powers the memories down
+  (the block reads 0). `fixtures/sketches/esp32/rsa-kat` (mbedtls_mpi_exp_mod at 512–3072 bits
+  with e = 65537 and full-length exponents, mbedtls_mpi_mul_mpi) matches BigInt.
+  **HTTPS.** With the three accelerators, mbedTLS's TLS 1.2 handshake completes:
+  `fixtures/sketches/esp32/https-get` (WiFiClientSecure with a CA from serial, or
+  setInsecure(); HTTPClient GET) reaches a node:tls server through the access point's gateway
+  and `--network` — ECDHE-RSA-AES128-GCM-SHA256, the server's certificate checked against the
+  CA, about 260 ms of simulated time for handshake and GET; a CA that didn't sign the server
+  fails the handshake (GET −1), as on a board. The test makes its CA and server certificate at
+  run time (`apps/cli/src/tls.test-helper.ts`: keys from node:crypto, X.509 v3 DER by hand,
+  signed with `crypto.sign`), so no key is committed. Certificate dates aren't checked
+  (CONFIG_MBEDTLS_HAVE_TIME_DATE is off in Arduino's build), so no clock is needed for HTTPS.
 
 - **RP2040** — `@benchtop/rp2040` wraps [rp2040js](https://github.com/wokwi/rp2040js)
   1.4.0 (MIT, Wokwi): its Cortex-M0+ core 0 and peripherals (GPIO, SIO, PWM, timer, UART, I2C,

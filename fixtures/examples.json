@@ -837,6 +837,19 @@
     "description": "One ESP32 listens on TCP port 7000 as \"echo-server\"; the other finds it by name and sends a line, which comes back in capitals — both serial monitors show it."
   },
   {
+    "id": "esp32-ntp-clock",
+    "title": "ESP32 NTP clock",
+    "category": "WiFi",
+    "project": "esp32-ntp-clock",
+    "boards": {
+      "esp": {
+        "firmware": "esp32/ntp-clock.bin",
+        "sketch": "esp32/ntp-clock"
+      }
+    },
+    "description": "An ESP32 joins the access point and asks pool.ntp.org for the time with configTime() — the access point's gateway answers itself (set its clock in the Inspector) — then shows it on an SSD1306 OLED."
+  },
+  {
     "id": "pico-blink",
     "title": "Pico blink",
     "category": "Raspberry Pi Pico",

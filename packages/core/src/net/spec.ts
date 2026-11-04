@@ -22,6 +22,11 @@ export interface AccessPointRole {
   internet: boolean;
   /** BT101: `host:port` entries, a line or a comma apart (net/uplink.ts `parseAllowList`). */
   allow: string;
+  /**
+   * BT105: the gateway's time server (SNTP) — 'wall' (the host's clock), an ISO date-time (the
+   * time at the bench's start, for tests), or 'off' (none).
+   */
+  clock: string;
 }
 
 /** BT99: an HTTP server on an access point's LAN. */

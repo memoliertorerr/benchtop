@@ -7,7 +7,8 @@
  * start — `set:on=0|1` (the Inspector's Power toggle) switches it while running. BT101: with
  * `internet` on, its stations reach the real hosts its `allow` list names (`host:port` a line) —
  * through the compile bridge in the app, or the CLI — when the user who started that allowed
- * them too (`--network`); off by default.
+ * them too (`--network`); off by default. BT105: `clock` — 'wall' (the default), an ISO date-time
+ * or 'off' — is the time its gateway serves over SNTP (configTime() with pool.ntp.org).
  */
 
 import { definePart } from '../define.ts';
@@ -20,7 +21,7 @@ export const wifiAp = definePart({
   category: 'network',
   size: { w: 34, h: 24 },
   pins: [],
-  defaults: { ssid: 'benchtop', password: 'simulated', security: 'wpa2', channel: 6, rssi: -50, hidden: false, on: true, internet: false, allow: '' },
+  defaults: { ssid: 'benchtop', password: 'simulated', security: 'wpa2', channel: 6, rssi: -50, hidden: false, on: true, internet: false, allow: '', clock: 'wall' },
 });
 
 export const NETWORK_PARTS = [wifiAp, httpServer, httpClient];

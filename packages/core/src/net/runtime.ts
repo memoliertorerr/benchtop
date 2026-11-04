@@ -21,6 +21,12 @@
  * addresses) as a transparent proxy, opening the real connection first. What the uplink refuses
  * or loses shows as a `net-internet` problem on the AP; the AP's view says how many connections
  * are out.
+ *
+ * BT105: an AP whose `clock` isn't 'off' answers SNTP at its gateway (net/sntp.ts) and resolves
+ * the common time-server names (pool.ntp.org and its subdomains, time.google.com, …) to it, so a
+ * sketch's configTime() works on the virtual network. The time is the bench's: 'wall' anchors it
+ * to the host's clock when the bench resets (a rebuild keeps the anchor), an ISO date-time pins
+ * the bench's start to it.
  */
 
 import type { PartInput, PartProps, Problem, VisualState } from '../contracts/part.ts';
@@ -29,6 +35,7 @@ import { DNS_PORT, dnsName, DnsServer } from './dns.ts';
 import { IpHost, type OutsideTcp } from './host.ts';
 import { httpRequest, type HttpResult, HttpServer, parseHttpUrl, parseRoutes, utf8Bytes, utf8String } from './http.ts';
 import { type LanClock, type LanPort, VirtualLan } from './lan.ts';
+import { isNtpName, NTP_PORT, sntpAnswer } from './sntp.ts';
 import { type AllowEntry, allows, OUTSIDE_FIRST, parseAllowList, type Uplink, type UplinkSocket } from './uplink.ts';
 import { BROADCAST_IP, BROADCAST_MAC, ipString, type Mac, macFromName, macString, parseIp } from './packet.ts';
 import type { TcpConnection } from './tcp.ts';
@@ -106,6 +113,11 @@ export class AccessPoint {
   /** BT101: connections out now, and the last thing that went wrong out there ('' for none). */
   uplinkOpen = 0;
   uplinkError = '';
+  /** BT105: Unix ms at bench time 0 (NaN: no time server); `fixedClock` — an ISO date pins it. */
+  clockBase = Number.NaN;
+  readonly fixedClock: number;
+  /** SNTP requests answered (tests, the view). */
+  sntpAnswered = 0;
 
   constructor(id: string, role: AccessPointRole, clock: LanClock) {
     this.id = id;
@@ -135,7 +147,18 @@ export class AccessPoint {
       if (parseIp(entry.host) !== undefined || [...this.outsideNames.values()].includes(entry.host)) continue;
       this.outsideNames.set(next++, entry.host);
     }
+    this.fixedClock = role.clock === 'off' || role.clock === 'wall' ? Number.NaN : Date.parse(role.clock);
+    this.startClock();
     this.dns = new DnsServer((name) => this.resolve(name));
+    if (role.clock !== 'off') {
+      this.gateway.bindUdp(NTP_PORT, (from, data) => {
+        if (Number.isNaN(this.clockBase)) return;
+        const answer = sntpAnswer(data, this.clockBase + this.clock.now() / 1e6, this.clockBase);
+        if (answer === undefined) return;
+        this.sntpAnswered++;
+        this.gateway.sendUdp(from.ip, NTP_PORT, from.port, answer, from.mac);
+      });
+    }
     this.gateway.bindUdp(DNS_PORT, (from, data) => {
       const reply = this.dns.handle(data);
       if (reply !== undefined) this.gateway.sendUdp(from.ip, DNS_PORT, from.port, reply, from.mac);
@@ -149,6 +172,7 @@ export class AccessPoint {
   resolve(name: string): number | undefined {
     const n = dnsName(name);
     if (n === 'gateway') return GATEWAY_IP;
+    if (this.role.clock !== 'off' && isNtpName(n)) return GATEWAY_IP; // BT105: the gateway keeps time
     for (const server of this.servers) if (server.role.hostname !== '' && dnsName(server.role.hostname) === n) return server.host.ip;
     for (const [mac, hostname] of this.dhcp.hostnames) {
       if (dnsName(hostname) !== n) continue;
@@ -165,6 +189,17 @@ export class AccessPoint {
     if (name !== undefined) return name;
     const literal = ipString(ip);
     return this.allow.some((e) => e.host === literal) ? literal : undefined;
+  }
+
+  /**
+   * BT105: (re)starts the clock at the bench's start: an ISO date pins it, 'wall' takes the host's
+   * clock now minus the bench time already run (0 at a reset), 'off' (or a date that doesn't parse
+   * — the build reports it) has none.
+   */
+  startClock(): void {
+    if (this.role.clock === 'off') this.clockBase = Number.NaN;
+    else if (!Number.isNaN(this.fixedClock)) this.clockBase = this.fixedClock;
+    else this.clockBase = Date.now() - this.clock.now() / 1e6;
   }
 
   info(): AccessPointInfo {
@@ -366,12 +401,19 @@ export class NetRuntime {
       if (old !== undefined) {
         ap.on = old.on;
         ap.rssi = old.rssi;
+        if (old.role.clock === role.clock) ap.clockBase = old.clockBase; // a rebuild keeps the time
         for (const [mac, ip] of old.dhcp.leases) ap.dhcp.leases.set(mac, ip);
         for (const [mac, name] of old.dhcp.hostnames) ap.dhcp.hostnames.set(mac, name);
       }
       aps.push(ap);
     }
     const problems: Problem[] = [];
+    // BT105: a clock that isn't 'wall', 'off' or a date.
+    for (const ap of aps) {
+      if (ap.role.clock !== 'off' && ap.role.clock !== 'wall' && Number.isNaN(ap.fixedClock)) {
+        problems.push({ severity: 'warning', code: 'net-clock', message: `${ap.id}'s clock "${ap.role.clock}" isn't wall, off or a date and time (2026-01-01T12:00:00Z): it keeps the host's time.`, parts: [ap.id] });
+      }
+    }
     // BT101: what an AP that lets boards out asks for.
     for (const ap of aps) {
       if (!ap.role.internet) continue;
@@ -602,6 +644,8 @@ export class NetRuntime {
       ap.on = ap.role.on;
       ap.rssi = ap.role.rssi;
       ap.shown = '';
+      ap.sntpAnswered = 0;
+      ap.startClock();
     }
     for (const server of this.servers) {
       server.host.reset();

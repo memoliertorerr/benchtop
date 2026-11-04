@@ -47,6 +47,14 @@ export const ESP32_CHECKS: Record<string, (r: ExampleRun) => void> = {
     expect(r.serial('client')).toContain('reply HELLO BENCH\n');
     expect(r.visual('ap')).toMatchObject({ stations: 2 });
   },
+  // BT105: the gateway answers SNTP with the host's clock ('wall', the AP's default).
+  'esp32-ntp-clock'(r) {
+    r.runTo(3500);
+    const lines = r.serial('esp').split('\r\n').filter((l) => /^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/.test(l));
+    expect(lines.length).toBeGreaterThanOrEqual(1);
+    expect(Math.abs(Date.parse(`${lines[0].replace(' ', 'T')}Z`) - Date.now())).toBeLessThan(120_000);
+    expect(r.visual('ap')).toMatchObject({ stations: 1 });
+  },
   'esp32-serial-hello'(r) {
     r.runTo(2000);
     expect(r.serial('esp')).toContain('hello from esp32');

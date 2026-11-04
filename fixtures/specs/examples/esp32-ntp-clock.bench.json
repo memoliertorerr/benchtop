@@ -1,0 +1,12 @@
+{
+  "name": "example: esp32-ntp-clock",
+  "project": "../../projects/esp32-ntp-clock.json",
+  "firmware": {
+    "esp": "../../firmware/esp32/ntp-clock.bin"
+  },
+  "expect": [
+    "wifi esp connected by 2s",
+    "serial contains \"waiting for time\" by 2s",
+    "serial matches /\\d{4}-\\d\\d-\\d\\d \\d\\d:\\d\\d:\\d\\d/ by 4s"
+  ]
+}

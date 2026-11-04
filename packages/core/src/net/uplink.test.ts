@@ -77,7 +77,7 @@ describe('allow lists (BT101)', () => {
 });
 
 describe('the gateway to the real network (BT101)', () => {
-  const ap = (internet: boolean, allow: string): NetRole => ({ kind: 'access-point', ssid: 'benchtop', password: 'simulated', security: 'wpa2', channel: 6, rssi: -50, hidden: false, on: true, internet, allow });
+  const ap = (internet: boolean, allow: string): NetRole => ({ kind: 'access-point', ssid: 'benchtop', password: 'simulated', security: 'wpa2', channel: 6, rssi: -50, hidden: false, on: true, internet, allow, clock: 'off' });
   const client = (url: string): NetRole => ({ kind: 'http-client', network: '', url, method: 'GET', body: '', interval: 0 });
   const build = (roles: Record<string, NetRole>, uplink: Uplink | null, clock = testClock()) => {
     const net = NetRuntime.build(

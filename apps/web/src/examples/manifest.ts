@@ -76,7 +76,7 @@ export const EXAMPLES: readonly Example[] = (examplesJson as unknown[]).map(pars
 // projects and sketches as text, AVR firmware (Uno, Nano, Mega) as text, ESP32 images and Pico
 // and Pico 2 UF2s as asset URLs.
 const PROJECTS = import.meta.glob(
-  '../../../../fixtures/projects/{regulator-meter,sd-datalogger,blink-led,button-pullup,pwm-fade,traffic-light,simon,debug-demo,analog-pot,logic-demo,lcd-4bit,lcd-i2c,lcd-thermometer,ssd1306-adafruit,oled-clock,seven-seg-mux,bargraph,neopixel,dht22,hcsr04,distance-meter,ds1307,mpu6050,keypad,encoder,servo-sweep,servo-knob,keypad-lock,stepper-28byj48,relay,buzzer,speaker-melody,pcm-playback,mic-level,vu-meter,esp32-blink,esp32-serial,esp32-button,esp32-pwm-fader,esp32-neopixel,esp32-rainbow-ring,esp32-oled-clock,esp32-dac-sine,esp32-mic-level,esp32-i2c,esp32-wifi-webserver,esp32-wifi-http,esp32-wifi-tcp,esp32c3-rgb-blink,esp32c3-serial,esp32c3-pot-led,esp32c3-oled-clock,uart-chat,uno-esp32-uart-divider,nano-analog,mega-chaser,mega-serial-ports,mega-analog,tft-demo,esp32-tft-demo,ir-remote,scale,flame-alarm,gas-meter,a4988-stepper,env-gas-fan,env-pir-hallway,env-parking,env-thermostat,pico-blink,pico-analog-read,pico-pwm-fade,pico-i2c-oled,pico-spi-tft,pico-neopixel,pico-pio-square,pico-multicore,pico2-blink,pico2-analog-read,pico2-pwm-fade,pico2-i2c-oled,pico2-spi-tft,pico2-neopixel,pico2-button-irq}.json',
+  '../../../../fixtures/projects/{regulator-meter,sd-datalogger,blink-led,button-pullup,pwm-fade,traffic-light,simon,debug-demo,analog-pot,logic-demo,lcd-4bit,lcd-i2c,lcd-thermometer,ssd1306-adafruit,oled-clock,seven-seg-mux,bargraph,neopixel,dht22,hcsr04,distance-meter,ds1307,mpu6050,keypad,encoder,servo-sweep,servo-knob,keypad-lock,stepper-28byj48,relay,buzzer,speaker-melody,pcm-playback,mic-level,vu-meter,esp32-blink,esp32-serial,esp32-button,esp32-pwm-fader,esp32-neopixel,esp32-rainbow-ring,esp32-oled-clock,esp32-dac-sine,esp32-mic-level,esp32-i2c,esp32-wifi-webserver,esp32-wifi-http,esp32-wifi-tcp,esp32-ntp-clock,esp32c3-rgb-blink,esp32c3-serial,esp32c3-pot-led,esp32c3-oled-clock,uart-chat,uno-esp32-uart-divider,nano-analog,mega-chaser,mega-serial-ports,mega-analog,tft-demo,esp32-tft-demo,ir-remote,scale,flame-alarm,gas-meter,a4988-stepper,env-gas-fan,env-pir-hallway,env-parking,env-thermostat,pico-blink,pico-analog-read,pico-pwm-fade,pico-i2c-oled,pico-spi-tft,pico-neopixel,pico-pio-square,pico-multicore,pico2-blink,pico2-analog-read,pico2-pwm-fade,pico2-i2c-oled,pico2-spi-tft,pico2-neopixel,pico2-button-irq}.json',
   { import: 'default' },
 ) as Record<string, () => Promise<unknown>>;
 const HEX = import.meta.glob(
@@ -89,7 +89,7 @@ const HEX = import.meta.glob(
 ) as Record<string, () => Promise<string>>;
 const BIN = import.meta.glob(
   [
-    '../../../../fixtures/firmware/esp32/{blink,serial-hello,gpio-input,pwm-fader,neopixel,rainbow-ring,oled-clock,dac-sine,mic-level,i2c-scan,uart-chat,uart-relay,tft-demo,wifi-webserver,wifi-http-get,wifi-tcp-server,wifi-tcp-client}.bin',
+    '../../../../fixtures/firmware/esp32/{blink,serial-hello,gpio-input,pwm-fader,neopixel,rainbow-ring,oled-clock,dac-sine,mic-level,i2c-scan,uart-chat,uart-relay,tft-demo,wifi-webserver,wifi-http-get,wifi-tcp-server,wifi-tcp-client,ntp-clock}.bin',
     '../../../../fixtures/firmware/esp32c3/{rgb-blink,serial-hello,pot-led,oled-clock}.bin',
     '../../../../fixtures/firmware/pico/{blink,analog-read,pwm-fade,i2c-oled,spi-tft,neopixel,pio-square,multicore}.uf2',
     '../../../../fixtures/firmware/pico2/{blink,analog-read,pwm-fade,i2c-oled,spi-tft,neopixel,button-irq}.uf2',
@@ -101,7 +101,7 @@ const SKETCHES = import.meta.glob(
     '../../../../fixtures/sketches/uno/{regulator-meter,sd-datalogger,blink,button-pullup,pwm-fade,traffic-light,simon,serial-echo,analog-read,logic-demo,lcd-4bit,lcd-i2c,lcd-thermometer,ssd1306-adafruit,oled-clock,seven-seg-mux,bargraph,neopixel,dht22-adafruit,hcsr04,distance-meter,ds1307,mpu6050,keypad-scan,encoder-count,servo-sweep,servo-knob,keypad-lock,stepper-28byj48,relay,buzzer,speaker-melody,pcm-playback,mic-level,vu-meter,uart-chat,uart-ping,tft-demo,ir-decode,scale,flame-alarm,gas-meter,a4988-stepper,gas-fan,pir-hallway,parking,thermostat}/*.{ino,h,hpp,c,cpp}',
     '../../../../fixtures/sketches/nano/analog-a6/*.{ino,h,hpp,c,cpp}',
     '../../../../fixtures/sketches/mega/{chaser,serial-ports,analog-hi}/*.{ino,h,hpp,c,cpp}',
-    '../../../../fixtures/sketches/esp32/{blink,serial-hello,gpio-input,pwm-fader,neopixel,rainbow-ring,oled-clock,dac-sine,mic-level,i2c-scan,uart-chat,uart-relay,tft-demo,wifi-webserver,wifi-http-get,wifi-tcp-server,wifi-tcp-client}/*.{ino,h,hpp,c,cpp}',
+    '../../../../fixtures/sketches/esp32/{blink,serial-hello,gpio-input,pwm-fader,neopixel,rainbow-ring,oled-clock,dac-sine,mic-level,i2c-scan,uart-chat,uart-relay,tft-demo,wifi-webserver,wifi-http-get,wifi-tcp-server,wifi-tcp-client,ntp-clock}/*.{ino,h,hpp,c,cpp}',
     '../../../../fixtures/sketches/esp32c3/{rgb-blink,serial-hello,pot-led,oled-clock}/*.{ino,h,hpp,c,cpp}',
     '../../../../fixtures/sketches/pico/{blink,analog-read,pwm-fade,i2c-oled,spi-tft,neopixel,pio-square,multicore}/*.{ino,h,hpp,c,cpp}',
     '../../../../fixtures/sketches/pico2/{blink,analog-read,pwm-fade,i2c-oled,spi-tft,neopixel,button-irq}/*.{ino,h,hpp,c,cpp}',
@@ -113,7 +113,7 @@ const SKETCHES = import.meta.glob(
  * BT100: the symbol tables (`nm` output, .syms.tsv) of the ESP32 examples that need them beyond
  * the debugger — WiFi firmware runs only with its driver's API answered by name.
  */
-const SYMS = import.meta.glob('../../../../fixtures/firmware/esp32/{wifi-webserver,wifi-http-get,wifi-tcp-server,wifi-tcp-client}.syms.tsv', { query: '?raw', import: 'default' }) as Record<string, () => Promise<string>>;
+const SYMS = import.meta.glob('../../../../fixtures/firmware/esp32/{wifi-webserver,wifi-http-get,wifi-tcp-server,wifi-tcp-client,ntp-clock}.syms.tsv', { query: '?raw', import: 'default' }) as Record<string, () => Promise<string>>;
 
 /** A board's symbol table as text (BT100), or undefined when the example ships none. */
 export async function loadSymbols(board: { firmware: string }): Promise<string | undefined> {

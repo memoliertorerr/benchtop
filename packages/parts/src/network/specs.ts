@@ -80,5 +80,6 @@ export function netSpecFor(type: string, props: PartProps): NetRole | undefined 
     on: props.on !== false,
     internet: props.internet === true,
     allow: typeof props.allow === 'string' ? props.allow : '',
+    clock: typeof props.clock === 'string' && props.clock.trim() !== '' ? props.clock.trim() : 'wall',
   };
 }

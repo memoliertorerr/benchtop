@@ -70,6 +70,7 @@ running the real `.bin` image Arduino-ESP32 2.0.17 builds, on Espressif's real m
   uses;
 - the RMT transmitter, so `neopixelWrite` and `rmtWrite` drive NeoPixels with exact bit timing;
 - the DAC on GPIO25/26 (`dacWrite`);
+- the SHA, AES and RSA accelerators, which mbedTLS's hashes, ciphers and big-number math run on;
 - speed: a predecoded instruction cache (≈ 35–45 million instructions per second on an Apple
   M1 — a blinking sketch runs ~14× faster than real time) and idle skip-ahead, so cores
   waiting in `WAITI` cost almost nothing.
@@ -87,7 +88,9 @@ loop, lwIP — so scans, connecting, a wrong password, DHCP, ping, DNS, `WiFiCli
 names boards by hostname; an **HTTP server** part answers from routes you write (`GET /api/hello
 200 application/json {"count":{{count}}}`); an **HTTP client** part sends a request to a board's
 web server when you press Send (or every so many milliseconds); two ESP32s reach each other by
-hostname. Switch the access point off or weaken its signal while it runs.
+hostname; `configTime()` gets the time from the access point, which answers for pool.ntp.org
+itself (your computer's clock, or a fixed date you set). Switch the access point off or weaken
+its signal while it runs.
 
 **The bench** — breadboards (full, half, mini) where parts snap into holes, wires you draw,
 and ~40 parts: LEDs, RGB LEDs, buttons, switches, potentiometers, LCD1602/2004 (parallel and
@@ -142,7 +145,7 @@ npm install
 npm run dev          # the editor at http://localhost:5173
 ```
 
-**Examples…** opens 87 ready-to-run circuits, each with its sketch, which you can change and
+**Examples…** opens 88 ready-to-run circuits, each with its sketch, which you can change and
 run again (Basics: blink, button, fade, traffic light, a Simon game, serial echo, a Nano on a
 breadboard; Displays: LCDs,
 an LCD thermometer, OLED and an OLED clock, a color TFT, 7-segment, bar graph, NeoPixels; Sensors: DHT22,
@@ -154,7 +157,8 @@ a microphone pitch meter, a VU meter; Power: a regulator meter (turn the bench s
 hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, a PWM fader, NeoPixel, a
 rainbow ring, an OLED clock, a color TFT, the DAC, the microphone, an I2C scan; ESP32-C3: the RGB LED,
 serial, a potentiometer dimmer, an OLED clock; WiFi: an ESP32 web server switched by HTTP client
-parts, an HTTP client talking to a server part, two ESP32s over TCP; Raspberry Pi Pico:
+parts, an HTTP client talking to a server part, two ESP32s over TCP, an NTP clock on an OLED;
+Raspberry Pi Pico:
 blink, a potentiometer, PWM steps, an OLED, a color TFT, both cores at once; Raspberry Pi Pico 2: the same, NeoPixels
 through PIO, a button interrupt and MicroPython blink; Mega: an LED chaser, four
 serial ports, a 16-input analog scanner; Two boards: an Uno ↔ ESP32
@@ -277,8 +281,9 @@ list when you started them. The access point answers DNS for the allowed names i
 DNS to outside servers) never leaves. The bridge listens on 127.0.0.1 only and takes these
 requests only from the app's own page, at most 16 connections at a time. While a connection is
 open the simulation runs no faster than real time, so a sketch's timeouts meet real network
-delays. HTTPS doesn't work yet: the ESP32's TLS uses its AES, SHA and RSA accelerators, which
-aren't simulated. The router drawing's **NET** light shows the state — green ready, amber while a
+delays. HTTPS works: the ESP32's TLS (mbedTLS, TLS 1.2) runs on its simulated AES, SHA and RSA
+accelerators — `WiFiClientSecure` with the server's CA (`setCACert`) or `setInsecure()`, and
+`HTTPClient` over it; a handshake takes about a quarter of a second of simulated time. The router drawing's **NET** light shows the state — green ready, amber while a
 connection is out, red after one failed (the Problems panel says why).
 
 ### Headless runs

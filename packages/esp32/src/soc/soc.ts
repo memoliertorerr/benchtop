@@ -47,7 +47,10 @@ import { HALT, XtensaCore } from '../xtensa/cpu.ts';
 import { RegI2c, REGI2C_BASE, Rng, RNG_BASE, Syscon, SYSCON_BASE } from './analog.ts';
 import { SocBus, type SocParts } from './bus.ts';
 import { REF_HZ, type SocContext, XTAL_HZ } from './context.ts';
-import { Dport } from './dport.ts';
+import { AES_BASE, AesAccelerator } from './crypto/aes.ts';
+import { RSA_BASE, RsaAccelerator } from './crypto/rsa.ts';
+import { SHA_BASE, ShaAccelerator } from './crypto/sha.ts';
+import { Dport, PERI } from './dport.ts';
 import { Efuse, EFUSE_BASE } from './efuse.ts';
 import { EventTable } from './events.ts';
 import { cacheFillTime, FlashChip } from './flash.ts';
@@ -106,6 +109,11 @@ export class Esp32Soc implements SocParts, SocContext, ResetSink {
   readonly spi2: Spi;
   readonly spi3: Spi;
   readonly iomux = new IoMux();
+  /** BT102: the crypto accelerators mbedTLS runs on. */
+  readonly sha: ShaAccelerator;
+  readonly aes: AesAccelerator;
+  /** BT103: the RSA (MPI) accelerator. */
+  readonly rsa: RsaAccelerator;
   /** What each pin is doing (BT34): mode and level per GPIO, with a change callback. */
   readonly pads: Pads;
   readonly flash: FlashChip;
@@ -157,6 +165,14 @@ export class Esp32Soc implements SocParts, SocContext, ResetSink {
     this.memory = new EspMemory(options.flashSize ?? DEFAULT_FLASH_SIZE);
     this.efuse = new Efuse(options.mac);
     this.dport = new Dport(this, this.matrix);
+    this.sha = new ShaAccelerator(() => this.dport.peripheralOn(PERI.SHA));
+    this.aes = new AesAccelerator(() => this.dport.peripheralOn(PERI.AES));
+    this.rsa = new RsaAccelerator(() => this.dport.peripheralOn(PERI.RSA) && this.dport.rsaPowered());
+    this.dport.onPeriReset = (bits) => {
+      if ((bits >>> PERI.SHA) & 1) this.sha.clear();
+      if ((bits >>> PERI.AES) & 1) this.aes.clear();
+      if ((bits >>> PERI.RSA) & 1) this.rsa.clear();
+    };
     this.mmu = new FlashMmu(this.dport);
     this.rtc = new RtcCntl(this);
     this.syscon = new Syscon(this);
@@ -221,6 +237,9 @@ export class Esp32Soc implements SocParts, SocContext, ResetSink {
     periph.register(SPI_BASES[3], this.spi3);
     periph.register(SPI1_BASE, this.spi1);
     periph.register(SPI0_BASE, this.spi0);
+    periph.register(SHA_BASE, this.sha);
+    periph.register(AES_BASE, this.aes);
+    periph.register(RSA_BASE, this.rsa);
 
     const pro = new SocBus(this, 0);
     const app = new SocBus(this, 1);
