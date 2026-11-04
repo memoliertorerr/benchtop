@@ -2277,7 +2277,7 @@ sequence, files matched by basename or trailing path.
   address misaligned) — arduino-pico 6.2.0's RISC-V C library `strcpy` copies a word at a time with
   no alignment check, `String::concat` in HTTPClient's request hands it an odd destination, and
   Hazard3 traps misaligned stores as this core does; the firmware has no handler that emulates
-  them. Kept as found (a test pins it); a real Pico 2 W in RISC-V mode settles it (HUMAN_CHECKS).
+  them. Kept as found (a test pins it); a real Pico 2 W in RISC-V mode will settle it.
 
 - **ESP32-C3** — `@benchtop/esp32c3`: Espressif's RISC-V chip on one `@benchtop/riscv`
   core, running Arduino-ESP32 2.0.17 images (FQBN `esp32:esp32:esp32c3`) booted directly with
