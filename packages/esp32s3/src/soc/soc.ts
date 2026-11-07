@@ -32,6 +32,7 @@ import { INTERRUPT_BASE, S3_SRC, S3InterruptMatrix } from './intmatrix.ts';
 import { IRAM_BASE, IRAM_END, IROM_BASE, S3Memory } from './memory.ts';
 import { registerDefault, S3PeripheralMap } from './periph.ts';
 import { EFUSE_BASE, REF_HZ, RTC_CNTL_BASE, S3_RESET_REASON, S3_WAKE, S3Efuse, S3RtcCntl } from './rtc-cntl.ts';
+import { S3Psram } from './psram.ts';
 import { S3_ADC_FULL_SCALE, S3Sens } from './sens.ts';
 import { EXTMEM_BASE, S3Extmem, S3SystemRegs, SYSTEM_BASE, XTAL_HZ } from './system.ts';
 
@@ -92,6 +93,8 @@ export class Esp32s3Soc implements SocContext, S3BusParts {
   readonly periph = new S3PeripheralMap(this.problems);
   readonly mmu = new MmuTable();
   readonly flash: FlashChip;
+  /** BT130: the PSRAM on SPI0/1's second chip select (quad 2 MB or octal 8 MB, as the build's driver asks). */
+  readonly psram = new S3Psram();
   readonly system: S3SystemRegs;
   readonly extmem = new S3Extmem();
   readonly rtc: S3RtcCntl;
@@ -169,6 +172,7 @@ export class Esp32s3Soc implements SocContext, S3BusParts {
     const uartSources = [S3_SRC.UART0, S3_SRC.UART1, S3_SRC.UART2];
     this.uarts = [0, 1, 2].map((i) => new Uart(this, i, uartSources[i], UART_BASES_S3[i], S3_UART_FIELDS)) as [Uart, Uart, Uart];
     this.spi1 = new SpiMem(SPI1_BASE, this.flash, registerDefault);
+    this.spi1.cs1 = this.psram;
     this.sens = new S3Sens(this);
     this.sens.sample = (adc, channel, attenuation) => this.adcSample(adc, channel, attenuation);
     this.rtc.sens = this.sens;
@@ -268,6 +272,22 @@ export class Esp32s3Soc implements SocContext, S3BusParts {
     const value = this.mmu.table[entry];
     if ((value & (MMU_INVALID | MMU_SPIRAM)) !== 0) return -1;
     return (value & 0x3fff) * 0x10000;
+  }
+
+  /** BT130: the PSRAM offset an MMU entry with SPIRAM set maps, within the chip's size; else −1. */
+  mmuPsramPage(entry: number): number {
+    const value = this.mmu.table[entry];
+    if ((value & MMU_INVALID) !== 0 || (value & MMU_SPIRAM) === 0) return -1;
+    const page = (value & 0x3fff) * 0x10000;
+    return page + 0x10000 <= this.psram.size ? page : -1;
+  }
+
+  psramBytes(): Uint8Array {
+    return this.psram.data;
+  }
+
+  psramWords(): Uint32Array {
+    return this.psram.dataWords;
   }
 
   peripheralTurn(cpu: number): boolean {

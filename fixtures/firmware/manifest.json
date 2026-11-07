@@ -549,6 +549,39 @@
     },
     {
       "board": "esp32",
+      "name": "ledc-duty-step",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/ledc-duty-step.bin",
+      "sha256": "f9866f98dffa72d8c4d28029164f8e49b58bb68cb827892b20bc5825b8b756bb",
+      "bytes": 268432,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "0b522eee0343dbfaa5095cba628f0e088e6bd0a98a9c4e44cbbf0cae8432095b"
+    },
+    {
+      "board": "esp32",
+      "name": "ledc-duty-step",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/ledc-duty-step.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "0b522eee0343dbfaa5095cba628f0e088e6bd0a98a9c4e44cbbf0cae8432095b"
+    },
+    {
+      "board": "esp32",
+      "name": "ledc-duty-step",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/ledc-duty-step.syms.tsv",
+      "sha256": "b5dc2cbee5d4223fe55ff34bf47a0e6e34ec105129a973cbf1b03d71159eaf70",
+      "bytes": 118400,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "0b522eee0343dbfaa5095cba628f0e088e6bd0a98a9c4e44cbbf0cae8432095b"
+    },
+    {
+      "board": "esp32",
       "name": "ledc-fade",
       "fqbn": "esp32:esp32:esp32",
       "file": "esp32/ledc-fade.bin",
@@ -3042,6 +3075,111 @@
       "core": "esp32:esp32@2.0.17",
       "libraries": {},
       "source": "9f542ed71c7f1b0b0b1ce04a8baae536f75b387b790c96f955de0444c917440b"
+    },
+    {
+      "board": "esp32s3",
+      "name": "psram-frame",
+      "fqbn": "esp32:esp32:esp32s3:PSRAM=opi",
+      "file": "esp32s3/psram-frame.bin",
+      "sha256": "423a2baec00b6d872827d2a2e178d2251ac2d99218497979c1fa7cc529710807",
+      "bytes": 278560,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "SPI": "2.0.0"
+      },
+      "source": "5835c023f5e02aae98b8de342ba26ab093e421bbbd088bc38995283c3cf65e89"
+    },
+    {
+      "board": "esp32s3",
+      "name": "psram-frame",
+      "fqbn": "esp32:esp32:esp32s3:PSRAM=opi",
+      "file": "esp32s3/psram-frame.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "SPI": "2.0.0"
+      },
+      "source": "5835c023f5e02aae98b8de342ba26ab093e421bbbd088bc38995283c3cf65e89"
+    },
+    {
+      "board": "esp32s3",
+      "name": "psram-frame",
+      "fqbn": "esp32:esp32:esp32s3:PSRAM=opi",
+      "file": "esp32s3/psram-frame.syms.tsv",
+      "sha256": "4a373d65b9792f43c8c86c7256858f12c245ff8b632d07edb3987b4a66aeddc6",
+      "bytes": 176010,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "SPI": "2.0.0"
+      },
+      "source": "5835c023f5e02aae98b8de342ba26ab093e421bbbd088bc38995283c3cf65e89"
+    },
+    {
+      "board": "esp32s3",
+      "name": "psram-octal",
+      "fqbn": "esp32:esp32:esp32s3:PSRAM=opi",
+      "file": "esp32s3/psram-octal.bin",
+      "sha256": "92519bee52d6227b522f6395946ad1df5a1f11db10511ec19031f5c55720812d",
+      "bytes": 264016,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "853e6f42a9d03f03330bd3e134fbd7171e097c47635c2a6c42768c5e0d725b39"
+    },
+    {
+      "board": "esp32s3",
+      "name": "psram-octal",
+      "fqbn": "esp32:esp32:esp32s3:PSRAM=opi",
+      "file": "esp32s3/psram-octal.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "853e6f42a9d03f03330bd3e134fbd7171e097c47635c2a6c42768c5e0d725b39"
+    },
+    {
+      "board": "esp32s3",
+      "name": "psram-octal",
+      "fqbn": "esp32:esp32:esp32s3:PSRAM=opi",
+      "file": "esp32s3/psram-octal.syms.tsv",
+      "sha256": "f645ce6684d05eded610b43820fea1620ad2e911ae8876d1ef9d8dd93f668512",
+      "bytes": 172083,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "853e6f42a9d03f03330bd3e134fbd7171e097c47635c2a6c42768c5e0d725b39"
+    },
+    {
+      "board": "esp32s3",
+      "name": "psram-quad",
+      "fqbn": "esp32:esp32:esp32s3:PSRAM=enabled",
+      "file": "esp32s3/psram-quad.bin",
+      "sha256": "944c083c7dc0d4f62bf62ef86b94631a6e7f14e7a58627f65fff81aacfac4875",
+      "bytes": 262672,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "1237816d5811bd1d0ce5297eeeb775e88dc11f61abb499bdaae89d9493002b3f"
+    },
+    {
+      "board": "esp32s3",
+      "name": "psram-quad",
+      "fqbn": "esp32:esp32:esp32s3:PSRAM=enabled",
+      "file": "esp32s3/psram-quad.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "1237816d5811bd1d0ce5297eeeb775e88dc11f61abb499bdaae89d9493002b3f"
+    },
+    {
+      "board": "esp32s3",
+      "name": "psram-quad",
+      "fqbn": "esp32:esp32:esp32s3:PSRAM=enabled",
+      "file": "esp32s3/psram-quad.syms.tsv",
+      "sha256": "03f10ce8f43db65c8fea43661c0da6ad2d915b00d1e8efe51542c9d677f51f12",
+      "bytes": 171319,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "1237816d5811bd1d0ce5297eeeb775e88dc11f61abb499bdaae89d9493002b3f"
     },
     {
       "board": "esp32s3",

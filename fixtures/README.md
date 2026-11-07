@@ -41,7 +41,10 @@ fixtures/firmware/esp32s3/<name>.bin|.partitions.bin|.syms.tsv  the same for the
                                               ESP32's — and wifi-rgb-server, the C3's, as
                                               "s3-web"; deep-sleep-timer, light-sleep,
                                               deep-sleep-pins (ext0 GPIO4, ext1 GPIO5) and
-                                              deep-sleep-counter — the ESP32's)
+                                              deep-sleep-counter — the ESP32's; psram-quad
+                                              (PSRAM=enabled), psram-octal and psram-frame
+                                              (PSRAM=opi): per-sketch board options in
+                                              scripts/fixture-boards.ts)
 fixtures/firmware/pico*/debug-demo.syms.tsv   the same for the Pico and Pico 2 debug-demos only (the
                                               debugger's tests; `SYMBOL_SKETCHES` in fixture-boards.ts)
 fixtures/firmware/pico/<name>.uf2             Raspberry Pi Pico firmware (arduino-pico 6.2.0; the

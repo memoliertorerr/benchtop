@@ -14,6 +14,11 @@
  * WRSR3 after a write enable, 256-byte pages, 4 KB sectors, 64 KB blocks;
  * program ANDs (bits only go 1 → 0), erase sets 0xFF; `onWrite` hears every change (the bus drops
  * predecoded code there).
+ *
+ * BT130: a second chip on CS1 (`cs1`, the S3's PSRAM): a user command goes to it while MISC (0x34)
+ * has CS0_DIS (bit 0) set and CS1_DIS (bit 1) clear, as esp_rom_spi_cmd_start and
+ * esp_rom_opiflash_exec_cmd leave it for a PSRAM command; its command is USER2's 16 bits (an OPI
+ * PSRAM's are 16, 0x4040 and the like), its address ADDR's, its data W0–W15.
  */
 
 import type { Peripheral } from '@benchtop/esp32';
@@ -31,6 +36,7 @@ const USER2 = 0x020;
 const MOSI_DLEN = 0x024;
 const MISO_DLEN = 0x028;
 const RD_STATUS = 0x02c;
+const MISC = 0x034;
 const W0 = 0x058;
 
 const FLASH_READ = 1 << 31;
@@ -107,8 +113,16 @@ export class FlashChip {
   }
 }
 
+/** BT130: a chip on SPI1's CS1 — a user command's bits, its address, MOSI bytes; it fills `miso`. */
+export interface SpiMemChip {
+  command(command: number, address: number, mosi: Uint8Array, miso: Uint8Array): void;
+}
+
 export class SpiMem implements Peripheral {
+  /** BT130: the chip on CS1, or null (the C3: none). */
+  cs1: SpiMemChip | null = null;
   private readonly regs = new Uint32Array(1024);
+  private readonly miso = new Uint8Array(64);
   private readonly base: number;
   private readonly flash: FlashChip | null;
   private readonly buffer = new Uint8Array(64);
@@ -188,6 +202,12 @@ export class SpiMem implements Peripheral {
     const misoBytes = (user & USR_MISO) !== 0 ? Math.min(64, ((this.regs[MISO_DLEN >>> 2] & 0x3ff) + 8) >>> 3) : 0;
     const mosiBytes = (user & USR_MOSI) !== 0 ? Math.min(64, ((this.regs[MOSI_DLEN >>> 2] & 0x3ff) + 8) >>> 3) : 0;
     const out = this.buffer;
+    if (this.cs1 !== null && (this.regs[MISC >>> 2] & 3) === 1) {
+      const miso = this.miso.fill(0, 0, misoBytes).subarray(0, misoBytes);
+      this.cs1.command(command, address, this.wBytes(mosiBytes), miso);
+      this.wStore(miso, misoBytes);
+      return;
+    }
     switch (command) {
       case 0x9f: // RDID
         this.wStore(JEDEC_ID, 3);

@@ -74,6 +74,8 @@ describe('examples gallery (BT38, BT43, BT45, BT47, BT56)', () => {
       // BT129
       'esp32s3-wifi-rgb-server',
       'esp32s3-deep-sleep',
+      // BT132
+      'esp32s3-psram-frame',
     ];
     for (const id of planned) expect(ALL_EXAMPLES.some((e) => e.id === id), id).toBe(true);
     for (const category of CATEGORIES) expect(EXAMPLES.some((e) => e.category === category), category).toBe(true);

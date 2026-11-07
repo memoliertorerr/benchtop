@@ -21,6 +21,13 @@
  * like the LED's 2.646 mm, still fit) no wire is drawn; otherwise the connections become wires
  * and a warning says so.
  *
+ * BT132: the ESP32-C3-DevKitM-1 and ESP32-S3-DevKitC-1 have our own pin tables (no element library
+ * draws them), named IO<n> where a diagram may name a GPIO by number ("4", "GPIO4"): their mappings
+ * rename such pins (`pin`), and a numbered power or ground pin our board doesn't have ("GND.7")
+ * falls back to the first of its bus ("GND.1" — they are one net). Their Wokwi type names are
+ * Wokwi's `board-…` spellings; a pin still unknown is a warning, as for any part. Connections to
+ * Wokwi's `$serialMonitor` are dropped without a word: our serial monitor needs no wires.
+ *
  * The input is a user file: every shape problem is a warning (the item is skipped) or the
  * single error result; nothing throws. The result goes through parseProject before it's used.
  */
@@ -44,7 +51,15 @@ interface Mapping {
   /** Our type for these attrs, or why the part can't come in. */
   type: string | ((attrs: Attrs) => string | { unsupported: string });
   attrs?: Readonly<Record<string, AttrMap>>;
+  /** BT132: a diagram's pin name → ours (boards whose pin table is our own). */
+  pin?: (name: string) => string;
 }
+
+/** BT132: a GPIO named by number ("4", "GPIO4", "IO4") → our IO<n>; other names as they are. */
+const espBoardPin = (name: string): string => {
+  const m = /^(?:GPIO|IO)?(\d{1,2})$/.exec(name);
+  return m === null ? name : `IO${Number(m[1])}`;
+};
 
 const num =
   (prop: string, scale = 1): AttrMap =>
@@ -87,6 +102,8 @@ const TYPES: Readonly<Record<string, Mapping>> = {
   'wokwi-arduino-nano': { type: 'arduino-nano' },
   'wokwi-arduino-mega': { type: 'arduino-mega' },
   'wokwi-esp32-devkit-v1': { type: 'esp32-devkit-v1' },
+  'board-esp32-c3-devkitm-1': { type: 'esp32-c3-devkitm-1', pin: espBoardPin }, // BT132
+  'board-esp32-s3-devkitc-1': { type: 'esp32-s3-devkitc-1', pin: espBoardPin },
   'wokwi-breadboard': { type: 'breadboard' },
   'wokwi-breadboard-half': { type: 'breadboard-half' },
   'wokwi-breadboard-mini': { type: 'breadboard-mini' },
@@ -154,6 +171,8 @@ interface PlacedPart {
   def: PartDefinition;
   /** The Wokwi id it came from. */
   wokwiId: string;
+  /** BT132: its mapping's pin rename, if any. */
+  pin?: (name: string) => string;
 }
 
 interface Endpoint {
@@ -243,7 +262,7 @@ export function importWokwiDiagram(json: unknown, name = 'Imported diagram'): Wo
     const id = idFor(wokwiId, taken);
     if (id !== wokwiId) warnings.push(`${wokwiId}: renamed ${id} (ids are lowercase letters, digits, - and _)`);
     const part: PartInstance = { id, type: typed, x: round(left / WOKWI_PX_PER_MM), y: round(top / WOKWI_PX_PER_MM), rotation, props };
-    byWokwiId.set(wokwiId, { part, def, wokwiId });
+    byWokwiId.set(wokwiId, mapping.pin === undefined ? { part, def, wokwiId } : { part, def, wokwiId, pin: mapping.pin });
     skipped.delete(wokwiId);
   });
 
@@ -256,13 +275,22 @@ export function importWokwiDiagram(json: unknown, name = 'Imported diagram'): Wo
     const colon = ref.indexOf(':');
     const partId = ref.slice(0, colon);
     const placed = byWokwiId.get(partId);
-    const pin = ref.slice(colon + 1);
+    const raw = ref.slice(colon + 1);
+    // BT132: Wokwi wires a board's TX/RX to its serial monitor; ours shows UART0 without wires.
+    if (partId === '$serialMonitor') return undefined;
     if (placed === undefined) {
       if (!skipped.has(partId)) warnings.push(`${where}: no part "${partId}"; skipped`);
       return undefined;
     }
-    if (!placed.def.pins.some((p) => p.name === pin)) {
-      warnings.push(`${where}: ${placed.def.title} has no pin "${pin}"; skipped`);
+    const has = (name: string): boolean => placed.def.pins.some((p) => p.name === name);
+    let pin = placed.pin === undefined ? raw : placed.pin(raw);
+    if (!has(pin) && placed.pin !== undefined) {
+      // BT132: a numbered power or ground pin (or an unnumbered one) on a bus of ours: its first.
+      const base = pin.replace(/\.\d+$/, '');
+      if (/^(GND|3V3|5V)$/.test(base)) pin = has(base) ? base : `${base}.1`;
+    }
+    if (!has(pin)) {
+      warnings.push(`${where}: ${placed.def.title} has no pin "${raw}"; skipped`);
       return undefined;
     }
     return { placed, pin };

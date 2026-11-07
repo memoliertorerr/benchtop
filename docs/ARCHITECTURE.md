@@ -1330,7 +1330,10 @@ sequence, files matched by basename or trailing path.
   period; duty 0 or full is a constant level with none). The duty's 4-bit fraction, which the
   hardware dithers over 16 periods, is modeled as its average. DUTY_START latches a new duty at
   the next period boundary — the period running keeps its old duty, fall included (a
-  write in the high phase doesn't cancel that fall); a timer write restarts its periods (Arduino-ESP32 2.0.17's
+  write in the high phase doesn't cancel that fall, and a low-speed channel's CONF0 write — the
+  PARA_UP ESP-IDF sends after DUTY_START — doesn't restart the waveform: only a new timer, output
+  enable or idle level does, as on the C3 and S3; `fixtures/sketches/esp32/ledc-duty-step` steps
+  both groups' duty every 8.5 periods and the test keeps every period); a timer write restarts its periods (Arduino-ESP32 2.0.17's
   `analogWrite` re-runs `ledcSetup` on every call, so its changes restart the period, as on
   hardware). Outputs reach pads as matrix signals 71–86. *ADC1* (`soc/sens.ts`): a conversion
   samples the pad's NetState voltage, finishes (SAR1_SAMPLE_CYCLE + bits + 2)·SAR1_CLK_DIV cycles
@@ -2647,6 +2650,29 @@ sequence, files matched by basename or trailing path.
   examples manifest's SYMS) and S3 deep-sleep counter (the ESP32's) have specs; `sim_wifi`,
   `sim_http` and `sim_state` cover the S3 as the ESP32.
 
+  **PSRAM.** Arduino-ESP32 2.0.17's S3 menu builds with "QSPI PSRAM" (the qio_qspi SDK:
+  Arduino's `psramInit` starts it) or "OPI PSRAM" (qio_opi: ESP-IDF starts it at boot), each
+  speaking its own protocol over SPI1 to the chip on the second chip select. `S3Psram`
+  (`soc/psram.ts`) answers both: quad — a 24-bit ID (0x9F: MFID 0x0D, KGD 0x5D, EID density bits
+  7:5 = 0, 16 Mbit), reset (0x66/0x99), QPI enter/leave (0x35/0xF5), data reads and writes — so
+  the chip is 2 MB as on the WROOM-1 N8R2; octal — OPI DTR mode registers through 16-bit commands
+  (0x4040 read, 0xC0C0 write: MR1 vendor 0x0D, MR2 Good-Die and density 0x3, 64 Mbit), so 8 MB as
+  on the N8R8. The build decides: `BenchEnv.createMcu` gets no part props, so a module choice on
+  the board would be a contract change; a build without PSRAM never asks, and the bytes
+  are allocated on first use. SPI1 routes a user command to `SpiMem.cs1` while MISC has CS0_DIS
+  set and CS1_DIS clear (`@benchtop/esp32c3`'s spi-mem.ts; the C3 has none). The cache side:
+  an MMU entry with SPIRAM (bit 15) set arms its data-bus page (`K_PSRAM` in bus.ts) on the chip's
+  bytes, read and written as SRAM is, by both cores (`mmuPsramPage`, within the size the protocol
+  says); an unmapped access in 0x3D00_0000–0x3DFF_FFFF still reports `esp32s3-psram`. SPI0's PSRAM
+  timing registers are storage; no cache timing (as flash). PSRAM is volatile: a reset or a deep
+  sleep's wake builds a fresh chip; a light sleep keeps it. `fixtures/sketches/esp32s3/psram-quad`
+  and `psram-octal` find 2 MB and 8 MB, check a 1 MB `ps_malloc` buffer and see a 256 KB `malloc`
+  land in PSRAM (`soc/psram.test.ts`). The compile step (`scripts/compile.ts`
+  `sketchFqbn`, the bridge's and `compile_sketch`'s) builds an S3 sketch whose main file has a
+  `// benchtop: psram` line with `PSRAM=opi` — the FQBN asked for stays an allowlisted one and the
+  option is fixed, not taken from the sketch's text; the gallery's PSRAM frame buffer (a 150 KB
+  240×320 frame in PSRAM pushed whole to an ILI9341) carries the line.
+
 ## Worker protocol
 
 `apps/web/src/sim/protocol.ts` defines `ToSim` (UI → worker) and `FromSim` (worker → UI)
@@ -2880,7 +2906,13 @@ its pins' offsets to their holes, provided every pin then lies within `CONTACT_M
 (otherwise wires, and a note). Everything not imported — unknown types, attrs, pins, bad
 routes, hidden wires — is a note under "Import" in the Problems tab; the file is untrusted input
 (a malformed one is one error, never a throw) and the result goes through `parseProject`.
-The firmware isn't in a diagram.json: you drop it on the board as usual.
+The firmware isn't in a diagram.json: you drop it on the board as usual. Wokwi's
+`board-esp32-c3-devkitm-1` and `board-esp32-s3-devkitc-1` map to our DevKitM-1 and DevKitC-1,
+whose pin tables are our own: a mapping's `pin` renames a GPIO given by number (`4`, `GPIO4`) to
+our `IO4`, and a numbered ground or supply our board doesn't have (`GND.7`) goes to its bus's first
+(one net). Wokwi publishes no pin table for those boards, so the rename is a rule, not a copied
+list: a pin it still can't place is a note as any other. Connections to Wokwi's `$serialMonitor`
+are dropped silently — our serial monitor needs no wires.
 
 A board can instead name a sketch folder (inspector: "Sketch folder", the FQBN from the board's
 MCU, Compile, Watch, a status badge; the last five folders are remembered in localStorage).

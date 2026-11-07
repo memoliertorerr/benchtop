@@ -99,6 +99,37 @@ describe('LEDC PWM on real firmware (BT35)', () => {
   }, 60_000);
 });
 
+describe('LEDC duty changes mid-pulse (BT131)', () => {
+  it('ledc-duty-step: both groups — channel 0 (high speed) on GPIO18, channel 8 (low speed, PARA_UP) on GPIO19 — keep every period, each pulse a whole 25/50/75 %', () => {
+    const { mcu, out, run } = boot('ledc-duty-step');
+    const edges: Record<number, [number, number][]> = { 18: [], 19: [] };
+    for (const g of [18, 19]) {
+      const pin = mcu.pins.get(`GPIO${g}`)!;
+      pin.onOutputChange(() => {
+        const list = edges[g];
+        const level = pin.outputLevel();
+        if (list.length === 0 || list[list.length - 1][1] !== level) list.push([mcu.cycles, level]);
+      });
+    }
+    for (let i = 0; i < 60 && !out[0].includes('ready'); i++) run(10);
+    const ready = mcu.cycles + 2 * MS;
+    run(60);
+    const period = REF_HZ / 5000;
+    for (const g of [18, 19]) {
+      const e = edges[g].filter(([t]) => t > ready);
+      const rises = e.filter(([, l]) => l === 1).map(([t]) => t);
+      expect(rises.length, `GPIO${g}`).toBeGreaterThan(280);
+      // Every rise a period after the last: no period lost to a duty change.
+      for (let i = 1; i < rises.length; i++) expect(Math.abs((rises[i] - rises[i - 1]) / period - 1), `GPIO${g} period ${i}`).toBeLessThan(0.001);
+      // Every pulse one of the three duties — none cut short or stretched by a change mid-pulse.
+      const highs = e.flatMap(([t, l], i) => (l === 1 && i + 1 < e.length ? [(e[i + 1][0] - t) / period] : []));
+      const odd = highs.filter((h) => ![0.25, 0.5, 0.75].some((d) => Math.abs(h - d) < 0.002));
+      expect(odd, `GPIO${g}`).toEqual([]);
+      for (const d of [0.25, 0.5, 0.75]) expect(highs.some((h) => Math.abs(h - d) < 0.002), `GPIO${g} at ${d}`).toBe(true);
+    }
+  }, 60_000);
+});
+
 describe('ADC1 on real firmware (BT35)', () => {
   it('adc-read: analogRead follows the pad voltage (11 dB full scale 3.3 V), attenuation and resolution, per channel', () => {
     const { mcu, out, run } = boot('adc-read');

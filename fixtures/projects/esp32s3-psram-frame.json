@@ -1,0 +1,135 @@
+{
+  "format": 1,
+  "name": "esp32s3-psram-frame",
+  "parts": [
+    {
+      "id": "s3",
+      "type": "esp32-s3-devkitc-1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "tft",
+      "type": "ili9341",
+      "x": 45,
+      "y": -20,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "tft",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "3V3.1"
+      },
+      "color": "red",
+      "waypoints": []
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "tft",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "GND.1"
+      },
+      "color": "black",
+      "waypoints": []
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "tft",
+        "pin": "CS"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "IO10"
+      },
+      "color": "orange",
+      "waypoints": []
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "tft",
+        "pin": "RST"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "IO14"
+      },
+      "color": "purple",
+      "waypoints": []
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "tft",
+        "pin": "D/C"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "IO9"
+      },
+      "color": "yellow",
+      "waypoints": []
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "tft",
+        "pin": "MOSI"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "IO11"
+      },
+      "color": "blue",
+      "waypoints": []
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "tft",
+        "pin": "SCK"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "IO12"
+      },
+      "color": "green",
+      "waypoints": []
+    },
+    {
+      "id": "w8",
+      "from": {
+        "part": "tft",
+        "pin": "LED"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "3V3.2"
+      },
+      "color": "red",
+      "waypoints": []
+    }
+  ],
+  "firmware": {
+    "s3": {
+      "kind": "file",
+      "name": "psram-frame.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

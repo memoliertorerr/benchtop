@@ -10,8 +10,13 @@
  * when the other core is behind it in time, so peripherals see accesses in time order; sub-word
  * accesses merge into their word), and unmapped addresses (LoadStoreError / InstrFetchError).
  *
- * Not modeled (Deferred follow-ups): flash cache timing (the ESP32 stalls a core per miss),
- * region protection, PSRAM (0x3D00_0000 through the MMU with MMU_ACCESS_SPIRAM: a Problem).
+ * BT130: PSRAM — an MMU entry with SPIRAM (bit 15) set arms its data-bus page (0x3C00_0000–
+ * 0x3DFF_FFFF) on the PSRAM chip's bytes (psram.ts), read and written like SRAM. A data access in
+ * 0x3D00_0000–0x3DFF_FFFF that no entry maps still reports `esp32s3-psram`. Instruction fetch from
+ * PSRAM isn't modeled (Arduino's builds don't place code there).
+ *
+ * Not modeled (Deferred follow-ups): flash and PSRAM cache timing (the ESP32 stalls a core per
+ * miss), region protection.
  */
 
 import { BUS_YIELD, CODE_NONE, CODE_PLAIN, type CodeBus, EXCCAUSE, lengthOf, type ProblemLog, type XtensaBus, XtensaBusError, type XtensaCore } from '@benchtop/esp32';
@@ -42,6 +47,8 @@ import type { S3PeripheralMap } from './periph.ts';
 const K_SRAM = 1;
 const K_ROM = 2;
 const K_FLASH = 3;
+/** BT130: a PSRAM page on the data bus (an MMU entry with SPIRAM set). */
+const K_PSRAM = 4;
 const LOAD_STORE_ERROR = EXCCAUSE.LOAD_STORE_ERROR;
 const FETCH_ERROR = EXCCAUSE.INSTRUCTION_FETCH_ERROR;
 export const CODE_S3_PSRAM = 'esp32s3-psram';
@@ -56,6 +63,11 @@ export interface S3BusParts {
   flashBytes(): Uint8Array;
   /** The flash offset MMU entry `entry` maps (−1: invalid or PSRAM). */
   mmuPage(entry: number): number;
+  /** BT130: the PSRAM offset MMU entry `entry` maps (−1: invalid or flash). */
+  mmuPsramPage(entry: number): number;
+  /** BT130: the PSRAM chip's bytes and words (allocated on first use). */
+  psramBytes(): Uint8Array;
+  psramWords(): Uint32Array;
   /** May CPU `cpu` touch a peripheral now (the other core isn't behind it)? */
   peripheralTurn(cpu: number): boolean;
   /** A store hit a 4 KB SRAM page holding predecoded code. */
@@ -130,6 +142,7 @@ export class S3Bus implements XtensaBus, CodeBus {
     if (k === K_SRAM) return this.sram[this.base[p] + (a & 0xffff)];
     if (k === K_ROM) return this.rom[this.base[p] + (a & 0xffff)];
     if (k === K_FLASH) return this.flash[this.base[p] + (a & 0xffff)];
+    if (k === K_PSRAM) return this.parts.psramBytes()[this.base[p] + (a & 0xffff)];
     return this.slowRead(a, 1);
   }
 
@@ -139,7 +152,7 @@ export class S3Bus implements XtensaBus, CodeBus {
     const k = this.kind[p];
     if ((a & 1) === 0 && k !== 0) {
       const o = this.base[p] + (a & 0xffff);
-      const m = k === K_SRAM ? this.sram : k === K_ROM ? this.rom : this.flash;
+      const m = k === K_SRAM ? this.sram : k === K_ROM ? this.rom : k === K_PSRAM ? this.parts.psramBytes() : this.flash;
       return m[o] | (m[o + 1] << 8);
     }
     return this.slowRead(a, 2);
@@ -153,6 +166,7 @@ export class S3Bus implements XtensaBus, CodeBus {
       const o = this.base[p] + (a & 0xffff);
       if (k === K_SRAM) return this.sramWords[o >>> 2];
       if (k === K_ROM) return this.romWords[o >>> 2];
+      if (k === K_PSRAM) return this.parts.psramWords()[o >>> 2];
       const m = this.flash;
       return (m[o] | (m[o + 1] << 8) | (m[o + 2] << 16) | (m[o + 3] << 24)) >>> 0;
     }
@@ -162,11 +176,13 @@ export class S3Bus implements XtensaBus, CodeBus {
   write8(addr: number, value: number): void {
     const a = addr >>> 0;
     const p = a >>> 16;
-    if (this.kind[p] === K_SRAM) {
+    const k = this.kind[p];
+    if (k === K_SRAM) {
       const o = this.base[p] + (a & 0xffff);
       this.sram[o] = value;
       if (this.code[o >>> 12] !== 0) this.parts.codeWritten(o);
-    } else this.slowWrite(a, value, 1);
+    } else if (k === K_PSRAM) this.parts.psramBytes()[this.base[p] + (a & 0xffff)] = value;
+    else this.slowWrite(a, value, 1);
   }
 
   write16(addr: number, value: number): void {
@@ -177,6 +193,11 @@ export class S3Bus implements XtensaBus, CodeBus {
       this.sram[o] = value;
       this.sram[o + 1] = value >>> 8;
       if (this.code[o >>> 12] !== 0) this.parts.codeWritten(o);
+    } else if ((a & 1) === 0 && this.kind[p] === K_PSRAM) {
+      const m = this.parts.psramBytes();
+      const o = this.base[p] + (a & 0xffff);
+      m[o] = value;
+      m[o + 1] = value >>> 8;
     } else this.slowWrite(a, value, 2);
   }
 
@@ -187,7 +208,8 @@ export class S3Bus implements XtensaBus, CodeBus {
       const o = this.base[p] + (a & 0xffff);
       this.sramWords[o >>> 2] = value;
       if (this.code[o >>> 12] !== 0) this.parts.codeWritten(o);
-    } else this.slowWrite(a, value, 4);
+    } else if ((a & 3) === 0 && this.kind[p] === K_PSRAM) this.parts.psramWords()[(this.base[p] + (a & 0xffff)) >>> 2] = value;
+    else this.slowWrite(a, value, 4);
   }
 
   fetch(addr: number): number {
@@ -224,13 +246,26 @@ export class S3Bus implements XtensaBus, CodeBus {
     return page + (a & 0xffff);
   }
 
+  /** BT130: the PSRAM offset of data-bus address `a` (arming its page), or −1. */
+  private psramOffset(a: number): number {
+    if (a < DROM_FLASH_BASE || a >= DROM_FLASH_BASE + FLASH_WINDOW) return -1;
+    const page = this.parts.mmuPsramPage((a - DROM_FLASH_BASE) >>> 16);
+    if (page < 0) return -1;
+    const p = a >>> 16;
+    this.kind[p] = K_PSRAM;
+    this.base[p] = page;
+    return page + (a & 0xffff);
+  }
+
   /** Byte `a` outside the fast pages: RTC memory, SRAM1's first data page, flash, or −1. */
   private memoryByte(a: number): number {
     if (a >= RTC_FAST_BASE && a < RTC_FAST_BASE + RTC_FAST_SIZE) return this.parts.memory.rtcFast[a - RTC_FAST_BASE];
     if (a >= RTC_SLOW_BASE && a < RTC_SLOW_BASE + RTC_SLOW_SIZE) return this.parts.memory.rtcSlow[a - RTC_SLOW_BASE];
     if (a >= DRAM_BASE && a < DRAM_END) return this.sram[a - DRAM_ORIGIN];
     const o = this.flashOffset(a);
-    return o >= 0 ? this.flash[o] : -1;
+    if (o >= 0) return this.flash[o];
+    const q = this.psramOffset(a);
+    return q >= 0 ? this.parts.psramBytes()[q] : -1;
   }
 
   private slowRead(a: number, size: number): number {
@@ -239,7 +274,7 @@ export class S3Bus implements XtensaBus, CodeBus {
     for (let i = 0; i < size; i++) {
       const b = this.memoryByte((a + i) >>> 0);
       if (b < 0) {
-        if (a >= 0x3d000000 && a < 0x3e000000) this.parts.problems.report('error', CODE_S3_PSRAM, a, `PSRAM access at ${hex(a)} (PC ${hex(this.pc())}): external RAM is not emulated`);
+        if (a >= 0x3d000000 && a < 0x3e000000) this.parts.problems.report('error', CODE_S3_PSRAM, a, `PSRAM access at ${hex(a)} (PC ${hex(this.pc())}): no PSRAM page is mapped there (a build without PSRAM, or past its size)`);
         throw new XtensaBusError('unmapped load', a, LOAD_STORE_ERROR);
       }
       v |= b << (8 * i);
@@ -261,6 +296,8 @@ export class S3Bus implements XtensaBus, CodeBus {
         const o = b >= IRAM_BASE ? b - IRAM_BASE : b - DRAM_ORIGIN;
         this.sram[o] = byte;
         if (this.code[o >>> 12] !== 0) this.parts.codeWritten(o);
+      } else if (this.psramOffset(b) >= 0) {
+        this.parts.psramBytes()[this.base[b >>> 16] + (b & 0xffff)] = byte;
       } else if ((b >= ROM_BASE && b < ROM_BASE + ROM_SIZE) || (b >= DROM_BASE && b < DROM_BASE + DROM_SIZE)) {
         if (this.parts.problems.admit(CODE_S3_ROM_WRITE, a)) this.parts.problems.add('warning', CODE_S3_ROM_WRITE, a, `write to ROM at ${hex(a)} (PC ${hex(this.pc())}) ignored`);
         return;
@@ -311,6 +348,7 @@ export class S3Bus implements XtensaBus, CodeBus {
     if (k === K_SRAM) return this.sram[this.base[p] + (a & 0xffff)];
     if (k === K_ROM) return this.rom[this.base[p] + (a & 0xffff)];
     if (k === K_FLASH) return this.flash[this.base[p] + (a & 0xffff)];
+    if (k === K_PSRAM) return this.parts.psramBytes()[this.base[p] + (a & 0xffff)];
     if (a >= RTC_FAST_BASE && a < RTC_FAST_BASE + RTC_FAST_SIZE) return this.parts.memory.rtcFast[a - RTC_FAST_BASE];
     const o = this.flashOffset(a);
     return o >= 0 ? this.flash[o] : -1;
@@ -353,7 +391,12 @@ export class S3Bus implements XtensaBus, CodeBus {
       const o = b >= IRAM_BASE ? b - IRAM_BASE : b - DRAM_ORIGIN;
       this.sram[o] = byte;
       if (this.code[o >>> 12] !== 0) this.parts.codeWritten(o);
-    } else return false;
+    } else {
+      // BT130: PSRAM through the MMU's SPIRAM pages.
+      const page = b >= DROM_FLASH_BASE && b < DROM_FLASH_BASE + FLASH_WINDOW ? this.parts.mmuPsramPage((b - DROM_FLASH_BASE) >>> 16) : -1;
+      if (page < 0) return false;
+      this.parts.psramBytes()[page + (b & 0xffff)] = byte;
+    }
     return true;
   }
 
@@ -372,7 +415,10 @@ export class S3Bus implements XtensaBus, CodeBus {
     if (a >= IROM_BASE && a < IROM_BASE + FLASH_WINDOW) window = IROM_BASE;
     else if (a >= DROM_FLASH_BASE && a < DROM_FLASH_BASE + FLASH_WINDOW) window = DROM_FLASH_BASE;
     if (window < 0) return 0;
-    const page = this.parts.mmuPage((a - window) >>> 16);
-    return page < 0 ? 0 : (this.flash[page + (a & 0xffff)] ?? 0);
+    const entry = (a - window) >>> 16;
+    const page = this.parts.mmuPage(entry);
+    if (page >= 0) return this.flash[page + (a & 0xffff)] ?? 0;
+    const ram = window === DROM_FLASH_BASE ? this.parts.mmuPsramPage(entry) : -1;
+    return ram < 0 ? 0 : this.parts.psramBytes()[ram + (a & 0xffff)];
   }
 }

@@ -898,6 +898,19 @@
     "description": "The ESP32-S3 sleeps most of the time: every 5 s its RTC timer wakes it, and the button on GPIO4 wakes it at once (ext0). It counts its wakes and the presses in RTC memory, which deep sleep keeps, prints them and flashes the LED on GPIO2. While it sleeps the board says so, and what will wake it."
   },
   {
+    "id": "esp32s3-psram-frame",
+    "title": "ESP32-S3 PSRAM frame buffer",
+    "category": "ESP32-S3",
+    "project": "esp32s3-psram-frame",
+    "boards": {
+      "s3": {
+        "firmware": "esp32s3/psram-frame.bin",
+        "sketch": "esp32s3/psram-frame"
+      }
+    },
+    "description": "An ESP32-S3 with 8 MB of octal PSRAM keeps a whole 240×320 frame (150 KB) in PSRAM, redraws it — color bands and a sliding square — and pushes it to an ILI9341 in one go. Its `// benchtop: psram` line builds it with PSRAM."
+  },
+  {
     "id": "esp32-wifi-webserver",
     "title": "ESP32 WiFi web server",
     "category": "WiFi",

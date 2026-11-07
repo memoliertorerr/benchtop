@@ -71,8 +71,9 @@ additions runs both of the S3's cores on its real mask ROM, booting the `.bin` A
 builds for `esp32:esp32:esp32s3` — GPIO on the board's 36 header pins and pin interrupts, the
 ADC (both units), LEDC PWM, UART0–2 and the USB-Serial-JTAG port (a CDC build's `Serial`), both
 I2C controllers, SPI, and the board's RGB LED (a WS2812 on GPIO48 through the RMT); the debugger
-shows the core `loop()` runs on, and WiFi and sleep work as on the ESP32 (below). Not yet on the
-S3: PSRAM. Its ROM comes from the
+shows the core `loop()` runs on, and WiFi and sleep work as on the ESP32 (below). A build with
+PSRAM (the board menu's QSPI or OPI PSRAM) gets it: 2 MB quad or 8 MB octal, `ps_malloc` and
+PSRAM in the heap; a sketch with a `// benchtop: psram` line compiles with 8 MB octal PSRAM. Its ROM comes from the
 same download as the ESP32's.
 
 **ESP32 DevKit V1** — an Xtensa LX6 dual-core emulator written in TypeScript for this project,
@@ -194,7 +195,8 @@ a microphone pitch meter, a VU meter; Power: a regulator meter (turn the bench s
 7805 drop out); Storage: an SD card datalogger; Environment: a gas alarm with an extractor fan, a PIR
 hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, an LED Preferences remember, a deep sleep wake counter, a PWM fader, NeoPixel, a
 rainbow ring, an OLED clock, a color TFT, the DAC, the microphone, an I2C scan; ESP32-C3: the RGB LED,
-serial, a potentiometer dimmer, an OLED clock; ESP32-S3: the RGB LED, serial, a potentiometer dimmer, an OLED clock, a deep sleep wake counter; WiFi: an ESP32 web server switched by HTTP client
+serial, a potentiometer dimmer, an OLED clock; ESP32-S3: the RGB LED, serial, a potentiometer dimmer, an OLED clock, a deep sleep wake counter, a
+frame buffer in PSRAM on a color TFT; WiFi: an ESP32 web server switched by HTTP client
 parts, an ESP32 hosting its own access point and web server, an ESP32-C3 and an ESP32-S3 web server that set their RGB LED, a Pico W and a Pico 2 W web server switching their onboard LEDs, a Pico W and an ESP32 HTTP client talking to a server part, two ESP32s over TCP, an NTP clock on an OLED;
 Raspberry Pi Pico:
 blink, a potentiometer, PWM steps, an OLED, a color TFT, both cores at once; Raspberry Pi Pico 2: the same, NeoPixels
@@ -208,8 +210,9 @@ and press Run — or write the sketch in the app: the **Code** tab edits the boa
 the local compile bridge (`npm run bridge`, below) and runs it; errors show on their lines. The
 sketch is saved in the project. Edit the circuit while it runs: add a part, rewire, change a
 value — the boards keep running and the other parts keep their state. **Examples…** opens a gallery of ready-to-run circuits (Uno, Nano, Mega and ESP32), and
-**Open…** also imports a [Wokwi](https://wokwi.com) `diagram.json` — the circuit comes over,
-anything it can't map is listed in the Problems tab, and you drop the firmware on the board.
+**Open…** also imports a [Wokwi](https://wokwi.com) `diagram.json` — the circuit comes over
+(the ESP32-C3 and ESP32-S3 boards included), anything it can't map is listed in the Problems tab,
+and you drop the firmware on the board.
 **Export ▾** saves the project as `.json`, the bench as it looks right now as a PNG (2×) or
 an SVG, or copies a **share link** — the whole circuit (and its in-app sketches) packed into the
 URL, or just the example's name for an unchanged example.

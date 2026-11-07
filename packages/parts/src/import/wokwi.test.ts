@@ -162,6 +162,21 @@ describe('importWokwiDiagram (BT38)', () => {
     ]);
   });
 
+  it('BT132: the S3 and C3 boards — GPIOs by number become IO<n>, a ground or supply our board lacks goes to its bus’s first', () => {
+    const s3 = imported(JSON.parse(readFixtureText('fixtures/wokwi/esp32-s3-led.diagram.json')));
+    expect(s3.doc.parts.find((p) => p.id === 'esp')?.type).toBe('esp32-s3-devkitc-1');
+    const ends = (doc: ProjectDoc) => doc.wires.map((w) => `${w.from.part}:${w.from.pin} ${w.to.part}:${w.to.pin}`);
+    expect(ends(s3.doc)).toEqual(['esp:IO2 r1:2', 'r1:1 led1:A', 'led1:C esp:GND.3', 'esp:IO4 btn1:1.l', 'btn1:2.l esp:GND.1', 'esp:3V3.1 led1:A']);
+    expect(s3.warnings).toEqual([]); // the $serialMonitor wires too: ours needs none
+    const c3 = imported(JSON.parse(readFixtureText('fixtures/wokwi/esp32-c3-button.diagram.json')));
+    expect(c3.doc.parts.find((p) => p.id === 'esp')?.type).toBe('esp32-c3-devkitm-1');
+    expect(ends(c3.doc)).toEqual(['esp:IO9 btn1:1.l', 'btn1:2.l esp:GND.6', 'esp:IO3 led1:A', 'led1:C esp:GND.1', 'esp:5V.1 btn1:1.r']);
+    // A GPIO the board doesn't bring out is a warning, as any unknown pin.
+    expect(c3.warnings).toEqual([expect.stringMatching(/ESP32-C3-DevKitM-1 has no pin "47"; skipped/)]);
+    const parsed = parseProject(s3.doc);
+    expect(parsed.ok).toBe(true);
+  });
+
   it('maps every Wokwi type it knows to a catalog part whose pins it can name', () => {
     for (const type of WOKWI_TYPES) {
       const result = importWokwiDiagram({ parts: [{ type, id: 'p' }], connections: [] });

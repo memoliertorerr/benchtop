@@ -23,6 +23,16 @@ export function isAllowedFqbn(fqbn: unknown): fqbn is string {
   return typeof fqbn === 'string' && FQBN_ALLOWLIST.includes(fqbn);
 }
 
+/**
+ * BT132: board options a sketch asks for in its main file. An ESP32-S3 sketch with a
+ * `// benchtop: psram` line builds with OPI PSRAM (8 MB, as the DevKitC-1 N8R8): the FQBN the
+ * caller asked for stays one of the allowlist's, and the option is a fixed one, not the sketch's text.
+ */
+export function sketchFqbn(fqbn: string, mainSource: string): string {
+  if (fqbn === 'esp32:esp32:esp32s3' && /^[ \t]*\/\/[ \t]*benchtop:[ \t]*psram\b/im.test(mainSource)) return `${fqbn}:PSRAM=opi`;
+  return fqbn;
+}
+
 /** An inline sketch's file names: a plain name, no folders, a C/C++/Arduino extension. */
 export const SKETCH_FILE_PATTERN = /^[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}\.(?:ino|h|hpp|c|cpp)$/;
 export const MAX_SKETCH_FILES = 32;
@@ -104,10 +114,12 @@ export function buildPathFor(key: string): string {
 export async function compile(cli: string, sketchDir: string, fqbn: string, timeoutMs = COMPILE_TIMEOUT_MS, buildKey = sketchDir): Promise<CompileResult> {
   const start = performance.now();
   const outDir = mkdtempSync(join(tmpdir(), 'benchtop-out-'));
+  const mainIno = join(sketchDir, `${basename(sketchDir)}.ino`);
+  const effectiveFqbn = sketchFqbn(fqbn, existsSync(mainIno) ? readFileSync(mainIno, 'utf8') : '');
   try {
     const run = await runArduinoCli(
       cli,
-      ['compile', '--fqbn', fqbn, '--build-path', buildPathFor(buildKey), '--output-dir', outDir, '--json', '--no-color', sketchDir],
+      ['compile', '--fqbn', effectiveFqbn, '--build-path', buildPathFor(buildKey), '--output-dir', outDir, '--json', '--no-color', sketchDir],
       timeoutMs,
     );
     const durationMs = Math.round(performance.now() - start);

@@ -15,7 +15,9 @@
  * fraction (which the hardware spreads over 16 periods) is modeled as the average: the high time
  * is DUTY/16 ticks, so 0x1001 on a 13-bit timer is 256.0625 ticks every period. DUTY_START (CONF1
  * bit 31) latches DUTY and HPOINT at the next period boundary, as the hardware does (low-speed
- * channels also set PARA_UP, CONF0 bit 4: treated alike); DUTY_R then reads the new duty. Duty 0
+ * channels also set PARA_UP, CONF0 bit 4: treated alike — BT131: a CONF0 write restarts the
+ * waveform only for a new timer, output enable or idle level, so the PARA_UP ESP-IDF writes after
+ * DUTY_START no longer cuts the pulse in flight); DUTY_R then reads the new duty. Duty 0
  * and duty ≥ 2^DUTY_RES are constant levels with no events. A duty that would run past the
  * period's end (HPOINT + duty > 2^DUTY_RES) ends at the period's end — the wrap isn't modeled.
  * The hardware fade (DUTY_INC/NUM/CYCLE/SCALE) and the interrupts are storage (Later).
@@ -141,6 +143,7 @@ export class Ledc extends RegisterFile {
   }
 
   override write32(offset: number, value: number): void {
+    const before = this.regs[offset >>> 2];
     super.write32(offset, value);
     if (offset >= TIMERS && offset < LS_TIMERS + 32) {
       if ((offset & 4) !== 0) return; // VALUE registers
@@ -161,7 +164,11 @@ export class Ledc extends RegisterFile {
       // The period running goes on with the old duty (its fall included); the boundary that
       // ends it latches the new one. Only a channel with nothing scheduled needs a boundary.
       if (!this.context.events.pending(this.slots[c])) this.restart(c);
-    } else if (reg === CONF0) this.restart(c);
+    } else if (reg === CONF0) {
+      // BT131: PARA_UP alone (ledc_update_duty writes it after DUTY_START) leaves the pending duty
+      // to the boundary; restarting mid-pulse dropped the pulse's fall (as BT125 found on the C3).
+      if (((before ^ value) & 0xf) !== 0 || !this.context.events.pending(this.slots[c])) this.restart(c);
+    }
   }
 
   /** Recomputes channel c's schedule from now: its level and next event. */

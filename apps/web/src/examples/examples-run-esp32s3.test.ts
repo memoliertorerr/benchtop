@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EXAMPLES } from './manifest.ts';
-import { type ExampleRun, runExample } from './run.test-helper.ts';
+import { type ExampleRun, runExample, tftPixels } from './run.test-helper.ts';
 
 // BT126: every ESP32-S3 example runs 2 s of simulated time in Node (the S3's real ROM, a direct
 // boot) and does what its card says.
@@ -57,12 +57,19 @@ export const ESP32S3_CHECKS: Record<string, (r: ExampleRun) => void> = {
     r.runTo(2000);
     expect(r.serial('s3')).toContain('boot 2: button, 1 presses');
   },
+  // BT132: a 150 KB frame buffer in PSRAM, pushed whole to the ILI9341 every frame.
+  'esp32s3-psram-frame'(r) {
+    r.runTo(2000);
+    expect(r.serial('s3')).toContain('frame buffer 153600 in psram 1');
+    expect(r.serial('s3')).toContain('frame 3');
+    expect(tftPixels(r, 'tft', [[20, 50], [200, 120], [20, 250], [20, 310]])).toEqual([0xf800, 0x07e0, 0x001f, 0]);
+  },
 };
 
 describe('every ESP32-S3 example runs as described (BT126)', () => {
   const withS3 = EXAMPLES.filter((e) => Object.values(e.boards).some((b) => 'firmware' in b && b.firmware.startsWith('esp32s3/')));
   it('has a check for each', () => {
-    expect(withS3.length).toBe(6);
+    expect(withS3.length).toBe(7);
     expect(withS3.map((e) => e.id).filter((id) => ESP32S3_CHECKS[id] === undefined)).toEqual([]);
   });
   for (const example of withS3) {

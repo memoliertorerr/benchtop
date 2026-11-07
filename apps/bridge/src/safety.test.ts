@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, describe, expect, it } from 'vitest';
+import { sketchFqbn } from '../../../scripts/compile.ts';
 import { isAllowedFqbn, isAllowedHost, isAllowedOrigin, validateSketchPath } from './safety.ts';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
@@ -93,5 +94,16 @@ describe('request guards', () => {
     expect(isAllowedFqbn('arduino:avr:leonardo')).toBe(false);
     expect(isAllowedFqbn('arduino:avr:uno --build-property x=y')).toBe(false);
     expect(isAllowedFqbn(undefined)).toBe(false);
+    // BT132: the S3's PSRAM option comes from the sketch's own `benchtop: psram` line, never as an FQBN.
+    expect(isAllowedFqbn('esp32:esp32:esp32s3:PSRAM=opi')).toBe(false);
+  });
+
+  it('BT132: an ESP32-S3 sketch with a `// benchtop: psram` line builds with OPI PSRAM; nothing else changes the FQBN', () => {
+    expect(sketchFqbn('esp32:esp32:esp32s3', '// psram-frame\n// benchtop: psram\n#include <SPI.h>\n')).toBe('esp32:esp32:esp32s3:PSRAM=opi');
+    expect(sketchFqbn('esp32:esp32:esp32s3', '  //benchtop:  PSRAM\n')).toBe('esp32:esp32:esp32s3:PSRAM=opi');
+    expect(sketchFqbn('esp32:esp32:esp32s3', 'void setup() {}\n')).toBe('esp32:esp32:esp32s3');
+    expect(sketchFqbn('esp32:esp32:esp32s3', 'int x; // benchtop: psram\n')).toBe('esp32:esp32:esp32s3'); // a line of its own
+    expect(sketchFqbn('esp32:esp32:esp32s3', '// benchtop: psramfoo --build-property x=y\n')).toBe('esp32:esp32:esp32s3');
+    expect(sketchFqbn('esp32:esp32:esp32', '// benchtop: psram\n')).toBe('esp32:esp32:esp32'); // the S3 only
   });
 });
