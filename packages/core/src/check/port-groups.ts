@@ -70,4 +70,6 @@ export const PORT_GROUPS: Readonly<Record<BoardSpec['mcu'], PortGroups>> = {
   rp2350: { source: [], sink: [] },
   // The ESP32-C3's datasheet gives per-pin limits only, like the ESP32's.
   esp32c3: { source: [], sink: [] },
+  // The ESP32-S3's too.
+  esp32s3: { source: [], sink: [] },
 };

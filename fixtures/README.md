@@ -33,8 +33,9 @@ fixtures/firmware/esp32s3/<name>.bin|.partitions.bin|.syms.tsv  the same for the
                                               (serial-hello, blink, gpio-interrupt, adc-read,
                                               ledc-fade, i2c-scan, spi-loopback, rgb-blink (the
                                               DevKitC-1's WS2812 on GPIO48), serial-echo,
-                                              cdc-hello built with CDCOnBoot=cdc, and debug-demo
-                                              — the C3's and ESP32's sketches on the S3's pins)
+                                              cdc-hello built with CDCOnBoot=cdc, debug-demo —
+                                              the C3's and ESP32's sketches on the S3's pins —,
+                                              and pot-led and oled-clock, the gallery's)
 fixtures/firmware/pico*/debug-demo.syms.tsv   the same for the Pico and Pico 2 debug-demos only (the
                                               debugger's tests; `SYMBOL_SKETCHES` in fixture-boards.ts)
 fixtures/firmware/pico/<name>.uf2             Raspberry Pi Pico firmware (arduino-pico 6.2.0; the

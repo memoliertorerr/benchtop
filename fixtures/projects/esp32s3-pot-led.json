@@ -1,0 +1,131 @@
+{
+  "format": 1,
+  "name": "esp32s3-pot-led",
+  "parts": [
+    {
+      "id": "s3",
+      "type": "esp32-s3-devkitc-1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "pot",
+      "type": "potentiometer",
+      "x": 40,
+      "y": 14,
+      "rotation": 0,
+      "props": {
+        "value": 0.5
+      }
+    },
+    {
+      "id": "r1",
+      "type": "resistor",
+      "x": 40,
+      "y": -14,
+      "rotation": 0,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led1",
+      "type": "led",
+      "x": 38,
+      "y": -40,
+      "rotation": 0,
+      "props": {
+        "color": "green"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "pot",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "3V3.1"
+      },
+      "color": "red",
+      "waypoints": []
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "pot",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "GND.2"
+      },
+      "color": "black",
+      "waypoints": []
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "pot",
+        "pin": "SIG"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "IO1"
+      },
+      "color": "green",
+      "waypoints": []
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "s3",
+        "pin": "IO2"
+      },
+      "to": {
+        "part": "r1",
+        "pin": "2"
+      },
+      "color": "green",
+      "waypoints": []
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "r1",
+        "pin": "1"
+      },
+      "to": {
+        "part": "led1",
+        "pin": "A"
+      },
+      "color": "green",
+      "waypoints": []
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "led1",
+        "pin": "C"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "GND.3"
+      },
+      "color": "black",
+      "waypoints": []
+    }
+  ],
+  "firmware": {
+    "s3": {
+      "kind": "file",
+      "name": "pot-led.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

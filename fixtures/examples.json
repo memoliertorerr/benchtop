@@ -833,6 +833,58 @@
     "description": "A DS1307 clock shown large on an SSD1306 OLED, both on the C3's default I2C pins (SDA 8, SCL 9)."
   },
   {
+    "id": "esp32s3-rgb-blink",
+    "title": "ESP32-S3 RGB blink",
+    "category": "ESP32-S3",
+    "project": "esp32s3-rgb-blink",
+    "boards": {
+      "s3": {
+        "firmware": "esp32s3/rgb-blink.bin",
+        "sketch": "esp32s3/rgb-blink"
+      }
+    },
+    "description": "The DevKitC-1's own RGB LED (a WS2812 on GPIO48) cycles red, green, blue and white through neopixelWrite, on the S3's RMT."
+  },
+  {
+    "id": "esp32s3-serial-hello",
+    "title": "ESP32-S3 serial hello",
+    "category": "ESP32-S3",
+    "project": "esp32s3-serial",
+    "boards": {
+      "s3": {
+        "firmware": "esp32s3/serial-hello.bin",
+        "sketch": "esp32s3/serial-hello"
+      }
+    },
+    "description": "A dual-core Xtensa LX7 ESP32-S3 boots its real ROM and prints \"hello from esp32s3\", then counts once a second from its second core."
+  },
+  {
+    "id": "esp32s3-pot-led",
+    "title": "ESP32-S3 potentiometer dimmer",
+    "category": "ESP32-S3",
+    "project": "esp32s3-pot-led",
+    "boards": {
+      "s3": {
+        "firmware": "esp32s3/pot-led.bin",
+        "sketch": "esp32s3/pot-led"
+      }
+    },
+    "description": "A potentiometer on GPIO1 (ADC1) sets an LED's brightness on GPIO2 through LEDC PWM."
+  },
+  {
+    "id": "esp32s3-oled-clock",
+    "title": "ESP32-S3 OLED clock",
+    "category": "ESP32-S3",
+    "project": "esp32s3-oled-clock",
+    "boards": {
+      "s3": {
+        "firmware": "esp32s3/oled-clock.bin",
+        "sketch": "esp32s3/oled-clock"
+      }
+    },
+    "description": "A DS1307 clock shown large on an SSD1306 OLED, both on the S3's default I2C pins (SDA 8, SCL 9)."
+  },
+  {
     "id": "esp32-wifi-webserver",
     "title": "ESP32 WiFi web server",
     "category": "WiFi",

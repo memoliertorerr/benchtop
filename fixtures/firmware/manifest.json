@@ -2829,6 +2829,90 @@
     },
     {
       "board": "esp32s3",
+      "name": "oled-clock",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/oled-clock.bin",
+      "sha256": "f294c3bfd4c56883a8d05d96fc3bd1b9ea2f849055d971a30a139f74b7c77f29",
+      "bytes": 299024,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "2.0.0",
+        "Wire": "2.0.0"
+      },
+      "source": "7f75b8011ec6e2acf041badc1e43bb95acd7581b273757f7aee303b2bc18851a"
+    },
+    {
+      "board": "esp32s3",
+      "name": "oled-clock",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/oled-clock.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "2.0.0",
+        "Wire": "2.0.0"
+      },
+      "source": "7f75b8011ec6e2acf041badc1e43bb95acd7581b273757f7aee303b2bc18851a"
+    },
+    {
+      "board": "esp32s3",
+      "name": "oled-clock",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/oled-clock.syms.tsv",
+      "sha256": "81af9815a1ab6ca1e2041a520d02af4a9f55538901b6c3366d48d12b2a8a069c",
+      "bytes": 182487,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "2.0.0",
+        "Wire": "2.0.0"
+      },
+      "source": "7f75b8011ec6e2acf041badc1e43bb95acd7581b273757f7aee303b2bc18851a"
+    },
+    {
+      "board": "esp32s3",
+      "name": "pot-led",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/pot-led.bin",
+      "sha256": "64e38d78fcba77116914af106c1d562c65d3aec7447ba389197b5be602a4207e",
+      "bytes": 272832,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "9f542ed71c7f1b0b0b1ce04a8baae536f75b387b790c96f955de0444c917440b"
+    },
+    {
+      "board": "esp32s3",
+      "name": "pot-led",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/pot-led.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "9f542ed71c7f1b0b0b1ce04a8baae536f75b387b790c96f955de0444c917440b"
+    },
+    {
+      "board": "esp32s3",
+      "name": "pot-led",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/pot-led.syms.tsv",
+      "sha256": "28f8b5771864ebac22d41322ef4c32eb1b26eb9143ac5ce1f1e0df36c7a0fe1b",
+      "bytes": 177731,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "9f542ed71c7f1b0b0b1ce04a8baae536f75b387b790c96f955de0444c917440b"
+    },
+    {
+      "board": "esp32s3",
       "name": "rgb-blink",
       "fqbn": "esp32:esp32:esp32s3",
       "file": "esp32s3/rgb-blink.bin",

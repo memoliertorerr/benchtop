@@ -105,9 +105,10 @@ export interface PartDefinition<P extends PartProps = PartProps> {
 export interface BoardSpec {
   /**
    * Which `Mcu` implementation the bench asks its environment for ('atmega2560': BT46;
-   * 'rp2040', 'rp2350': BT60/BT65; 'esp32c3': BT94 — each additive and human-approved).
+   * 'rp2040', 'rp2350': BT60/BT65; 'esp32c3': BT94; 'esp32s3': BT126 — each additive and
+   * human-approved).
    */
-  mcu: 'atmega328p' | 'atmega2560' | 'esp32' | 'rp2040' | 'rp2350' | 'esp32c3';
+  mcu: 'atmega328p' | 'atmega2560' | 'esp32' | 'rp2040' | 'rp2350' | 'esp32c3' | 'esp32s3';
   /** Header pin name (`PinDef.name`, e.g. `'13'`, `'A0'`) → MCU pin id (`McuPin.id`, e.g. `'PB5'`). */
   pinMap: Record<string, string>;
 }

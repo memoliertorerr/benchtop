@@ -409,7 +409,7 @@ const VISUAL_TYPES: Readonly<Record<'led' | 'servo' | 'lcd' | 'pixel' | 'digits'
   servo: { test: (t) => t === 'servo', what: 'a servo' },
   lcd: { test: (t) => Object.hasOwn(LCD_SIZES, t), what: 'a character LCD' },
   // BT94: the ESP32-C3-DevKitM-1's own RGB LED is a WS2812 too (its pixels[0]).
-  pixel: { test: (t) => t.startsWith('neopixel-') || t === 'esp32-c3-devkitm-1', what: 'a NeoPixel strip, ring or matrix (or a board with one)' },
+  pixel: { test: (t) => t.startsWith('neopixel-') || t === 'esp32-c3-devkitm-1' || t === 'esp32-s3-devkitc-1', what: 'a NeoPixel strip, ring or matrix (or a board with one)' },
   digits: { test: (t) => t.startsWith('seven-segment'), what: 'a 7-segment display' },
 };
 

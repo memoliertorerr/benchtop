@@ -1,0 +1,13 @@
+{
+  "name": "example: esp32s3-rgb-blink",
+  "project": "../../projects/esp32s3-rgb-blink.json",
+  "firmware": {
+    "s3": "../../firmware/esp32s3/rgb-blink.bin"
+  },
+  "expect": [
+    "pixel s3[0] is #ff0000 at 400ms",
+    "pixel s3[0] is #00ff00 at 900ms",
+    "pixel s3[0] is #0000ff at 1400ms",
+    "pixel s3[0] is #404040 at 1900ms"
+  ]
+}

@@ -89,8 +89,8 @@ in `fixtures/firmware/manifest.json`. Linked into them, under their own licenses
 | Arduino AVR core 1.8.7 (incl. Wire, SPI, EEPROM, SoftwareSerial) | Uno fixtures | LGPL-2.1-or-later | <https://github.com/arduino/ArduinoCore-avr> |
 | avr-libc | Uno fixtures | BSD-3-Clause | <https://github.com/avrdudes/avr-libc> |
 | LiquidCrystal 1.0.7, Servo 1.3.0, Stepper 1.1.3 | some Uno fixtures | LGPL-2.1-or-later | <https://github.com/arduino-libraries> |
-| Adafruit GFX 1.12.4, Adafruit SSD1306 2.5.16 | `ssd1306-adafruit` | BSD | <https://github.com/adafruit> |
-| Adafruit BusIO 1.17.4 | `ssd1306-adafruit` | MIT | <https://github.com/adafruit/Adafruit_BusIO> |
+| Adafruit GFX 1.12.4, Adafruit SSD1306 2.5.16 | `ssd1306-adafruit`, the `oled-clock`, `i2c-oled` and `ntp-clock` sketches | BSD | <https://github.com/adafruit> |
+| Adafruit BusIO 1.17.4 | `ssd1306-adafruit`, the `oled-clock`, `i2c-oled` and `ntp-clock` sketches | MIT | <https://github.com/adafruit/Adafruit_BusIO> |
 | DHT sensor library 1.4.6 | `dht22-adafruit` | MIT | <https://github.com/adafruit/DHT-sensor-library> |
 | Adafruit Unified Sensor 1.1.15 | `dht22-adafruit` | Apache-2.0 | <https://github.com/adafruit/Adafruit_Sensor> |
 | DHTlib 0.1.37 | `dht22-dhtlib` | MIT | <https://github.com/RobTillaart/DHTlib> |

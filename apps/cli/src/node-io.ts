@@ -7,6 +7,7 @@ import { resolve } from 'node:path';
 import { MICROPYTHON_CACHE_DIR, MICROPYTHON_PICO, MICROPYTHON_PICO2_RISCV } from '@benchtop/rp2040';
 import { ROM_CACHE_DIR, ROM_IMAGE } from '@benchtop/rp2350';
 import { C3_ROM_CACHE_DIR, C3_ROM_ELF_NAME } from '@benchtop/esp32c3';
+import { S3_ROM_CACHE_DIR, S3_ROM_ELF_NAME } from '@benchtop/esp32s3';
 import type { SuiteIo } from './suite.ts';
 
 /** The Benchtop repository (its caches and, BT69, the gallery's examples for the MCP server). */
@@ -21,6 +22,8 @@ const MICROPYTHON_PICO2 = resolve(REPO, MICROPYTHON_CACHE_DIR, MICROPYTHON_PICO2
 const RP2350_ROM = resolve(REPO, ROM_CACHE_DIR, ROM_IMAGE.name);
 /** The ESP32-C3 ROM `npm run fetch:esp32-rom` unpacks from the ESP32 ROM's tarball (BT92, BT94). */
 const ESP32C3_ROM = resolve(REPO, C3_ROM_CACHE_DIR, C3_ROM_ELF_NAME);
+/** The ESP32-S3 ROM, from the same tarball (BT124, BT126). */
+const ESP32S3_ROM = resolve(REPO, S3_ROM_CACHE_DIR, S3_ROM_ELF_NAME);
 
 export const nodeIo: SuiteIo = {
   readFile: (path) => readFileSync(resolve(process.cwd(), path)),
@@ -30,6 +33,7 @@ export const nodeIo: SuiteIo = {
   rp2350Rom: () => (existsSync(RP2350_ROM) ? new Uint8Array(readFileSync(RP2350_ROM)) : undefined),
   micropythonPico2: () => (existsSync(MICROPYTHON_PICO2) ? new Uint8Array(readFileSync(MICROPYTHON_PICO2)) : undefined),
   esp32c3Rom: () => (existsSync(ESP32C3_ROM) ? new Uint8Array(readFileSync(ESP32C3_ROM)) : undefined),
+  esp32s3Rom: () => (existsSync(ESP32S3_ROM) ? new Uint8Array(readFileSync(ESP32S3_ROM)) : undefined),
   isDirectory: (path) => {
     try {
       return statSync(resolve(process.cwd(), path)).isDirectory();

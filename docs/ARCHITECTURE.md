@@ -38,7 +38,7 @@ simulation core has no DOM, the same code runs headless in Node for tests and CI
 | `@benchtop/riscv` | the RISC-V RV32 core (Hazard3 profile: the RP2350's): decoder, objdump-exact disassembler, predecode cache, machine and user modes, the CSR hook a SoC plugs into | know about a SoC, parts or the UI |
 | `@benchtop/rp2350` | the RP2350 SoC (RISC-V side) on `@benchtop/riscv` with the real bootrom: memory map, Xh3irq, peripherals, QMI and flash, the `Mcu` (`createRp2350Mcu`, `rp2350McuFactory`) | know about parts or the UI |
 | `@benchtop/esp32c3` | the ESP32-C3 `Mcu` (`createEsp32c3Mcu`, `esp32c3McuFactory`): the SoC on `@benchtop/riscv` with its mask ROM — memory map, flash MMU, interrupt matrix, peripherals, direct boot, the debugger view | know about parts or the UI |
-| `@benchtop/esp32s3` | the ESP32-S3 SoC: two LX7 cores on `@benchtop/esp32`'s Xtensa core with the C3's peripheral models at the S3's addresses — memory map, flash MMU, interrupt matrix, SYSTEM/EXTMEM/RTC, direct boot, GPIO/IO_MUX over 49 pads, USB-Serial-JTAG, LEDC, the ADC through SENS, I2C ×2, SPI2, RMT, the debugger view (not on the bench yet) | know about parts or the UI |
+| `@benchtop/esp32s3` | the ESP32-S3 `Mcu` (`createEsp32s3Mcu`, `esp32s3McuFactory`): the SoC — two LX7 cores on `@benchtop/esp32`'s Xtensa core with the C3's peripheral models at the S3's addresses — memory map, flash MMU, interrupt matrix, SYSTEM/EXTMEM/RTC, direct boot, GPIO/IO_MUX over 49 pads, USB-Serial-JTAG, LEDC, the ADC through SENS, I2C ×2, SPI2, RMT, the debugger view | know about parts or the UI |
 | `@benchtop/pcb` | the PCB document, footprints, nets from the bench, ratsnest, DRC, fabrication exports | touch DOM; run simulation |
 | `@benchtop/web` | the editor, part views, the worker host and the worker entry | run CPU emulation on the UI thread |
 | `@benchtop/bridge` | the local compile bridge: runs arduino-cli for the browser (Node, zero dependencies) | listen beyond loopback; write outside its temp build folders |
@@ -2590,8 +2590,24 @@ sequence, files matched by basename or trailing path.
   (`S3Bus.peek8`, flash through the MMU), RAM writes (`poke8`), `stepCore`, instruction sizes
   from the S3's decode table. Fixtures `esp32s3/{gpio-interrupt, adc-read, ledc-fade, i2c-scan,
   spi-loopback, rgb-blink, serial-echo, cdc-hello, debug-demo}` run on the SoC
-  (`peripherals.test.ts`, `debug.test.ts`). The S3 isn't on the bench yet: it has no `Mcu`
-  adapter or board.
+  (`peripherals.test.ts`, `debug.test.ts`).
+
+  **On the bench.** `'esp32s3'` is in `Mcu.kind` and `BoardSpec.mcu`. `Esp32s3Mcu` (`esp32s3-mcu.ts`) is the C3's adapter on the S3 SoC: pins
+  `GPIO0`–`GPIO21` and `GPIO33`–`GPIO48` (not the module's flash pads), 3.3 V thresholds with
+  hysteresis and floating reads reported, the pins' volts feeding the ADC; `uart(0)` is UART0
+  and the USB-Serial-JTAG port together (typed bytes go to USB once the firmware has sent on
+  it), `uart(1)`/`uart(2)`, `i2c(0)`/`i2c(1)`, `spi(2)` with their routed pins (the variant's
+  defaults before: SDA 8, SCL 9; SCK 12, MOSI 11, MISO 13); the flash kept across resets
+  (`nonVolatile`); a system reset the firmware asks for (or a timer group's watchdog) boots a
+  fresh chip at the same time keeping RTC memory and the RTC timer, five in a second ending the
+  run; the ROM checked against its pinned SHA-256 (`esp32s3-rom-missing` says how to get it).
+  The board, `esp32-s3-devkitc-1`, is our own pin table from the DevKitC-1 v1.0 user guide (two
+  22-pin headers 0.9" apart; GPIO26–34 aren't on them) and our own SVG; its WS2812 on GPIO48 —
+  Arduino-ESP32 2.0.17's `RGB_BUILTIN` (the board's v1.1 moved it to GPIO38) — is decoded into the
+  board's `pixels[0]`, as the C3 DevKitM-1's is. The worker fetches the ROM from /esp32s3-rom/ (dev
+  server), the CLI and the MCP server read `.cache/esp32s3-rom`; the compile bridge and
+  `compile_sketch` build `esp32:esp32:esp32s3`; the Debugger tab shows PS as on the ESP32. Four
+  gallery examples (RGB blink, serial, a potentiometer dimmer, an OLED clock) have specs.
 
 ## Worker protocol
 

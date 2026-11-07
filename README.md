@@ -66,6 +66,14 @@ GPIO and pin interrupts, the ADC, LEDC PWM, UART0/UART1 and the USB-Serial-JTAG 
 build's `Serial`), I2C (`Wire`), SPI, and the board's RGB LED (a WS2812 on GPIO8 through the RMT).
 Its ROM comes from the same download as the ESP32's (see "ESP32 ROM" below).
 
+**ESP32-S3-DevKitC-1** (Xtensa LX7, dual-core): the ESP32's Xtensa emulator with the LX7's
+additions runs both of the S3's cores on its real mask ROM, booting the `.bin` Arduino-ESP32 2.0.17
+builds for `esp32:esp32:esp32s3` — GPIO on the board's 36 header pins and pin interrupts, the
+ADC (both units), LEDC PWM, UART0–2 and the USB-Serial-JTAG port (a CDC build's `Serial`), both
+I2C controllers, SPI, and the board's RGB LED (a WS2812 on GPIO48 through the RMT); the debugger
+shows the core `loop()` runs on. Not yet on the S3: WiFi, sleep and PSRAM. Its ROM comes from the
+same download as the ESP32's.
+
 **ESP32 DevKit V1** — an Xtensa LX6 dual-core emulator written in TypeScript for this project,
 running the real `.bin` image Arduino-ESP32 2.0.17 builds, on Espressif's real mask ROM:
 
@@ -185,7 +193,7 @@ a microphone pitch meter, a VU meter; Power: a regulator meter (turn the bench s
 7805 drop out); Storage: an SD card datalogger; Environment: a gas alarm with an extractor fan, a PIR
 hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, an LED Preferences remember, a deep sleep wake counter, a PWM fader, NeoPixel, a
 rainbow ring, an OLED clock, a color TFT, the DAC, the microphone, an I2C scan; ESP32-C3: the RGB LED,
-serial, a potentiometer dimmer, an OLED clock; WiFi: an ESP32 web server switched by HTTP client
+serial, a potentiometer dimmer, an OLED clock; ESP32-S3: the RGB LED, serial, a potentiometer dimmer, an OLED clock; WiFi: an ESP32 web server switched by HTTP client
 parts, an ESP32 hosting its own access point and web server, an ESP32-C3 web server that sets its RGB LED, a Pico W and a Pico 2 W web server switching their onboard LEDs, a Pico W and an ESP32 HTTP client talking to a server part, two ESP32s over TCP, an NTP clock on an OLED;
 Raspberry Pi Pico:
 blink, a potentiometer, PWM steps, an OLED, a color TFT, both cores at once; Raspberry Pi Pico 2: the same, NeoPixels
