@@ -885,6 +885,19 @@
     "description": "A DS1307 clock shown large on an SSD1306 OLED, both on the S3's default I2C pins (SDA 8, SCL 9)."
   },
   {
+    "id": "esp32s3-deep-sleep",
+    "title": "ESP32-S3 deep sleep",
+    "category": "ESP32-S3",
+    "project": "esp32s3-deep-sleep",
+    "boards": {
+      "s3": {
+        "firmware": "esp32s3/deep-sleep-counter.bin",
+        "sketch": "esp32s3/deep-sleep-counter"
+      }
+    },
+    "description": "The ESP32-S3 sleeps most of the time: every 5 s its RTC timer wakes it, and the button on GPIO4 wakes it at once (ext0). It counts its wakes and the presses in RTC memory, which deep sleep keeps, prints them and flashes the LED on GPIO2. While it sleeps the board says so, and what will wake it."
+  },
+  {
     "id": "esp32-wifi-webserver",
     "title": "ESP32 WiFi web server",
     "category": "WiFi",
@@ -922,6 +935,19 @@
       }
     },
     "description": "An ESP32-C3 joins the access point as \"c3-web\" and serves /led?color=red, green, blue, white, off or an rrggbb hex color, which sets its board's RGB LED; press Send on the HTTP client parts."
+  },
+  {
+    "id": "esp32s3-wifi-rgb-server",
+    "title": "ESP32-S3 RGB web server",
+    "category": "WiFi",
+    "project": "esp32s3-wifi-rgb-server",
+    "boards": {
+      "s3": {
+        "firmware": "esp32s3/wifi-rgb-server.bin",
+        "sketch": "esp32s3/wifi-rgb-server"
+      }
+    },
+    "description": "An ESP32-S3 joins the access point as \"s3-web\" and serves /led?color=red, green, blue, white, off or an rrggbb hex color, which sets its board's RGB LED; press Send on the HTTP client parts."
   },
   {
     "id": "picow-wifi-webserver",

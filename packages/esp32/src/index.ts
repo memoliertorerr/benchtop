@@ -32,5 +32,6 @@ export * from './xtensa/icache.ts';
 export * from './xtensa/interrupts.ts';
 export * from './xtensa/isa.ts';
 export * from './xtensa/regs.ts';
+export { ESP32_HLE_RESUME_PC, ESP32_HLE_RETURN_PC, Hle, type HleOptions } from './hle/hle.ts';
 export * from './wifi/driver.ts';
 export { STA_LIST_C3 } from './wifi/types.ts';

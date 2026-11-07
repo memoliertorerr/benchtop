@@ -289,6 +289,28 @@ describe('live sessions', () => {
     expect((await tool(server, 'sim_http', { session, url: 'http://c3-web/led?color=mauve' })).value).toMatchObject({ status: 400, body: 'bad color' });
   }, 120_000);
 
+  it('BT129: an ESP32-S3 web server on sim_wifi and sim_http, and the S3 asleep in sim_state', async () => {
+    const server = testServer({ maxWallMs: 120_000 });
+    const open = (await tool(server, 'sim_open', { project: 'fixtures/projects/esp32s3-wifi-rgb-server.json', firmware: { s3: 'fixtures/firmware/esp32s3/wifi-rgb-server.bin' } })).value as { session: string };
+    const session = open.session;
+    type Wifi = { accessPoints: { stations: { board: string; ip: string | null; hostname?: string; mac: string }[] }[]; boards: Record<string, string> };
+    expect(((await tool(server, 'sim_wifi', { session })).value as Wifi).boards).toEqual({ s3: 'not connected' });
+    await tool(server, 'sim_run', { session, untilSerial: 'server at', duration: '5s' });
+    const wifi = (await tool(server, 'sim_wifi', { session })).value as Wifi;
+    expect(wifi.boards).toEqual({ s3: 'connected to "benchtop" as 192.168.4.2' });
+    expect(wifi.accessPoints[0].stations[0]).toMatchObject({ board: 's3', ip: '192.168.4.2', hostname: 's3-web', mac: expect.stringMatching(/^34:85:18:/) });
+    expect((await tool(server, 'sim_http', { session, url: 'http://s3-web/led?color=12ab34' })).value).toMatchObject({ status: 200, body: 'led 12ab34' });
+    const state = (await tool(server, 'sim_state', { session, parts: ['s3'] })).value as { parts: Record<string, { pixels: number[] }> };
+    expect(state.parts.s3.pixels[0]).toBe(0x12ab34);
+    // The S3's deep sleep.
+    const sleeper = ((await tool(server, 'sim_open', { project: 'fixtures/projects/esp32s3-deep-sleep.json', firmware: { s3: 'fixtures/firmware/esp32s3/deep-sleep-counter.bin' } })).value as { session: string }).session;
+    type State = { sleeping?: Record<string, { sleep: string; timerWakesAt?: string; wakePins: string[] }> };
+    await tool(server, 'sim_run', { session: sleeper, duration: '1s' });
+    const asleep = (await tool(server, 'sim_state', { session: sleeper, parts: [] })).value as State;
+    expect(asleep.sleeping?.s3).toMatchObject({ sleep: 'deep', wakePins: ['GPIO4 low'] });
+    expect(asleep.sleeping?.s3.timerWakesAt).toMatch(/^5\d{3}ms$/);
+  }, 120_000);
+
   it('limits: the session count, the duration and the wall-clock budget', async () => {
     const server = testServer({ maxSessions: 2, maxSimNs: 5e9 });
     await tool(server, 'sim_open', blink);

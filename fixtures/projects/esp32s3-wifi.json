@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "esp32s3-wifi",
+  "parts": [
+    {
+      "id": "s3",
+      "type": "esp32-s3-devkitc-1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "ap",
+      "type": "wifi-ap",
+      "x": 90,
+      "y": 10,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [],
+  "firmware": {
+    "s3": {
+      "kind": "file",
+      "name": "wifi-scan.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

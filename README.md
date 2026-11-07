@@ -71,7 +71,8 @@ additions runs both of the S3's cores on its real mask ROM, booting the `.bin` A
 builds for `esp32:esp32:esp32s3` — GPIO on the board's 36 header pins and pin interrupts, the
 ADC (both units), LEDC PWM, UART0–2 and the USB-Serial-JTAG port (a CDC build's `Serial`), both
 I2C controllers, SPI, and the board's RGB LED (a WS2812 on GPIO48 through the RMT); the debugger
-shows the core `loop()` runs on. Not yet on the S3: WiFi, sleep and PSRAM. Its ROM comes from the
+shows the core `loop()` runs on, and WiFi and sleep work as on the ESP32 (below). Not yet on the
+S3: PSRAM. Its ROM comes from the
 same download as the ESP32's.
 
 **ESP32 DevKit V1** — an Xtensa LX6 dual-core emulator written in TypeScript for this project,
@@ -98,7 +99,7 @@ running the real `.bin` image Arduino-ESP32 2.0.17 builds, on Espressif's real m
 Not on the ESP32 yet: ADC2, the DAC's cosine generator and DMA, touch, I2S, PCNT, CAN, deep
 sleep and PSRAM; Bluetooth is out of scope.
 
-**WiFi on the ESP32, the ESP32-C3 and the Pico W** — a network inside the bench, no radio and, unless you allow hosts (see
+**WiFi on the ESP32, the ESP32-C3, the ESP32-S3 and the Pico W** — a network inside the bench, no radio and, unless you allow hosts (see
 "The real network" below), nothing leaving your machine:
 put a **WiFi access point** part beside the board and `WiFi.begin("benchtop", "simulated")`
 joins it. The closed WiFi driver is answered at its API (the firmware's symbols tell where its
@@ -112,8 +113,8 @@ hostname; `configTime()` gets the time from the access point, which answers for 
 itself (your computer's clock, or a fixed date you set). Switch the access point off or weaken
 its signal while it runs. An ESP32 can also be the access point: `WiFi.softAP("my-ap", "password")`
 puts its network on the bench, its own DHCP server hands out addresses, and HTTP client parts (set
-their network to its SSID) or other ESP32s join it — alone or beside an access point part (AP+STA). The ESP32-C3 runs the same WiFi sketches: its firmware calls the same
-driver API, answered the same way on its RISC-V core. On the Pico W, arduino-pico's WiFi, lwIP and
+their network to its SSID) or other ESP32s join it — alone or beside an access point part (AP+STA). The ESP32-C3 and ESP32-S3 run the same WiFi sketches: their firmware calls the same
+driver API, answered the same way on the C3's RISC-V core and the S3's Xtensa cores. On the Pico W, arduino-pico's WiFi, lwIP and
 the WiFi chip's open driver run as built, and the chip itself is answered below the driver: scans,
 joining (a wrong password, a missing network), DHCP, `HTTPClient` and the rest work the same way.
 
@@ -123,7 +124,7 @@ resets, `ESP.restart()` and uploads, as on a real board, and the app saves it wi
 reload the page and a counter goes on where it was. A board's Inspector shows what it keeps (the
 ESP32s' Preferences by namespace and key) and erases it.
 
-**Sleep** — the ESP32's and ESP32-C3's deep and light sleep, as ESP-IDF's sleep functions drive
+**Sleep** — the ESP32's, ESP32-C3's and ESP32-S3's deep and light sleep, as ESP-IDF's sleep functions drive
 them: the RTC timer and wake pins (ext0, ext1, GPIO) wake the chip, deep sleep keeps RTC memory
 (`RTC_DATA_ATTR`) through its wake, light sleep keeps everything and `millis()` counts the sleep
 once. A sleeping board costs nothing to simulate — an hour asleep passes in an instant — and the
@@ -193,8 +194,8 @@ a microphone pitch meter, a VU meter; Power: a regulator meter (turn the bench s
 7805 drop out); Storage: an SD card datalogger; Environment: a gas alarm with an extractor fan, a PIR
 hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, an LED Preferences remember, a deep sleep wake counter, a PWM fader, NeoPixel, a
 rainbow ring, an OLED clock, a color TFT, the DAC, the microphone, an I2C scan; ESP32-C3: the RGB LED,
-serial, a potentiometer dimmer, an OLED clock; ESP32-S3: the RGB LED, serial, a potentiometer dimmer, an OLED clock; WiFi: an ESP32 web server switched by HTTP client
-parts, an ESP32 hosting its own access point and web server, an ESP32-C3 web server that sets its RGB LED, a Pico W and a Pico 2 W web server switching their onboard LEDs, a Pico W and an ESP32 HTTP client talking to a server part, two ESP32s over TCP, an NTP clock on an OLED;
+serial, a potentiometer dimmer, an OLED clock; ESP32-S3: the RGB LED, serial, a potentiometer dimmer, an OLED clock, a deep sleep wake counter; WiFi: an ESP32 web server switched by HTTP client
+parts, an ESP32 hosting its own access point and web server, an ESP32-C3 and an ESP32-S3 web server that set their RGB LED, a Pico W and a Pico 2 W web server switching their onboard LEDs, a Pico W and an ESP32 HTTP client talking to a server part, two ESP32s over TCP, an NTP clock on an OLED;
 Raspberry Pi Pico:
 blink, a potentiometer, PWM steps, an OLED, a color TFT, both cores at once; Raspberry Pi Pico 2: the same, NeoPixels
 through PIO, a button interrupt and MicroPython blink; Mega: an LED chaser, four

@@ -1,0 +1,59 @@
+{
+  "format": 1,
+  "name": "esp32s3-sleep",
+  "parts": [
+    {
+      "id": "s3",
+      "type": "esp32-s3-devkitc-1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "wake",
+      "type": "pushbutton",
+      "x": 40,
+      "y": 10,
+      "rotation": 0,
+      "props": {
+        "color": "green"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "s3",
+        "pin": "IO4"
+      },
+      "to": {
+        "part": "wake",
+        "pin": "1.l"
+      },
+      "color": "green",
+      "waypoints": []
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "wake",
+        "pin": "2.l"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "GND.1"
+      },
+      "color": "black",
+      "waypoints": []
+    }
+  ],
+  "firmware": {
+    "s3": {
+      "kind": "file",
+      "name": "light-sleep.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

@@ -2609,6 +2609,44 @@ sequence, files matched by basename or trailing path.
   `compile_sketch` build `esp32:esp32:esp32s3`; the Debugger tab shows PS as on the ESP32. Four
   gallery examples (RGB blink, serial, a potentiometer dimmer, an OLED clock) have specs.
 
+  **WiFi.** The S3's cores are the ESP32's, so its WiFi is the ESP32's without a seam: the
+  Xtensa `Hle` and `WifiDriver` (@benchtop/esp32, now exported) install on both cores of every SoC
+  `Esp32s3Mcu` builds, from the symbols `useSymbols` gives it. Every WiFi struct layout is the
+  ESP32's — `fixtures/sketches/esp32s3/wifi-layout` prints them with the S3's toolchain,
+  `wifi_sta_list_t` included (15 stations; the C3's 10 was the exception) — so the driver runs on
+  its defaults but for the task's entry. The resume, return and WiFi-task addresses (0x40058A00,
+  0x40058A04, 0x40058A08) sit in the S3 ROM's gap between `.text` (ends 0x400577A8) and
+  `.rodata` (0x40058C00 on the instruction bus), zero and never executed, as the C3's do. The radio's
+  blocks are the C3's addresses and power-down controls (`soc/periph.ts`); an access by the closed
+  driver reports `esp32s3-wifi-no-symbols` (or `-unsupported` with WiFi answered) once per boot —
+  without it, a WiFi sketch run without its symbols would stall with no Problem at all. The
+  factory's per-board MAC and the RNG were there already. `fixtures/sketches/esp32s3/{wifi-scan, wifi-http-get, wifi-webserver}`
+  (the ESP32's sketches) scan, connect, take a DHCP lease, GET and POST, and serve http-client
+  parts on the bench (`packages/parts/src/integration/esp32s3-wifi.test.ts`); `sim_wifi` lists S3
+  boards.
+
+  **Sleep.** The ESP32's and C3's model at the S3's RTC_CNTL offsets, IDF's
+  sleep code running as built: STATE0.SLEEP_EN stops both cores (`canRun` is false while the
+  chip sleeps — IDF stalls the other core first anyway) — deep with DIG_PWC.DG_WRAP_PD_EN, its
+  events cleared; light with the timer groups gated. WAKEUP_STATE's ENA picks the wake sources:
+  the RTC timer (SLP_TIMER0/1), ext0 (RTC_IO EXT_WAKEUP0's RTC GPIO — on the S3 the GPIO of the same
+  number, 0–21 — at EXT_WAKEUP_CONF's level), ext1 (EXT_WAKEUP1's mask, all low or any high,
+  latched into EXT_WAKEUP1_STATUS) and, for light sleep, a GPIO with PINn's WAKEUP_ENABLE at its
+  level. A wake sets SLP_WAKEUP_CAUSE and INT_RAW's SLP_WAKEUP; a deep sleep's is a system reset
+  with cause DEEPSLEEP: `Esp32s3Mcu` boots a fresh chip at the same time keeping RTC fast and slow
+  memory, the RTC timer and the RTC domain's registers (`rtcDomain`: the sleep and wake ones,
+  STORE0–7, RTC_IO), and the boot skips the RTC segments (the direct boot already took the
+  reason); deep-sleep wakes don't count toward the reboot-loop guard. RTC_IO's pads (0x6000_8400,
+  in RTC_CNTL's page) matter on the bench: a pad routed to the RTC (MUX_SEL) takes RUE/RDE as its
+  pulls (`rtcPad`), so ext0's button reads high until pressed — and an ADC pad, which IDF also
+  routes there, stays analog. `sleepState()` is the bench's `Sleeper` (the board's badge,
+  `sim_state`). fixtures `esp32s3/{deep-sleep-timer, deep-sleep-pins, light-sleep}` (the ESP32's
+  sketches; ext0 on GPIO4, ext1 on GPIO5) run in `packages/parts/src/integration/sleep.test.ts`:
+  boots 2 s apart, an hour asleep in milliseconds, `millis()` counting a light sleep once.
+  The gallery's S3 web server (the C3's RGB-LED sketch as "s3-web", its symbols through the
+  examples manifest's SYMS) and S3 deep-sleep counter (the ESP32's) have specs; `sim_wifi`,
+  `sim_http` and `sim_state` cover the S3 as the ESP32.
+
 ## Worker protocol
 
 `apps/web/src/sim/protocol.ts` defines `ToSim` (UI → worker) and `FromSim` (worker → UI)

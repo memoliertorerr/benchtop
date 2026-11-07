@@ -2724,6 +2724,105 @@
     },
     {
       "board": "esp32s3",
+      "name": "deep-sleep-counter",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/deep-sleep-counter.bin",
+      "sha256": "3f96a2e6f879465da42770cf3b2733d0e285b7737cf1b133753713c50873fc93",
+      "bytes": 285424,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "aeee63e2aa45ca3fb8abff3a018ca24d79d74c3ad55eb6d4e9a4e8a1fbd0f5b0"
+    },
+    {
+      "board": "esp32s3",
+      "name": "deep-sleep-counter",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/deep-sleep-counter.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "aeee63e2aa45ca3fb8abff3a018ca24d79d74c3ad55eb6d4e9a4e8a1fbd0f5b0"
+    },
+    {
+      "board": "esp32s3",
+      "name": "deep-sleep-counter",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/deep-sleep-counter.syms.tsv",
+      "sha256": "59c37006989e4c5394a4c697db050ebe0bbc8d234e3558da1d5e52c36d2a3a8b",
+      "bytes": 177360,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "aeee63e2aa45ca3fb8abff3a018ca24d79d74c3ad55eb6d4e9a4e8a1fbd0f5b0"
+    },
+    {
+      "board": "esp32s3",
+      "name": "deep-sleep-pins",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/deep-sleep-pins.bin",
+      "sha256": "fc25df86f80304e67edc9e08d7c970318d6d3265787d4c67cca4c3386f1157d3",
+      "bytes": 274896,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "76d6ecd738ad73970bd17779fb31d60b23a6532edbf04614b35b50bf78fae08e"
+    },
+    {
+      "board": "esp32s3",
+      "name": "deep-sleep-pins",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/deep-sleep-pins.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "76d6ecd738ad73970bd17779fb31d60b23a6532edbf04614b35b50bf78fae08e"
+    },
+    {
+      "board": "esp32s3",
+      "name": "deep-sleep-pins",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/deep-sleep-pins.syms.tsv",
+      "sha256": "9f7ea21d257b91fe1d075019fd148023a2b4e48aa5f9688d5daae60edeb15d06",
+      "bytes": 175036,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "76d6ecd738ad73970bd17779fb31d60b23a6532edbf04614b35b50bf78fae08e"
+    },
+    {
+      "board": "esp32s3",
+      "name": "deep-sleep-timer",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/deep-sleep-timer.bin",
+      "sha256": "6dd68e0d430973cdb2014ba2d829f5ab481675a0c7b7b1bb299b0e924b49f14c",
+      "bytes": 273744,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "06431d379fb9ee8eab44b93f766893e5937ea8441fc6d3e29b5a637f8bfce2b4"
+    },
+    {
+      "board": "esp32s3",
+      "name": "deep-sleep-timer",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/deep-sleep-timer.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "06431d379fb9ee8eab44b93f766893e5937ea8441fc6d3e29b5a637f8bfce2b4"
+    },
+    {
+      "board": "esp32s3",
+      "name": "deep-sleep-timer",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/deep-sleep-timer.syms.tsv",
+      "sha256": "7750a429e7e0c9db0f157f06c779910e114c6d0d3b63cdfd1f9dd8e96de8033a",
+      "bytes": 174615,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "06431d379fb9ee8eab44b93f766893e5937ea8441fc6d3e29b5a637f8bfce2b4"
+    },
+    {
+      "board": "esp32s3",
       "name": "gpio-interrupt",
       "fqbn": "esp32:esp32:esp32s3",
       "file": "esp32s3/gpio-interrupt.bin",
@@ -2826,6 +2925,39 @@
       "core": "esp32:esp32@2.0.17",
       "libraries": {},
       "source": "80721d3b67debaeac873086f34f9bfb51a106a5b4b79ab74f0710988681f6b75"
+    },
+    {
+      "board": "esp32s3",
+      "name": "light-sleep",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/light-sleep.bin",
+      "sha256": "76c66bf3d1f93660cfdcb26e7e1a16161587f6ca8e19bae0fc412f0813edd674",
+      "bytes": 277712,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "edadcfdfd0d4fc218b5ca812ec0457bb1901fa2a8336efd5e7d275524656aafc"
+    },
+    {
+      "board": "esp32s3",
+      "name": "light-sleep",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/light-sleep.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "edadcfdfd0d4fc218b5ca812ec0457bb1901fa2a8336efd5e7d275524656aafc"
+    },
+    {
+      "board": "esp32s3",
+      "name": "light-sleep",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/light-sleep.syms.tsv",
+      "sha256": "af3e2e4f3cfe31f56ad7b7a3782aa102f7653bebceea0d6bf3aa2aefe869dbb7",
+      "bytes": 176167,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "edadcfdfd0d4fc218b5ca812ec0457bb1901fa2a8336efd5e7d275524656aafc"
     },
     {
       "board": "esp32s3",
@@ -3048,6 +3180,213 @@
         "SPI": "2.0.0"
       },
       "source": "69f337e6fb1a7a331ab2b3d15262e958702b18978ad0967a0479730261a3bddf"
+    },
+    {
+      "board": "esp32s3",
+      "name": "wifi-http-get",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/wifi-http-get.bin",
+      "sha256": "3dbf50df3f1972dea35dc8656280bd8fa6169aa9a0a3d2eb4786379131c4487f",
+      "bytes": 843216,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "HTTPClient": "2.0.0",
+        "WiFi": "2.0.0",
+        "WiFiClientSecure": "2.0.0"
+      },
+      "source": "1d4c4ef26e9646d944f2a77f2a9b86d852f0add51de491c075bb408eec484b01"
+    },
+    {
+      "board": "esp32s3",
+      "name": "wifi-http-get",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/wifi-http-get.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "HTTPClient": "2.0.0",
+        "WiFi": "2.0.0",
+        "WiFiClientSecure": "2.0.0"
+      },
+      "source": "1d4c4ef26e9646d944f2a77f2a9b86d852f0add51de491c075bb408eec484b01"
+    },
+    {
+      "board": "esp32s3",
+      "name": "wifi-http-get",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/wifi-http-get.syms.tsv",
+      "sha256": "409e6875d155c9ae21e7fd9b483dab06922765a5e691954ddb0da82f0109ea3a",
+      "bytes": 342760,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "HTTPClient": "2.0.0",
+        "WiFi": "2.0.0",
+        "WiFiClientSecure": "2.0.0"
+      },
+      "source": "1d4c4ef26e9646d944f2a77f2a9b86d852f0add51de491c075bb408eec484b01"
+    },
+    {
+      "board": "esp32s3",
+      "name": "wifi-layout",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/wifi-layout.bin",
+      "sha256": "76756c63dfe67109cc46b2b728402b3f2f4c7884bdbca56e6b75a1e2753d1697",
+      "bytes": 259696,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "3395019023ce7fe1e277f6c06181aa786ec755350f75d998be10c075591a341e"
+    },
+    {
+      "board": "esp32s3",
+      "name": "wifi-layout",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/wifi-layout.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "3395019023ce7fe1e277f6c06181aa786ec755350f75d998be10c075591a341e"
+    },
+    {
+      "board": "esp32s3",
+      "name": "wifi-layout",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/wifi-layout.syms.tsv",
+      "sha256": "9b64418e68dd6af104b05e3fa7fb776856da7e7710a09ac2ba953f4c75e19f35",
+      "bytes": 170267,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "3395019023ce7fe1e277f6c06181aa786ec755350f75d998be10c075591a341e"
+    },
+    {
+      "board": "esp32s3",
+      "name": "wifi-rgb-server",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/wifi-rgb-server.bin",
+      "sha256": "da768af913f900ffae4b8263da239bfb1d8d209829c7dba631e14a1620808e97",
+      "bytes": 715792,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "FS": "2.0.0",
+        "WebServer": "2.0.0",
+        "WiFi": "2.0.0"
+      },
+      "source": "abd623682c5f200d04ab49a66bc3a0d788462b5b55b9f481e10de36ea1a23641"
+    },
+    {
+      "board": "esp32s3",
+      "name": "wifi-rgb-server",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/wifi-rgb-server.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "FS": "2.0.0",
+        "WebServer": "2.0.0",
+        "WiFi": "2.0.0"
+      },
+      "source": "abd623682c5f200d04ab49a66bc3a0d788462b5b55b9f481e10de36ea1a23641"
+    },
+    {
+      "board": "esp32s3",
+      "name": "wifi-rgb-server",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/wifi-rgb-server.syms.tsv",
+      "sha256": "ea23378f1e3ae604db40e84ac79baa823614dc5004ae9456b48623654373ce58",
+      "bytes": 318262,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "FS": "2.0.0",
+        "WebServer": "2.0.0",
+        "WiFi": "2.0.0"
+      },
+      "source": "abd623682c5f200d04ab49a66bc3a0d788462b5b55b9f481e10de36ea1a23641"
+    },
+    {
+      "board": "esp32s3",
+      "name": "wifi-scan",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/wifi-scan.bin",
+      "sha256": "6d0e81a88f04e4a861614ed18ca423f3563b3951825e30b490b539aff805f423",
+      "bytes": 667456,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "WiFi": "2.0.0"
+      },
+      "source": "5a328c28c9b38931a3e4d5385fb55b58d3f1020f2d159ed78a0d6923fd1b87e9"
+    },
+    {
+      "board": "esp32s3",
+      "name": "wifi-scan",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/wifi-scan.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "WiFi": "2.0.0"
+      },
+      "source": "5a328c28c9b38931a3e4d5385fb55b58d3f1020f2d159ed78a0d6923fd1b87e9"
+    },
+    {
+      "board": "esp32s3",
+      "name": "wifi-scan",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/wifi-scan.syms.tsv",
+      "sha256": "df1574be30652b765f72b8f10a3553e18982f29da658dc72b0765a65aa57e00b",
+      "bytes": 303521,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "WiFi": "2.0.0"
+      },
+      "source": "5a328c28c9b38931a3e4d5385fb55b58d3f1020f2d159ed78a0d6923fd1b87e9"
+    },
+    {
+      "board": "esp32s3",
+      "name": "wifi-webserver",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/wifi-webserver.bin",
+      "sha256": "598a2226914f86c6c7077dcdd9e6f56744294204bf436627864ff0a61b590194",
+      "bytes": 717392,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "FS": "2.0.0",
+        "WebServer": "2.0.0",
+        "WiFi": "2.0.0"
+      },
+      "source": "47e8204af3ab7443313ef787206fd6edb376d827f18c9feab0632b432447e2bd"
+    },
+    {
+      "board": "esp32s3",
+      "name": "wifi-webserver",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/wifi-webserver.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "FS": "2.0.0",
+        "WebServer": "2.0.0",
+        "WiFi": "2.0.0"
+      },
+      "source": "47e8204af3ab7443313ef787206fd6edb376d827f18c9feab0632b432447e2bd"
+    },
+    {
+      "board": "esp32s3",
+      "name": "wifi-webserver",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/wifi-webserver.syms.tsv",
+      "sha256": "dd30df6011bd5dc41aab6a95f4d984a9f855fd56081ff2f24d1b96a680f9564d",
+      "bytes": 319023,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "FS": "2.0.0",
+        "WebServer": "2.0.0",
+        "WiFi": "2.0.0"
+      },
+      "source": "47e8204af3ab7443313ef787206fd6edb376d827f18c9feab0632b432447e2bd"
     },
     {
       "board": "mega",

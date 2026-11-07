@@ -309,6 +309,17 @@ export class S3Gpio implements Peripheral {
     return v >>> 0;
   }
 
+  /** BT128: the pins armed for a light sleep's GPIO wake, as "GPIO4 low". */
+  wakePins(): string[] {
+    const pins: string[] = [];
+    for (let g = 0; g < S3_PADS; g++) {
+      const pin = this.regs[(REG.PIN0 >>> 2) + g];
+      const type = (pin >>> 7) & 7;
+      if ((pin & (1 << 10)) !== 0 && (type === 4 || type === 5)) pins.push(`GPIO${g} ${type === 4 ? 'low' : 'high'}`);
+    }
+    return pins;
+  }
+
   /** Inputs or input enables changed: edges and levels for interrupts. */
   inputsChanged(): void {
     let set0 = 0;
@@ -367,7 +378,7 @@ export class S3Gpio implements Peripheral {
     }
   }
 
-  /** BT122's light-sleep GPIO wake, for when the S3 sleeps (Later): a pin with WAKEUP_ENABLE at its level type. */
+  /** BT128: a light sleep's GPIO wake — a pin with WAKEUP_ENABLE (PINn bit 10) at its level type (INT_TYPE 4 low, 5 high). */
   wakeLevel(): boolean {
     for (let g = 0; g < S3_PADS; g++) {
       const pin = this.regs[(REG.PIN0 >>> 2) + g];
@@ -487,6 +498,8 @@ export class S3Pads {
   private readonly iomux: S3IoMux;
   /** The level of a peripheral output signal. */
   signalLevel: (signal: number) => number = (s) => (S3_IDLE_HIGH_SIGNALS.has(s) ? 1 : 0);
+  /** BT128: −1 when a pad isn't routed to the RTC (RTC_IO's MUX_SEL), else its RTC pulls (0 none, 1 up, 2 down). */
+  rtcPad: (g: number) => number = () => -1;
 
   constructor(gpio: S3Gpio, iomux: S3IoMux) {
     this.gpio = gpio;
@@ -535,6 +548,14 @@ export class S3Pads {
   }
 
   private resolve(g: number): void {
+    const rtc = this.rtcPad(g);
+    if (rtc >= 0) {
+      // BT128: an RTC pad (rtc_gpio_init — a deep sleep's ext0/ext1 pin, or an ADC pad, which IDF's
+      // adc_gpio_init routes there with no pulls): an input with the RTC's pulls, or analog.
+      this.level[g] = 0;
+      this.mode[g] = rtc === 1 ? S3_PAD_MODE.PULLUP : rtc === 2 ? S3_PAD_MODE.PULLDOWN : this.adcUsed[g] !== 0 ? S3_PAD_MODE.ANALOG : S3_PAD_MODE.INPUT;
+      return;
+    }
     let enabled = false;
     let level = 0;
     let gpioOut = false;

@@ -35,12 +35,34 @@ export const ESP32S3_CHECKS: Record<string, (r: ExampleRun) => void> = {
     expect(r.serial('s3')).toContain('2026-01-01 00:00:01');
     expect(((r.visual('oled')?.fb ?? []) as number[]).some((v) => v !== 0)).toBe(true);
   },
+  // BT129: the S3's WiFi (its symbols come with the example: run.test-helper reads the .syms.tsv) and sleep.
+  'esp32s3-wifi-rgb-server'(r) {
+    r.runTo(2000);
+    expect(r.serial('s3')).toContain('server at 192.168.4.2');
+    const pixel = (): number => ((r.visual('s3')?.pixels as number[] | undefined) ?? [-1])[0];
+    let t = 2000;
+    for (const [client, color] of [['green', 0x00ff00], ['blue', 0x0000ff], ['red', 0xff0000], ['off', 0]] as const) {
+      r.input(client, { kind: 'press' });
+      r.runTo((t += 100));
+      expect(pixel(), client).toBe(color);
+      expect(r.serial('s3')).toContain(`led ${client}`);
+    }
+  },
+  'esp32s3-deep-sleep'(r) {
+    r.runTo(1000);
+    expect(r.serial('s3')).toContain('boot 1: power-on, 0 presses');
+    r.input('btn1', { kind: 'press' });
+    r.runTo(1100);
+    r.input('btn1', { kind: 'release' });
+    r.runTo(2000);
+    expect(r.serial('s3')).toContain('boot 2: button, 1 presses');
+  },
 };
 
 describe('every ESP32-S3 example runs as described (BT126)', () => {
   const withS3 = EXAMPLES.filter((e) => Object.values(e.boards).some((b) => 'firmware' in b && b.firmware.startsWith('esp32s3/')));
   it('has a check for each', () => {
-    expect(withS3.length).toBe(4);
+    expect(withS3.length).toBe(6);
     expect(withS3.map((e) => e.id).filter((id) => ESP32S3_CHECKS[id] === undefined)).toEqual([]);
   });
   for (const example of withS3) {

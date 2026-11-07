@@ -68,6 +68,8 @@ export class S3PeripheralMap {
   readonly problems: ProblemLog;
   /** Accesses to radio blocks other than the power-down controls (a firmware running a WiFi driver). */
   radioAccesses = 0;
+  /** BT127: called on each such access — unmodeled blocks, so never in a hot path. */
+  onRadio: ((address: number, pc: number) => void) | null = null;
 
   constructor(problems: ProblemLog) {
     this.problems = problems;
@@ -112,7 +114,10 @@ export class S3PeripheralMap {
   }
 
   private unknown(access: 'read' | 'write', address: number, value: number, pc: number): void {
-    if (isRadioBlock(address) && !isRadioPowerControl(address)) this.radioAccesses++;
+    if (isRadioBlock(address) && !isRadioPowerControl(address)) {
+      this.radioAccesses++;
+      this.onRadio?.(address, pc);
+    }
     if (!this.problems.admit(CODE_S3_UNIMPLEMENTED, address)) return;
     const offset = `0x${(address & 0xfff).toString(16).toUpperCase().padStart(3, '0')}`;
     this.problems.add('info', CODE_S3_UNIMPLEMENTED, address, `${access} ${hex(address)} (${blockName(address)}+${offset}) = ${hex(value)} at PC ${hex(pc)}`);

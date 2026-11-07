@@ -463,10 +463,10 @@ export const simFiles: Tool<SimContext> = {
 
 const SINCE = (ns: number): string => timeText(Math.round(ns / 1e6) * 1e6);
 
-/** BT108: the MCUs with WiFi (the ESP32's driver answered at its API; the C3 runs it too). */
-const WIFI_MCUS = new Set(['esp32', 'esp32c3']);
+/** BT108: the MCUs with WiFi (the ESP32's driver answered at its API; the C3 runs it too, BT127 the S3). */
+const WIFI_MCUS = new Set(['esp32', 'esp32c3', 'esp32s3']);
 
-/** BT112: a board with WiFi: an ESP32 or ESP32-C3, or a board whose pin map has the CYW43's WL_GPIO0 (a Pico W). */
+/** BT112: a board with WiFi: an ESP32, ESP32-C3 or ESP32-S3, or a board whose pin map has the CYW43's WL_GPIO0 (a Pico W). */
 function hasWifi(type: string): boolean {
   const board = CATALOG.get(type)?.board;
   return board !== undefined && (WIFI_MCUS.has(board.mcu) || Object.values(board.pinMap).includes('WL_GPIO0'));

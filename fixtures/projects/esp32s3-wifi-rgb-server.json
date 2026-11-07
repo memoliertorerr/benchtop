@@ -1,0 +1,70 @@
+{
+  "format": 1,
+  "name": "esp32s3-wifi-rgb-server",
+  "parts": [
+    {
+      "id": "s3",
+      "type": "esp32-s3-devkitc-1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "ap",
+      "type": "wifi-ap",
+      "x": 40,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "red",
+      "type": "http-client",
+      "x": 40,
+      "y": 30,
+      "rotation": 0,
+      "props": {
+        "url": "http://s3-web/led?color=red"
+      }
+    },
+    {
+      "id": "green",
+      "type": "http-client",
+      "x": 74,
+      "y": 30,
+      "rotation": 0,
+      "props": {
+        "url": "http://s3-web/led?color=green"
+      }
+    },
+    {
+      "id": "blue",
+      "type": "http-client",
+      "x": 108,
+      "y": 30,
+      "rotation": 0,
+      "props": {
+        "url": "http://s3-web/led?color=blue"
+      }
+    },
+    {
+      "id": "off",
+      "type": "http-client",
+      "x": 142,
+      "y": 30,
+      "rotation": 0,
+      "props": {
+        "url": "http://s3-web/led?color=off"
+      }
+    }
+  ],
+  "wires": [],
+  "firmware": {
+    "s3": {
+      "kind": "file",
+      "name": "wifi-rgb-server.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

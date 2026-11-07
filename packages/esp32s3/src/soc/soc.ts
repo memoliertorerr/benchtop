@@ -31,7 +31,7 @@ import { S3Bus, type S3BusParts } from './bus.ts';
 import { INTERRUPT_BASE, S3_SRC, S3InterruptMatrix } from './intmatrix.ts';
 import { IRAM_BASE, IRAM_END, IROM_BASE, S3Memory } from './memory.ts';
 import { registerDefault, S3PeripheralMap } from './periph.ts';
-import { EFUSE_BASE, REF_HZ, RTC_CNTL_BASE, S3_RESET_REASON, S3Efuse, S3RtcCntl } from './rtc-cntl.ts';
+import { EFUSE_BASE, REF_HZ, RTC_CNTL_BASE, S3_RESET_REASON, S3_WAKE, S3Efuse, S3RtcCntl } from './rtc-cntl.ts';
 import { S3_ADC_FULL_SCALE, S3Sens } from './sens.ts';
 import { EXTMEM_BASE, S3Extmem, S3SystemRegs, SYSTEM_BASE, XTAL_HZ } from './system.ts';
 
@@ -131,6 +131,10 @@ export class Esp32s3Soc implements SocContext, S3BusParts {
   stopReason = '';
   /** A system reset was asked for (RTC_CNTL SW_SYS_RST, a watchdog): the run stops; the Mcu reboots the chip. */
   resetRequested = false;
+  /** BT128: the chip sleeps (RTC_CNTL STATE0.SLEEP_EN) until a wake source; `deep`: the wake is a reset. Null awake. */
+  sleeping: { deep: boolean } | null = null;
+  private wakeSlot = -1;
+  private pinCause = 0;
   resetReason: number = S3_RESET_REASON.SW_SYS;
   /** Peripheral-order yields so far (reports). */
   yields = 0;
@@ -177,6 +181,14 @@ export class Esp32s3Soc implements SocContext, S3BusParts {
     this.pads = new S3Pads(this.gpio, this.iomux);
     this.pads.signalLevel = (signal) => this.signalLevel(signal);
     this.gpio.onConfig = () => this.pads.update();
+    // BT128: sleep — RTC pads take the RTC's pulls; the timer and pins wake the chip.
+    this.pads.rtcPad = (g) => this.rtc.rtcPad(g);
+    this.rtc.onRtcPads = () => this.pads.update();
+    this.rtc.onSleep = (deep) => this.enterSleep(deep);
+    this.wakeSlot = this.events.add(() => this.wake(S3_WAKE.TIMER));
+    this.gpio.onInputs = () => {
+      if (this.sleeping !== null) this.checkPinWake();
+    };
     this.ledc.onOutput = () => this.pads.update();
     this.rmt.onOutput = () => this.pads.update();
     this.spi2.onCs = () => this.pads.update();
@@ -345,7 +357,55 @@ export class Esp32s3Soc implements SocContext, S3BusParts {
   }
 
   private canRun(cpu: number): boolean {
-    return cpu === 0 || this.appRunning;
+    return this.sleeping === null && (cpu === 0 || this.appRunning);
+  }
+
+  // ── Sleep (BT128) ───────────────────────────────────────────────────────────────────────
+
+  /** What wakes the sleeping chip — the timer's wake time (reference cycles, −1: none) and the pin wakes in words — or null awake. */
+  sleepWakes(): { at: number; pins: string[] } | null {
+    const sleep = this.sleeping;
+    if (sleep === null) return null;
+    const pins = this.rtc.wakePins();
+    if (!sleep.deep && (this.rtc.wakeSources() & S3_WAKE.GPIO) !== 0) for (const pin of this.gpio.wakePins()) if (!pins.includes(pin)) pins.push(pin);
+    return { at: this.rtc.wakeTime(), pins };
+  }
+
+  /**
+   * STATE0.SLEEP_EN: both cores stop (IDF stalls the other one first; neither runs while the chip
+   * sleeps — `canRun`). Deep: the digital domain is off, its timers with it. Light: APB is gated,
+   * the timer groups wait.
+   */
+  private enterSleep(deep: boolean): void {
+    if (this.sleeping !== null) return;
+    this.sleeping = { deep };
+    if (this.active >= 0) this.cores[this.active].requestStop();
+    if (deep) this.events.clear();
+    else for (const timg of this.timg) timg.gate();
+    const at = this.rtc.wakeTime();
+    if (at >= 0) this.events.schedule(this.wakeSlot, Math.max(this.now(), at));
+    this.checkPinWake();
+  }
+
+  private checkPinWake(): void {
+    const sleep = this.sleeping;
+    if (sleep === null) return;
+    let cause = this.rtc.pinWake((g) => this.gpio.padInput(g));
+    if (!sleep.deep && (this.rtc.wakeSources() & S3_WAKE.GPIO) !== 0 && this.gpio.wakeLevel()) cause |= S3_WAKE.GPIO;
+    if (cause === 0) return;
+    this.pinCause = cause;
+    this.events.schedule(this.wakeSlot, this.now());
+  }
+
+  private wake(timerCause: number): void {
+    const sleep = this.sleeping;
+    if (sleep === null) return;
+    const cause = this.pinCause !== 0 ? this.pinCause : timerCause;
+    this.pinCause = 0;
+    this.sleeping = null;
+    this.rtc.woke(cause);
+    if (sleep.deep) this.requestReset(S3_RESET_REASON.DEEPSLEEP);
+    else for (const timg of this.timg) timg.ungate();
   }
 
   private asleep(cpu: number): boolean {

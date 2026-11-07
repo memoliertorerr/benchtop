@@ -157,6 +157,28 @@ describe('the ESP32-S3 Mcu (BT126)', () => {
     expect(serial().split('hello from esp32s3').length).toBe(3);
   });
 
+  it('BT128: sleepState says how it sleeps and what wakes it; the ext pins hold their RTC pulls', () => {
+    const { mcu, serial } = boot('deep-sleep-pins');
+    // No bench here to apply the RTC pulls to the nets: the pins read as those pulls would hold them.
+    (mcu.pins.get('GPIO4') as McuPin).setInput(net(3.3));
+    (mcu.pins.get('GPIO5') as McuPin).setInput(net(0));
+    run(mcu, 0.8);
+    expect(serial()).toContain('boot 1 cause 0');
+    expect(mcu.sleepState()).toEqual({ deep: true, wakeIn: null, pins: ['GPIO4 low', 'GPIO5 high (any)'] });
+    expect(mcu.pins.get('GPIO4')?.mode()).toBe('input-pullup');
+    expect(mcu.pins.get('GPIO5')?.mode()).toBe('input-pulldown');
+    const timer = boot('deep-sleep-timer');
+    run(timer.mcu, 0.8);
+    const state = timer.mcu.sleepState();
+    expect(state?.deep).toBe(true);
+    expect(state?.pins).toEqual([]);
+    expect(state?.wakeIn ?? 0).toBeGreaterThan(1.2e9);
+    expect(state?.wakeIn ?? 0).toBeLessThanOrEqual(2e9);
+    const awake = boot('serial-hello');
+    run(awake.mcu, 0.5);
+    expect(awake.mcu.sleepState()).toBeNull();
+  });
+
   it('without its ROM it says how to get it and won’t run', () => {
     const mcu = createEsp32s3Mcu();
     const problems: SocProblem[] = [];

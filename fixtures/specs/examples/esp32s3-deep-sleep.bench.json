@@ -1,0 +1,29 @@
+{
+  "name": "example: esp32s3-deep-sleep",
+  "project": "../../projects/esp32s3-deep-sleep.json",
+  "firmware": {
+    "s3": "../../firmware/esp32s3/deep-sleep-counter.bin"
+  },
+  "steps": [
+    {
+      "at": "2s",
+      "part": "btn1",
+      "input": {
+        "kind": "press"
+      }
+    },
+    {
+      "at": "2100ms",
+      "part": "btn1",
+      "input": {
+        "kind": "release"
+      }
+    }
+  ],
+  "expect": [
+    "serial contains \"boot 1: power-on, 0 presses\" by 1s",
+    "serial contains \"boot 2: button, 1 presses\" by 2300ms",
+    "led led1 is lit at 2150ms",
+    "serial contains \"boot 3: timer, 1 presses\" by 7800ms"
+  ]
+}
