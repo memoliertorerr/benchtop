@@ -16,8 +16,7 @@
  */
 
 import type { Peripheral } from '@benchtop/esp32';
-import { REF_HZ, type SocContext, XTAL_HZ } from './context.ts';
-import { registerDefault } from './periph.ts';
+import { type SocContext, XTAL_HZ } from './context.ts';
 
 export const LEDC_BASE = 0x60019000;
 export const LEDC_SIGNAL_BASE = 45;
@@ -44,22 +43,31 @@ const NEXT_FALL = 2;
 
 export class Ledc implements Peripheral {
   readonly regs = new Uint32Array(1024);
+  /** BT124: channels (the C3's 6; the S3's 8, the same register layout). */
+  readonly channels: number;
   /** Output signal per channel. */
-  readonly level = new Uint8Array(LEDC_CHANNELS);
+  readonly level: Uint8Array;
   /** An output level changed. */
   onOutput: (() => void) | null = null;
   private readonly ctx: SocContext;
   private readonly timerStart = new Float64Array(4);
-  private readonly duty = new Float64Array(LEDC_CHANNELS);
-  private readonly hpoint = new Float64Array(LEDC_CHANNELS);
-  private readonly pending = new Uint8Array(LEDC_CHANNELS);
-  private readonly next = new Uint8Array(LEDC_CHANNELS);
-  private readonly period = new Float64Array(LEDC_CHANNELS);
+  private readonly duty: Float64Array;
+  private readonly hpoint: Float64Array;
+  private readonly pending: Uint8Array;
+  private readonly next: Uint8Array;
+  private readonly period: Float64Array;
   private readonly slots: number[] = [];
 
-  constructor(ctx: SocContext) {
+  constructor(ctx: SocContext, channels: number = LEDC_CHANNELS) {
     this.ctx = ctx;
-    for (let c = 0; c < LEDC_CHANNELS; c++) this.slots.push(ctx.events.add(() => this.channelEvent(c)));
+    this.channels = channels;
+    this.level = new Uint8Array(channels);
+    this.duty = new Float64Array(channels);
+    this.hpoint = new Float64Array(channels);
+    this.pending = new Uint8Array(channels);
+    this.next = new Uint8Array(channels);
+    this.period = new Float64Array(channels);
+    for (let c = 0; c < this.channels; c++) this.slots.push(ctx.events.add(() => this.channelEvent(c)));
     this.systemReset();
   }
 
@@ -68,14 +76,14 @@ export class Ledc implements Peripheral {
   }
 
   systemReset(): void {
-    for (let i = 0; i < this.regs.length; i++) this.regs[i] = registerDefault(LEDC_BASE + i * 4);
-    for (let c = 0; c < LEDC_CHANNELS; c++) this.ctx.events.cancel(this.slots[c]);
+    for (let i = 0; i < this.regs.length; i++) this.regs[i] = this.ctx.regDefault(LEDC_BASE + i * 4);
+    for (let c = 0; c < this.channels; c++) this.ctx.events.cancel(this.slots[c]);
     this.duty.fill(0);
     this.hpoint.fill(0);
     this.pending.fill(0);
     this.timerStart.fill(this.ctx.now());
     let changed = false;
-    for (let c = 0; c < LEDC_CHANNELS; c++) {
+    for (let c = 0; c < this.channels; c++) {
       const v = this.idleLevel(c);
       if (v !== this.level[c]) changed = true;
       this.level[c] = v;
@@ -108,7 +116,7 @@ export class Ledc implements Peripheral {
       clock = sel === 1 ? this.ctx.apbHz : sel === 2 ? RC_FAST_HZ : sel === 3 ? XTAL_HZ : 0;
       if (clock === 0) return 0;
     }
-    return (div / clock) * REF_HZ;
+    return (div / clock) * this.ctx.refHz;
   }
 
   private resolutionTicks(t: number): number {
@@ -133,20 +141,21 @@ export class Ledc implements Peripheral {
 
   write32(offset: number, value: number): void {
     if (offset === 0xfc || (offset >= TIMERS && offset < TIMERS + 32 && (offset & 4) !== 0)) return; // DATE, timer VALUE
-    if (offset < LEDC_CHANNELS * 0x14 && offset % 0x14 === DUTY_R) return;
+    if (offset < this.channels * 0x14 && offset % 0x14 === DUTY_R) return;
+    const before = this.regs[offset >>> 2];
     this.regs[offset >>> 2] = value;
     if (offset >= TIMERS && offset < TIMERS + 32) {
       const t = (offset - TIMERS) >>> 3;
       this.regs[offset >>> 2] &= ~(1 << 25); // PARA_UP reads 0
       this.timerStart[t] = this.ctx.now();
-      for (let c = 0; c < LEDC_CHANNELS; c++) if (this.timerOf(c) === t) this.restart(c);
+      for (let c = 0; c < this.channels; c++) if (this.timerOf(c) === t) this.restart(c);
       return;
     }
     if (offset === LEDC_CONF) {
-      for (let c = 0; c < LEDC_CHANNELS; c++) this.restart(c);
+      for (let c = 0; c < this.channels; c++) this.restart(c);
       return;
     }
-    if (offset >= LEDC_CHANNELS * 0x14) return;
+    if (offset >= this.channels * 0x14) return;
     const c = Math.floor(offset / 0x14);
     const reg = offset - c * 0x14;
     if (reg === CONF1 && (value & DUTY_START) !== 0) {
@@ -154,7 +163,10 @@ export class Ledc implements Peripheral {
       if (!this.ctx.events.pending(this.slots[c])) this.restart(c);
     } else if (reg === CONF0) {
       this.regs[offset >>> 2] &= ~(1 << 4); // PARA_UP reads 0
-      this.restart(c);
+      // BT125: only a new timer, output enable or idle level restarts the waveform; PARA_UP alone
+      // (ledc_update_duty writes it after DUTY_START) lets the pending duty wait for the boundary —
+      // restarting mid-pulse dropped the pulse's fall.
+      if (((before ^ value) & 0xf) !== 0 || !this.ctx.events.pending(this.slots[c])) this.restart(c);
     }
   }
 
@@ -251,6 +263,6 @@ export class Ledc implements Peripheral {
   /** APB changed: re-time every running channel from now (≤ one period off). */
   clockChanged(): void {
     for (let t = 0; t < 4; t++) this.timerStart[t] = this.ctx.now();
-    for (let c = 0; c < LEDC_CHANNELS; c++) this.restart(c);
+    for (let c = 0; c < this.channels; c++) this.restart(c);
   }
 }

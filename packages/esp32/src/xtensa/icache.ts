@@ -62,9 +62,16 @@ export function isCodeBus(bus: object): bus is CodeBus {
 }
 
 export class ICache {
-  private readonly pages: (Int32Array | null)[] = new Array<Int32Array | null>(IC_PAGES).fill(null);
-  private readonly source = new Int32Array(IC_PAGES);
-  private readonly refused = new Uint8Array(IC_PAGES);
+  /**
+   * 4 KB pages from IC_BASE (IC_PAGES on the ESP32; BT124: the S3's flash is at 0x42000000, so
+   * its cores cover 64 MB), and the first page where flash can be mapped (refusals there reset
+   * with the flash pages).
+   */
+  private readonly count: number;
+  private readonly flashFrom: number;
+  private readonly pages: (Int32Array | null)[];
+  private readonly source: Int32Array;
+  private readonly refused: Uint8Array;
   private readonly pool: Int32Array[] = [];
   /** The source tag (flash offset, or CODE_PLAIN) of the page `lookup` last returned. */
   lastSource = CODE_PLAIN;
@@ -78,10 +85,18 @@ export class ICache {
   /** Called after any invalidation. */
   onChange: (() => void) | null = null;
 
+  constructor(pageCount: number = IC_PAGES, flashFrom = 0x400c0000) {
+    this.count = pageCount;
+    this.flashFrom = (flashFrom - IC_BASE) >>> 12;
+    this.pages = new Array<Int32Array | null>(pageCount).fill(null);
+    this.source = new Int32Array(pageCount);
+    this.refused = new Uint8Array(pageCount);
+  }
+
   /** The page holding `pc`, allocating it when the bus allows, or null (use fetch()). */
   lookup(pc: number, bus: CodeBus): Int32Array | null {
     const index = (pc - IC_BASE) >>> 12;
-    if (index >= IC_PAGES) return null;
+    if (index >= this.count) return null;
     const page = this.pages[index];
     if (page !== null) {
       this.lastSource = this.source[index];
@@ -113,7 +128,7 @@ export class ICache {
   /** Drops the page at virtual address `address` (a store to its code). */
   invalidatePage(address: number): void {
     const index = (address - IC_BASE) >>> 12;
-    if (index >= IC_PAGES) return;
+    if (index >= this.count) return;
     this.refused[index] = 0;
     if (this.drop(index)) this.onChange?.();
   }
@@ -123,7 +138,7 @@ export class ICache {
     let changed = false;
     for (let a = address; a < address + size; a += IC_PAGE_SIZE) {
       const index = (a - IC_BASE) >>> 12;
-      if (index >= IC_PAGES) continue;
+      if (index >= this.count) continue;
       this.refused[index] = 0;
       changed = this.drop(index) || changed;
     }
@@ -132,10 +147,10 @@ export class ICache {
 
   /** Drops the flash pages mapped to flash [start, end) — all of them by default. */
   invalidateFlash(start = 0, end = Number.POSITIVE_INFINITY): void {
-    if (this.refusals !== 0) this.refused.fill(0, (0x400c0000 - IC_BASE) >>> 12);
+    if (this.refusals !== 0) this.refused.fill(0, this.flashFrom);
     if (this.liveFlash === 0) return;
     let changed = false;
-    for (let i = 0; i < IC_PAGES; i++) {
+    for (let i = 0; i < this.count; i++) {
       const s = this.source[i];
       if (this.pages[i] !== null && s >= 0 && s < end && s + IC_PAGE_SIZE > start) changed = this.drop(i) || changed;
     }
@@ -149,7 +164,7 @@ export class ICache {
       this.refusals = 0;
     }
     if (this.live === 0) return;
-    for (let i = 0; i < IC_PAGES; i++) this.drop(i);
+    for (let i = 0; i < this.count; i++) this.drop(i);
     this.onChange?.();
   }
 

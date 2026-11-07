@@ -18,7 +18,7 @@
  */
 
 import type { SpiDevice } from '@benchtop/core';
-import { REF_HZ, type SocContext } from './context.ts';
+import type { SocContext } from './context.ts';
 import { RegisterFile } from './periph.ts';
 
 export const SPI2_BASE = 0x60024000;
@@ -64,7 +64,7 @@ export class Spi extends RegisterFile {
   private readonly buffer = new Uint8Array(64);
 
   constructor(ctx: SocContext) {
-    super(SPI2_BASE);
+    super(SPI2_BASE, (address) => ctx.regDefault(address));
     this.ctx = ctx;
     this.slot = ctx.events.add(() => this.finish());
   }
@@ -147,7 +147,7 @@ export class Spi extends RegisterFile {
     }
     this.start = this.ctx.now();
     this.bits = bits;
-    const when = this.start + (bits / this.sckHz()) * REF_HZ;
+    const when = this.start + (bits / this.sckHz()) * this.ctx.refHz;
     this.ctx.events.schedule(this.slot, when);
     this.ctx.hurry(when);
   }

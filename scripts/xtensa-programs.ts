@@ -16,9 +16,10 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const XTENSA_DIR = join(ROOT, 'fixtures', 'xtensa');
 const BUILD = join(ROOT, 'fixtures', '.build', 'xtensa');
 
-export function xtensaTool(name: string): string {
-  const path = findXtensaTool(`xtensa-esp32-elf-${name}`);
-  if (path === undefined) throw new Error(`xtensa-esp32-elf-${name} not found (set BENCHTOP_XTENSA_BIN to the toolchain's bin folder)`);
+/** A toolchain program: `xtensa-esp32-elf-<name>` (BT124: `chip` 'esp32s3' for the S3's). */
+export function xtensaTool(name: string, chip = 'esp32'): string {
+  const path = findXtensaTool(`xtensa-${chip}-elf-${name}`);
+  if (path === undefined) throw new Error(`xtensa-${chip}-elf-${name} not found (set BENCHTOP_XTENSA_BIN to the toolchain's bin folder)`);
   return path;
 }
 

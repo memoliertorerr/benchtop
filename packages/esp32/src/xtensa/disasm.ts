@@ -38,6 +38,9 @@ export function operandText(desc: Int32Array, pc: number): string {
       case OPND.AR:
         parts.push(`a${r}`);
         break;
+      case OPND.QR:
+        parts.push(`q${desc[D_IMM2]}`);
+        break;
       case OPND.AS:
         parts.push(`a${s}`);
         break;

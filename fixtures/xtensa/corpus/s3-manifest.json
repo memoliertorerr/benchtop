@@ -1,0 +1,22 @@
+{
+  "objdump": "GNU objdump (crosstool-NG esp-2021r2-patch5) 2.35.1.20201223",
+  "corpora": [
+    {
+      "name": "s3-serial-hello",
+      "rows": 20934,
+      "raw": [
+        {
+          "file": "s3-serial-hello.iram0.vectors.bin.gz",
+          "address": 1077362688,
+          "bytes": 1027
+        },
+        {
+          "file": "s3-serial-hello.iram0.text.bin.gz",
+          "address": 1077363716,
+          "bytes": 53575
+        }
+      ],
+      "layout": "each section at its load address"
+    }
+  ]
+}

@@ -50,7 +50,7 @@ import * as isa from './isa.ts';
 import { executeFpu } from './ops/fpu.ts';
 import { executeMac16, MAC_KIND } from './ops/mac16.ts';
 import * as muldiv from './ops/muldiv.ts';
-import { SR, UR } from './regs.ts';
+import { PIE_URS, SR, UR } from './regs.ts';
 
 // Imported bindings copied to module constants once: under vitest's module transform every
 // access to an imported name is a getter call, and the loop below reads dozens per instruction.
@@ -203,6 +203,10 @@ export const UR_WRITABLE: Uint32Array = (() => {
   const m = new Uint32Array(256);
   m[UR.EXPSTATE] = m[UR.THREADPTR] = m[UR.F64R_LO] = m[UR.F64R_HI] = m[UR.F64S] = 0xffffffff;
   m[UR.FCR] = 0x7f;
+  // BT124: the S3's PIE state (tie.h's widths: ACCX_1 8 bits, SAR_BYTE and FFT_BIT_WIDTH 4).
+  for (const n of PIE_URS) m[n] = 0xffffffff;
+  m[UR.ACCX_1] = 0xff;
+  m[UR.SAR_BYTE] = m[UR.FFT_BIT_WIDTH] = 0xf;
   m[UR.FSR] = 0xf80;
   return m;
 })();
@@ -210,6 +214,11 @@ export const UR_WRITABLE: Uint32Array = (() => {
 export interface XtensaCoreOptions {
   /** PRID: 0xCDCD on the PRO CPU, 0xABAB on the APP CPU. */
   prid?: number;
+  /** BT124: the predecode cache's span in 4 KB pages from 0x40000000 and where flash starts (the S3: 64 MB, 0x42000000). */
+  icachePages?: number;
+  icacheFlashFrom?: number;
+  /** BT124: the ESP32-S3's LX7: its own decode rows (the PIE coprocessor's state moves, isa-table.ts). */
+  s3?: boolean;
 }
 
 /** No breakpoints (shared, never written). */
@@ -243,6 +252,10 @@ export class XtensaCore {
   readonly prid: number;
   /** FPU registers f0–f15 as bits, a float view of them, and each one's extra exponent (ops/fpu.ts). */
   readonly f = new Uint32Array(16);
+  /** BT124: the S3's PIE q registers q0–q7 (128 bits each, four little-endian words). */
+  readonly q = new Uint32Array(32);
+  /** BT124: an ESP32-S3 core (`XtensaCoreOptions.s3`). */
+  readonly s3: boolean;
   readonly fv = new Float32Array(this.f.buffer);
   readonly fx = new Int16Array(16);
   /**
@@ -290,7 +303,7 @@ export class XtensaCore {
   resumePc = -1;
   readonly bus: XtensaBus;
   /** The predecoded instruction cache (BT37; icache.ts). */
-  readonly icache = new ICache();
+  readonly icache: ICache;
   /** Run through the predecode cache when the bus supports it (false: fetch and decode every instruction — A/B tests, the bench script). */
   predecode = true;
   /** BT97: addresses TypeScript answers (setHle), or null. */
@@ -315,6 +328,8 @@ export class XtensaCore {
     this.bus = bus;
     this.codeBus = isCodeBus(bus) ? bus : null;
     this.prid = options.prid ?? 0xcdcd;
+    this.icache = new ICache(options.icachePages, options.icacheFlashFrom);
+    this.s3 = options.s3 ?? false;
     // Code changed under a running loop: end it there, so it re-reads the cache (no stale page).
     this.icache.onChange = () => {
       this.stopAt = this.cycles;
@@ -496,7 +511,7 @@ export class XtensaCore {
       page[e] = W0_FALLBACK;
       return W0_FALLBACK;
     }
-    decode(b0, bus.codeByte(pc + 1), len === 3 ? bus.codeByte(pc + 2) : 0, this.d);
+    decode(b0, bus.codeByte(pc + 1), len === 3 ? bus.codeByte(pc + 2) : 0, this.d, this.s3);
     return this.pack(page, e, pc);
   }
 
@@ -528,7 +543,9 @@ export class XtensaCore {
       if ((uses & 4) !== 0 && t >> 2 > q) q = t >> 2;
       w0 |= (op + 1) | (r << 12) | (s << 16) | (t << 20) | (q << 24);
     }
-    entries[e + 1] = op === OP_INVALID ? 0 : TARGETED[op] !== 0 ? target(d, pc) : op === OP.EXTUI ? d[D_IMM] | (d[D_IMM2] << 8) : d[D_IMM];
+    // EXTUI: shift | width << 8; ld.qr/st.qr (BT124): the offset's low byte | q << 8.
+    entries[e + 1] =
+      op === OP_INVALID ? 0 : TARGETED[op] !== 0 ? target(d, pc) : op === OP.EXTUI ? d[D_IMM] | (d[D_IMM2] << 8) : op === OP.LD_QR || op === OP.ST_QR ? (d[D_IMM] & 0xff) | (d[D_IMM2] << 8) : d[D_IMM];
     entries[e] = w0;
     return w0;
   }
@@ -548,7 +565,7 @@ export class XtensaCore {
 
   /** One instruction from its fetched word: decoded, packed into the scratch entry, run (no cache). */
   private stepWord(pc: number, word: number): void {
-    decode(word & 0xff, (word >>> 8) & 0xff, (word >>> 16) & 0xff, this.d);
+    decode(word & 0xff, (word >>> 8) & 0xff, (word >>> 16) & 0xff, this.d, this.s3);
     this.pack(this.scratch, 0, pc);
     this.interpret(null);
   }
@@ -1154,6 +1171,26 @@ export class XtensaCore {
         case 89 /* OP.L16UI */:
           ar[it] = bus.read16((ar[is] + imm) >>> 0);
           break;
+        case 551 /* OP.SALT */:
+          ar[ir] = (ar[is] | 0) < (ar[it] | 0) ? 1 : 0;
+          break;
+        case 552 /* OP.SALTU */:
+          ar[ir] = ar[is] >>> 0 < ar[it] >>> 0 ? 1 : 0;
+          break;
+        case 549 /* OP.LD_QR */:
+        case 550 /* OP.ST_QR */: {
+          // BT124: the S3's PIE q registers, 16-byte aligned, gated by CPENABLE bit 3 (cop_ai).
+          if ((this.sr[SR.CPENABLE] & 8) === 0) {
+            this.raise(EXCCAUSE.COPROCESSOR_DISABLED + 3, pc);
+            continue;
+          }
+          const address = (ar[it] + ((imm << 24) >> 24)) & ~15;
+          const q = this.q;
+          const base = (imm >>> 8) << 2;
+          if (op === 549) for (let i = 0; i < 4; i++) q[base + i] = bus.read32((address + i * 4) >>> 0);
+          else for (let i = 0; i < 4; i++) bus.write32((address + i * 4) >>> 0, q[base + i]);
+          break;
+        }
         case 88 /* OP.L16SI */:
           ar[it] = (bus.read16((ar[is] + imm) >>> 0) << 16) >> 16;
           break;
@@ -1563,6 +1600,11 @@ export class XtensaCore {
           // FCR and FSR are coprocessor 0 state: CPENABLE bit 0 gates them like any FPU access.
           if (kind >= 4 && (n === UR.FCR || n === UR.FSR) && (this.sr[SR.CPENABLE] & 1) === 0) {
             this.raise(EXCCAUSE.COPROCESSOR_DISABLED, pc);
+            continue;
+          }
+          // BT124: the S3's PIE state (user registers 0–18) is coprocessor 3's: CPENABLE bit 3.
+          if (kind >= 4 && n <= 18 && (this.sr[SR.CPENABLE] & 8) === 0) {
+            this.raise(EXCCAUSE.COPROCESSOR_DISABLED + 3, pc);
             continue;
           }
           if (kind === 1) ar[it] = this.readSpecial(n);

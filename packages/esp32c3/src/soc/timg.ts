@@ -11,12 +11,13 @@
  * restarts it. BT122: light sleep gates the APB clock — the MWDT's stage waits (`gate`/`ungate`).
  * Calibration: RTCCALICFG.START measures MAX slow-clock cycles in XTAL cycles
  * (RC_SLOW 136 kHz, RC_FAST/256 ≈ 68.4 kHz, XTAL32K 32.768 kHz) and sets RDY with the result in
- * RTCCALICFG1 after that many slow cycles. Sources: TG0_T0 32, TG0_WDT 33, TG1_T0 34, TG1_WDT 35.
+ * RTCCALICFG1 after that many slow cycles; RTCCALICFG2's TIMEOUT (BT124) sets at once when a
+ * threshold is written while START_CYCLING (12) runs (the S3 resets with it set). Sources: TG0_T0
+ * 32, TG0_WDT 33, TG1_T0 34, TG1_WDT 35.
  */
 
 import type { Peripheral } from '@benchtop/esp32';
-import { REF_HZ, type SocContext, XTAL_HZ } from './context.ts';
-import { registerDefault } from './periph.ts';
+import { type SocContext, XTAL_HZ } from './context.ts';
 
 export const TIMG_BASES = [0x6001f000, 0x60020000] as const;
 
@@ -35,6 +36,7 @@ const WDTFEED = 0x60;
 const WDTWPROTECT = 0x64;
 const RTCCALICFG = 0x68;
 const RTCCALICFG1 = 0x6c;
+const RTCCALICFG2 = 0x80;
 const INT_ENA = 0x70;
 const INT_RAW = 0x74;
 const INT_ST = 0x78;
@@ -104,7 +106,7 @@ export class Timg implements Peripheral {
 
   systemReset(): void {
     const base = TIMG_BASES[this.index];
-    for (let i = 0; i < this.regs.length; i++) this.regs[i] = registerDefault(base + i * 4);
+    for (let i = 0; i < this.regs.length; i++) this.regs[i] = this.ctx.regDefault(base + i * 4);
     this.count = this.since = this.latched = this.intRaw = 0;
     this.wdtStage = 0;
     this.wdtLeft = -1;
@@ -120,7 +122,7 @@ export class Timg implements Peripheral {
     let divider = (config >>> 13) & 0xffff;
     if (divider === 0) divider = 65536;
     if (divider === 1) divider = 2;
-    return (REF_HZ / clock) * divider;
+    return (this.ctx.refHz / clock) * divider;
   }
 
   /** The count at reference time `t`. */
@@ -172,7 +174,7 @@ export class Timg implements Peripheral {
   private stageTime(stage: number): number {
     const prescale = Math.max(1, this.regs[WDTCONFIG1 >>> 2] >>> 16);
     const ticks = this.regs[(0x50 + stage * 4) >>> 2];
-    return (Math.max(1, ticks) * prescale * REF_HZ) / XTAL_HZ;
+    return (Math.max(1, ticks) * prescale * this.ctx.refHz) / XTAL_HZ;
   }
 
   private stageAction(stage: number): number {
@@ -278,11 +280,18 @@ export class Timg implements Peripheral {
       case RTCCALICFG:
         this.regs[RTCCALICFG >>> 2] = value & ~CALI_RDY;
         if ((value & CALI_START) !== 0) {
+          this.regs[RTCCALICFG2 >>> 2] &= ~1; // a new calibration: no timeout
           const slowHz = SLOW_CLOCK_HZ[(value >>> 13) & 3] ?? SLOW_CLOCK_HZ[0];
           const cycles = Math.max(1, (value >>> 16) & 0x7fff);
-          this.ctx.events.schedule(this.caliSlot, t + (cycles * REF_HZ) / slowHz);
+          this.ctx.events.schedule(this.caliSlot, t + (cycles * this.ctx.refHz) / slowHz);
         }
         return;
+    }
+    if (offset === RTCCALICFG2) {
+      // BT124: TIMEOUT (0) — a timeout threshold (31:7) written while a periodic calibration runs
+      // times it out at once (IDF waits out a running calibration that way before its own).
+      this.regs[RTCCALICFG2 >>> 2] = ((value & ~1) | ((this.regs[RTCCALICFG >>> 2] & (1 << 12)) !== 0 && value >>> 7 !== 0 ? 1 : 0)) >>> 0;
+      return;
     }
     if (offset >= WDTCONFIG0 && offset <= 0x5c) {
       if (this.regs[WDTWPROTECT >>> 2] === 1) return; // write-protected

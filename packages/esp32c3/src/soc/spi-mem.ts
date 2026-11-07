@@ -113,15 +113,19 @@ export class SpiMem implements Peripheral {
   private readonly flash: FlashChip | null;
   private readonly buffer = new Uint8Array(64);
 
+  /** BT124: the chip's register defaults (the S3 passes its own). */
+  private readonly defaults: (address: number) => number;
+
   /** `flash` null: SPI0 (the cache's controller — configuration only). */
-  constructor(base: number, flash: FlashChip | null) {
+  constructor(base: number, flash: FlashChip | null, defaults: (address: number) => number = registerDefault) {
     this.base = base;
     this.flash = flash;
+    this.defaults = defaults;
     this.systemReset();
   }
 
   systemReset(): void {
-    for (let i = 0; i < this.regs.length; i++) this.regs[i] = registerDefault(this.base + i * 4);
+    for (let i = 0; i < this.regs.length; i++) this.regs[i] = this.defaults(this.base + i * 4);
   }
 
   read32(offset: number): number {

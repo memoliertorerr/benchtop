@@ -246,8 +246,9 @@ npm run fetch:esp32-rom
 
 It downloads `esp-rom-elfs` 20241011 from Espressif's GitHub releases (≈ 3.4 MB), checks it
 against two pinned SHA-256 hashes and keeps it in `.cache/esp32-rom`, which git ignores. The
-same release holds the ESP32-C3's ROM: the script extracts it into `.cache/esp32c3-rom`, checked
-against its own pinned hash (with the release already cached, nothing is downloaded).
+same release holds the ESP32-C3's and ESP32-S3's ROMs: the script extracts them into
+`.cache/esp32c3-rom` and `.cache/esp32s3-rom`, each checked against its own pinned hash (with the
+release already cached, nothing is downloaded).
 Without it, ESP32 boards report "ESP32 ROM not installed" in the Problems panel. The development
 server serves the cached ROM to the simulation worker; it is never bundled into a build.
 
@@ -495,8 +496,8 @@ backed by tests (for example, ESP32 blink toggles every 500.000 ms of simulated 
   the Raspberry Pi Pico; the bootrom it runs is Benchtop's own.
 - [@wokwi/elements](https://github.com/wokwi/wokwi-elements) (MIT) — the part drawings, and
   the pin positions the part catalog copies from them.
-- [esp-rom-elfs](https://github.com/espressif/esp-rom-elfs) (Apache-2.0) — Espressif's ESP32
-  and ESP32-C3 ROMs, which you download yourself (above).
+- [esp-rom-elfs](https://github.com/espressif/esp-rom-elfs) (Apache-2.0) — Espressif's ESP32,
+  ESP32-C3 and ESP32-S3 ROMs, which you download yourself (above).
 - [pico-bootrom-rp2350](https://github.com/raspberrypi/pico-bootrom-rp2350) (BSD-3-Clause) —
   the RP2350's bootrom the Pico 2 boots through, which you download yourself (above).
 - [MicroPython](https://micropython.org) (MIT) — the stock Pico firmware MicroPython sketches
@@ -511,7 +512,7 @@ backed by tests (for example, ESP32 blink toggles every 500.000 ms of simulated 
   simulators. Hardware behavior comes from datasheets, Espressif's Technical Reference Manual,
   ESP-IDF headers and compiled firmware. Open-source code and data are used under their
   licenses — see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-- **The ESP32 and ESP32-C3 ROMs** are Espressif's (Apache-2.0). You download them yourself; this
+- **The ESP32, ESP32-C3 and ESP32-S3 ROMs** are Espressif's (Apache-2.0). You download them yourself; this
   repository doesn't redistribute them.
 - **Test firmware** in `fixtures/firmware/` is compiled from the sketches in
   `fixtures/sketches/` and contains code from the Arduino cores, ESP-IDF and Arduino libraries

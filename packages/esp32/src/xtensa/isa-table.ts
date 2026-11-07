@@ -13,13 +13,23 @@
  * and user registers are part of the mnemonic (`rsr.ps`, `rur.threadptr`), as objdump prints
  * them; encodings it has no name for are invalid.
  *
+ * BT124: rows with a seventh field 'S3' exist only on the ESP32-S3's LX7 (its PIE coprocessor's
+ * state moves — RUR/WUR of user registers 0–18, `ld.qr`/`st.qr` of the 128-bit q registers — and
+ * LX7's SALT/SALTU, which the S3's compiler emits); the
+ * ESP32's objdump has no name for those encodings, so the ESP32's decoder leaves them invalid.
+ * They are appended, so no ESP32 op id moves. Rows marked 'ESP32' are the ESP32's own TIE
+ * (the f64 helpers, *_expstate, read_impwire, lddr32.p/sddr32.p and their user registers): the
+ * S3's core hasn't them — those encodings are its 4-byte vector (EE.*) space there. `ld.qr q, as, imm` / `st.qr`: op0 4, op1 0xD, op2
+ * 0b11qq, r = q0·8 + 2 (ld) or 6 (st), s the offset / 16 (signed 4 bits), t = as — read from the S3
+ * toolchain's assembler output, the operands varied one at a time.
+ *
  * Operand kinds: A/F/B + R/S/T = a register of that file from the r, s or t field; B4/B8 = a
  * boolean group from s (`b4:b5:b6:b7`); MW = m(r & 3), MX = m((r >> 2) & 1), MY = m(2 + ((t >> 2) & 1))
- * (MAC16); IMM/IMM2 = the descriptor's immediates; TGT = the branch, jump, call, loop or l32r
+ * (MAC16); QR = the S3's q register (descriptor IMM2); IMM/IMM2 = the descriptor's immediates; TGT = the branch, jump, call, loop or l32r
  * target. Immediate kinds are computed in decode.ts.
  */
 
-export type OpRow = readonly [name: string, length: 2 | 3, mask: number, match: number, imm: string, operands: string];
+export type OpRow = readonly [name: string, length: 2 | 3, mask: number, match: number, imm: string, operands: string, config?: 'S3' | 'ESP32'];
 
 export const OP_TABLE: readonly OpRow[] = [
   ['abs', 3, 0xff0f0f, 0x600100, 'NONE', 'AR AT'],
@@ -82,7 +92,7 @@ export const OP_TABLE: readonly OpRow[] = [
   ['callx8', 3, 0xfff0ff, 0x0000e0, 'NONE', 'AS'],
   ['ceil.s', 3, 0xff000f, 0xba0000, 'T', 'AR FS IMM'],
   ['clamps', 3, 0xff000f, 0x330000, 'SEXT', 'AR AS IMM'],
-  ['clrb_expstate', 3, 0xfffe0f, 0x0e1200, 'EXPST', 'IMM'],
+  ['clrb_expstate', 3, 0xfffe0f, 0x0e1200, 'EXPST', 'IMM', 'ESP32'],
   ['const.s', 3, 0xff00ff, 0xfa0030, 'S', 'FR IMM'],
   ['div0.s', 3, 0xff00ff, 0xfa0070, 'NONE', 'FR FS'],
   ['divn.s', 3, 0xff000f, 0x7a0000, 'NONE', 'FR FS FT'],
@@ -92,15 +102,15 @@ export const OP_TABLE: readonly OpRow[] = [
   ['excw', 3, 0xffffff, 0x002080, 'NONE', ''],
   ['extui', 3, 0x0e000f, 0x040000, 'EXTUI', 'AR AT IMM IMM2'],
   ['extw', 3, 0xffffff, 0x0020d0, 'NONE', ''],
-  ['f64addc', 3, 0xff800f, 0xfb0000, 'F64C', 'AT AS IMM IMM2'],
-  ['f64cmph', 3, 0x0f000f, 0x0f0000, 'OP2', 'AR AS AT IMM'],
-  ['f64cmpl', 3, 0xff000f, 0xeb0000, 'NONE', 'AR AS AT'],
-  ['f64iter', 3, 0x8f000f, 0x8e0000, 'F64ITER', 'AR AS AT IMM IMM2'],
-  ['f64norm', 3, 0xef000f, 0x2e0000, 'OP2B0', 'AR AS AT IMM'],
-  ['f64rnd', 3, 0xcf000f, 0x4e0000, 'OP2B01', 'AR AS AT IMM'],
-  ['f64sexp', 3, 0xff000f, 0x1e0000, 'NONE', 'AR AS AT'],
-  ['f64sig', 3, 0xfff00f, 0x0ed000, 'NONE', 'AT AS'],
-  ['f64subc', 3, 0xff800f, 0xfb8000, 'F64C', 'AT AS IMM IMM2'],
+  ['f64addc', 3, 0xff800f, 0xfb0000, 'F64C', 'AT AS IMM IMM2', 'ESP32'],
+  ['f64cmph', 3, 0x0f000f, 0x0f0000, 'OP2', 'AR AS AT IMM', 'ESP32'],
+  ['f64cmpl', 3, 0xff000f, 0xeb0000, 'NONE', 'AR AS AT', 'ESP32'],
+  ['f64iter', 3, 0x8f000f, 0x8e0000, 'F64ITER', 'AR AS AT IMM IMM2', 'ESP32'],
+  ['f64norm', 3, 0xef000f, 0x2e0000, 'OP2B0', 'AR AS AT IMM', 'ESP32'],
+  ['f64rnd', 3, 0xcf000f, 0x4e0000, 'OP2B01', 'AR AS AT IMM', 'ESP32'],
+  ['f64sexp', 3, 0xff000f, 0x1e0000, 'NONE', 'AR AS AT', 'ESP32'],
+  ['f64sig', 3, 0xfff00f, 0x0ed000, 'NONE', 'AT AS', 'ESP32'],
+  ['f64subc', 3, 0xff800f, 0xfb8000, 'F64C', 'AT AS IMM IMM2', 'ESP32'],
   ['float.s', 3, 0xff000f, 0xca0000, 'T', 'FR AS IMM'],
   ['floor.s', 3, 0xff000f, 0xaa0000, 'T', 'AR FS IMM'],
   ['idtlb', 3, 0xfff0ff, 0x50c000, 'NONE', 'AS'],
@@ -119,7 +129,7 @@ export const OP_TABLE: readonly OpRow[] = [
   ['l32r', 3, 0x00000f, 0x000001, 'L32R', 'AT TGT'],
   ['l8ui', 3, 0x00f00f, 0x000002, 'OFF1', 'AT AS IMM'],
   ['lddec', 3, 0xffc0ff, 0x900004, 'NONE', 'MW AS'],
-  ['lddr32.p', 3, 0xfff0ff, 0x0070e0, 'NONE', 'AS'],
+  ['lddr32.p', 3, 0xfff0ff, 0x0070e0, 'NONE', 'AS', 'ESP32'],
   ['ldinc', 3, 0xffc0ff, 0x800004, 'NONE', 'MW AS'],
   ['loop', 3, 0x00f0ff, 0x008076, 'LOOP', 'AS TGT'],
   ['loopgtz', 3, 0x00f0ff, 0x00a076, 'LOOP', 'AS TGT'],
@@ -244,7 +254,7 @@ export const OP_TABLE: readonly OpRow[] = [
   ['quou', 3, 0xff000f, 0xc20000, 'NONE', 'AR AS AT'],
   ['rdtlb0', 3, 0xfff00f, 0x50b000, 'NONE', 'AT AS'],
   ['rdtlb1', 3, 0xfff00f, 0x50f000, 'NONE', 'AT AS'],
-  ['read_impwire', 3, 0xffff0f, 0x0e0000, 'NONE', 'AT'],
+  ['read_impwire', 3, 0xffff0f, 0x0e0000, 'NONE', 'AT', 'ESP32'],
   ['recip0.s', 3, 0xff00ff, 0xfa0080, 'NONE', 'FR FS'],
   ['rems', 3, 0xff000f, 0xf20000, 'NONE', 'AR AS AT'],
   ['remu', 3, 0xff000f, 0xe20000, 'NONE', 'AR AS AT'],
@@ -336,10 +346,10 @@ export const OP_TABLE: readonly OpRow[] = [
   ['rsr.windowbase', 3, 0xffff0f, 0x034800, 'NONE', 'AT'],
   ['rsr.windowstart', 3, 0xffff0f, 0x034900, 'NONE', 'AT'],
   ['rsync', 3, 0xffffff, 0x002010, 'NONE', ''],
-  ['rur.expstate', 3, 0xff0fff, 0xe30e60, 'NONE', 'AR'],
-  ['rur.f64r_hi', 3, 0xff0fff, 0xe30eb0, 'NONE', 'AR'],
-  ['rur.f64r_lo', 3, 0xff0fff, 0xe30ea0, 'NONE', 'AR'],
-  ['rur.f64s', 3, 0xff0fff, 0xe30ec0, 'NONE', 'AR'],
+  ['rur.expstate', 3, 0xff0fff, 0xe30e60, 'NONE', 'AR', 'ESP32'],
+  ['rur.f64r_hi', 3, 0xff0fff, 0xe30eb0, 'NONE', 'AR', 'ESP32'],
+  ['rur.f64r_lo', 3, 0xff0fff, 0xe30ea0, 'NONE', 'AR', 'ESP32'],
+  ['rur.f64s', 3, 0xff0fff, 0xe30ec0, 'NONE', 'AR', 'ESP32'],
   ['rur.fcr', 3, 0xff0fff, 0xe30e80, 'NONE', 'AR'],
   ['rur.fsr', 3, 0xff0fff, 0xe30e90, 'NONE', 'AR'],
   ['rur.threadptr', 3, 0xff0fff, 0xe30e70, 'NONE', 'AR'],
@@ -351,8 +361,8 @@ export const OP_TABLE: readonly OpRow[] = [
   ['s32nb', 3, 0xff000f, 0x590000, 'OFFN', 'AT AS IMM'],
   ['s32ri', 3, 0x00f00f, 0x00f002, 'OFF4', 'AT AS IMM'],
   ['s8i', 3, 0x00f00f, 0x004002, 'OFF1', 'AT AS IMM'],
-  ['sddr32.p', 3, 0xfff0ff, 0x0070f0, 'NONE', 'AS'],
-  ['setb_expstate', 3, 0xfffe0f, 0x0e1000, 'EXPST', 'IMM'],
+  ['sddr32.p', 3, 0xfff0ff, 0x0070f0, 'NONE', 'AS', 'ESP32'],
+  ['setb_expstate', 3, 0xfffe0f, 0x0e1000, 'EXPST', 'IMM', 'ESP32'],
   ['sext', 3, 0xff000f, 0x230000, 'SEXT', 'AR AS IMM'],
   ['simcall', 3, 0xffffff, 0x005100, 'NONE', ''],
   ['sll', 3, 0xff00ff, 0xa10000, 'NONE', 'AR AS'],
@@ -395,7 +405,7 @@ export const OP_TABLE: readonly OpRow[] = [
   ['wf64r', 3, 0xffe00f, 0x0be000, 'R0', 'AS AT IMM'],
   ['wfr', 3, 0xff00ff, 0xfa0050, 'NONE', 'FR AS'],
   ['witlb', 3, 0xfff00f, 0x506000, 'NONE', 'AT AS'],
-  ['wrmsk_expstate', 3, 0xfff00f, 0x0e2000, 'NONE', 'AT AS'],
+  ['wrmsk_expstate', 3, 0xfff00f, 0x0e2000, 'NONE', 'AT AS', 'ESP32'],
   ['wsr.acchi', 3, 0xffff0f, 0x131100, 'NONE', 'AT'],
   ['wsr.acclo', 3, 0xffff0f, 0x131000, 'NONE', 'AT'],
   ['wsr.atomctl', 3, 0xffff0f, 0x136300, 'NONE', 'AT'],
@@ -463,10 +473,10 @@ export const OP_TABLE: readonly OpRow[] = [
   ['wsr.vecbase', 3, 0xffff0f, 0x13e700, 'NONE', 'AT'],
   ['wsr.windowbase', 3, 0xffff0f, 0x134800, 'NONE', 'AT'],
   ['wsr.windowstart', 3, 0xffff0f, 0x134900, 'NONE', 'AT'],
-  ['wur.expstate', 3, 0xffff0f, 0xf3e600, 'NONE', 'AT'],
-  ['wur.f64r_hi', 3, 0xffff0f, 0xf3eb00, 'NONE', 'AT'],
-  ['wur.f64r_lo', 3, 0xffff0f, 0xf3ea00, 'NONE', 'AT'],
-  ['wur.f64s', 3, 0xffff0f, 0xf3ec00, 'NONE', 'AT'],
+  ['wur.expstate', 3, 0xffff0f, 0xf3e600, 'NONE', 'AT', 'ESP32'],
+  ['wur.f64r_hi', 3, 0xffff0f, 0xf3eb00, 'NONE', 'AT', 'ESP32'],
+  ['wur.f64r_lo', 3, 0xffff0f, 0xf3ea00, 'NONE', 'AT', 'ESP32'],
+  ['wur.f64s', 3, 0xffff0f, 0xf3ec00, 'NONE', 'AT', 'ESP32'],
   ['wur.fcr', 3, 0xffff0f, 0xf3e800, 'NONE', 'AT'],
   ['wur.fsr', 3, 0xffff0f, 0xf3e900, 'NONE', 'AT'],
   ['wur.threadptr', 3, 0xffff0f, 0xf3e700, 'NONE', 'AT'],
@@ -535,4 +545,46 @@ export const OP_TABLE: readonly OpRow[] = [
   ['xsr.vecbase', 3, 0xffff0f, 0x61e700, 'NONE', 'AT'],
   ['xsr.windowbase', 3, 0xffff0f, 0x614800, 'NONE', 'AT'],
   ['xsr.windowstart', 3, 0xffff0f, 0x614900, 'NONE', 'AT'],
+  // BT124: the ESP32-S3 only (see above).
+  ['rur.accx_0', 3, 0xff0fff, 0xe30000, 'NONE', 'AR', 'S3'],
+  ['rur.accx_1', 3, 0xff0fff, 0xe30010, 'NONE', 'AR', 'S3'],
+  ['rur.qacc_h_0', 3, 0xff0fff, 0xe30020, 'NONE', 'AR', 'S3'],
+  ['rur.qacc_h_1', 3, 0xff0fff, 0xe30030, 'NONE', 'AR', 'S3'],
+  ['rur.qacc_h_2', 3, 0xff0fff, 0xe30040, 'NONE', 'AR', 'S3'],
+  ['rur.qacc_h_3', 3, 0xff0fff, 0xe30050, 'NONE', 'AR', 'S3'],
+  ['rur.qacc_h_4', 3, 0xff0fff, 0xe30060, 'NONE', 'AR', 'S3'],
+  ['rur.qacc_l_0', 3, 0xff0fff, 0xe30070, 'NONE', 'AR', 'S3'],
+  ['rur.qacc_l_1', 3, 0xff0fff, 0xe30080, 'NONE', 'AR', 'S3'],
+  ['rur.qacc_l_2', 3, 0xff0fff, 0xe30090, 'NONE', 'AR', 'S3'],
+  ['rur.qacc_l_3', 3, 0xff0fff, 0xe300a0, 'NONE', 'AR', 'S3'],
+  ['rur.qacc_l_4', 3, 0xff0fff, 0xe300b0, 'NONE', 'AR', 'S3'],
+  ['rur.sar_byte', 3, 0xff0fff, 0xe300d0, 'NONE', 'AR', 'S3'],
+  ['rur.fft_bit_width', 3, 0xff0fff, 0xe300e0, 'NONE', 'AR', 'S3'],
+  ['rur.ua_state_0', 3, 0xff0fff, 0xe300f0, 'NONE', 'AR', 'S3'],
+  ['rur.ua_state_1', 3, 0xff0fff, 0xe30100, 'NONE', 'AR', 'S3'],
+  ['rur.ua_state_2', 3, 0xff0fff, 0xe30110, 'NONE', 'AR', 'S3'],
+  ['rur.ua_state_3', 3, 0xff0fff, 0xe30120, 'NONE', 'AR', 'S3'],
+  ['wur.accx_0', 3, 0xffff0f, 0xf30000, 'NONE', 'AT', 'S3'],
+  ['wur.accx_1', 3, 0xffff0f, 0xf30100, 'NONE', 'AT', 'S3'],
+  ['wur.qacc_h_0', 3, 0xffff0f, 0xf30200, 'NONE', 'AT', 'S3'],
+  ['wur.qacc_h_1', 3, 0xffff0f, 0xf30300, 'NONE', 'AT', 'S3'],
+  ['wur.qacc_h_2', 3, 0xffff0f, 0xf30400, 'NONE', 'AT', 'S3'],
+  ['wur.qacc_h_3', 3, 0xffff0f, 0xf30500, 'NONE', 'AT', 'S3'],
+  ['wur.qacc_h_4', 3, 0xffff0f, 0xf30600, 'NONE', 'AT', 'S3'],
+  ['wur.qacc_l_0', 3, 0xffff0f, 0xf30700, 'NONE', 'AT', 'S3'],
+  ['wur.qacc_l_1', 3, 0xffff0f, 0xf30800, 'NONE', 'AT', 'S3'],
+  ['wur.qacc_l_2', 3, 0xffff0f, 0xf30900, 'NONE', 'AT', 'S3'],
+  ['wur.qacc_l_3', 3, 0xffff0f, 0xf30a00, 'NONE', 'AT', 'S3'],
+  ['wur.qacc_l_4', 3, 0xffff0f, 0xf30b00, 'NONE', 'AT', 'S3'],
+  ['wur.sar_byte', 3, 0xffff0f, 0xf30d00, 'NONE', 'AT', 'S3'],
+  ['wur.fft_bit_width', 3, 0xffff0f, 0xf30e00, 'NONE', 'AT', 'S3'],
+  ['wur.ua_state_0', 3, 0xffff0f, 0xf30f00, 'NONE', 'AT', 'S3'],
+  ['wur.ua_state_1', 3, 0xffff0f, 0xf31000, 'NONE', 'AT', 'S3'],
+  ['wur.ua_state_2', 3, 0xffff0f, 0xf31100, 'NONE', 'AT', 'S3'],
+  ['wur.ua_state_3', 3, 0xffff0f, 0xf31200, 'NONE', 'AT', 'S3'],
+  ['ld.qr', 3, 0xcf700f, 0xcd2004, 'QLDST', 'QR AT IMM', 'S3'],
+  ['st.qr', 3, 0xcf700f, 0xcd6004, 'QLDST', 'QR AT IMM', 'S3'],
+  // LX7's SALT / SALTU (set ar to as < at, signed / unsigned): RRR op0 0, op1 2, op2 7 / 6.
+  ['salt', 3, 0xff000f, 0x720000, 'NONE', 'AR AS AT', 'S3'],
+  ['saltu', 3, 0xff000f, 0x620000, 'NONE', 'AR AS AT', 'S3'],
 ];

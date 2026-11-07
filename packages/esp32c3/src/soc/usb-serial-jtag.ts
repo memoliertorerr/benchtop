@@ -21,16 +21,15 @@
  */
 
 import type { Peripheral } from '@benchtop/esp32';
-import { REF_HZ, type SocContext } from './context.ts';
+import type { SocContext } from './context.ts';
 import { SRC } from './intmatrix.ts';
-import { registerDefault } from './periph.ts';
 
 export const USB_SERIAL_JTAG_BASE = 0x60043000;
 /** The host's turnaround for a packet (reference cycles: 50 µs). */
-const HOST_LATENCY = REF_HZ / 20_000;
+const HOST_LATENCY_S = 1 / 20_000;
 /** A byte on the bus at 12 Mbit/s (with stuffing and framing, ≈ 0.75 µs). */
-const BYTE_TIME = (REF_HZ * 0.75) / 1e6;
-const FRAME = REF_HZ / 1000;
+const BYTE_TIME_S = 0.75 / 1e6;
+const FRAME_S = 1 / 1000;
 const PACKET = 64;
 
 const EP1 = 0x00;
@@ -72,8 +71,20 @@ export class UsbSerialJtag implements Peripheral {
   private readonly outSlot: number;
   private readonly sofSlot: number;
 
-  constructor(ctx: SocContext) {
+  /** BT124: its block and interrupt source (the S3's differ), and the host's times in reference cycles. */
+  private readonly base: number;
+  private readonly source: number;
+  private readonly hostLatency: number;
+  private readonly byteTime: number;
+  private readonly framePeriod: number;
+
+  constructor(ctx: SocContext, base: number = USB_SERIAL_JTAG_BASE, source: number = SRC.USB_SERIAL_JTAG) {
     this.ctx = ctx;
+    this.base = base;
+    this.source = source;
+    this.hostLatency = ctx.refHz * HOST_LATENCY_S;
+    this.byteTime = ctx.refHz * BYTE_TIME_S;
+    this.framePeriod = ctx.refHz * FRAME_S;
     this.hostSlot = ctx.events.add(() => this.hostRead());
     this.outSlot = ctx.events.add(() => this.deliverPacket());
     this.sofSlot = ctx.events.add(() => this.sof());
@@ -81,7 +92,7 @@ export class UsbSerialJtag implements Peripheral {
   }
 
   systemReset(): void {
-    for (let i = 0; i < this.regs.length; i++) this.regs[i] = registerDefault(USB_SERIAL_JTAG_BASE + i * 4);
+    for (let i = 0; i < this.regs.length; i++) this.regs[i] = this.ctx.regDefault(this.base + i * 4);
     this.ctx.events.cancel(this.hostSlot);
     this.ctx.events.cancel(this.outSlot);
     this.ctx.events.cancel(this.sofSlot);
@@ -115,24 +126,24 @@ export class UsbSerialJtag implements Peripheral {
   private start(): void {
     if (this.frames) return;
     this.frames = true;
-    this.ctx.events.schedule(this.sofSlot, this.ctx.now() + FRAME);
+    this.ctx.events.schedule(this.sofSlot, this.ctx.now() + this.framePeriod);
   }
 
   private sof(): void {
     this.frame = (this.frame + 1) & 0x7ff;
     this.intRaw |= USJ_INT.SOF;
     this.update();
-    this.ctx.events.schedule(this.sofSlot, this.ctx.events.firing + FRAME);
+    this.ctx.events.schedule(this.sofSlot, this.ctx.events.firing + this.framePeriod);
   }
 
   private update(): void {
-    this.ctx.matrix.setSource(SRC.USB_SERIAL_JTAG, (this.intRaw & this.intEna) !== 0);
+    this.ctx.matrix.setSource(this.source, (this.intRaw & this.intEna) !== 0);
   }
 
   private flush(): void {
     if (this.inFlight) return;
     this.inFlight = true;
-    const when = this.ctx.now() + HOST_LATENCY + this.inCount * BYTE_TIME;
+    const when = this.ctx.now() + this.hostLatency + this.inCount * this.byteTime;
     this.ctx.events.schedule(this.hostSlot, when);
     this.ctx.hurry(when);
   }
@@ -149,7 +160,7 @@ export class UsbSerialJtag implements Peripheral {
   private scheduleOut(): void {
     if (this.outPending || this.outCount > 0 || this.qCount === 0) return;
     this.outPending = true;
-    const when = this.ctx.now() + HOST_LATENCY;
+    const when = this.ctx.now() + this.hostLatency;
     this.ctx.events.schedule(this.outSlot, when);
     this.ctx.hurry(when);
   }

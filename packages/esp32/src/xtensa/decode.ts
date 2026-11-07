@@ -10,7 +10,9 @@
  *   out[D_OFF]  the raw PC-relative offset of a branch, jump, call, loop or l32r; `target()`
  *               turns it into an address.
  * Candidates are bucketed by op0/op1/op2 (24-bit) or op0 (16-bit) at module load and tried most
- * specific first.
+ * specific first. BT124: `decode(…, s3)` decodes for the ESP32-S3: its own rows on, the ESP32's
+ * TIE rows off (isa-table.ts); the ESP32's decoder (the default) leaves the S3's encodings invalid,
+ * as its objdump does.
  */
 
 import * as isa from './isa.ts';
@@ -41,10 +43,11 @@ const popcount = (n: number): number => {
   return c;
 };
 
-function buildBuckets(): { wide: Int16Array[]; narrow: Int16Array[] } {
+function buildBuckets(s3: boolean): { wide: Int16Array[]; narrow: Int16Array[] } {
   const wide: number[][] = Array.from({ length: 4096 }, () => []);
   const narrow: number[][] = Array.from({ length: 16 }, () => []);
   OPS.forEach((op, index) => {
+    if (s3 ? op.esp32 : op.s3) return;
     if (op.length === 2) {
       narrow[op.match & 0xf].push(index);
       return;
@@ -58,7 +61,8 @@ function buildBuckets(): { wide: Int16Array[]; narrow: Int16Array[] } {
   return { wide: wide.map(order), narrow: narrow.map(order) };
 }
 
-const BUCKETS = buildBuckets();
+const BUCKETS = buildBuckets(false);
+const BUCKETS_S3 = buildBuckets(true);
 const MASKS = Int32Array.from(OPS, (op) => op.mask);
 const MATCHES = Int32Array.from(OPS, (op) => op.match);
 const IMMS = Uint8Array.from(OPS, (op) => op.imm);
@@ -72,7 +76,7 @@ export function lengthOf(b0: number): 2 | 3 {
 const sext = (value: number, bits: number): number => (value << (32 - bits)) >> (32 - bits);
 
 /** Decodes the instruction starting with b0 (b1, b2 follow in memory). */
-export function decode(b0: number, b1: number, b2: number, out: Int32Array): void {
+export function decode(b0: number, b1: number, b2: number, out: Int32Array, s3 = false): void {
   const length = lengthOf(b0);
   const word = length === 2 ? b0 | (b1 << 8) : b0 | (b1 << 8) | (b2 << 16);
   const r = (word >> 12) & 0xf;
@@ -85,7 +89,8 @@ export function decode(b0: number, b1: number, b2: number, out: Int32Array): voi
   out[D_IMM] = 0;
   out[D_IMM2] = 0;
   out[D_OFF] = 0;
-  const bucket = length === 2 ? BUCKETS.narrow[b0 & 0xf] : BUCKETS.wide[(b0 & 0xf) | ((b2 & 0xff) << 4)];
+  const buckets = s3 ? BUCKETS_S3 : BUCKETS;
+  const bucket = length === 2 ? buckets.narrow[b0 & 0xf] : buckets.wide[(b0 & 0xf) | ((b2 & 0xff) << 4)];
   let op = OP_INVALID;
   for (let i = 0; i < bucket.length; i++) {
     const candidate = bucket[i];
@@ -104,6 +109,10 @@ export function decode(b0: number, b1: number, b2: number, out: Int32Array): voi
       break;
     case IMM.ADDI:
       out[D_IMM] = sext(imm8, 8);
+      break;
+    case IMM.QLDST: // BT124: ld.qr/st.qr — the offset (s × 16, signed) and the q register
+      out[D_IMM] = sext(s, 4) * 16;
+      out[D_IMM2] = ((op2 & 3) << 1) | (r >>> 3);
       break;
     case IMM.ADDMI:
       out[D_IMM] = sext(imm8, 8) << 8;

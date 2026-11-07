@@ -14,8 +14,7 @@
  */
 
 import type { Peripheral } from '@benchtop/esp32';
-import { REF_HZ, type SocContext, XTAL_HZ } from './context.ts';
-import { registerDefault } from './periph.ts';
+import { type SocContext, XTAL_HZ } from './context.ts';
 
 export const UART_BASES = [0x60000000, 0x60010000] as const;
 
@@ -32,6 +31,19 @@ const MEM_CONF = 0x60;
 const FSM_STATUS = 0x6c;
 const CLK_CONF = 0x78;
 const ID = 0x80;
+
+/**
+ * BT125: where CONF1 and MEM_CONF keep the fields that moved between the chips — the S3's FIFO
+ * thresholds are 10 bits wide (RXFIFO_FULL 9:0, TXFIFO_EMPTY 19:10, RX_TOUT_EN 23, MEM_CONF's
+ * RX_TOUT_THRHD 26:17) where the C3's are 9 (8:0, 17:9, 21, 25:16).
+ */
+export interface UartFields {
+  thrBits: number;
+  toutEn: number;
+  toutThrShift: number;
+}
+export const C3_UART_FIELDS: UartFields = { thrBits: 9, toutEn: 21, toutThrShift: 16 };
+export const S3_UART_FIELDS: UartFields = { thrBits: 10, toutEn: 23, toutThrShift: 17 };
 
 export const UART_INT = { RXFIFO_FULL: 1 << 0, TXFIFO_EMPTY: 1 << 1, RXFIFO_OVF: 1 << 4, RXFIFO_TOUT: 1 << 8, TX_DONE: 1 << 14 } as const;
 
@@ -62,10 +74,19 @@ export class Uart implements Peripheral {
   /** Each byte as its stop bit ends. */
   onTx: ((byte: number) => void) | null = null;
 
-  constructor(ctx: SocContext, index: number, source: number) {
+  /** BT124: its block (UART_BASES[index] by default; the S3's UART2 is elsewhere). */
+  private readonly base: number;
+  /** BT125: the chip's CONF1/MEM_CONF field positions. */
+  private readonly fields: UartFields;
+  private readonly thrMask: number;
+
+  constructor(ctx: SocContext, index: number, source: number, base: number = UART_BASES[index], fields: UartFields = C3_UART_FIELDS) {
     this.ctx = ctx;
     this.index = index;
     this.source = source;
+    this.base = base;
+    this.fields = fields;
+    this.thrMask = (1 << fields.thrBits) - 1;
     this.txSlot = ctx.events.add(() => this.frameSent());
     this.rxSlot = ctx.events.add(() => this.frameReceived());
     this.toutSlot = ctx.events.add(() => this.timeout());
@@ -73,8 +94,8 @@ export class Uart implements Peripheral {
   }
 
   systemReset(): void {
-    const base = UART_BASES[this.index];
-    for (let i = 0; i < this.regs.length; i++) this.regs[i] = registerDefault(base + i * 4);
+    const base = this.base;
+    for (let i = 0; i < this.regs.length; i++) this.regs[i] = this.ctx.regDefault(base + i * 4);
     this.txHead = this.txCount = this.rxHead = this.rxCount = this.rxQueueHead = this.rxQueueCount = 0;
     this.sending = -1;
     this.intRaw = 0;
@@ -106,7 +127,7 @@ export class Uart implements Peripheral {
   /** Reference cycles a frame takes (or a bit, with bits = 1). */
   private bitTime(bits: number): number {
     const baud = this.baud();
-    return baud > 0 ? (bits * REF_HZ) / baud : 1000;
+    return baud > 0 ? (bits * this.ctx.refHz) / baud : 1000;
   }
 
   /** Bytes from the outside world to this UART's RX pin. */
@@ -137,8 +158,8 @@ export class Uart implements Peripheral {
 
   private armTimeout(): void {
     const conf1 = this.regs[CONF1 >>> 2];
-    if ((conf1 & (1 << 21)) === 0 || this.rxCount === 0) return;
-    const bits = (this.regs[MEM_CONF >>> 2] >>> 16) & 0x3ff;
+    if ((conf1 & (1 << this.fields.toutEn)) === 0 || this.rxCount === 0) return;
+    const bits = (this.regs[MEM_CONF >>> 2] >>> this.fields.toutThrShift) & 0x3ff;
     this.ctx.events.schedule(this.toutSlot, this.lastRx + this.bitTime(Math.max(bits, 1)));
   }
 
@@ -167,8 +188,8 @@ export class Uart implements Peripheral {
   /** Re-raises the level-like status bits and drives the source. */
   private update(): void {
     const conf1 = this.regs[CONF1 >>> 2];
-    if (this.rxCount >= (conf1 & 0x1ff) && this.rxCount > 0) this.intRaw |= UART_INT.RXFIFO_FULL;
-    if (this.txCount <= ((conf1 >>> 9) & 0x1ff)) this.intRaw |= UART_INT.TXFIFO_EMPTY;
+    if (this.rxCount >= (conf1 & this.thrMask) && this.rxCount > 0) this.intRaw |= UART_INT.RXFIFO_FULL;
+    if (this.txCount <= ((conf1 >>> this.fields.thrBits) & this.thrMask)) this.intRaw |= UART_INT.TXFIFO_EMPTY;
     this.ctx.matrix.setSource(this.source, (this.intRaw & this.regs[INT_ENA >>> 2]) !== 0);
   }
 

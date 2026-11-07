@@ -10,7 +10,8 @@
  * ROM_TARBALL_SHA256; only ROM_ELF_NAME is extracted (gunzip + a ustar reader that validates
  * headers) and checked against ROM_ELF_SHA256. Everything is written under ROM_CACHE_DIR
  * (git-ignored) — nothing ROM-derived is ever committed. BT92: the same tarball also yields the
- * ESP32-C3's ROM (packages/esp32c3/src/rom-manifest.ts) into C3_ROM_CACHE_DIR — from the cached
+ * ESP32-C3's ROM (packages/esp32c3/src/rom-manifest.ts) into C3_ROM_CACHE_DIR, and (BT124) the
+ * ESP32-S3's (packages/esp32s3/src/rom-manifest.ts) into S3_ROM_CACHE_DIR — from the cached
  * tarball when there is one (no download), else from the download. With the Xtensa toolchain present it
  * also writes rom-corpus.tsv.gz there (the decode-corpus format of scripts/xtensa-corpus.ts).
  */
@@ -33,6 +34,7 @@ import {
 } from '../packages/esp32/src/boot/rom-manifest.ts';
 import { readTar } from '../packages/esp32/src/util/ustar.ts';
 import { C3_ROM_CACHE_DIR, C3_ROM_ELF_NAME, C3_ROM_ELF_SHA256 } from '../packages/esp32c3/src/rom-manifest.ts';
+import { S3_ROM_CACHE_DIR, S3_ROM_ELF_NAME, S3_ROM_ELF_SHA256 } from '../packages/esp32s3/src/rom-manifest.ts';
 import { findXtensaTool } from './arduino-cli.ts';
 import { decodeElfSections } from './xtensa-corpus.ts';
 
@@ -41,7 +43,13 @@ const CACHE = join(ROOT, ROM_CACHE_DIR);
 const ELF_PATH = join(CACHE, ROM_ELF_NAME);
 const TARBALL_PATH = join(CACHE, ROM_TARBALL_NAME);
 const MAX_TARBALL = 32 * 1024 * 1024;
-const C3_ELF_PATH = join(ROOT, C3_ROM_CACHE_DIR, C3_ROM_ELF_NAME);
+
+/** The other chips' ROMs the same tarball holds (BT92: the C3's; BT124: the S3's), each pinned. */
+const CHIP_ROMS = [
+  { name: C3_ROM_ELF_NAME, sha256: C3_ROM_ELF_SHA256, dir: C3_ROM_CACHE_DIR },
+  { name: S3_ROM_ELF_NAME, sha256: S3_ROM_ELF_SHA256, dir: S3_ROM_CACHE_DIR },
+] as const;
+type ChipRom = (typeof CHIP_ROMS)[number];
 
 const sha256 = (bytes: Uint8Array): string => createHash('sha256').update(bytes).digest('hex');
 
@@ -69,36 +77,38 @@ function publishedHash(text: string): { hash: string; line: string } | undefined
   return undefined;
 }
 
-const c3Cached = (): boolean => existsSync(C3_ELF_PATH) && sha256(readFileSync(C3_ELF_PATH)) === C3_ROM_ELF_SHA256;
+const chipPath = (rom: ChipRom): string => join(ROOT, rom.dir, rom.name);
+const chipCached = (rom: ChipRom): boolean => existsSync(chipPath(rom)) && sha256(readFileSync(chipPath(rom))) === rom.sha256;
 
-/** BT92: the ESP32-C3 ROM from a verified tarball's entries. False when it's missing or doesn't verify. */
-function writeC3Rom(entries: { name: string; type: string; data: Uint8Array }[]): boolean {
-  const entry = entries.find((e) => e.type === '0' && basename(e.name) === C3_ROM_ELF_NAME);
+/** BT92/BT124: a chip's ROM from a verified tarball's entries. False when it's missing or doesn't verify. */
+function writeChipRom(rom: ChipRom, entries: { name: string; type: string; data: Uint8Array }[]): boolean {
+  const entry = entries.find((e) => e.type === '0' && basename(e.name) === rom.name);
   if (entry === undefined) {
-    console.error(`${C3_ROM_ELF_NAME} is not in the tarball`);
+    console.error(`${rom.name} is not in the tarball`);
     return false;
   }
   const hash = sha256(entry.data);
-  if (hash !== C3_ROM_ELF_SHA256) {
-    console.error(`${C3_ROM_ELF_NAME} SHA-256 ${hash} does not match the pinned C3_ROM_ELF_SHA256 ${C3_ROM_ELF_SHA256}`);
+  if (hash !== rom.sha256) {
+    console.error(`${rom.name} SHA-256 ${hash} does not match its pinned SHA-256 ${rom.sha256}`);
     return false;
   }
-  mkdirSync(dirname(C3_ELF_PATH), { recursive: true });
-  writeFileSync(C3_ELF_PATH, entry.data);
-  console.info(`wrote ${C3_ROM_CACHE_DIR}/${C3_ROM_ELF_NAME} (${entry.data.length} bytes, SHA-256 ${hash})`);
+  mkdirSync(dirname(chipPath(rom)), { recursive: true });
+  writeFileSync(chipPath(rom), entry.data);
+  console.info(`wrote ${rom.dir}/${rom.name} (${entry.data.length} bytes, SHA-256 ${hash})`);
   return true;
 }
 
-/** BT92: the C3 ROM from the cached tarball (pinned hash checked; nothing downloaded). */
-function c3FromCachedTarball(): boolean {
-  if (c3Cached()) return true;
+/** BT92/BT124: the other chips' ROMs from the cached tarball (pinned hashes checked; nothing downloaded). */
+function chipsFromCachedTarball(): boolean {
+  if (CHIP_ROMS.every(chipCached)) return true;
   if (!existsSync(TARBALL_PATH)) return false;
   const tarball = new Uint8Array(readFileSync(TARBALL_PATH));
   if (sha256(tarball) !== ROM_TARBALL_SHA256) {
     console.error(`the cached ${ROM_TARBALL_NAME} does not match ROM_TARBALL_SHA256`);
     return false;
   }
-  return writeC3Rom(readTar(new Uint8Array(gunzipSync(tarball, { maxOutputLength: 256 * 1024 * 1024 }))));
+  const entries = readTar(new Uint8Array(gunzipSync(tarball, { maxOutputLength: 256 * 1024 * 1024 })));
+  return CHIP_ROMS.every((rom) => chipCached(rom) || writeChipRom(rom, entries));
 }
 
 /** The ROM's executable sections through objdump, as rom-corpus.tsv.gz (BT28's ROM decode check). */
@@ -125,9 +135,9 @@ async function main(): Promise<number> {
     return 1;
   }
 
-  if (!record && existsSync(ELF_PATH) && sha256(readFileSync(ELF_PATH)) === ROM_ELF_SHA256 && (c3Cached() || c3FromCachedTarball())) {
+  if (!record && existsSync(ELF_PATH) && sha256(readFileSync(ELF_PATH)) === ROM_ELF_SHA256 && chipsFromCachedTarball()) {
     console.info(`${ROM_CACHE_DIR}/${ROM_ELF_NAME} is cached and verified (SHA-256 ${ROM_ELF_SHA256}).`);
-    console.info(`${C3_ROM_CACHE_DIR}/${C3_ROM_ELF_NAME} is cached and verified (SHA-256 ${C3_ROM_ELF_SHA256}).`);
+    for (const rom of CHIP_ROMS) console.info(`${rom.dir}/${rom.name} is cached and verified (SHA-256 ${rom.sha256}).`);
     if (!existsSync(join(CACHE, 'rom-corpus.tsv.gz')) || args.includes('--corpus')) writeRomCorpus();
     return 0;
   }
@@ -186,7 +196,7 @@ async function main(): Promise<number> {
   writeFileSync(ELF_PATH, entry.data);
   console.info(`wrote ${ROM_CACHE_DIR}/${ROM_ELF_NAME} (${entry.data.length} bytes, SHA-256 ${elfHash})`);
   writeFileSync(TARBALL_PATH, tarball); // kept (≈3.4 MB): later runs extract other chips' ROMs without downloading
-  if (!writeC3Rom(entries)) return 1;
+  if (!CHIP_ROMS.every((rom) => writeChipRom(rom, entries))) return 1;
   writeRomCorpus();
   return 0;
 }

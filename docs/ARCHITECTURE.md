@@ -38,6 +38,7 @@ simulation core has no DOM, the same code runs headless in Node for tests and CI
 | `@benchtop/riscv` | the RISC-V RV32 core (Hazard3 profile: the RP2350's): decoder, objdump-exact disassembler, predecode cache, machine and user modes, the CSR hook a SoC plugs into | know about a SoC, parts or the UI |
 | `@benchtop/rp2350` | the RP2350 SoC (RISC-V side) on `@benchtop/riscv` with the real bootrom: memory map, Xh3irq, peripherals, QMI and flash, the `Mcu` (`createRp2350Mcu`, `rp2350McuFactory`) | know about parts or the UI |
 | `@benchtop/esp32c3` | the ESP32-C3 `Mcu` (`createEsp32c3Mcu`, `esp32c3McuFactory`): the SoC on `@benchtop/riscv` with its mask ROM — memory map, flash MMU, interrupt matrix, peripherals, direct boot, the debugger view | know about parts or the UI |
+| `@benchtop/esp32s3` | the ESP32-S3 SoC: two LX7 cores on `@benchtop/esp32`'s Xtensa core with the C3's peripheral models at the S3's addresses — memory map, flash MMU, interrupt matrix, SYSTEM/EXTMEM/RTC, direct boot, GPIO/IO_MUX over 49 pads, USB-Serial-JTAG, LEDC, the ADC through SENS, I2C ×2, SPI2, RMT, the debugger view (not on the bench yet) | know about parts or the UI |
 | `@benchtop/pcb` | the PCB document, footprints, nets from the bench, ratsnest, DRC, fabrication exports | touch DOM; run simulation |
 | `@benchtop/web` | the editor, part views, the worker host and the worker entry | run CPU emulation on the UI thread |
 | `@benchtop/bridge` | the local compile bridge: runs arduino-cli for the browser (Node, zero dependencies) | listen beyond loopback; write outside its temp build folders |
@@ -2490,6 +2491,107 @@ sequence, files matched by basename or trailing path.
   (`packages/parts/src/integration/esp32c3-wifi.test.ts`); `wifi-rgb-server` listens 1.6 s
   into a run and sets its LED within 10 ms of an http-client part's Send (4 s simulated in
   0.8 s); `sim_wifi` lists ESP32-C3 boards with the ESP32's.
+
+- **ESP32-S3** — `@benchtop/esp32s3`: Espressif's dual-core Xtensa LX7 chip, running
+  Arduino-ESP32 2.0.17 images (FQBN `esp32:esp32:esp32s3`) booted directly with its mask ROM. It
+  is built from the two packages before it: `@benchtop/esp32`'s `XtensaCore` (the LX7's options
+  are the ESP32's — windowed registers, the FPU, MAC16, loops, 32 interrupts with the same
+  level/type table), its event table, Problem log, image parser (`buildFlash(…, ESP32S3_CHIP)`:
+  chip id 9) and interrupt-matrix logic (`InterruptMatrix(99)`); and `@benchtop/esp32c3`'s
+  new-generation peripheral models, which share the S3's register maps — SYSTIMER, the timer
+  groups, the UARTs (UART2 at 0x6002_E000), SPI0/1 and the flash chip, the SAR ADC. Those models
+  now take from their `SocContext` the time base (`refHz`: the C3's 160 MHz, the S3's 240 MHz)
+  and the chip's register defaults (`regDefault`), and their interrupt sources as constructor
+  arguments (the C3 passes its own; nothing changed for it). Its own: SYSTEM (`system.ts`: the
+  clock — CPUPERIOD_SEL 2 is 240 MHz —, CPU_INTR_FROM_CPU, CORE_1_CONTROL_0, the RTC memory CRC
+  unit), EXTMEM (cache operations at once; a freeze's DONE follows its ENA), the 512-entry MMU
+  table at 0x600C_5000 (read from the ROM's Cache_Ibus_MMU_Set; the IBUS and DBUS windows share
+  it, a 9-bit index of 64 KB pages), RTC_CNTL at the S3's offsets (about half moved from the
+  C3's) and the eFuse block at 0x6000_7000, the analog I2C master (0x6000_E000: ANA_CONF0 bit
+  24, BBPLL_CAL_DONE, reads 1 — rtc_clk_bbpll_configure waits on it), and the interrupt matrix's
+  registers (a map register per source and core at INTERRUPT_CORE0 + 4·source, core 1 at
+  +0x800; INTR_STATUS_0–3).
+
+  **The cores.** `XtensaCore` with `s3: true` decodes the S3's own rows (`isa-table.ts`, flag
+  'S3'): the PIE vector coprocessor's state moves FreeRTOS saves and restores lazily on a
+  Coprocessor3Disabled exception — RUR/WUR of user registers 0–18 (ACCX, QACC_H/L, SAR_BYTE,
+  FFT_BIT_WIDTH, UA_STATE) and `ld.qr`/`st.qr` of the eight 128-bit q registers, all gated by
+  CPENABLE bit 3 — and LX7's SALT/SALTU; it leaves out the ESP32's own TIE (flag 'ESP32': the
+  f64 helpers, the expstate ops, `lddr32.p`/`sddr32.p`), whose encodings are the S3's 4-byte
+  vector (EE.*) space. The vector compute ops aren't decoded yet (esp-dsp and esp-nn use them). A
+  decode corpus from the S3's own objdump (`fixtures/xtensa/corpus/s3-serial-hello`, the IRAM
+  of the S3 serial-hello: vectors and FreeRTOS's port) holds the decoder to it. The predecode
+  cache spans 64 MB from 0x4000_0000 on the S3 (`icachePages`), so flash code at 0x4200_0000
+  runs through it.
+
+  **Memory** (`memory.ts`): 512 KB of SRAM as one buffer — SRAM0 (32 KB, instruction bus
+  only), SRAM1 (416 KB, both: 0x4037_8000 / 0x3FC8_8000), SRAM2 (64 KB, data only); the ROM
+  (384 KB at 0x4000_0000, its top 128 KB also at 0x3FF0_0000); RTC fast memory (8 KB at
+  0x600F_E000, both buses) and RTC slow memory (8 KB at 0x5000_0000). The bus (`bus.ts`) is the
+  ESP32's design — a 64 KB page table of kind and base, flash pages armed through the MMU on
+  first touch — without the flash cache's timing (not modeled yet).
+
+  **Time and running** (`soc.ts`): 240 MHz reference cycles; the two cores interleave in
+  256-cycle slices as the ESP32's do — the core behind in time runs, a peripheral access yields
+  to a core behind it, WAITI skip-ahead jumps over whole slices with both asleep — and a model
+  scheduling an event inside the running slice ends the slice there (`hurry`). The APP_CPU
+  starts held; CORE_1_CONTROL_0 with CLKGATE_EN set and RUNSTALL and RESETING clear starts it at
+  the ROM's reset vector, whose second-core path waits for the boot address the app passes. A
+  system reset (OPTIONS0.SW_SYS_RST, a timer group's watchdog) stops the run with
+  `resetRequested`, for its caller to boot a fresh chip, as the C3's Mcu does.
+
+  **ROM.** `esp32s3_rev0_rom.elf` from the same pinned esp-rom-elfs-20241011 tarball, extracted by
+  `npm run fetch:esp32-rom` into `.cache/esp32s3-rom` (SHA-256 pinned in `rom-manifest.ts`; with
+  the tarball cached nothing is downloaded). `parseS3Rom` reads it as `parseC3Rom` does the C3's:
+  code at ROM addresses, RAM sections at their DRAM addresses, symbols.
+
+  **What the bootloader leaves** (`directBootS3`): the app at its partition and its RAM segments
+  copied, the MMU mapped page by page (every other entry invalid), the ROM's RAM data placed, the
+  ROM's `s_ticks_per_us` = 40, RTC_CNTL STORE4 = 40 MHz XTAL, the TIMG watchdogs off, and the
+  ROM's legacy flash descriptor (`rom_spiflash_legacy_data` → its default struct) with the JEDEC
+  id and the image's flash size — the ROM's default says 2 MB, and `esp_flash_read` refuses reads
+  past it until the app has probed the chip (the core dump's config at 0x3F_0000 is read before
+  that: without the descriptor IDF reports "Failed to read core dump data size"); the PRO_CPU as
+  `callx8 entry` leaves it on the ROM's PRO stack (0x3FCE_B710), on the 40 MHz crystal. The
+  S3's register reset values come from its headers (`gen-esp32-reg-defaults.ts --chip esp32s3`,
+  which reads IDF's newer `/** NAME : R/W; bitpos: […]; default: N;` annotations — for the S3
+  only, so the ESP32's and C3's tables stay as their models were tuned against). Two of those
+  reset values met the shared models for the first time: TIMG's RTCCALICFG resets with
+  START_CYCLING set, and IDF waits a running calibration out through RTCCALICFG2's TIMEOUT
+  before its own — the timer group now times out at once when a threshold is written then.
+  `scripts/esp32s3-trace.ts` boots a fixture and shows both cores (as `esp32c3-trace.ts`).
+  `fixtures/sketches/esp32s3/serial-hello` prints its greeting and ticks a second apart from the
+  APP_CPU with both cores in WAITI between; `blink` toggles GPIO2 every 500 ms. One known
+  difference: with no flash-cache timing, startup runs faster than on a board, so a log line
+  printed during it can still be in the UART FIFO when `Serial.begin` resets the FIFO.
+
+  **Peripherals.** GPIO, the matrix and IO_MUX (`gpio.ts`) are the C3's model over the
+  S3's 49 pads (GPIO0–21, 26–48) with per-pad state — every 32-bit register has a second word
+  (OUT1, ENABLE1, IN1, STATUS1, PCPU_INT1) —, FUNC_IN_SEL's 6-bit selector, the S3's signal
+  numbers and the IO_MUX functions that drive a pad directly (U0TXD/U0RXD on 43/44, U1TXD/U1RXD
+  on 17/18, FSPI on 10–13 and 34–37). The module's flash pads (GPIO26–32) are refused: the bench
+  can't drive them, and firmware that makes one a GPIO gets `esp32s3-flash-pin`; GPIO33–37 are
+  free (octal PSRAM isn't modeled). The C3's LEDC (8 channels), USB-Serial-JTAG (0x6003_8000),
+  I2C (two controllers, 0x6001_3000 and 0x6002_7000), SPI2 and RMT run at the S3's addresses and
+  sources; the RMT's register layout (`RmtLayout`: 4 TX and 4 RX channels, the RAM at +0x800)
+  and the UART's moved fields (`UartFields`: a 10-bit TX-empty threshold, the RX timeout enable
+  at bit 23) are parameters now. The ADC (`sens.ts`): IDF 4.4 converts on the S3 through SENS
+  (0x6000_8800, inside RTC_CNTL's page) — SAR_MEAS1/2_CTRL2's EN_PAD, START and DONE, SAR_ATTEN1/2
+  — not through the digital controller the C3 uses (APB_SARADC is storage here). ADC1 is
+  GPIO1–10, ADC2 GPIO11–20; the code is an idealized linear 12 bits over the S3 datasheet's
+  ranges (0.95, 1.25, 1.75, 3.1 V), and startup's self-calibration (`read_cal_channel`) polls the
+  same DONE bit. WDEV_RND_REG (0x6003_507C) is the C3's xorshift RNG (`ApbCtrl`, given a base and
+  offset). Two fixes to shared code came out of the S3's fixtures: the C3's LEDC restarted a
+  channel's waveform on every CONF0 write, so the PARA_UP IDF writes after a duty change dropped
+  the pulse in flight — now only a new timer, output enable or idle level restarts it; and the
+  S3's run loop fires the events due when a core takes a peripheral turn, so a register read
+  sees the model at that core's time. The debugger view (`debug.ts`, `Esp32s3Debug`) is the
+  ESP32's on the S3: the APP_CPU unless the PRO_CPU stopped last, side-effect-free reads
+  (`S3Bus.peek8`, flash through the MMU), RAM writes (`poke8`), `stepCore`, instruction sizes
+  from the S3's decode table. Fixtures `esp32s3/{gpio-interrupt, adc-read, ledc-fade, i2c-scan,
+  spi-loopback, rgb-blink, serial-echo, cdc-hello, debug-demo}` run on the SoC
+  (`peripherals.test.ts`, `debug.test.ts`). The S3 isn't on the bench yet: it has no `Mcu`
+  adapter or board.
 
 ## Worker protocol
 

@@ -61,9 +61,9 @@ interface Manifest {
   corpora: { name: string; raw: { file: string; address: number }[] }[];
 }
 
-/** A committed corpus: isa-all, narrow16, wide24 or serial-hello. */
-export function loadCorpus(name: string): Corpus {
-  const manifest = JSON.parse(readFileSync(join(CORPUS_DIR, 'manifest.json'), 'utf8')) as Manifest;
+/** A committed corpus: isa-all, narrow16, wide24 or serial-hello — or (BT124) s3-serial-hello from s3-manifest.json. */
+export function loadCorpus(name: string, manifestFile = 'manifest.json'): Corpus {
+  const manifest = JSON.parse(readFileSync(join(CORPUS_DIR, manifestFile), 'utf8')) as Manifest;
   const entry = manifest.corpora.find((c) => c.name === name);
   if (entry === undefined) throw new Error(`no corpus ${name}`);
   const rows = parseTsv(gunzipSync(readFileSync(join(CORPUS_DIR, `${name}.tsv.gz`))).toString('utf8'));

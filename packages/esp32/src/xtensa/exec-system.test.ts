@@ -183,7 +183,11 @@ describe('special and user registers', () => {
     exccause: 0x3f, debugcause: 0x3f, icount: FULL, icountlevel: 0xf, excvaddr: FULL, ccompare0: FULL, ccompare1: FULL,
     ccompare2: FULL, misc0: FULL, misc1: FULL, misc2: FULL, misc3: FULL,
     expstate: FULL, threadptr: FULL, fcr: 0x7f, fsr: 0xf80, f64r_lo: FULL, f64r_hi: FULL, f64s: FULL,
+    // BT124: the ESP32-S3's PIE state (tie.h's CP3 list: ACCX_1 8 bits, SAR_BYTE and FFT_BIT_WIDTH 4).
+    accx_0: FULL, accx_1: 0xff, sar_byte: 0xf, fft_bit_width: 0xf,
   };
+  for (let i = 0; i <= 4; i++) MASKS[`qacc_h_${i}`] = MASKS[`qacc_l_${i}`] = FULL;
+  for (let i = 0; i <= 3; i++) MASKS[`ua_state_${i}`] = FULL;
   for (let i = 1; i <= 7; i++) MASKS[`epc${i}`] = MASKS[`excsave${i}`] = FULL;
   for (let i = 2; i <= 7; i++) MASKS[`eps${i}`] = PS_BITS;
   const SPECIAL = new Set(['interrupt', 'intset', 'intclear', 'prid', 'configid1', 'ccount', 'mmid']);
@@ -205,7 +209,7 @@ describe('special and user registers', () => {
     const word = (op.match | (kind === 'rur' ? n << 12 : n << 4)) >>> 0;
     const bytes = [word & 0xff, (word >>> 8) & 0xff, (word >>> 16) & 0xff];
     const d = new Int32Array(DESCRIPTOR_SIZE);
-    decode(bytes[0], bytes[1], bytes[2], d);
+    decode(bytes[0], bytes[1], bytes[2], d, op.s3);
     expect(disasm(d, IRAM_BASE)).toBe(`${kind}.${register}\ta${n}`);
     machine.setIram(bytes);
     const core = machine.core;
@@ -232,9 +236,11 @@ describe('special and user registers', () => {
       const [read, write] = ops.get(register)?.has('rur') ? ['rur', 'wur'] : ['rsr', 'wsr'];
       // ACCHI holds accumulator bits 39–32 and reads back sign-extended.
       const readBack = (v: number): number => (register === 'acchi' ? ((v << 24) >> 24) >>> 0 : (v & mask) >>> 0);
+      const pie = OPS[ops.get(register)?.get(read) ?? 0].s3;
       for (const pattern of [FULL, 0xa5a5a5a5, 0x5a5a5a5a]) {
-        const machine = new BareMachine();
+        const machine = new BareMachine({ s3: pie });
         if (register === 'fcr' || register === 'fsr') machine.core.writeSpecial(SR.CPENABLE, 1); // FPU state
+        if (pie) machine.core.writeSpecial(SR.CPENABLE, 8); // the PIE (coprocessor 3)
         exec(machine, write, register, 2, pattern);
         expect(hex([exec(machine, read, register, 3)])).toEqual(hex([readBack(pattern)]));
         if (ops.get(register)?.has('xsr')) {

@@ -80,8 +80,8 @@ export function parseObjdump(text: string): (Row & { symbol: string })[] {
   return rows;
 }
 
-function run(tool: string, args: string[], cwd = WORK): string {
-  return execFileSync(xtensaTool(tool), args, { cwd, encoding: 'utf8', maxBuffer: 1024 * 1024 * 1024 });
+function run(tool: string, args: string[], cwd = WORK, chip = 'esp32'): string {
+  return execFileSync(xtensaTool(tool, chip), args, { cwd, encoding: 'utf8', maxBuffer: 1024 * 1024 * 1024 });
 }
 
 /** Decodes each slot on its own; returns one row per slot (its first instruction). */
@@ -265,15 +265,15 @@ export const SERIAL_HELLO_SECTIONS = ['.iram0.vectors', '.iram0.text', '.flash.t
  * objdump decodes purely by encoding. (On a linked ELF it reads the .xt.prop property tables and
  * prints alignment fill and literals as `.byte` even where they encode instructions.)
  */
-export function decodeRaw(name: string, address: number, bytes: Uint8Array): Row[] {
+export function decodeRaw(name: string, address: number, bytes: Uint8Array, chip = 'esp32'): Row[] {
   mkdirSync(WORK, { recursive: true });
   writeFileSync(join(WORK, `${name}.raw`), bytes);
   run('objcopy', [
     '-I', 'binary', '-O', 'elf32-xtensa-le', '-B', 'xtensa',
     '--rename-section', '.data=.text,alloc,load,contents,code,readonly',
     `${name}.raw`, `${name}.raw.o`,
-  ]);
-  const text = run('objdump', ['-d', '-z', `--adjust-vma=0x${address.toString(16)}`, `${name}.raw.o`]);
+  ], WORK, chip);
+  const text = run('objdump', ['-d', '-z', `--adjust-vma=0x${address.toString(16)}`, `${name}.raw.o`], WORK, chip);
   return parseObjdump(text).map(({ symbol: _symbol, ...row }) => row);
 }
 
@@ -380,6 +380,53 @@ export function writeCorpora(check: boolean): number {
   return mismatches;
 }
 
+// ── BT124: the ESP32-S3's corpus ───────────────────────────────────────────────────────────
+
+const S3_SERIAL_HELLO_ELF = join(ROOT, 'fixtures', '.build', 'esp32s3', 'serial-hello', 'serial-hello.ino.elf');
+const S3_SECTIONS = ['.iram0.vectors', '.iram0.text'];
+
+/**
+ * s3-serial-hello: what the S3 toolchain's objdump (xtensa-esp32s3-elf-objdump) says about the
+ * IRAM sections of the S3 serial-hello's ELF — the vectors and FreeRTOS's port, where the PIE
+ * coprocessor's state is saved and restored. Raw bytes per section, rows as for serial-hello, and
+ * s3-manifest.json. Skipped (0) when the S3 fixture isn't built here.
+ */
+export function writeS3Corpus(check: boolean): number {
+  if (!existsSync(S3_SERIAL_HELLO_ELF)) {
+    console.info('s3-serial-hello: fixtures/.build/esp32s3/serial-hello is not built — skipped');
+    return 0;
+  }
+  const elf = parseElf32(readFileSync(S3_SERIAL_HELLO_ELF));
+  const files = new Map<string, Uint8Array>();
+  const raw: CorpusEntry['raw'] = [];
+  const rows: Row[] = [];
+  for (const name of S3_SECTIONS) {
+    const section = findSection(elf, name);
+    if (section === undefined) throw new Error(`${S3_SERIAL_HELLO_ELF} has no ${name}`);
+    rows.push(...decodeRaw(`s3${name.replace(/\W/g, '_')}`, section.addr, section.data, 'esp32s3'));
+    const file = `s3-serial-hello${name}.bin.gz`;
+    files.set(file, gzipSync(section.data, { level: 9 }));
+    raw.push({ file, address: section.addr, bytes: section.data.length });
+  }
+  files.set('s3-serial-hello.tsv.gz', gzipSync(tsv(rows), { level: 9 }));
+  const manifest = {
+    objdump: run('objdump', ['--version'], WORK, 'esp32s3').split('\n')[0] ?? '',
+    corpora: [{ name: 's3-serial-hello', rows: rows.length, raw, layout: 'each section at its load address' }],
+  };
+  files.set('s3-manifest.json', Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`));
+  let mismatches = 0;
+  for (const [file, bytes] of files) {
+    const path = join(CORPUS_DIR, file);
+    if (check) {
+      const same = existsSync(path) && Buffer.compare(readFileSync(path), Buffer.from(bytes)) === 0;
+      if (!same) mismatches++;
+      console.info(`${same ? 'same   ' : 'CHANGED'} xtensa/corpus/${file}`);
+    } else writeFileSync(path, bytes);
+  }
+  return mismatches;
+}
+
 if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  process.exitCode = writeCorpora(process.argv.includes('--check')) === 0 ? 0 : 1;
+  const check = process.argv.includes('--check');
+  process.exitCode = writeCorpora(check) + writeS3Corpus(check) === 0 ? 0 : 1;
 }

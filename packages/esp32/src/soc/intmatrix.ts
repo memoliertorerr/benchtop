@@ -7,6 +7,9 @@
  * how IDF disables it, and has no effect. Edge-type CPU interrupts (10, 22, 28, 30) see a pulse
  * on a rising edge. PRO/APP_INTR_STATUS_0..2 show the raw source lines.
  *
+ * BT124: the ESP32-S3's matrix is the same logic over 99 sources (its INTERRUPT_CORE0/1 blocks
+ * hold the map registers): `new InterruptMatrix(99)`.
+ *
  * Sources 22 and 23 are CPU-specific (TRM v5.8 §7.3: GPIO_INTERRUPT_PRO/_PRO_NMI reach only the
  * PRO_CPU's map, GPIO_INTERRUPT_APP/_APP_NMI only the APP_CPU's): `setCpuSource` drives them.
  */
@@ -20,16 +23,25 @@ const EXTERNAL = (irq.INT_MASK.EXTERN_LEVEL | irq.INT_MASK.EXTERN_EDGE | irq.INT
 const EDGE = irq.INT_MASK.EXTERN_EDGE;
 
 export class InterruptMatrix implements InterruptSink {
+  /** Peripheral sources (69 on the ESP32; BT124: 99 on the ESP32-S3). */
+  readonly sourceCount: number;
   /** map[cpu][source] = the CPU interrupt (0–31) the source drives. */
-  readonly map = [new Uint8Array(SOURCE_COUNT).fill(16), new Uint8Array(SOURCE_COUNT).fill(16)];
+  readonly map: readonly [Uint8Array, Uint8Array];
   /** Raw source lines. */
-  readonly lines = new Uint8Array(SOURCE_COUNT);
+  readonly lines: Uint8Array;
   /** CPU-specific source lines (GPIO 22/23), per CPU. */
-  readonly cpuLines = [new Uint8Array(SOURCE_COUNT), new Uint8Array(SOURCE_COUNT)];
+  readonly cpuLines: readonly [Uint8Array, Uint8Array];
   /** The two CPUs (set once the SoC has built them). */
   cores: readonly XtensaCore[] = [];
   /** CPU interrupt lines currently driven high, per CPU. */
   private readonly driven = new Uint32Array(2);
+
+  constructor(sourceCount: number = SOURCE_COUNT) {
+    this.sourceCount = sourceCount;
+    this.map = [new Uint8Array(sourceCount).fill(16), new Uint8Array(sourceCount).fill(16)];
+    this.lines = new Uint8Array(sourceCount);
+    this.cpuLines = [new Uint8Array(sourceCount), new Uint8Array(sourceCount)];
+  }
 
   setSource(source: number, high: boolean): void {
     const v = high ? 1 : 0;
@@ -63,13 +75,13 @@ export class InterruptMatrix implements InterruptSink {
     this.update(cpu);
   }
 
-  /** CPU `cpu`'s INTR_STATUS word `word` (0–2): raw lines of sources 32·word … 32·word + 31. */
+  /** CPU `cpu`'s INTR_STATUS word `word` (0–2; the S3's 0–3): raw lines of sources 32·word … 32·word + 31. */
   status(cpu: number, word: number): number {
     const own = this.cpuLines[cpu];
     let v = 0;
     for (let i = 0; i < 32; i++) {
       const s = word * 32 + i;
-      if (s < SOURCE_COUNT && (this.lines[s] | own[s]) !== 0) v |= 1 << i;
+      if (s < this.sourceCount && (this.lines[s] | own[s]) !== 0) v |= 1 << i;
     }
     return v >>> 0;
   }
@@ -78,7 +90,7 @@ export class InterruptMatrix implements InterruptSink {
     const map = this.map[cpu];
     const own = this.cpuLines[cpu];
     let high = 0;
-    for (let s = 0; s < SOURCE_COUNT; s++) if ((this.lines[s] | own[s]) !== 0) high |= 1 << map[s];
+    for (let s = 0; s < this.sourceCount; s++) if ((this.lines[s] | own[s]) !== 0) high |= 1 << map[s];
     high = (high & EXTERNAL) >>> 0;
     const before = this.driven[cpu];
     if (high === before) return;

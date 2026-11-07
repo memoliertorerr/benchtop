@@ -5,6 +5,7 @@
  * headers change:
  *   node scripts/gen-esp32-reg-defaults.ts
  *   node scripts/gen-esp32-reg-defaults.ts --chip esp32c3   (BT92: packages/esp32c3's table)
+ *   node scripts/gen-esp32-reg-defaults.ts --chip esp32s3   (BT124: packages/esp32s3's table)
  * Sources: the installed esp32 Arduino core's ESP-IDF headers (Apache-2.0, Espressif),
  * SDK/include/soc/esp32/include/soc/<name>_reg.h with the DR_REG_* bases of soc.h. Register
  * macros with an instance parameter (`UART_CLKDIV_REG(i)`) expand for every instance. The
@@ -28,6 +29,8 @@ interface Chip {
   headers: [string, number][];
   /** The peripheral register space (aliases outside it name the same registers). */
   space: [number, number];
+  /** BT124: also read the newer `/** NAME : R/W; bitpos: [..]; default: N;` annotations (the S3). */
+  newFormat?: boolean;
 }
 
 const ESP32_HEADERS: [string, number][] = [
@@ -69,8 +72,36 @@ const ESP32C3_HEADERS: [string, number][] = [
   ['assist_debug_reg.h', 1],
 ];
 
+/** BT124: the ESP32-S3's peripherals, 0x6000_0000–0x600D_0FFF (soc.h). */
+const ESP32S3_HEADERS: [string, number][] = [
+  ['system_reg.h', 1],
+  ['sensitive_reg.h', 1],
+  ['interrupt_core0_reg.h', 1],
+  ['interrupt_core1_reg.h', 1],
+  ['extmem_reg.h', 1],
+  ['rtc_cntl_reg.h', 1],
+  ['rtc_io_reg.h', 1],
+  ['sens_reg.h', 1],
+  ['efuse_reg.h', 1],
+  ['apb_ctrl_reg.h', 1],
+  ['timer_group_reg.h', 2],
+  ['uart_reg.h', 3],
+  ['gpio_reg.h', 1],
+  ['io_mux_reg.h', 1],
+  ['ledc_reg.h', 1],
+  ['i2c_reg.h', 2],
+  ['spi_reg.h', 4],
+  ['spi_mem_reg.h', 2],
+  ['rmt_reg.h', 1],
+  ['systimer_reg.h', 1],
+  ['apb_saradc_reg.h', 1],
+  ['usb_serial_jtag_reg.h', 1],
+  ['assist_debug_reg.h', 1],
+];
+
 const CHIPS: Record<string, Chip> = {
   esp32: { title: 'ESP32', soc: 'esp32/include/soc/esp32/include/soc', out: 'packages/esp32/src/soc/reg-defaults.generated.ts', headers: ESP32_HEADERS, space: [0x3ff00000, 0x3ff80000] },
+  esp32s3: { title: 'ESP32-S3', soc: 'esp32s3/include/soc/esp32s3/include/soc', out: 'packages/esp32s3/src/soc/reg-defaults.generated.ts', headers: ESP32S3_HEADERS, space: [0x60000000, 0x600d1000], newFormat: true },
   esp32c3: { title: 'ESP32-C3', soc: 'esp32c3/include/soc/esp32c3/include/soc', out: 'packages/esp32c3/src/soc/reg-defaults.generated.ts', headers: ESP32C3_HEADERS, space: [0x60000000, 0x600d1000] },
 };
 
@@ -266,7 +297,10 @@ function parseHeader(file: string, instances: number): { registers: Register[]; 
       registers.push(current);
       continue;
     }
-    const field = /\/\*\s*([A-Za-z0-9_]+)\s*:\s*[^;]*;\s*bitpos:\s*\[(\d+)(?::(\d+))?\]\s*;\s*default:\s*([^;]*?)\s*;/.exec(line);
+    // BT124: the S3's newer headers open the comment with `/**` (`/** UART_CLKDIV : R/W; bitpos: [11:0]; default: 694;`);
+    // read only for the S3 — the ESP32's and C3's tables (some of their headers use it too) stay
+    // as their models were tuned against.
+    const field = (chip.newFormat === true ? /\/\*\*?\s*([A-Za-z0-9_]+)\s*:\s*[^;]*;\s*bitpos:\s*\[(\d+)(?::(\d+))?\]\s*;\s*default:\s*([^;]*?)\s*;/ : /\/\*\s*([A-Za-z0-9_]+)\s*:\s*[^;]*;\s*bitpos:\s*\[(\d+)(?::(\d+))?\]\s*;\s*default:\s*([^;]*?)\s*;/).exec(line);
     if (field !== null && current !== null) {
       const hi = Number(field[2]);
       const lo = field[3] === undefined ? hi : Number(field[3]);

@@ -6,21 +6,32 @@
  */
 
 import type { EventTable, ProblemLog } from '@benchtop/esp32';
-import type { InterruptMatrix } from './intmatrix.ts';
 
 export const REF_HZ = 160_000_000;
 export const XTAL_HZ = 40_000_000;
 /** Reference cycles per SYSTIMER tick (16 MHz). */
 export const SYSTIMER_TICK = 10;
 
+/** BT124: where a model's interrupt sources go (the C3's controller; the S3's matrix). */
+export interface InterruptSource {
+  setSource(source: number, high: boolean): void;
+}
+
 export interface SocContext {
   /** Now, in reference cycles (inside a run: the running instruction's time). */
   now(): number;
   readonly events: EventTable;
-  readonly matrix: InterruptMatrix;
+  readonly matrix: InterruptSource;
   readonly problems: ProblemLog;
   /** The APB clock (80 MHz under the PLL, else the CPU clock). */
   readonly apbHz: number;
+  /**
+   * BT124: reference cycles per second — REF_HZ on the C3; the ESP32-S3, whose SoC shares these
+   * models, runs them on its own 240 MHz base.
+   */
+  readonly refHz: number;
+  /** BT124: a register's reset value from the chip's generated headers (the C3's `registerDefault`). */
+  regDefault(address: number): number;
   /** Something scheduled an event inside the current slice: end the core's run early. */
   hurry(time: number): void;
 }

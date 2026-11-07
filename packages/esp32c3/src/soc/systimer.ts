@@ -15,7 +15,7 @@
  */
 
 import type { Peripheral } from '@benchtop/esp32';
-import { type SocContext, SYSTIMER_TICK } from './context.ts';
+import type { SocContext } from './context.ts';
 import { SRC } from './intmatrix.ts';
 
 export const SYSTIMER_BASE = 0x60023000;
@@ -66,8 +66,14 @@ export class Systimer implements Peripheral {
   intRaw = 0;
   private readonly slots: number[];
 
-  constructor(ctx: SocContext) {
+  /** BT124: reference cycles per 16 MHz tick (10 on the C3, 15 on the S3), and the comparators' interrupt sources. */
+  private readonly tick: number;
+  private readonly sources: readonly [number, number, number];
+
+  constructor(ctx: SocContext, sources: readonly [number, number, number] = [SRC.SYSTIMER_TARGET0, SRC.SYSTIMER_TARGET1, SRC.SYSTIMER_TARGET2]) {
     this.ctx = ctx;
+    this.tick = ctx.refHz / 16_000_000;
+    this.sources = sources;
     this.slots = [0, 1, 2].map((n) => ctx.events.add(() => this.alarm(n)));
     this.systemReset();
   }
@@ -99,7 +105,7 @@ export class Systimer implements Peripheral {
   /** Unit `unit`'s count at reference time `t`. */
   value(unit: number, t = this.ctx.now()): number {
     if (!this.counting(unit)) return this.base[unit];
-    return (this.base[unit] + Math.floor((t - this.since[unit]) / SYSTIMER_TICK)) % MASK52;
+    return (this.base[unit] + Math.floor((t - this.since[unit]) / this.tick)) % MASK52;
   }
 
   /** Freeze or resume a unit at the current time (CONF changes). */
@@ -217,7 +223,7 @@ export class Systimer implements Peripheral {
     const now = this.ctx.now();
     const ticks = this.armedTarget[n] - this.value(unit, now);
     // Due now or past: fire at the next tick boundary (a one-shot target already passed alarms at once).
-    const when = ticks <= 0 ? now : this.since[unit] + (this.armedTarget[n] - this.base[unit]) * SYSTIMER_TICK;
+    const when = ticks <= 0 ? now : this.since[unit] + (this.armedTarget[n] - this.base[unit]) * this.tick;
     this.ctx.events.schedule(slot, when);
     this.ctx.hurry(when);
   }
@@ -233,8 +239,8 @@ export class Systimer implements Peripheral {
 
   private updateSources(): void {
     const st = this.intRaw & this.intEna;
-    this.ctx.matrix.setSource(SRC.SYSTIMER_TARGET0, (st & 1) !== 0);
-    this.ctx.matrix.setSource(SRC.SYSTIMER_TARGET1, (st & 2) !== 0);
-    this.ctx.matrix.setSource(SRC.SYSTIMER_TARGET2, (st & 4) !== 0);
+    this.ctx.matrix.setSource(this.sources[0], (st & 1) !== 0);
+    this.ctx.matrix.setSource(this.sources[1], (st & 2) !== 0);
+    this.ctx.matrix.setSource(this.sources[2], (st & 4) !== 0);
   }
 }

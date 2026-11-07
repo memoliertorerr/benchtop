@@ -31,7 +31,7 @@ import { ADC_PADS, Gpio, GPIO_BASE, IDLE_HIGH_SIGNALS, IO_MUX_BASE, IoMux, Pads,
 import { I2c, I2C_BASE } from './i2c.ts';
 import { Ledc, LEDC_BASE, LEDC_CHANNELS, LEDC_SIGNAL_BASE } from './ledc.ts';
 import { C3Memory, DROM_FLASH_BASE, FLASH_WINDOW, IRAM_BASE, IRAM_END, IROM_BASE, MEM, PERIPH_BASE, PERIPH_END, ROM_BASE, ROM_SIZE, DRAM_BASE, DRAM_END, DRAM_TO_IRAM, RTC_FAST_BASE } from './memory.ts';
-import { PeripheralMap, ProblemLog } from './periph.ts';
+import { PeripheralMap, ProblemLog, registerDefault } from './periph.ts';
 import { Rmt, RMT_BASE, RMT_SIGNAL_BASE, RMT_TX_CHANNELS } from './rmt.ts';
 import { RESET_REASON, RTC_CNTL_BASE, RtcCntl, WAKE } from './rtc-cntl.ts';
 import { SarAdc, SARADC_BASE } from './saradc.ts';
@@ -279,6 +279,13 @@ export class Esp32c3Soc implements SocContext {
   sleeping: { deep: boolean } | null = null;
   private wakeSlot = -1;
   private pinCause = 0;
+
+  /** BT124: the models' time base (SocContext). */
+  readonly refHz = REF_HZ;
+
+  regDefault(address: number): number {
+    return registerDefault(address);
+  }
 
   constructor(options: Esp32c3SocOptions = {}) {
     this.time = options.time ?? 0;

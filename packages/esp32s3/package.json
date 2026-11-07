@@ -1,0 +1,16 @@
+{
+  "name": "@benchtop/esp32s3",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Espressif ESP32-S3 SoC on Benchtop's Xtensa core: two LX7 cores, memory map, flash MMU, interrupt matrix, the ESP32-C3's new-generation peripheral models, direct boot of Arduino app images. DOM-free.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@benchtop/core": "0.0.0",
+    "@benchtop/esp32": "0.0.0",
+    "@benchtop/esp32c3": "0.0.0"
+  }
+}

@@ -60,8 +60,11 @@ export function findXtensaTool(name: string, env: NodeJS.ProcessEnv = process.en
   const dirs: string[] = [];
   if (env.BENCHTOP_XTENSA_BIN) dirs.push(env.BENCHTOP_XTENSA_BIN);
   const dataDir = env.ARDUINO_DIRECTORIES_DATA || (process.platform === 'darwin' ? join(home, 'Library', 'Arduino15') : join(home, '.arduino15'));
-  const gccDir = join(dataDir, 'packages', 'esp32', 'tools', 'xtensa-esp32-elf-gcc');
-  if (existsSync(gccDir)) for (const version of readdirSync(gccDir).sort().reverse()) dirs.push(join(gccDir, version, 'bin'));
+  // BT124: the ESP32-S3's toolchain (xtensa-esp32s3-elf-*) comes with the same core.
+  for (const chip of ['esp32', 'esp32s3']) {
+    const gccDir = join(dataDir, 'packages', 'esp32', 'tools', `xtensa-${chip}-elf-gcc`);
+    if (existsSync(gccDir)) for (const version of readdirSync(gccDir).sort().reverse()) dirs.push(join(gccDir, version, 'bin'));
+  }
   return dirs.map((dir) => join(dir, name)).find((path) => existsSync(path) && statSync(path).isFile());
 }
 

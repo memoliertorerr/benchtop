@@ -12,7 +12,6 @@
 import type { Peripheral } from '@benchtop/esp32';
 import type { SocContext } from './context.ts';
 import { SRC } from './intmatrix.ts';
-import { registerDefault } from './periph.ts';
 
 export const SARADC_BASE = 0x60040000;
 
@@ -36,18 +35,22 @@ export class SarAdc implements Peripheral {
   /** The 12-bit result of a conversion: `adc` 1 or 2. */
   sample: (adc: number, channel: number, attenuation: number) => number = () => 0;
 
-  constructor(ctx: SocContext) {
+  /** BT124: the interrupt source (the S3's differs). */
+  private readonly source: number;
+
+  constructor(ctx: SocContext, source: number = SRC.APB_ADC) {
     this.ctx = ctx;
+    this.source = source;
     this.systemReset();
   }
 
   systemReset(): void {
-    for (let i = 0; i < this.regs.length; i++) this.regs[i] = registerDefault(SARADC_BASE + i * 4);
+    for (let i = 0; i < this.regs.length; i++) this.regs[i] = this.ctx.regDefault(SARADC_BASE + i * 4);
     this.update();
   }
 
   private update(): void {
-    this.ctx.matrix.setSource(SRC.APB_ADC, (this.regs[INT_RAW >>> 2] & this.regs[INT_ENA >>> 2]) !== 0);
+    this.ctx.matrix.setSource(this.source, (this.regs[INT_RAW >>> 2] & this.regs[INT_ENA >>> 2]) !== 0);
   }
 
   read32(offset: number): number {

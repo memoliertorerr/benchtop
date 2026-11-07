@@ -20,7 +20,7 @@
  */
 
 import type { I2cDevice } from '@benchtop/core';
-import { REF_HZ, type SocContext, XTAL_HZ } from './context.ts';
+import { type SocContext, XTAL_HZ } from './context.ts';
 import { SRC } from './intmatrix.ts';
 import { RegisterFile } from './periph.ts';
 
@@ -80,9 +80,13 @@ export class I2c extends RegisterFile {
   private lastAck = 0;
   private sourceHigh = false;
 
-  constructor(ctx: SocContext) {
-    super(I2C_BASE);
+  /** BT124: the interrupt source (the S3 has two controllers). */
+  private readonly source: number;
+
+  constructor(ctx: SocContext, base: number = I2C_BASE, source: number = SRC.I2C0) {
+    super(base, (address) => ctx.regDefault(address));
     this.ctx = ctx;
+    this.source = source;
     this.slot = ctx.events.add(() => this.commandDone());
   }
 
@@ -107,7 +111,7 @@ export class I2c extends RegisterFile {
     const sclk = ((clk & (1 << 20)) !== 0 ? RC_FAST_HZ : XTAL_HZ) / ((clk & 0xff) + 1);
     const high = this.regs[SCL_HIGH >>> 2];
     const cycles = (this.regs[SCL_LOW >>> 2] & 0x1ff) + 1 + (high & 0x1ff) + ((high >>> 9) & 0x7f);
-    return cycles <= 1 ? REF_HZ / 100_000 : (cycles / sclk) * REF_HZ;
+    return cycles <= 1 ? this.ctx.refHz / 100_000 : (cycles / sclk) * this.ctx.refHz;
   }
 
   override read32(offset: number): number {
@@ -298,6 +302,6 @@ export class I2c extends RegisterFile {
     const high = (this.regs[INT_RAW >>> 2] & this.regs[INT_ENA >>> 2]) !== 0;
     if (high === this.sourceHigh) return;
     this.sourceHigh = high;
-    this.ctx.matrix.setSource(SRC.I2C0, high);
+    this.ctx.matrix.setSource(this.source, high);
   }
 }

@@ -92,6 +92,18 @@ export const FIXTURE_BOARDS: Readonly<Record<string, FixtureBoard>> = {
     // BT93: Serial over the C3's own USB (USB-Serial-JTAG), as on boards without a USB-UART chip.
     options: { 'cdc-hello': 'CDCOnBoot=cdc' },
   },
+  // BT124: the ESP32-S3 (Xtensa LX7) with the esp32 core (2.0.17), its Dev Module defaults: Serial
+  // on UART0 (USB mode Hardware CDC and JTAG, CDC on boot off), DIO 80 MHz flash, 240 MHz, no
+  // PSRAM. As the ESP32 and C3: the app image and the partition table, symbols from the ELF.
+  esp32s3: {
+    fqbn: 'esp32:esp32:esp32s3',
+    outputs: [
+      { from: 'bin', ext: 'bin' },
+      { from: 'partitions.bin', ext: 'partitions.bin' },
+    ],
+    symbols: 'xtensa-esp32s3-elf-nm',
+    options: { 'cdc-hello': 'CDCOnBoot=cdc' },
+  },
   // BT60: the Raspberry Pi Pico with the arduino-pico core (6.2.0). The UF2 is what a user drops
   // on the board; the ELF (1.3 MB, mostly DWARF) isn't committed.
   pico: {

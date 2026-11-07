@@ -14,13 +14,13 @@ export const IMM = {
   NONE: 0, ADDI: 1, ADDMI: 2, MOVI: 3, MOVIN: 4, ADDIN: 5, OFF1: 6, OFF2: 7, OFF4: 8, OFFN: 9, L32E: 10,
   EXTUI: 11, SLLI: 12, SRAI: 13, SRLI: 14, SSAI: 15, SEXT: 16, S: 17, T: 18, BREAK: 19, ROTW: 20, ENTRY: 21,
   B4CONST: 22, B4CONSTU: 23, BBI: 24, BR8: 25, BR12: 26, LOOP: 27, BRN: 28, J: 29, CALL: 30, L32R: 31,
-  F64C: 32, OP2: 33, F64ITER: 34, OP2B0: 35, OP2B01: 36, S0: 37, R0: 38, EXPST: 39,
+  F64C: 32, OP2: 33, F64ITER: 34, OP2B0: 35, OP2B01: 36, S0: 37, R0: 38, EXPST: 39, QLDST: 40,
 } as const;
 
 /** Operand kinds in print order (see isa-table.ts). */
 export const OPND = {
   AR: 1, AS: 2, AT: 3, FR: 4, FS: 5, FT: 6, BR: 7, BS: 8, BT: 9, B4: 10, B8: 11, MW: 12, MX: 13, MY: 14,
-  IMM: 15, IMM2: 16, TGT: 17,
+  IMM: 15, IMM2: 16, TGT: 17, QR: 18,
 } as const;
 
 export interface OpInfo {
@@ -30,9 +30,13 @@ export interface OpInfo {
   readonly match: number;
   readonly imm: number;
   readonly operands: readonly number[];
+  /** BT124: on the ESP32-S3's core only. */
+  readonly s3: boolean;
+  /** BT124: on the ESP32's core only (its own TIE). */
+  readonly esp32: boolean;
 }
 
-export const OPS: readonly OpInfo[] = OP_TABLE.map(([name, length, mask, match, imm, operands]) => {
+export const OPS: readonly OpInfo[] = OP_TABLE.map(([name, length, mask, match, imm, operands, config]) => {
   const immKind = (IMM as Record<string, number>)[imm];
   if (immKind === undefined) throw new Error(`isa-table: ${name} has unknown immediate kind ${imm}`);
   const kinds = operands === '' ? [] : operands.split(' ').map((o) => {
@@ -40,7 +44,7 @@ export const OPS: readonly OpInfo[] = OP_TABLE.map(([name, length, mask, match, 
     if (k === undefined) throw new Error(`isa-table: ${name} has unknown operand kind ${o}`);
     return k;
   });
-  return { name, length, mask, match, imm: immKind, operands: kinds };
+  return { name, length, mask, match, imm: immKind, operands: kinds, s3: config === 'S3', esp32: config === 'ESP32' };
 });
 
 /** B4CONST and B4CONSTU (ISA RM): the immediates of BEQI/BNEI/BLTI/BGEI and BLTUI/BGEUI by r. */
@@ -562,4 +566,45 @@ export const OP = {
   XSR_VECBASE: 510,
   XSR_WINDOWBASE: 511,
   XSR_WINDOWSTART: 512,
+  // BT124: the ESP32-S3's rows.
+  RUR_ACCX_0: 513,
+  RUR_ACCX_1: 514,
+  RUR_QACC_H_0: 515,
+  RUR_QACC_H_1: 516,
+  RUR_QACC_H_2: 517,
+  RUR_QACC_H_3: 518,
+  RUR_QACC_H_4: 519,
+  RUR_QACC_L_0: 520,
+  RUR_QACC_L_1: 521,
+  RUR_QACC_L_2: 522,
+  RUR_QACC_L_3: 523,
+  RUR_QACC_L_4: 524,
+  RUR_SAR_BYTE: 525,
+  RUR_FFT_BIT_WIDTH: 526,
+  RUR_UA_STATE_0: 527,
+  RUR_UA_STATE_1: 528,
+  RUR_UA_STATE_2: 529,
+  RUR_UA_STATE_3: 530,
+  WUR_ACCX_0: 531,
+  WUR_ACCX_1: 532,
+  WUR_QACC_H_0: 533,
+  WUR_QACC_H_1: 534,
+  WUR_QACC_H_2: 535,
+  WUR_QACC_H_3: 536,
+  WUR_QACC_H_4: 537,
+  WUR_QACC_L_0: 538,
+  WUR_QACC_L_1: 539,
+  WUR_QACC_L_2: 540,
+  WUR_QACC_L_3: 541,
+  WUR_QACC_L_4: 542,
+  WUR_SAR_BYTE: 543,
+  WUR_FFT_BIT_WIDTH: 544,
+  WUR_UA_STATE_0: 545,
+  WUR_UA_STATE_1: 546,
+  WUR_UA_STATE_2: 547,
+  WUR_UA_STATE_3: 548,
+  LD_QR: 549,
+  ST_QR: 550,
+  SALT: 551,
+  SALTU: 552,
 } as const;

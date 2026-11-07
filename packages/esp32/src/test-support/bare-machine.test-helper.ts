@@ -121,6 +121,8 @@ class BareBus implements XtensaBus, CodeBus {
 export interface BareMachineOptions {
   /** Map the cached ESP32 ROM at 0x40000000 (read-only). */
   rom?: boolean;
+  /** BT124: an ESP32-S3 core (its own decode rows). */
+  s3?: boolean;
 }
 
 /** The address of `symbol` in fixtures/xtensa/<program>.lst (a `.global` label in the .S). */
@@ -139,7 +141,7 @@ export class BareMachine {
 
   constructor(options: BareMachineOptions = {}) {
     this.bus = new BareBus(options.rom === true ? romBytes() : null);
-    this.core = new XtensaCore(this.bus);
+    this.core = new XtensaCore(this.bus, { s3: options.s3 === true });
     this.bus.core = this.core;
     // `break 1, 15` ends a test program, `break 1, 14` is a checkpoint (when one is set); any
     // other BREAK is a debug exception.
