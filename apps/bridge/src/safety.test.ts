@@ -119,10 +119,14 @@ describe('request guards', () => {
     expect(sketchFqbn('esp32:esp32:esp32', 'void setup() {}\n', 'WROVER-E')).toBe('esp32:esp32:esp32:PSRAM=enabled');
     expect(sketchFqbn('esp32:esp32:esp32', '// benchtop: psram\n', 'WROOM-32')).toBe('esp32:esp32:esp32');
     expect(sketchFqbn('esp32:esp32:esp32', '// benchtop: psram\n', 'auto')).toBe('esp32:esp32:esp32:PSRAM=enabled');
-    expect(sketchFqbn('esp32:esp32:esp32s3', '// benchtop: psram\n', 'N8R2')).toBe('esp32:esp32:esp32s3:PSRAM=enabled');
-    expect(sketchFqbn('esp32:esp32:esp32s3', '', 'N8R8')).toBe('esp32:esp32:esp32s3:PSRAM=opi');
-    expect(sketchFqbn('esp32:esp32:esp32s3', '// benchtop: psram usb-otg\n', 'N8')).toBe('esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=cdc');
-    expect(sketchFqbn('esp32:esp32:esp32s3', '// benchtop: usb-otg\n', 'N8R8')).toBe('esp32:esp32:esp32s3:PSRAM=opi,USBMode=default,CDCOnBoot=cdc');
+    // BT143: the module's flash size too (the N8s 8 MB, the N16R8 16 MB).
+    expect(sketchFqbn('esp32:esp32:esp32s3', '// benchtop: psram\n', 'N8R2')).toBe('esp32:esp32:esp32s3:PSRAM=enabled,FlashSize=8M');
+    expect(sketchFqbn('esp32:esp32:esp32s3', '', 'N8R8')).toBe('esp32:esp32:esp32s3:PSRAM=opi,FlashSize=8M');
+    expect(sketchFqbn('esp32:esp32:esp32s3', '// benchtop: psram usb-otg\n', 'N8')).toBe('esp32:esp32:esp32s3:FlashSize=8M,USBMode=default,CDCOnBoot=cdc');
+    expect(sketchFqbn('esp32:esp32:esp32s3', '// benchtop: usb-otg\n', 'N8R8')).toBe('esp32:esp32:esp32s3:PSRAM=opi,FlashSize=8M,USBMode=default,CDCOnBoot=cdc');
+    expect(sketchFqbn('esp32:esp32:esp32s3', '', 'N16R8')).toBe('esp32:esp32:esp32s3:PSRAM=opi,FlashSize=16M');
+    expect(sketchFqbn('esp32:esp32:esp32', '', 'WROOM-32E-N16')).toBe('esp32:esp32:esp32:FlashSize=16M');
+    expect(sketchFqbn('esp32:esp32:esp32', '// benchtop: psram\n', 'WROVER-E-N16R8')).toBe('esp32:esp32:esp32:PSRAM=enabled,FlashSize=16M');
     expect(sketchFqbn('esp32:esp32:esp32s3', '// benchtop: psram\n')).toBe('esp32:esp32:esp32s3:PSRAM=opi');
     expect(sketchFqbn('arduino:avr:uno', '// benchtop: psram\n', 'WROVER-E')).toBe('arduino:avr:uno');
   });
@@ -132,12 +136,14 @@ describe('request guards', () => {
     expect(moduleError('esp32:esp32:esp32', 'auto')).toBeNull();
     expect(moduleError('esp32:esp32:esp32', 'WROVER-E')).toBeNull();
     expect(moduleError('esp32:esp32:esp32s3', 'N8R2')).toBeNull();
-    expect(moduleError('esp32:esp32:esp32', 'N8R8')).toBe('module must be auto or one of WROOM-32, WROVER-E');
-    expect(moduleError('esp32:esp32:esp32s3', 'toString')).toBe('module must be auto or one of N8, N8R2, N8R8');
-    expect(moduleError('esp32:esp32:esp32s3', 7)).toBe('module must be auto or one of N8, N8R2, N8R8');
+    const esp32 = 'module must be auto or one of WROOM-32, WROVER-E, WROOM-32E-N8, WROOM-32E-N16, WROVER-E-N16R8';
+    const s3 = 'module must be auto or one of N8, N8R2, N8R8, N16R8';
+    expect(moduleError('esp32:esp32:esp32', 'N8R8')).toBe(esp32);
+    expect(moduleError('esp32:esp32:esp32s3', 'toString')).toBe(s3);
+    expect(moduleError('esp32:esp32:esp32s3', 7)).toBe(s3);
     expect(moduleError('arduino:avr:uno', 'WROVER-E')).toBe('module: arduino:avr:uno has no modules to choose (auto only)');
     const sketch = { fqbn: 'esp32:esp32:esp32', files: { 'a.ino': '' }, main: 'a.ino' };
-    expect(validateInlineSketch({ ...sketch, module: 'N8' })).toEqual({ ok: false, error: 'module must be auto or one of WROOM-32, WROVER-E' });
+    expect(validateInlineSketch({ ...sketch, module: 'N8' })).toEqual({ ok: false, error: esp32 });
     expect(validateInlineSketch({ ...sketch, module: 'WROVER-E' })).toEqual({ ok: true, ...sketch, module: 'WROVER-E' });
     expect(validateInlineSketch({ ...sketch, module: 'auto' })).toEqual({ ok: true, ...sketch });
   });

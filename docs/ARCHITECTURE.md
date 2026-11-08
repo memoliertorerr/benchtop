@@ -433,7 +433,8 @@ a 1×3 header) with the datasheet's pad numbers. Loads aren't modeled: no curren
 **microSD card (`packages/parts/src/storage/`).** The `microsd-card` module (CS, SCK, DI,
 DO, VCC, GND, CD; the Wokwi element's drawing) holds an SD card in SPI mode (`sd-card.ts`, an
 `SpiDevice`): an 8 GB SDHC card — block addressed, CMD8 answered, OCR's CCS set, CSD 2.0 — over
-`SparseBlocks` (`blocks.ts`: 512-byte blocks in a map, unwritten ones read as zeros, so the card
+`SparseBlocks` (`blocks.ts` — in @benchtop/core's `storage/` with `fat.ts`, so the ESP32-S3's
+USB host reads a drive with them too —: 512-byte blocks in a map, unwritten ones read as zeros, so the card
 costs what its files do). Silent until a CMD0 with its CRC; responses follow one fill byte;
 CRC7 checked on CMD0 (SD mode) and CMD8, on everything once CMD59 turns it on, CRC16 on written
 blocks then too and always sent on reads; ACMD41 with HCS leaves idle on the second poll;
@@ -445,12 +446,16 @@ label BENCHTOP), then the `files` prop's files (JSON path → text or `{ "b64" }
 can't go on reports `sd-card-files`). A bench reset resets the card's SPI state only — files
 stay, as on a real card. `inserted` (prop; a `value` input while running) empties the socket:
 MISO reads 0xFF and the card needs CMD0 again; CD is grounded while a card is in (the common
-breakout), open otherwise. `fat.ts` is a small FAT16/FAT32 library (mount an MBR's first
-partition or a bare volume, list, read, write with 8.3 names, NT lower-case flags or long-name
-entries, make directories, remove recursively, FSInfo kept). **Part storage** (core
+breakout), open otherwise. `fat.ts` is a small FAT library (mount an MBR's first partition or a
+bare volume, list, read, write with 8.3 names, NT lower-case flags or long-name entries, make
+directories, remove recursively, FSInfo kept; formats FAT32). It mounts and writes FAT12 too — a
+volume under 4,085 clusters, its 12-bit entries packed 1.5 bytes each (the low 12 bits at byte
+n·1.5 for an even cluster, the high 12 for an odd one), an entry straddling two FAT sectors when
+it starts at byte 511, end of chain ≥ 0xFF8 — what small disks use (Arduino's USBMSC RAM disk). **Part storage** (core
 `bench/storage.ts`, not a contract): a model may carry `storage` — `PartStorage`: `version`,
 `list`, `read`, `write`, `remove` — and `bench.storage(partId)` returns it; the card's mounts the
-FAT afresh each call, since firmware changes the blocks under it. DO rests high through the
+FAT afresh each call, since firmware changes the blocks under it. For a board, it is the USB
+drive its host mounted (an ESP32-S3's USB-OTG port), when its MCU has one. DO rests high through the
 module's pull-up (a weak drive: the SD spec asks for one on DAT0), so MISO isn't a floating input.
 Real firmware (`sd-log` for each board): the Uno's SD library, the ESP32 core's SD library
 (FatFs over its own SPI driver, CRC on) and arduino-pico's (SdFat) list, read, append, make
@@ -1627,7 +1632,14 @@ sequence, files matched by basename or trailing path.
   reads 0 and the MMU maps nothing, so the build's `psramInit` fails as on that board and detaches
   GPIO16/17) — is read by `esp32McuFactory`; an unknown module runs as `auto` with `esp32-module`
   (warning). The gallery's `esp32-psram-frame` (a WROVER-E) keeps a 150 KB frame in PSRAM and
-  pushes it to an ILI9341. The chip records the first ID read (`identified`: the build uses PSRAM)
+  pushes it to an ILI9341. The module also says the flash chip's size, which RDID reports
+  (`FlashChip.jedecId`: EF 40 and the density as a power of two — 16 for 4 MB, 17 for 8, 18 for 16
+  — of `chipBytes`, or on `auto` of the flash the image header asked for): `WROOM-32` and
+  `WROVER-E` 4 MB, `WROOM-32E-N8` 8 MB, `WROOM-32E-N16` 16 MB (no PSRAM), `WROVER-E-N16R8` 16 MB
+  with PSRAM (`ESP32_MODULE_SPECS`); the direct boot's `g_rom_flashchip` carries the same ID. A
+  build whose header asks for more than the chip holds stops where a board does: ESP-IDF's
+  startup ("Detected size(4096k) smaller than the size in the binary image header(16384k). Probe
+  failed.", an assert, the reset loop); one asking for less runs. The chip records the first ID read (`identified`: the build uses PSRAM)
   — from then on `Esp32Mcu.pinClaims()` holds GPIO16/17 on `auto` (a WROVER-E holds them from the
   start), and the pads watch them (`Pads.watchPsram`, also run at the ID read): once a pad has
   carried SPICS1 or SPICLK, firmware that takes it — another matrix signal, an IO_MUX function
@@ -2618,7 +2630,11 @@ sequence, files matched by basename or trailing path.
   numbers and the IO_MUX functions that drive a pad directly (U0TXD/U0RXD on 43/44, U1TXD/U1RXD
   on 17/18, FSPI on 10–13 and 34–37). The module's flash pads (GPIO26–32) are refused: the bench
   can't drive them, and firmware that makes one a GPIO gets `esp32s3-flash-pin`; GPIO33–37 are
-  free pads (an octal PSRAM holds them — see the PSRAM paragraph). The C3's LEDC (8 channels), USB-Serial-JTAG (0x6003_8000),
+  free pads (an octal PSRAM holds them — see the PSRAM paragraph). The flash (`@benchtop/esp32c3`'s
+  `FlashChip`, the C3's too) grows to what the image asks for at a direct boot (8 or 16 MB builds),
+  and its RDID density follows the module — the N8, N8R2 and N8R8 8 MB, the N16R8 (8 MB octal
+  PSRAM) 16 MB (`S3_MODULE_FLASH`) —, or on `auto` the image's; ESP-IDF stops a build bigger than
+  the chip at startup, as on a board. The C3's LEDC (8 channels), USB-Serial-JTAG (0x6003_8000),
   I2C (two controllers, 0x6001_3000 and 0x6002_7000), SPI2 and RMT run at the S3's addresses and
   sources; the RMT's register layout (`RmtLayout`: 4 TX and 4 RX channels, the RAM at +0x800)
   and the UART's moved fields (`UartFields`: a 10-bit TX-empty threshold, the RX timeout enable
@@ -2728,7 +2744,8 @@ sequence, files matched by basename or trailing path.
   — the bridge's `/api/compile`, `/api/compile-inline` and `/api/watch` and MCP's `compile_sketch`
   take an optional `module`, refused unless it is `auto` or one its FQBN knows (`moduleError`;
   `MODULE_OPTIONS`: ESP32 `WROVER-E` PSRAM=enabled, `WROOM-32` none; S3 `N8R2` PSRAM=enabled
-  (quad), `N8R8` PSRAM=opi, `N8` none). An explicit module decides PSRAM — a comment's `psram`
+  (quad), `N8R8` PSRAM=opi, `N8` none; with each module's FlashSize — 8M on the N8s and the
+  WROOM-32E-N8, 16M on the N16 modules, the menu's default 4 MB otherwise). An explicit module decides PSRAM — a comment's `psram`
   then adds nothing — and other words (`usb-otg`) still apply; `auto` leaves it to the comment
   lines. The app sends its board's module (`fqbn.ts` `moduleOf`) with every compile and watch; an
   inline sketch's `sourceHash` includes it (not for `auto`, so earlier hashes stand), so a changed
@@ -2781,7 +2798,25 @@ sequence, files matched by basename or trailing path.
   `bench/usb.ts`'s `UsbHosting`, found by duck typing — and `Bench.usbOf(board)` turns the times
   into bench nanoseconds. Other classes (mass storage, audio streaming, DFU, vendor) enumerate and
   are named once (`esp32s3-usb-device`, info), as is a HID report that is none of those kinds.
-  Nothing goes from the host to the device but CDC bytes (no keyboard LEDs, no MIDI to the board).
+  Nothing goes from the host to the device but CDC bytes (no keyboard LEDs, no MIDI to the board) and a drive's blocks. A mass storage interface
+  (class 8, SCSI, Bulk-Only) is `drive` (`usb-msc.ts` `MscDrive`, clean-room from the Bulk-Only
+  Transport 1.0 and the SCSI command layouts): after the HID set-up, GET MAX LUN (LUN 0 read, more
+  named), INQUIRY (vendor, product, revision), TEST UNIT READY (every 100 frames until the medium
+  is there; a failure gets REQUEST SENSE), READ CAPACITY(10), MODE SENSE(6) (write protect). Each
+  command is a 31-byte CBW, its data, a 13-byte CSW; a stalled endpoint gets
+  CLEAR_FEATURE(ENDPOINT_HALT) and the same command's CSW. The mount is demand-paged: core's
+  `FatVolume` mounts and lists through `DriveBlocks` (a `SparseBlocks` that records the blocks it
+  lacked and those written); the drive fetches what was lacking (READ(10), runs of up to 8 blocks)
+  and tries again — the volume's system area whole when it is at most 4 MB (needed before the
+  bench may write: `FatVolume.systemArea`), then directories, then file data up to 1 MB (a file
+  past that is fetched when read; `read` answers undefined until it is in). 512-byte blocks only.
+  Every second, as a computer does, the host polls TEST UNIT READY: a medium gone drops the cache
+  (`no-medium`), its return mounts it again — a sketch toggling `mediaPresent` makes the host see
+  its own writes. Writes from the bench (`PartStorage.write`/`remove`) change the cache at once
+  and go out as WRITE(10) commands in block order; a write-protected drive refuses them.
+  `Esp32s3Mcu.usbStorage()` (`bench/usb.ts`'s `UsbStorageHosting`) is the drive's `PartStorage`,
+  and `Bench.storage(board)` returns it when the board's part model carries none; `usbHost()`'s
+  `drive` says its state, vendor, product, revision, size, file system and label.
   Time: 1 ms frames start at the firmware's first USB0 access (a
   sketch without USB-OTG costs no events); a change the host waits on — an endpoint enabled, a
   packet queued, the soft connect — brings its service forward to 50 µs from now. `uart(0)` carries
@@ -2794,7 +2829,10 @@ sequence, files matched by basename or trailing path.
   keyboard, mouse and media keys with Arduino's USB library, a CDC port beside them) and
   `usb-midi` (TinyUSB's MIDI class added through `tinyusb_enable_interface` — Arduino-ESP32 2.0.17
   has no MIDI class) on buttons and a pot (`soc/usb-otg.test.ts`; on the bench in
-  esp32s3-circuits.test.ts).
+  esp32s3-circuits.test.ts). `usb-drive` — Arduino's USBMSC over a 64 KB RAM disk the sketch lays
+  out as FAT12 (README.TXT, COUNT.TXT; a CONFIG.TXT the computer writes sets the RGB LED; a button
+  rewrites COUNT.TXT and toggles the medium) — mounted, read, written (`soc/usb-msc.test.ts`, with
+  a scripted Bulk-Only target; on the bench in esp32s3-circuits.test.ts).
 
 ## Worker protocol
 
@@ -3177,7 +3215,12 @@ computer's side of the board's own USB port as `sim.usb(board)` returns it — n
 (a sketch built for USB-OTG appears there), enumerating, failed, or the device's product string
 and what the host uses ("serial (CDC-ACM)", "keyboard", "mouse", "media keys", "MIDI"), the text a
 keyboard typed (the last 2,000 characters, wrapped) and the newest 30 events with their bench
-times; refreshed every 500 ms while running and by **Refresh**.
+times; refreshed every 500 ms while running and by **Refresh**. A USB drive the host mounted
+shows under it — vendor, product and revision, its size, file system and label (or why it isn't
+mounted: probing, no medium, being read, unreadable) — and, while mounted, its files through
+`sim.storage(board)` (the board's storage, `Bench.storage`): open one (a preview), download,
+delete, upload, or write a text file (a name and its text) onto the drive. The microSD card's
+`download` and `readPicked` helpers are shared (`ui/card/CardControls.tsx`).
 
 ### Bus tab
 
@@ -3329,7 +3372,7 @@ nothing from `apps/web`.
   | `digits <p> show "<text>" at <t>` | the digits (`sevenSegmentText` from @benchtop/parts: 0–9, '-', ' ' dark, '?' other) | `shows "1234"` |
   | `env <gas\|temperature\|humidity\|light\|sound> at <p> is <v> ±<tol> at <t>` (or `>`, `<`, `>=`, `<=` `<v>`) | the room's value at a part placed in it (`bench.envSample`); a usage error without an environment part or on a part with no place in it | `gas 812.40 ppm` |
   | `bus i2c <p> wrote\|read <hex bytes> by <t>`, `bus spi <p> sent <hex bytes> by <t>` | some transaction with that part in the bus log — an I2C write or read, an SPI frame's MOSI — carried those bytes in a row by then (when the transaction ended); read every 50 ms so the log's ring can't wrap; a transaction still open at the end counts | `seen at 31.402 ms` |
-  | `file <p> <path> contains "<text>" by <t>` | the part's file (a microSD card's, through `bench.storage`; the path matched without case) held the text by then — read at every stop and every 50 ms while the card's version moved; failures say whether the file was missing or what it held | `seen at 50 ms` |
+  | `file <p> <path> contains "<text>" by <t>` | the part's file (a microSD card's, through `bench.storage` — or an ESP32-S3 board's USB drive; the path matched without case) held the text by then — read at every stop and every 50 ms while the card's version moved; failures say whether the file was missing or what it held | `seen at 50 ms` |
   | `wifi <board> connected by <t>` | the board's station got its address from an access point's DHCP server (`net.listen`'s `connected`) by then; a usage error without a `wifi-ap` part | `connected to ap as 192.168.4.2 at 1.61 s` |
   | `http <p> served <METHOD\|*> <path[?query]> by <t>` | an `http-server` part answered such a request by then (a query, when given, must match too) | `served GET /api/hello → 200 at 1.7 s` |
   | `http <p> got <status> [with "<text>"] by <t>` | an `http-client` part's request came back with that status (and a body holding the text) by then; a failure names the last response (`last: 200`, `last: error: …`) | `got 200 at 2.008 s` |

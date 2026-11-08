@@ -43,7 +43,7 @@
  * - PSRAM (BT130) is the build's: soc.ts's `psram` answers the quad or octal driver.
  */
 
-import type { BoardSpec, PartProps, Debuggable, FirmwareImage, I2cController, I2cDevice, Level, Mcu, McuDebug, McuPin, McuSleep, McuUsbHost, NetState, NonVolatile, NvMemory, PinClaim, PinClaims, PinMode, Problem, RunResult, Sleeper, SpiController, SpiDevice, SymbolTable, UartPort, UsbHosting, WifiRadio, WifiStation } from '@benchtop/core';
+import type { BoardSpec, PartProps, PartStorage, Debuggable, FirmwareImage, I2cController, I2cDevice, Level, Mcu, McuDebug, McuPin, McuSleep, McuUsbHost, NetState, NonVolatile, NvMemory, PinClaim, PinClaims, PinMode, Problem, RunResult, Sleeper, SpiController, SpiDevice, SymbolTable, UartPort, UsbHosting, UsbStorageHosting, WifiRadio, WifiStation } from '@benchtop/core';
 import { describeFirmwareFormat, macFromName, SectorMemory } from '@benchtop/core';
 import { Hle, sha256Hex, type SocProblem, WifiDriver } from '@benchtop/esp32';
 import type { SpiAttachment } from '@benchtop/esp32c3';
@@ -93,18 +93,24 @@ export interface Esp32s3McuOptions {
   mac?: readonly number[];
   /** BT135: the module's PSRAM (soc.ts's Esp32s3SocOptions.psram; 'auto' by default). */
   psram?: 'auto' | 'none' | 'quad' | 'octal';
+  /** BT143: the module's name, for what its pins' warnings say (`N8R8` by default for octal). */
+  module?: string;
+  /** BT143: the flash chip's size as its ID says (the module's); default: the image's. */
+  flashChipBytes?: number;
 }
 
 /**
  * BT135: the modules an ESP32-S3 board can carry (its `module` prop): `auto` — the build decides
  * (BT130) —, `N8` (no PSRAM), `N8R2` (2 MB quad), `N8R8` (8 MB octal), and the PSRAM each has.
  */
-export const S3_MODULES = { auto: 'auto', N8: 'none', N8R2: 'quad', N8R8: 'octal' } as const;
+export const S3_MODULES = { auto: 'auto', N8: 'none', N8R2: 'quad', N8R8: 'octal', N16R8: 'octal' } as const;
+/** BT143: each module's flash chip — 8 MB on the N8s, 16 MB on the N16R8 — (auto: as the build says). */
+export const S3_MODULE_FLASH: Readonly<Record<keyof typeof S3_MODULES, number | null>> = { auto: null, N8: 8 * 1024 * 1024, N8R2: 8 * 1024 * 1024, N8R8: 8 * 1024 * 1024, N16R8: 16 * 1024 * 1024 };
 export const CODE_S3_MODULE = 'esp32s3-module';
 
 /** BT136: GPIO33–37 as an N8R8's octal PSRAM holds them (and as an octal build on `auto` uses them). */
 const OCTAL_PINS = ['SPIIO4', 'SPIIO5', 'SPIIO6', 'SPIIO7', 'SPIDQS'] as const;
-const R8_CLAIMS: readonly PinClaim[] = Object.freeze(OCTAL_PINS.map((role, i) => ({ pin: `GPIO${33 + i}`, by: `the N8R8 module's octal PSRAM (${role})` })));
+const r8Claims = (module: string): readonly PinClaim[] => Object.freeze(OCTAL_PINS.map((role, i) => ({ pin: `GPIO${33 + i}`, by: `the ${module} module's octal PSRAM (${role})` })));
 const OCTAL_BUILD_CLAIMS: readonly PinClaim[] = Object.freeze(OCTAL_PINS.map((role, i) => ({ pin: `GPIO${33 + i}`, by: `the octal PSRAM's ${role} (this build uses it, as on an N8R8)` })));
 const NO_CLAIMS: readonly PinClaim[] = Object.freeze([]);
 
@@ -280,7 +286,7 @@ class S3Uart implements UartPort {
   }
 }
 
-export class Esp32s3Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sleeper, PinClaims, UsbHosting {
+export class Esp32s3Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sleeper, PinClaims, UsbHosting, UsbStorageHosting {
   readonly kind = 'esp32s3' as const;
   readonly clockHz = REF_HZ;
   readonly pins: ReadonlyMap<string, McuPin>;
@@ -313,6 +319,9 @@ export class Esp32s3Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sl
   private readonly mac: readonly number[] | undefined;
   /** BT135: the module's PSRAM. */
   private readonly psram: 'auto' | 'none' | 'quad' | 'octal';
+  /** BT143: its flash chip's size (undefined: the image's), and the pins its octal PSRAM holds. */
+  private readonly flashChipBytes: number | undefined;
+  private readonly moduleClaims: readonly PinClaim[];
   /** The board's SPI flash, kept across resets (null until an image boots), and the view hosts get of it. */
   private flashBytes: Uint8Array | null = null;
   private nvm: SectorMemory | null = null;
@@ -327,6 +336,8 @@ export class Esp32s3Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sl
     this.rom = romFrom(options.rom);
     this.mac = options.mac;
     this.psram = options.psram ?? 'auto';
+    this.flashChipBytes = options.flashChipBytes;
+    this.moduleClaims = this.psram === 'octal' ? r8Claims(options.module ?? 'N8R8') : NO_CLAIMS;
     const pins = new Map<string, McuPin>();
     for (let g = 0; g < S3_PADS; g++) this.byGpio.push(undefined);
     for (const g of S3_MCU_GPIOS) {
@@ -391,7 +402,8 @@ export class Esp32s3Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sl
       this.report('error', CODE_S3_ROM_MISSING, 0, this.rom);
     } else if (this.image !== null) {
       // The chip's flash is the board's, kept across resets; the boot writes the image into it as an upload would.
-      if (this.flashBytes !== null && this.flashBytes.length === this.soc.flash.data.length) this.soc.flash.data = this.flashBytes;
+      // BT143: a kept flash bigger than the fresh chip's (an 8 or 16 MB build's) is kept too.
+      if (this.flashBytes !== null && this.flashBytes.length >= this.soc.flash.data.length) this.soc.setFlash(this.flashBytes);
       const boot = directBootS3(this.soc, { app: this.image.app, ...(this.image.partitions === undefined ? {} : { partitions: this.image.partitions }), rom: this.rom, flash: { flash: this.soc.flash.data, upload: this.uploading }, reason });
       if (!boot.ok) this.bootError = `The ESP32-S3 image can't boot: ${boot.error}`;
       else this.keepFlash(this.soc.flash.data, boot.layout.written);
@@ -478,7 +490,7 @@ export class Esp32s3Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sl
    * GPIO26, a flash pad no header has.
    */
   pinClaims(): readonly PinClaim[] {
-    if (this.psram === 'octal') return R8_CLAIMS;
+    if (this.psram === 'octal') return this.moduleClaims;
     return this.psram === 'auto' && this.soc.psram.present && this.soc.psram.mode === 'octal' ? OCTAL_BUILD_CLAIMS : NO_CLAIMS;
   }
 
@@ -490,6 +502,7 @@ export class Esp32s3Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sl
     const otg = this.soc.usbOtg;
     if (!otg.active) return null;
     const host = otg.host;
+    const drive = host.drive;
     return {
       phase: host.phase,
       device: host.productName,
@@ -498,7 +511,27 @@ export class Esp32s3Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sl
       events: host.log.events.map((e) => ({ at: e.at, text: e.text })),
       dropped: host.log.dropped,
       now: this.soc.now() / REF_HZ,
+      drive: drive === null
+        ? null
+        : {
+            state: drive.state,
+            vendor: drive.vendor,
+            product: drive.product,
+            revision: drive.revision,
+            bytes: drive.blocks * drive.blockSize,
+            writeProtected: drive.writeProtected,
+            fileSystem: drive.fileSystem === null ? '' : `FAT${drive.fileSystem.type}`,
+            label: drive.fileSystem?.label ?? '',
+            problem: drive.problem,
+            unread: drive.unread.size,
+          },
     };
+  }
+
+  /** BT141: the USB drive the bench's host mounted (the board's storage: Bench.storage), or null. */
+  usbStorage(): PartStorage | null {
+    const otg = this.soc.usbOtg;
+    return otg.active && otg.host.drive !== null ? otg.host.drive.storage : null;
   }
 
   sleepState(): McuSleep | null {
@@ -544,7 +577,7 @@ export class Esp32s3Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sl
   }
 
   private buildSoc(time?: number): Esp32s3Soc {
-    const soc = new Esp32s3Soc({ ...(this.mac === undefined ? {} : { mac: this.mac }), ...(time === undefined ? {} : { time }), psram: this.psram });
+    const soc = new Esp32s3Soc({ ...(this.mac === undefined ? {} : { mac: this.mac }), ...(time === undefined ? {} : { time }), psram: this.psram, ...(this.flashChipBytes === undefined ? {} : { flashChipBytes: this.flashChipBytes }) });
     soc.cores[0].breakpoints = this.breakpoints;
     soc.cores[1].breakpoints = this.breakpoints;
     soc.uarts[0].onTx = (byte) => this.uarts[0].emit(byte);
@@ -637,9 +670,12 @@ export function esp32s3McuFactory(rom: Uint8Array | undefined): (board: BoardSpe
     if (board.mcu !== 'esp32s3') return undefined;
     const mac = macFromName(partId, [0x34, 0x85, 0x18]);
     const module = props?.module ?? 'auto';
-    const psram = typeof module === 'string' && Object.hasOwn(S3_MODULES, module) ? S3_MODULES[module as keyof typeof S3_MODULES] : undefined;
-    if (psram === undefined) report?.({ severity: 'warning', code: CODE_S3_MODULE, message: `Unknown ESP32-S3 module ${JSON.stringify(module)}: one of ${Object.keys(S3_MODULES).join(', ')}. Running as auto.`, parts: [partId] });
-    const mcu = createEsp32s3Mcu(rom === undefined ? { mac, psram: psram ?? 'auto' } : { rom, mac, psram: psram ?? 'auto' });
+    const known = typeof module === 'string' && Object.hasOwn(S3_MODULES, module) ? (module as keyof typeof S3_MODULES) : undefined;
+    if (known === undefined) report?.({ severity: 'warning', code: CODE_S3_MODULE, message: `Unknown ESP32-S3 module ${JSON.stringify(module)}: one of ${Object.keys(S3_MODULES).join(', ')}. Running as auto.`, parts: [partId] });
+    const chosen = known ?? 'auto';
+    const flash = S3_MODULE_FLASH[chosen];
+    const options = { mac, psram: S3_MODULES[chosen], module: chosen, ...(flash === null ? {} : { flashChipBytes: flash }) };
+    const mcu = createEsp32s3Mcu(rom === undefined ? options : { rom, ...options });
     if (report !== undefined) {
       const seen = new Map<string, { messages: string[]; count: number }>();
       let soc = mcu.soc;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BLOCK, SparseBlocks } from './blocks.ts';
+import { BLOCK, SparseBlocks } from '@benchtop/core';
 import { crc7, crc16, SD_BLOCKS, SdCard, WRITE_BUSY_NS } from './sd-card.ts';
 
 // BT89: the SD card's SPI mode, driven the way the Arduino SD library, the ESP32 core and

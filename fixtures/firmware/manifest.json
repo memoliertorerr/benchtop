@@ -321,6 +321,39 @@
     },
     {
       "board": "esp32",
+      "name": "flash-info",
+      "fqbn": "esp32:esp32:esp32:FlashSize=16M",
+      "file": "esp32/flash-info.bin",
+      "sha256": "f14dda7eead025a6e67ad40c5eb4c8037200b526db29fc3e7001d68918eb2bc5",
+      "bytes": 263680,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "8ff91f1b96a840ede4d4468487fb19047027842a34f1f37da91160485e1fe009"
+    },
+    {
+      "board": "esp32",
+      "name": "flash-info",
+      "fqbn": "esp32:esp32:esp32:FlashSize=16M",
+      "file": "esp32/flash-info.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "8ff91f1b96a840ede4d4468487fb19047027842a34f1f37da91160485e1fe009"
+    },
+    {
+      "board": "esp32",
+      "name": "flash-info",
+      "fqbn": "esp32:esp32:esp32:FlashSize=16M",
+      "file": "esp32/flash-info.syms.tsv",
+      "sha256": "38f2c1982a38993109c351ca153ea5ea944ee8808369c16c36e3b3f2bdb1df34",
+      "bytes": 116054,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "8ff91f1b96a840ede4d4468487fb19047027842a34f1f37da91160485e1fe009"
+    },
+    {
+      "board": "esp32",
       "name": "gpio-input",
       "fqbn": "esp32:esp32:esp32",
       "file": "esp32/gpio-input.bin",
@@ -2928,6 +2961,39 @@
     },
     {
       "board": "esp32s3",
+      "name": "flash-info",
+      "fqbn": "esp32:esp32:esp32s3:FlashSize=16M",
+      "file": "esp32s3/flash-info.bin",
+      "sha256": "968bc9d92506ddd7af01138b1d40658977fd8c5fd207428f42cc47553b637113",
+      "bytes": 260192,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "8ff91f1b96a840ede4d4468487fb19047027842a34f1f37da91160485e1fe009"
+    },
+    {
+      "board": "esp32s3",
+      "name": "flash-info",
+      "fqbn": "esp32:esp32:esp32s3:FlashSize=16M",
+      "file": "esp32s3/flash-info.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "8ff91f1b96a840ede4d4468487fb19047027842a34f1f37da91160485e1fe009"
+    },
+    {
+      "board": "esp32s3",
+      "name": "flash-info",
+      "fqbn": "esp32:esp32:esp32s3:FlashSize=16M",
+      "file": "esp32s3/flash-info.syms.tsv",
+      "sha256": "7a1620291e7f77985ccd4eda5ea476b3c5adc8301360f12910e335335436f55a",
+      "bytes": 170331,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "8ff91f1b96a840ede4d4468487fb19047027842a34f1f37da91160485e1fe009"
+    },
+    {
+      "board": "esp32s3",
       "name": "gpio-interrupt",
       "fqbn": "esp32:esp32:esp32s3",
       "file": "esp32s3/gpio-interrupt.bin",
@@ -3423,6 +3489,39 @@
       "core": "esp32:esp32@2.0.17",
       "libraries": {},
       "source": "a8ee18ad969b6235171058f215c4dbb9b90841a7977b7ef1c914210966c8e977"
+    },
+    {
+      "board": "esp32s3",
+      "name": "usb-drive",
+      "fqbn": "esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=cdc",
+      "file": "esp32s3/usb-drive.bin",
+      "sha256": "29df88718d7b7c55f13fa6e8b42ee0cca716781754f3a79989ebda91870b1480",
+      "bytes": 289648,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "8efdd9d167f46d9aab46dcc8770c997c2107639d413dfde5bd958c3ee9605b1e"
+    },
+    {
+      "board": "esp32s3",
+      "name": "usb-drive",
+      "fqbn": "esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=cdc",
+      "file": "esp32s3/usb-drive.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "8efdd9d167f46d9aab46dcc8770c997c2107639d413dfde5bd958c3ee9605b1e"
+    },
+    {
+      "board": "esp32s3",
+      "name": "usb-drive",
+      "fqbn": "esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=cdc",
+      "file": "esp32s3/usb-drive.syms.tsv",
+      "sha256": "32641fa3dab64cc73dde5ef48e6563c50742218c0c9ecc8d78c49448f5d2e20d",
+      "bytes": 178882,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "8efdd9d167f46d9aab46dcc8770c997c2107639d413dfde5bd958c3ee9605b1e"
     },
     {
       "board": "esp32s3",

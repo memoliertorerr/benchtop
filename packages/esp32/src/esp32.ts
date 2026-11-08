@@ -72,14 +72,27 @@ export interface Esp32McuOptions {
   psram?: boolean;
   /** BT136: the board's module (`auto` by default): a WROVER-E holds GPIO16/17 for its PSRAM. */
   module?: Esp32Module;
+  /** BT143: the flash chip's size as its ID says (the module's); default: the image's. */
+  flashChipBytes?: number;
 }
 
 /**
  * BT135: the modules an ESP32 board can carry (its `module` prop): `auto` — the build decides, as
  * a WROVER-E answers any PSRAM build (BT133) —, `WROOM-32` (no PSRAM), `WROVER-E` (8 MB PSRAM).
+ * BT143: and their flash: WROOM-32 and WROVER-E 4 MB (the WROVER-E's base variant), the
+ * WROOM-32E-N8 and -N16 8 and 16 MB without PSRAM, the WROVER-E-N16R8 16 MB with 8 MB PSRAM.
  */
-export const ESP32_MODULES = ['auto', 'WROOM-32', 'WROVER-E'] as const;
+export const ESP32_MODULES = ['auto', 'WROOM-32', 'WROVER-E', 'WROOM-32E-N8', 'WROOM-32E-N16', 'WROVER-E-N16R8'] as const;
 export type Esp32Module = (typeof ESP32_MODULES)[number];
+/** BT143: each module's PSRAM and flash chip (null: as the build says). */
+export const ESP32_MODULE_SPECS: Readonly<Record<Esp32Module, { readonly psram: boolean; readonly flash: number | null }>> = {
+  auto: { psram: true, flash: null },
+  'WROOM-32': { psram: false, flash: 4 * 1024 * 1024 },
+  'WROVER-E': { psram: true, flash: 4 * 1024 * 1024 },
+  'WROOM-32E-N8': { psram: false, flash: 8 * 1024 * 1024 },
+  'WROOM-32E-N16': { psram: false, flash: 16 * 1024 * 1024 },
+  'WROVER-E-N16R8': { psram: true, flash: 16 * 1024 * 1024 },
+};
 export const CODE_ESP32_MODULE = 'esp32-module';
 
 /** BT136: GPIO16/17 as a WROVER-E's PSRAM holds them (and as a PSRAM build on `auto` uses them). */
@@ -313,6 +326,8 @@ export class Esp32Mcu implements Mcu, Debuggable, WifiStation, NonVolatile, Slee
   private readonly psram: boolean;
   /** BT136: the board's module. */
   private readonly module: Esp32Module;
+  /** BT143: its flash chip's size (undefined: the image's). */
+  private readonly flashChipBytes: number | undefined;
   private radioReported = false;
   /** BT118: the board's SPI flash, kept across resets (null until an image boots), and the view hosts get of it. */
   private flashBytes: Uint8Array | null = null;
@@ -325,6 +340,7 @@ export class Esp32Mcu implements Mcu, Debuggable, WifiStation, NonVolatile, Slee
     this.mac = options.mac;
     this.psram = options.psram !== false;
     this.module = options.module ?? 'auto';
+    this.flashChipBytes = options.flashChipBytes;
     const pins = new Map<string, McuPin>();
     for (const g of GPIO_NUMBERS) {
       const pin = new Esp32Pin(this, g);
@@ -459,7 +475,7 @@ export class Esp32Mcu implements Mcu, Debuggable, WifiStation, NonVolatile, Slee
    * always; on `auto`, the same once the build's PSRAM driver has read the chip's ID.
    */
   pinClaims(): readonly PinClaim[] {
-    if (this.module === 'WROVER-E') return WROVER_CLAIMS;
+    if (this.module === 'WROVER-E' || this.module === 'WROVER-E-N16R8') return WROVER_CLAIMS;
     return this.psram && this.soc.psram.identified ? PSRAM_BUILD_CLAIMS : NO_CLAIMS;
   }
 
@@ -485,7 +501,7 @@ export class Esp32Mcu implements Mcu, Debuggable, WifiStation, NonVolatile, Slee
   }
 
   private buildSoc(): Esp32Soc {
-    const soc = new Esp32Soc({ ...(this.mac === undefined ? {} : { mac: this.mac }), psram: this.psram });
+    const soc = new Esp32Soc({ ...(this.mac === undefined ? {} : { mac: this.mac }), psram: this.psram, ...(this.flashChipBytes === undefined ? {} : { flashChipBytes: this.flashChipBytes }) });
     // The field initializers run before the constructor's buildSoc: the set exists here.
     soc.cores[0].breakpoints = this.breakpoints;
     soc.cores[1].breakpoints = this.breakpoints;
@@ -583,9 +599,10 @@ export function esp32McuFactory(rom: Uint8Array | undefined): (board: BoardSpec,
     const module = props?.module ?? 'auto';
     const known = (ESP32_MODULES as readonly unknown[]).includes(module);
     if (!known) report?.({ severity: 'warning', code: CODE_ESP32_MODULE, message: `Unknown ESP32 module ${JSON.stringify(module)}: one of ${ESP32_MODULES.join(', ')}. Running as auto.`, parts: [partId] });
-    const psram = !known || module !== 'WROOM-32';
     const chosen: Esp32Module = known ? (module as Esp32Module) : 'auto';
-    const mcu = createEsp32Mcu(rom === undefined ? { mac, psram, module: chosen } : { rom, mac, psram, module: chosen });
+    const spec = ESP32_MODULE_SPECS[chosen];
+    const options = { mac, psram: spec.psram, module: chosen, ...(spec.flash === null ? {} : { flashChipBytes: spec.flash }) };
+    const mcu = createEsp32Mcu(rom === undefined ? options : { rom, ...options });
     if (report !== undefined) {
       const seen = new Map<string, { messages: string[]; count: number }>();
       let soc = mcu.soc;

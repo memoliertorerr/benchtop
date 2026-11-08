@@ -19,8 +19,7 @@
  * The transfer path doesn't allocate: responses go through one preallocated queue.
  */
 
-import type { Nanos, SpiDevice } from '@benchtop/core';
-import { BLOCK, type SparseBlocks } from './blocks.ts';
+import { BLOCK, type Nanos, type SparseBlocks, type SpiDevice } from '@benchtop/core';
 
 /** 8 GB as sold: C_SIZE 15159, (15159 + 1) × 512 KiB = 15,523,840 blocks. */
 export const SD_C_SIZE = 15159;

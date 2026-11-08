@@ -98,7 +98,7 @@ in `fixtures/firmware/manifest.json`. Linked into them, under their own licenses
 | ESP-IDF v4.4.7 libraries (incl. FreeRTOS, MIT; newlib, BSD-style) | ESP32, ESP32-C3 and ESP32-S3 fixtures | Apache-2.0 and others | <https://github.com/espressif/esp-idf/tree/v4.4.7> |
 | Arduino-Pico core 6.2.0 (Earle F. Philhower III) | Pico fixtures | LGPL-2.1-or-later | <https://github.com/earlephilhower/arduino-pico> |
 | Raspberry Pi Pico SDK (in the Arduino-Pico core), TinyUSB | Pico fixtures | BSD-3-Clause, MIT | <https://github.com/raspberrypi/pico-sdk> |
-| TinyUSB (in the Arduino-ESP32 core's libraries) | the ESP32-S3 `usb-cdc`, `usb-rgb`, `usb-keys` and `usb-midi` fixtures | MIT | <https://github.com/hathach/tinyusb> |
+| TinyUSB (in the Arduino-ESP32 core's libraries) | the ESP32-S3 `usb-cdc`, `usb-rgb`, `usb-keys`, `usb-midi` and `usb-drive` fixtures | MIT | <https://github.com/hathach/tinyusb> |
 | GCC runtime (libgcc) | all fixtures | GPL-3.0 with the GCC Runtime Library Exception | <https://gcc.gnu.org/> |
 
 The fixtures exist to test the emulator. The complete source of the parts written for this

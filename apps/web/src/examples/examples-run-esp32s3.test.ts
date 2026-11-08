@@ -106,12 +106,23 @@ export const ESP32S3_CHECKS: Record<string, (r: ExampleRun) => void> = {
     expect(lines).toContain('MIDI: note off ch 1 C4 (60)');
     expect(lines.at(-1)).toBe('MIDI: control change ch 1 #7 = 127');
   },
+  // BT142: the S3's RAM as a USB drive — mounted by the bench's host, its files the board's storage.
+  'esp32s3-usb-drive'(r) {
+    const pixel = (): number => ((r.visual('s3')?.pixels as number[] | undefined) ?? [0])[0];
+    r.runTo(600);
+    const drive = r.bench.storage('s3');
+    expect(drive?.list().map((f) => f.path)).toEqual(['README.TXT', 'COUNT.TXT']);
+    expect(drive?.write('CONFIG.TXT', new TextEncoder().encode('led=green'))).toBe(true);
+    r.runTo(1000);
+    expect(pixel()).toBe(0x00ff00);
+    expect(r.serial('s3')).toContain('config led=green\nled green\n');
+  },
 };
 
 describe('every ESP32-S3 example runs as described (BT126)', () => {
   const withS3 = EXAMPLES.filter((e) => Object.values(e.boards).some((b) => 'firmware' in b && b.firmware.startsWith('esp32s3/')));
   it('has a check for each', () => {
-    expect(withS3.length).toBe(10);
+    expect(withS3.length).toBe(11);
     expect(withS3.map((e) => e.id).filter((id) => ESP32S3_CHECKS[id] === undefined)).toEqual([]);
   });
   for (const example of withS3) {

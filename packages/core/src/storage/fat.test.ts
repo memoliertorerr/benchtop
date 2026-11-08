@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { BLOCK, SparseBlocks } from './blocks.ts';
 import { FatVolume, formatFat32 } from './fat.ts';
-import { SD_BLOCKS } from './sd-card.ts';
-import { utf8Encode } from './text.ts';
+
+/** The microSD card's blocks (@benchtop/parts SD_BLOCKS: (15159 + 1) · 1024, an 8 GB card). */
+const SD_BLOCKS = (15159 + 1) * 1024;
 
 // BT89: the FAT library — format, mount, write, read, list, remove.
 
-const text = (s: string): Uint8Array => utf8Encode(s);
+const text = (s: string): Uint8Array => new TextEncoder().encode(s);
 function pattern(n: number, seed = 1): Uint8Array {
   const out = new Uint8Array(n);
   for (let i = 0; i < n; i++) out[i] = (i * 31 + seed) & 0xff;
@@ -142,5 +143,90 @@ describe('FAT library (BT89)', () => {
     mbr[454] = 0x00;
     mbr[455] = 0x20;
     expect(FatVolume.mount(blocks)).toBeNull();
+  });
+});
+
+describe('FAT12 (BT140)', () => {
+  /**
+   * A bare FAT12 volume laid out from the FAT spec: a boot sector (BPB), `fats` FATs of
+   * `fatSectors`, a fixed root directory of `rootEntries`, then the data clusters.
+   */
+  function fat12(options: { total: number; fatSectors: number; fats?: number; rootEntries?: number; spc?: number; label?: string }): SparseBlocks {
+    const { total, fatSectors, fats = 1, rootEntries = 16, spc = 1, label = 'BENCH DISK ' } = options;
+    const blocks = new SparseBlocks(total);
+    const boot = blocks.writable(0);
+    boot.set([0xeb, 0x3c, 0x90], 0);
+    boot.set(new TextEncoder().encode('BENCHTOP'), 3);
+    const put16 = (o: number, v: number) => {
+      boot[o] = v & 0xff;
+      boot[o + 1] = v >>> 8;
+    };
+    put16(11, BLOCK);
+    boot[13] = spc;
+    put16(14, 1); // reserved: the boot sector
+    boot[16] = fats;
+    put16(17, rootEntries);
+    put16(19, total);
+    boot[21] = 0xf8;
+    put16(22, fatSectors);
+    boot[38] = 0x29;
+    boot.set(new TextEncoder().encode(label.padEnd(11).slice(0, 11)), 43);
+    boot.set(new TextEncoder().encode('FAT12   '), 54);
+    boot[510] = 0x55;
+    boot[511] = 0xaa;
+    for (let f = 0; f < fats; f++) blocks.writable(1 + f * fatSectors).set([0xf8, 0xff, 0xff], 0); // entries 0 and 1
+    return blocks;
+  }
+
+  it('mounts a small volume as FAT12: writes, lists, reads back, removes; a long name too', () => {
+    const blocks = fat12({ total: 128, fatSectors: 1 });
+    const volume = FatVolume.mount(blocks) as FatVolume;
+    expect(volume.type).toBe(12);
+    expect(volume.label).toBe('BENCH DISK');
+    expect(volume.clusters).toBe(125); // 128 − boot − FAT − root
+    expect(volume.freeClusters()).toBe(125);
+    expect(volume.write('README.TXT', text('Hello from a FAT12 disk\r\n'))).toBe(true);
+    const big = new Uint8Array(3000).map((_, i) => (i * 7) & 0xff); // 6 clusters
+    expect(volume.write('data/a long file name.bin', big)).toBe(true);
+    expect(volume.list().map((f) => [f.path, f.dir, f.size])).toEqual([
+      ['README.TXT', false, 25],
+      ['data', true, 0],
+      ['data/a long file name.bin', false, 3000],
+    ]);
+    expect(volume.freeClusters()).toBe(125 - 1 - 1 - 6);
+    // A second mount reads it all from the blocks alone.
+    const again = FatVolume.mount(blocks) as FatVolume;
+    expect(again.read('readme.txt')).toEqual(text('Hello from a FAT12 disk\r\n'));
+    expect(again.read('DATA/A LONG FILE NAME.BIN')).toEqual(big);
+    expect(again.remove('data')).toBe(true);
+    expect(again.list().map((f) => f.path)).toEqual(['README.TXT']);
+    expect(again.freeClusters()).toBe(124);
+    // The FAT's bytes as the spec packs them: cluster 2 (README, one cluster) ends the chain: 0xFFF.
+    const fat = blocks.peek(1);
+    expect([fat[3], fat[4] & 0x0f]).toEqual([0xff, 0x0f]);
+  });
+
+  it('entries that straddle a FAT sector boundary (cluster 341: bytes 511 and 512) read and write right', () => {
+    const blocks = fat12({ total: 1200, fatSectors: 4, fats: 2 });
+    const volume = FatVolume.mount(blocks) as FatVolume;
+    expect(volume.type).toBe(12);
+    const big = new Uint8Array(400 * BLOCK).map((_, i) => (i * 31 + (i >>> 9)) & 0xff); // clusters 2…401
+    expect(volume.write('BIG.BIN', big)).toBe(true);
+    const again = FatVolume.mount(blocks) as FatVolume;
+    expect(again.read('BIG.BIN')).toEqual(big);
+    // Cluster 341 → 342: 342 split as its low nibble in byte 511's high half and 8 bits in byte 512.
+    const first = blocks.peek(1);
+    const second = blocks.peek(2);
+    expect(((first[511] >>> 4) | (second[0] << 4)) & 0xfff).toBe(342);
+    // The second FAT holds the same.
+    expect(blocks.peek(1 + 4)).toEqual(first);
+    expect(again.remove('BIG.BIN')).toBe(true);
+    expect(again.freeClusters()).toBe(again.clusters);
+  });
+
+  it('4,084 clusters is FAT12, 4,085 FAT16 — the spec’s rule', () => {
+    // 1 boot + 12 FAT + 1 root sector, then the clusters.
+    expect((FatVolume.mount(fat12({ total: 14 + 4084, fatSectors: 12 })) as FatVolume).type).toBe(12);
+    expect((FatVolume.mount(fat12({ total: 14 + 4085, fatSectors: 12 })) as FatVolume).type).toBe(16);
   });
 });

@@ -22,7 +22,6 @@
  */
 
 import { buildFlash, type EspChip, type FlashLayout, type FlashTarget, type ImageRegions, SR } from '@benchtop/esp32';
-import { JEDEC_ID } from '@benchtop/esp32c3';
 import { DROM_FLASH_BASE, IROM_BASE } from '../soc/memory.ts';
 import { S3_RESET_REASON } from '../soc/rtc-cntl.ts';
 import { type Esp32s3Soc, MMU_ENTRIES, MMU_TABLE_BASE } from '../soc/soc.ts';
@@ -72,7 +71,8 @@ export function directBootS3(soc: Esp32s3Soc, options: S3DirectBootOptions): S3D
   const built = buildFlash(options.app, options.partitions, ESP32S3_CHIP, options.flash);
   if (!built.ok) return built;
   const layout = built.layout;
-  if (layout.flash.length > soc.flash.data.length) return { ok: false, error: `the image wants ${layout.flash.length >>> 20} MB of flash; the chip has ${soc.flash.data.length >>> 20} MB` };
+  // BT143: the flash holds what the image asks for; the chip's ID still says the module's size.
+  if (layout.flash.length > soc.flash.data.length) soc.setFlash(layout.flash);
   // Plan the MMU first: every page of a flash segment, and no index used twice for different pages.
   const plan = new Map<number, number>();
   for (const segment of layout.image.segments) {
@@ -125,7 +125,8 @@ function bootImage(soc: Esp32s3Soc, layout: FlashLayout, rom: S3Rom, plan: Map<n
   // The legacy flash descriptor: device_id (manufacturer high), chip_size, block, sector, page, status mask.
   const legacy = rom.symbols.get('rom_default_spiflash_legacy_data');
   if (legacy !== undefined) {
-    const words = [(JEDEC_ID[0] << 16) | (JEDEC_ID[1] << 8) | JEDEC_ID[2], layout.flash.length, 0x10000, 0x1000, 0x100, 0xffff];
+    const id = soc.flash.jedecId(); // BT143: the module's chip
+    const words = [(id[0] << 16) | (id[1] << 8) | id[2], layout.flash.length, 0x10000, 0x1000, 0x100, 0xffff];
     words.forEach((w, i) => bus.write32(legacy + i * 4, w));
   }
   bus.write32(STORE4, XTAL_STORE);

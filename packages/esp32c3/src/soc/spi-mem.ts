@@ -63,8 +63,16 @@ export class FlashChip {
   status = 0;
   onWrite: ((offset: number, length: number) => void) | null = null;
 
+  /** BT143: the chip's size as its ID reports it (the board's module), or null: the flash's own size. */
+  chipBytes: number | null = null;
+
   constructor(size: number) {
     this.data = new Uint8Array(size).fill(0xff);
+  }
+
+  /** BT143: the JEDEC ID (manufacturer, type, density as a power of two) RDID answers. */
+  jedecId(): readonly [number, number, number] {
+    return [JEDEC_ID[0], JEDEC_ID[1], 31 - Math.clz32(this.chipBytes ?? this.data.length)];
   }
 
   /** Whether a program/erase is allowed (WEL set), consuming WEL. */
@@ -155,7 +163,10 @@ export class SpiMem implements Peripheral {
     else if ((value & FLASH_READ) !== 0) this.readInto(addr & 0xffffff, Math.min(64, (((this.regs[MISO_DLEN >>> 2] & 0x3ff) + 1) >>> 3) || 4));
     else if ((value & FLASH_WREN) !== 0) flash.writeEnable(true);
     else if ((value & FLASH_WRDI) !== 0) flash.writeEnable(false);
-    else if ((value & FLASH_RDID) !== 0) this.regs[W0 >>> 2] = JEDEC_ID[0] | (JEDEC_ID[1] << 8) | (JEDEC_ID[2] << 16);
+    else if ((value & FLASH_RDID) !== 0) {
+      const id = this.flash.jedecId();
+      this.regs[W0 >>> 2] = id[0] | (id[1] << 8) | (id[2] << 16);
+    }
     else if ((value & FLASH_RDSR) !== 0) this.regs[RD_STATUS >>> 2] = (this.regs[RD_STATUS >>> 2] & ~0xffff) | flash.status;
     else if ((value & FLASH_WRSR) !== 0) {
       const v = this.regs[RD_STATUS >>> 2];
@@ -210,7 +221,7 @@ export class SpiMem implements Peripheral {
     }
     switch (command) {
       case 0x9f: // RDID
-        this.wStore(JEDEC_ID, 3);
+        this.wStore(flash.jedecId(), 3);
         return;
       case 0x05: // RDSR
         this.wStore([flash.status & 0xff, 0, 0, 0], 4);
@@ -274,7 +285,7 @@ export class SpiMem implements Peripheral {
         this.wStore(out, misoBytes || 8);
         return;
       case 0xab: // release from power-down: answers the device ID
-        this.wStore([JEDEC_ID[2] - 1, 0, 0, 0], 4);
+        this.wStore([flash.jedecId()[2] - 1, 0, 0, 0], 4);
         return;
       default:
         // SFDP, reset, suspend/resume, power-down…: no data (MISO reads 0xFF).

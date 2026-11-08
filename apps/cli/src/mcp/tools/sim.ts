@@ -422,7 +422,7 @@ export const simFiles: Tool<SimContext> = {
   name: 'sim_files',
   title: 'Read or change a card\'s files',
   description:
-    'The files on a part that keeps them — a microSD card — in an open session, as the sketch left them. Without "path": every file and directory (path, size, last write). With "path": that file — as text when it is UTF-8, else base64 — at most 64 KB ("truncated" says when there was more). With "path" and "write" (text) or "writeBase64": creates or replaces the file, making directories on the way. With "path" and "remove": true: deletes it (a directory with everything in it). A sketch holding the volume open may not notice outside changes, as with a real card swapped under it.',
+    'The files on a part that keeps them — a microSD card, or an ESP32-S3 board whose sketch is a USB drive (the bench\'s USB host mounts it as a computer does) — in an open session, as the sketch left them. Without "path": every file and directory (path, size, last write). With "path": that file — as text when it is UTF-8, else base64 — at most 64 KB ("truncated" says when there was more). With "path" and "write" (text) or "writeBase64": creates or replaces the file, making directories on the way. With "path" and "remove": true: deletes it (a directory with everything in it). A sketch holding the volume open may not notice outside changes, as with a real card swapped under it.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -442,7 +442,7 @@ export const simFiles: Tool<SimContext> = {
     const part = args.part as string;
     if (!session.doc.parts.some((p) => p.id === part)) throw new ToolError(`no part "${part}" in the session`);
     const storage = session.bench.storage(part);
-    if (storage === undefined) throw new ToolError(`"${part}" keeps no files (only a microSD card does)`);
+    if (storage === undefined) throw new ToolError(`"${part}" keeps no files (a microSD card does, and an ESP32-S3 board once its sketch's USB drive is mounted)`);
     const path = args.path as string | undefined;
     const changes = [args.write, args.writeBase64, args.remove].filter((v) => v !== undefined).length;
     if (changes > 1) throw new ToolError('give at most one of "write", "writeBase64" or "remove"');

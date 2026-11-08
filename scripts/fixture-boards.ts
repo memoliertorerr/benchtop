@@ -79,7 +79,7 @@ export const FIXTURE_BOARDS: Readonly<Record<string, FixtureBoard>> = {
     ],
     symbols: 'xtensa-esp32-elf-nm',
     // BT133: the board menu's PSRAM "Enabled" (a WROVER module's PSRAM, started by psramInit).
-    options: { psram: 'PSRAM=enabled', 'psram-frame': 'PSRAM=enabled' },
+    options: { psram: 'PSRAM=enabled', 'psram-frame': 'PSRAM=enabled', 'flash-info': 'FlashSize=16M' },
   },
   // BT92: the ESP32-C3 (RISC-V) with the esp32 core (2.0.17), its Dev Module defaults: Serial on
   // UART0 (CDC on boot off), QIO 80 MHz flash, 160 MHz. Like the ESP32: the app image and the
@@ -104,7 +104,7 @@ export const FIXTURE_BOARDS: Readonly<Record<string, FixtureBoard>> = {
       { from: 'partitions.bin', ext: 'partitions.bin' },
     ],
     symbols: 'xtensa-esp32s3-elf-nm',
-    options: { 'cdc-hello': 'CDCOnBoot=cdc', 'psram-quad': 'PSRAM=enabled', 'psram-octal': 'PSRAM=opi', 'psram-frame': 'PSRAM=opi', 'usb-cdc': 'USBMode=default,CDCOnBoot=cdc', 'usb-rgb': 'USBMode=default,CDCOnBoot=cdc', 'usb-keys': 'USBMode=default,CDCOnBoot=cdc', 'usb-midi': 'USBMode=default,CDCOnBoot=cdc' },
+    options: { 'cdc-hello': 'CDCOnBoot=cdc', 'psram-quad': 'PSRAM=enabled', 'psram-octal': 'PSRAM=opi', 'psram-frame': 'PSRAM=opi', 'usb-cdc': 'USBMode=default,CDCOnBoot=cdc', 'usb-rgb': 'USBMode=default,CDCOnBoot=cdc', 'usb-keys': 'USBMode=default,CDCOnBoot=cdc', 'usb-midi': 'USBMode=default,CDCOnBoot=cdc', 'usb-drive': 'USBMode=default,CDCOnBoot=cdc', 'flash-info': 'FlashSize=16M' },
   },
   // BT60: the Raspberry Pi Pico with the arduino-pico core (6.2.0). The UF2 is what a user drops
   // on the board; the ELF (1.3 MB, mostly DWARF) isn't committed.

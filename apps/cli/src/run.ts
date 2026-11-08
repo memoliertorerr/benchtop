@@ -456,7 +456,8 @@ function checkAgainstProject(a: Assertion, doc: ProjectDoc, boards: readonly str
     return;
   }
   if (a.kind === 'file') {
-    if (!FILE_TYPES.has(part.type)) throw new UsageError(`${a.text}: "${a.part}" is a ${part.type}, not a part that keeps files (a microSD card)`);
+    // BT142: an ESP32-S3 board's USB drive (its host's mass storage) keeps files too.
+    if (!FILE_TYPES.has(part.type) && CATALOG.get(part.type)?.board?.mcu !== 'esp32s3') throw new UsageError(`${a.text}: "${a.part}" is a ${part.type}, not a part that keeps files (a microSD card, or an ESP32-S3 board's USB drive)`);
     return;
   }
   if (a.kind === 'pin' || a.kind === 'frequency' || a.kind === 'duty') {

@@ -1,6 +1,7 @@
 /**
- * A small FAT file system over a card's blocks (BT89): format (FAT32 in one MBR partition, the
- * way an SD card ships), mount (an MBR's first partition or a bare volume; FAT16 and FAT32),
+ * A small FAT file system over a card's blocks (BT89; BT140: moved here from @benchtop/parts, so
+ * the ESP32-S3's USB host reads a drive with it too): format (FAT32 in one MBR partition, the
+ * way an SD card ships), mount (an MBR's first partition or a bare volume; FAT12, FAT16, FAT32),
  * list, read, write (8.3 names, with long-name entries when a name needs them), make
  * directories, remove. DOM-free: the card model formats with it at power-up, and the worker, the
  * MCP server and test specs read what firmware wrote through it.
@@ -12,7 +13,7 @@
  * 0x0F) in reverse order, tied to it by a checksum of the 11-byte short name.
  */
 
-import type { StoredFile } from '@benchtop/core';
+import type { StoredFile } from '../bench/storage.ts';
 import { BLOCK, type SparseBlocks } from './blocks.ts';
 
 const ATTR_VOLUME = 0x08;
@@ -138,13 +139,16 @@ interface DirEntry {
 
 /** A mounted FAT16 or FAT32 volume. Cheap to mount; holds no state the blocks don't. */
 export class FatVolume {
-  readonly type: 16 | 32;
+  /** BT140: FAT12 below 4,085 clusters, FAT16 below 65,525, else FAT32 (the spec's rule). */
+  readonly type: 12 | 16 | 32;
   /** Bytes in a cluster. */
   readonly clusterBytes: number;
   /** Data clusters (numbered 2 … clusters + 1). */
   readonly clusters: number;
   readonly label: string;
   private readonly blocks: SparseBlocks;
+  /** The volume's first sector (0, or its partition's start). */
+  private readonly start: number;
   private readonly spc: number;
   private readonly fatStart: number;
   private readonly fatSize: number;
@@ -171,11 +175,12 @@ export class FatVolume {
     const boot = blocks.peek(start);
     if (!isBootSector(boot)) return null;
     const volume = new FatVolume(blocks, start, boot);
-    return volume.clusters >= 4085 ? volume : null; // FAT12 isn't written by any card
+    return volume.clusters >= 1 ? volume : null;
   }
 
   private constructor(blocks: SparseBlocks, start: number, boot: Uint8Array) {
     this.blocks = blocks;
+    this.start = start;
     this.spc = boot[13];
     this.clusterBytes = this.spc * BLOCK;
     const reserved = u16(boot, 14);
@@ -188,7 +193,7 @@ export class FatVolume {
     this.rootStart = this.fatStart + this.fats * this.fatSize;
     this.dataStart = this.rootStart + this.rootSectors;
     this.clusters = Math.max(0, Math.floor((total - (reserved + this.fats * this.fatSize + this.rootSectors)) / this.spc));
-    this.type = this.clusters < 65525 ? 16 : 32;
+    this.type = this.clusters < 4085 ? 12 : this.clusters < 65525 ? 16 : 32;
     this.root = this.type === 32 ? u32(boot, 44) : 0;
     this.infoSector = this.type === 32 ? start + u16(boot, 48) : -1;
     const labelAt = this.type === 32 ? 71 : 43;
@@ -200,12 +205,26 @@ export class FatVolume {
     }
   }
 
+  /**
+   * BT141: the volume's system area — boot sector, reserved sectors, every FAT, a FAT12/16 root
+   * directory — as its first sector and count: what a writer needs whole (the USB host's drive).
+   */
+  get systemArea(): { first: number; count: number } {
+    return { first: this.start, count: this.dataStart - this.start };
+  }
+
   /** Free clusters, counted from the FAT (FSInfo's count isn't kept by every library). */
   freeClusters(): number {
     if (this.free < 0) {
       let free = 0;
-      const perSector = BLOCK / (this.type === 32 ? 4 : 2);
       const end = this.clusters + 2;
+      if (this.type === 12) {
+        // 1.5 bytes an entry: no whole number per sector, and a FAT12 volume is small — read them all.
+        for (let c = 2; c < end; c++) if (this.fat(c) === 0) free++;
+        this.free = free;
+        return free;
+      }
+      const perSector = BLOCK / (this.type === 32 ? 4 : 2);
       for (let s = 0; s * perSector < end; s++) {
         const from = Math.max(2, s * perSector);
         const to = Math.min(end, (s + 1) * perSector);
@@ -504,6 +523,15 @@ export class FatVolume {
   }
 
   private fat(cluster: number): number {
+    if (this.type === 12) {
+      // BT140: entry n is the 12 bits at byte n·1.5 — the low ones for an even n, the high ones for
+      // an odd n — and may straddle two sectors.
+      const at = cluster + (cluster >>> 1);
+      const lo = this.blocks.peek(this.fatStart + (at >>> 9))[at & 511];
+      const hi = this.blocks.peek(this.fatStart + ((at + 1) >>> 9))[(at + 1) & 511];
+      const v = lo | (hi << 8);
+      return (cluster & 1) !== 0 ? v >>> 4 : v & 0xfff;
+    }
     if (this.type === 32) {
       const at = cluster * 4;
       return u32(this.blocks.peek(this.fatStart + (at >>> 9)), at & 511) & 0x0fffffff;
@@ -513,6 +541,24 @@ export class FatVolume {
   }
 
   private setFat(cluster: number, value: number): void {
+    if (this.type === 12) {
+      const at = cluster + (cluster >>> 1);
+      for (let f = 0; f < this.fats; f++) {
+        const base = this.fatStart + f * this.fatSize;
+        const b0 = this.blocks.writable(base + (at >>> 9));
+        const b1 = this.blocks.writable(base + ((at + 1) >>> 9));
+        const i0 = at & 511;
+        const i1 = (at + 1) & 511;
+        if ((cluster & 1) !== 0) {
+          b0[i0] = (b0[i0] & 0x0f) | ((value << 4) & 0xf0);
+          b1[i1] = (value >>> 4) & 0xff;
+        } else {
+          b0[i0] = value & 0xff;
+          b1[i1] = (b1[i1] & 0xf0) | ((value >>> 8) & 0x0f);
+        }
+      }
+      return;
+    }
     const width = this.type === 32 ? 4 : 2;
     const at = cluster * width;
     for (let f = 0; f < this.fats; f++) {
@@ -523,7 +569,7 @@ export class FatVolume {
   }
 
   private isEnd(value: number): boolean {
-    return this.type === 32 ? value >= 0x0ffffff8 : value >= 0xfff8;
+    return this.type === 32 ? value >= 0x0ffffff8 : this.type === 16 ? value >= 0xfff8 : value >= 0xff8;
   }
 
   /** The clusters of a chain from `first` (none for 0), guarded against loops. */
@@ -548,7 +594,7 @@ export class FatVolume {
       if (this.fat(c) === 0) found.push(c);
     }
     if (found.length < count) return -1;
-    const end = this.type === 32 ? 0x0fffffff : 0xffff;
+    const end = this.type === 32 ? 0x0fffffff : this.type === 16 ? 0xffff : 0xfff;
     for (let i = 0; i < found.length; i++) this.setFat(found[i], i + 1 < found.length ? found[i + 1] : end);
     this.hint = found[found.length - 1] + 1 < this.clusters + 2 ? found[found.length - 1] + 1 : 2;
     if (this.free >= 0) this.free -= count;

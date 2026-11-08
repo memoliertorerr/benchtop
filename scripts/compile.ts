@@ -37,11 +37,11 @@ const SKETCH_OPTIONS: Readonly<Record<string, Readonly<Record<string, string>>>>
 /**
  * BT137: the PSRAM option a board's module gives (its `module` prop — packages/parts
  * BOARD_MODULES), per allowlisted FQBN; '' builds without PSRAM. `auto`, or no module, leaves it
- * to the sketch's comment lines.
+ * to the sketch's comment lines. BT143: and its flash size (FlashSize; the menu's default is 4 MB).
  */
 export const MODULE_OPTIONS: Readonly<Record<string, Readonly<Record<string, string>>>> = {
-  'esp32:esp32:esp32': { 'WROOM-32': '', 'WROVER-E': 'PSRAM=enabled' },
-  'esp32:esp32:esp32s3': { N8: '', N8R2: 'PSRAM=enabled', N8R8: 'PSRAM=opi' },
+  'esp32:esp32:esp32': { 'WROOM-32': '', 'WROVER-E': 'PSRAM=enabled', 'WROOM-32E-N8': 'FlashSize=8M', 'WROOM-32E-N16': 'FlashSize=16M', 'WROVER-E-N16R8': 'PSRAM=enabled,FlashSize=16M' },
+  'esp32:esp32:esp32s3': { N8: 'FlashSize=8M', N8R2: 'PSRAM=enabled,FlashSize=8M', N8R8: 'PSRAM=opi,FlashSize=8M', N16R8: 'PSRAM=opi,FlashSize=16M' },
 };
 
 /** BT137: why a compile request's `module` is refused, or null: absent, `auto`, or one of its FQBN's. */

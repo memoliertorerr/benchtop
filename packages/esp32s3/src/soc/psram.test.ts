@@ -208,7 +208,7 @@ describe('the board\u2019s module (BT135)', () => {
     expect(make('auto').soc.psram.protocols).toBe('both');
     expect(make(undefined).soc.psram.protocols).toBe('both');
     expect(problems).toEqual([]);
-    expect(make('N16R8').soc.psram.protocols).toBe('both');
+    expect(make('N32R8V').soc.psram.protocols).toBe('both'); // not one the bench has (32 MB octal flash)
     expect(problems.map((p) => p.code)).toEqual([CODE_S3_MODULE]);
   });
 });

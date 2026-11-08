@@ -13,11 +13,9 @@
  * microsd-card-element.
  */
 
-import { type PartContext, type PartInput, type PartModel, type PartStorage, type StoredFile, Strength, type VisualState } from '@benchtop/core';
+import { FatVolume, formatFat32, type PartContext, type PartInput, type PartModel, type PartStorage, SparseBlocks, type StoredFile, Strength, type VisualState } from '@benchtop/core';
 import { MM_PER_PX } from '../categories.ts';
 import { definePart } from '../define.ts';
-import { SparseBlocks } from './blocks.ts';
-import { FatVolume, formatFat32 } from './fat.ts';
 import { SD_BLOCKS, SdCard } from './sd-card.ts';
 import { base64Decode, base64Encode, utf8Encode, utf8Text } from './text.ts';
 

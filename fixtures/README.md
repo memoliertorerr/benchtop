@@ -50,7 +50,10 @@ fixtures/firmware/esp32s3/<name>.bin|.partitions.bin|.syms.tsv  the same for the
                                               USBMode=default,CDCOnBoot=cdc — Serial on
                                               TinyUSB's CDC port over USB-OTG; usb-keys (HID
                                               keyboard, mouse, media keys) and usb-midi
-                                              (TinyUSB's MIDI class), the same options)
+                                              (TinyUSB's MIDI class), the same options;
+                                              usb-drive (USBMSC over a FAT12 RAM disk), the
+                                              same options; flash-info, FlashSize=16M — also
+                                              esp32/flash-info)
 fixtures/firmware/pico*/debug-demo.syms.tsv   the same for the Pico and Pico 2 debug-demos only (the
                                               debugger's tests; `SYMBOL_SKETCHES` in fixture-boards.ts)
 fixtures/firmware/pico/<name>.uf2             Raspberry Pi Pico firmware (arduino-pico 6.2.0; the

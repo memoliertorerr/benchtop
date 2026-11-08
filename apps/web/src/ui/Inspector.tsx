@@ -155,7 +155,7 @@ export function Inspector() {
                   </option>
                 ))}
               </select>
-              <span class="muted panel-note">Sketches build for it: a module with PSRAM builds with its PSRAM (no comment line needed), one without builds without. On auto, a line <code>// benchtop: psram</code> in the sketch asks for PSRAM.</span>
+              <span class="muted panel-note">Sketches build for it: its PSRAM (no comment line needed) and its flash size. On auto, a line <code>// benchtop: psram</code> in the sketch asks for PSRAM, and the flash is what the build says.</span>
             </label>
           );
         }

@@ -56,6 +56,8 @@ export const S3_RMT_TX = 4;
 export interface Esp32s3SocOptions {
   /** Flash size in bytes (a multiple of 64 KB; 4 MB by default — what the flash chip's JEDEC id says and Arduino's default build assumes). */
   flashSize?: number;
+  /** BT143: the flash chip's size as its ID says (the board's module); default: the flash's own. */
+  flashChipBytes?: number;
   /** The eFuse's factory MAC (S3_EFUSE_MAC by default). */
   mac?: readonly number[];
   /** Reference time to start at (a reset builds a fresh chip at the time the old one stopped). */
@@ -168,6 +170,7 @@ export class Esp32s3Soc implements SocContext, S3BusParts {
     this.time = options.time ?? 0;
     this.coreTime.fill(this.time);
     this.flash = new FlashChip(options.flashSize ?? DEFAULT_FLASH_SIZE);
+    this.flash.chipBytes = options.flashChipBytes ?? null;
     this.system = new S3SystemRegs(this.matrix, this.memory.rtcFast);
     this.system.onClock = (cpu, apb) => this.setClock(cpu, apb);
     this.system.onAppCpu = (running) => this.setAppRunning(running);

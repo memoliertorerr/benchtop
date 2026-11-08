@@ -158,3 +158,18 @@ describe('the S3’s USB host on the bench (BT138)', () => {
   });
 });
 
+describe('the S3\u2019s USB drive on the bench (BT141)', () => {
+  it('usb-drive: the drive is the board\u2019s storage (Bench.storage), and bench.usbOf names it', () => {
+    const { bench, runTo, serial } = load([{ id: 'btn', type: 'pushbutton', x: -30, y: 10, rotation: 0, props: {} }], [wire('w1', 'btn', '1.l', 's3', 'IO4'), wire('w2', 'btn', '2.l', 's3', 'GND.1')], 'usb-drive');
+    expect(bench.storage('s3')).toBeUndefined();
+    runTo(600);
+    expect(bench.usbOf('s3')?.drive).toMatchObject({ state: 'mounted', fileSystem: 'FAT12', label: 'S3 DRIVE', bytes: 65536 });
+    const storage = bench.storage('s3');
+    expect(storage?.list().map((f) => f.path)).toEqual(['README.TXT', 'COUNT.TXT']);
+    expect(storage?.write('CONFIG.TXT', new TextEncoder().encode('led=blue'))).toBe(true);
+    runTo(1000);
+    expect(serial()).toContain('config led=blue\nled blue\n');
+    expect(bench.problems().filter((p) => p.severity !== 'info')).toEqual([]);
+  });
+});
+

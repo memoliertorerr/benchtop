@@ -17,9 +17,10 @@
  * (GET_DESCRIPTOR(report), then SET_IDLE(0) as computers send it) and its interrupt IN endpoint
  * polled every bInterval frames, the reports decoded by usb-hid.ts; a MIDI streaming interface
  * (audio class, subclass 3) has its bulk IN endpoint read as CDC's is, the packets decoded by
- * usb-midi.ts. What they send goes to `log` (usb-log.ts: typed text and events). Interfaces of
- * other classes (mass storage, audio streaming, DFU, vendor…) enumerate and are named once
- * through `onNote`; nothing drives them.
+ * usb-midi.ts. What they send goes to `log` (usb-log.ts: typed text and events). BT141: a mass
+ * storage interface (class 8, SCSI, Bulk-Only) becomes `drive` (usb-msc.ts), mounted as a computer
+ * mounts a flash drive. Interfaces of other classes (audio streaming, DFU, vendor…) enumerate and
+ * are named once through `onNote`; nothing drives them.
  *
  * Time: `frame()` is the 1 ms start-of-frame; `service()` runs whatever can make progress now and
  * is called on each frame and whenever the device changes something the host waits for (`kick` on
@@ -31,6 +32,7 @@
 /** A transaction's outcome besides a length or ACK. */
 import { HidDecoder, parseHidReports } from './usb-hid.ts';
 import { MidiDecoder } from './usb-midi.ts';
+import { MscDrive } from './usb-msc.ts';
 import { UsbLog } from './usb-log.ts';
 
 export const USB_NAK = -1;
@@ -155,6 +157,10 @@ export class UsbHost {
   private readonly txPacket = new Uint8Array(64);
   private readonly hids: HidInterface[] = [];
   private readonly midis: MidiInterface[] = [];
+  /** BT141: the first mass storage interface found (Bulk-Only, SCSI), before it starts. */
+  private mscFound: { iface: number; bulkIn: number; bulkOut: number; outSize: number } | null = null;
+  /** BT141: the device's USB drive, once the host runs it. */
+  drive: MscDrive | null = null;
   /** What the device offers, as the host drives it ("serial (CDC-ACM)", "keyboard", "MIDI", …). */
   private functionNames: string[] = [];
 
@@ -257,6 +263,7 @@ export class UsbHost {
         this.cdcIo();
         this.hidIo();
         this.midiIo();
+        this.drive?.service(this.port);
         return;
       default:
     }
@@ -269,6 +276,8 @@ export class UsbHost {
     this.cdcs.length = 0;
     this.hids.length = 0;
     this.midis.length = 0;
+    this.mscFound = null;
+    this.drive = null;
     this.functionNames = [];
     this.product = '';
   }
@@ -375,6 +384,8 @@ export class UsbHost {
     this.cdcs.length = 0;
     this.hids.length = 0;
     this.midis.length = 0;
+    this.mscFound = null;
+    this.drive = null;
     this.request(0x80, 6, 0x0100, 0, 64, null, (device) => {
       if (device === null || device.length < 8) return this.fail();
       this.ep0Size = device[7] === 8 || device[7] === 16 || device[7] === 32 || device[7] === 64 ? device[7] : 8;
@@ -424,6 +435,7 @@ export class UsbHost {
     let iface = -1;
     let ifaceClass = -1;
     let ifaceSubclass = -1;
+    let ifaceProtocol = -1;
     let pendingComm: { comm: number; notify: number; data: number } | null = null;
     const datas = new Map<number, { bulkIn: number; bulkOut: number; outSize: number }>();
     const comms: { comm: number; notify: number; data: number }[] = [];
@@ -436,6 +448,7 @@ export class UsbHost {
         iface = config[o + 2];
         ifaceClass = config[o + 5];
         ifaceSubclass = config[o + 6];
+        ifaceProtocol = config[o + 7];
         if (ifaceClass === 0x02 && ifaceSubclass === 0x02) {
           pendingComm = { comm: iface, notify: -1, data: -1 };
           comms.push(pendingComm);
@@ -447,6 +460,8 @@ export class UsbHost {
           if (!this.midis.some((m) => m.iface === iface)) this.midis.push({ iface, inEp: -1, decoder: new MidiDecoder(this.log) });
         } else if (ifaceClass === 0x01 && ifaceSubclass === 0x01) {
           // Audio control: the MIDI streaming interface's companion; nothing to read.
+        } else if (ifaceClass === 0x08 && ifaceSubclass === 0x06 && ifaceProtocol === 0x50 && this.mscFound === null) {
+          this.mscFound = { iface, bulkIn: -1, bulkOut: -1, outSize: 64 };
         } else if (!named.has(iface) && ifaceClass !== 0x02) {
           named.add(iface);
           const name = CLASS_NAMES.get(ifaceClass) ?? `class 0x${ifaceClass.toString(16).padStart(2, '0')}`;
@@ -480,6 +495,12 @@ export class UsbHost {
         } else if (ifaceClass === 0x01 && ifaceSubclass === 0x03 && kind === 2 && (address & 0x80) !== 0) {
           const midi = this.midis.find((m) => m.iface === iface);
           if (midi !== undefined && midi.inEp < 0) midi.inEp = address & 0x0f;
+        } else if (ifaceClass === 0x08 && kind === 2 && this.mscFound !== null && this.mscFound.iface === iface) {
+          if ((address & 0x80) !== 0) this.mscFound.bulkIn = address & 0x0f;
+          else {
+            this.mscFound.bulkOut = address & 0x0f;
+            this.mscFound.outSize = Math.min(64, size || 64);
+          }
         }
       }
       o += length;
@@ -505,8 +526,13 @@ export class UsbHost {
       notes.push(`its MIDI interface (${this.midis[i].iface}) has no bulk IN endpoint: the bench's USB host can't read it`);
       this.midis.splice(i, 1);
     }
+    if (this.mscFound !== null && (this.mscFound.bulkIn < 0 || this.mscFound.bulkOut < 0)) {
+      notes.push(`its mass storage interface (${this.mscFound.iface}) lacks a bulk endpoint: the bench's USB host can't read it`);
+      this.mscFound = null;
+    }
     this.functionNames = this.cdcs.map(() => 'serial (CDC-ACM)');
     if (this.midis.length > 0) this.functionNames.push('MIDI');
+    if (this.mscFound !== null) this.functionNames.push('drive (mass storage)');
     return notes;
   }
 
@@ -535,7 +561,7 @@ export class UsbHost {
   private openHids(): void {
     let left = this.hids.length;
     if (left === 0) {
-      this.started();
+      this.openDrive();
       return;
     }
     for (const hid of this.hids) {
@@ -553,10 +579,24 @@ export class UsbHost {
         }
         this.request(0x21, 0x0a, 0, hid.iface, 0, null, () => {
           left--;
-          if (left === 0) this.started();
+          if (left === 0) this.openDrive();
         });
       });
     }
+  }
+
+  /** BT141: the mass storage interface becomes the drive (it probes and mounts while running). */
+  private openDrive(): void {
+    const found = this.mscFound;
+    if (found !== null) {
+      this.drive = new MscDrive(found.iface, found.bulkIn, found.bulkOut, found.outSize, {
+        request: (type, request, value, index, length, out, done) => this.request(type, request, value, index, length, out, done),
+        frames: () => this.frames,
+        note: (message) => this.onNote?.(`${this.deviceName()}: ${message}`),
+      });
+      this.drive.start();
+    }
+    this.started();
   }
 
   private started(): void {

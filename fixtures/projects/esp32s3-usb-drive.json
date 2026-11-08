@@ -1,0 +1,57 @@
+{
+  "format": 1,
+  "name": "esp32s3-usb-drive",
+  "parts": [
+    {
+      "id": "s3",
+      "type": "esp32-s3-devkitc-1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "count",
+      "type": "pushbutton",
+      "x": -38,
+      "y": 4,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "count",
+        "pin": "2.r"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "IO4"
+      },
+      "color": "green",
+      "waypoints": []
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "count",
+        "pin": "1.l"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "GND.1"
+      },
+      "color": "black",
+      "waypoints": []
+    }
+  ],
+  "firmware": {
+    "s3": {
+      "kind": "file",
+      "name": "usb-drive.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

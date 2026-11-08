@@ -950,6 +950,19 @@
     "description": "A USB MIDI device on the S3's own USB (TinyUSB's MIDI class): two buttons play C4 and E4, the pot sends the volume controller. The board's USB section in the Inspector lists the MIDI messages the computer received."
   },
   {
+    "id": "esp32s3-usb-drive",
+    "title": "ESP32-S3 USB flash drive",
+    "category": "ESP32-S3",
+    "project": "esp32s3-usb-drive",
+    "boards": {
+      "s3": {
+        "firmware": "esp32s3/usb-drive.bin",
+        "sketch": "esp32s3/usb-drive"
+      }
+    },
+    "description": "The S3's RAM as a USB flash drive (Arduino's USBMSC over a FAT12 disk the sketch lays out): the bench's USB host mounts it, and the board's USB section in the Inspector lists its files. Write a CONFIG.TXT holding led=green there and the RGB LED follows; the button rewrites COUNT.TXT and makes the computer read the drive again."
+  },
+  {
     "id": "esp32-wifi-webserver",
     "title": "ESP32 WiFi web server",
     "category": "WiFi",

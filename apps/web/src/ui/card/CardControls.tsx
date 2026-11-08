@@ -14,7 +14,8 @@ import { editor, editorMessage } from '../../editor/app-store.ts';
 import { onVisuals, sim, simLoaded } from '../../sim/host.ts';
 import { baseName, formatSize, powerUpFiles, previewOf, withFiles, withoutFile } from './card-files.ts';
 
-function download(bytes: Uint8Array, filename: string): void {
+/** Saves `bytes` as a download named `filename` (BT142: the USB section's drive files too). */
+export function download(bytes: Uint8Array, filename: string): void {
   const url = URL.createObjectURL(new Blob([bytes as BlobPart]));
   const link = document.createElement('a');
   link.href = url;
@@ -23,7 +24,8 @@ function download(bytes: Uint8Array, filename: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
-async function readPicked(input: HTMLInputElement): Promise<[string, Uint8Array][]> {
+/** The files picked in a file input, read (and the input cleared for the next pick). */
+export async function readPicked(input: HTMLInputElement): Promise<[string, Uint8Array][]> {
   const files = [...(input.files ?? [])];
   input.value = '';
   return Promise.all(files.map(async (f): Promise<[string, Uint8Array]> => [f.name, new Uint8Array(await f.arrayBuffer())]));

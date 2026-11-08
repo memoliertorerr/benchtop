@@ -12,14 +12,18 @@ export interface ModuleChoice {
 
 export const BOARD_MODULES: Readonly<Record<string, readonly ModuleChoice[]>> = {
   'esp32-devkit-v1': [
-    { id: 'auto', label: 'auto — PSRAM if the build asks for it' },
-    { id: 'WROOM-32', label: 'ESP32-WROOM-32 — no PSRAM' },
-    { id: 'WROVER-E', label: 'ESP32-WROVER-E — 8 MB PSRAM (GPIO16/17 are its)' },
+    { id: 'auto', label: 'auto — the build decides (PSRAM, flash size)' },
+    { id: 'WROOM-32', label: 'ESP32-WROOM-32 — 4 MB flash, no PSRAM' },
+    { id: 'WROVER-E', label: 'ESP32-WROVER-E — 4 MB flash, 8 MB PSRAM (GPIO16/17 are its)' },
+    { id: 'WROOM-32E-N8', label: 'ESP32-WROOM-32E-N8 — 8 MB flash, no PSRAM' },
+    { id: 'WROOM-32E-N16', label: 'ESP32-WROOM-32E-N16 — 16 MB flash, no PSRAM' },
+    { id: 'WROVER-E-N16R8', label: 'ESP32-WROVER-E-N16R8 — 16 MB flash, 8 MB PSRAM (GPIO16/17 are its)' },
   ],
   'esp32-s3-devkitc-1': [
-    { id: 'auto', label: 'auto — PSRAM if the build asks for it' },
-    { id: 'N8', label: 'N8 — no PSRAM' },
-    { id: 'N8R2', label: 'N8R2 — 2 MB quad PSRAM' },
-    { id: 'N8R8', label: 'N8R8 — 8 MB octal PSRAM' },
+    { id: 'auto', label: 'auto — the build decides (PSRAM, flash size)' },
+    { id: 'N8', label: 'N8 — 8 MB flash, no PSRAM' },
+    { id: 'N8R2', label: 'N8R2 — 8 MB flash, 2 MB quad PSRAM' },
+    { id: 'N8R8', label: 'N8R8 — 8 MB flash, 8 MB octal PSRAM (IO35–37 are its)' },
+    { id: 'N16R8', label: 'N16R8 — 16 MB flash, 8 MB octal PSRAM (IO35–37 are its)' },
   ],
 };

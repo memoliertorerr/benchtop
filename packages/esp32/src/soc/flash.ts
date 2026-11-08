@@ -1,5 +1,7 @@
 /**
- * The SPI flash chip (BT32): a Winbond-style 4 MB part, JEDEC ID EF 40 16, over the bytes the
+ * The SPI flash chip (BT32): a Winbond-style part, JEDEC ID EF 40 xx (BT143: xx the density as a
+ * power of two — 16 for 4 MB, 17 for 8 MB, 18 for 16 MB — of `chipBytes`, the board's module, or
+ * else of the flash the image asked for), over the bytes the
  * cache also reads (EspMemory.flash). Status register: WIP (bit 0), WEL (bit 1), QE (bit 9 —
  * status register 2 bit 1); program and erase need WEL and clear it. Program ANDs bits within one
  * 256-byte page (the address wraps inside the page, as the datasheet says); erase sets 4 KB
@@ -13,6 +15,11 @@
 import type { ProblemLog } from './periph.ts';
 
 export const JEDEC_ID = [0xef, 0x40, 0x16] as const;
+
+/** BT143: a JEDEC ID's density byte for `bytes` (a power of two): 4 MB → 0x16. */
+export function densityOf(bytes: number): number {
+  return 31 - Math.clz32(bytes);
+}
 
 /**
  * Reference cycles (240 MHz) one 32-byte cache block fill takes over SPI (BT33), from the app
@@ -40,6 +47,8 @@ export class FlashChip {
   erased = 0;
   /** Flash [start, end) changed (BT37: the SoC drops predecoded code mapped there). */
   onWrite: ((start: number, end: number) => void) | null = null;
+  /** BT143: the chip's size as its ID reports it (the board's module), or null: the flash's own size. */
+  chipBytes: number | null = null;
 
   /** `bytes` returns the current flash array (the SoC may replace it). */
   constructor(bytes: () => Uint8Array, problems: ProblemLog) {
@@ -49,6 +58,11 @@ export class FlashChip {
 
   get size(): number {
     return this.bytesOf().length;
+  }
+
+  /** BT143: the JEDEC ID (manufacturer, type, density) RDID answers. */
+  jedecId(): readonly [number, number, number] {
+    return [JEDEC_ID[0], JEDEC_ID[1], densityOf(this.chipBytes ?? this.bytesOf().length)];
   }
 
   read(address: number, out: Uint8Array, length: number): void {
@@ -127,7 +141,7 @@ export class FlashChip {
         this.writeEnable(false);
         return true;
       case 0x9f: // RDID
-        for (let i = 0; i < misoLength; i++) miso[i] = i < 3 ? JEDEC_ID[i] : 0;
+        for (let i = 0; i < misoLength; i++) miso[i] = i < 3 ? this.jedecId()[i] : 0;
         return true;
       case 0x02: // PP
         this.program(address, mosi, mosiLength);

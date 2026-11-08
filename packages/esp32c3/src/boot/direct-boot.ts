@@ -62,7 +62,8 @@ export function directBoot(soc: Esp32c3Soc, options: C3DirectBootOptions): C3Dir
   const built = buildFlash(options.app, options.partitions, ESP32C3_CHIP, options.flash);
   if (!built.ok) return built;
   const layout = built.layout;
-  if (layout.flash.length > soc.flash.data.length) return { ok: false, error: `the image wants ${layout.flash.length >>> 20} MB of flash; the chip has ${soc.flash.data.length >>> 20} MB` };
+  // BT143: the flash holds what the image asks for (an 8 or 16 MB build).
+  if (layout.flash.length > soc.flash.data.length) soc.flash.data = layout.flash;
   // Plan the MMU first: every page of a flash segment, and no index used twice for different pages.
   const plan = new Map<number, number>();
   for (const segment of layout.image.segments) {

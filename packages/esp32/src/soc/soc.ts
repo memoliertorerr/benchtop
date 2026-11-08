@@ -83,6 +83,8 @@ export interface Esp32SocOptions {
   mac?: readonly number[];
   /** BT135: the module has PSRAM on CS1 (true by default: a PSRAM build finds it, as on a WROVER). */
   psram?: boolean;
+  /** BT143: the flash chip's size as its ID says (the board's module); default: the image's. */
+  flashChipBytes?: number;
 }
 
 export class Esp32Soc implements SocParts, SocContext, ResetSink, SleepSink {
@@ -218,6 +220,7 @@ export class Esp32Soc implements SocParts, SocContext, ResetSink, SleepSink {
     this.spi1 = new SpiFlashController(this.flash);
     this.spi1.cs1 = this.psram;
     this.psram.present = options.psram !== false;
+    this.flash.chipBytes = options.flashChipBytes ?? null;
     this.pads.psramRunning = () => this.psram.identified; // BT136
     this.psram.onIdentified = () => this.pads.watchPsram();
     this.rebootSlot = this.events.add(() => this.reboot());

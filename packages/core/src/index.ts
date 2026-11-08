@@ -12,3 +12,4 @@ export * from './netlist/index.ts';
 export * from './probe/index.ts';
 export * from './project/index.ts';
 export * from './signals/index.ts';
+export * from './storage/index.ts';

@@ -1,0 +1,30 @@
+{
+  "name": "example: esp32s3-usb-drive",
+  "project": "../../projects/esp32s3-usb-drive.json",
+  "firmware": {
+    "s3": "../../firmware/esp32s3/usb-drive.bin"
+  },
+  "steps": [
+    {
+      "at": "1s",
+      "part": "count",
+      "input": {
+        "kind": "press"
+      }
+    },
+    {
+      "at": "1.1s",
+      "part": "count",
+      "input": {
+        "kind": "release"
+      }
+    }
+  ],
+  "expect": [
+    "serial contains \"usb drive ready\" by 500ms",
+    "file s3 README.TXT contains \"an ESP32-S3's RAM\" by 700ms",
+    "file s3 COUNT.TXT contains \"count=0\" by 700ms",
+    "serial contains \"count 1\" by 1.2s",
+    "file s3 COUNT.TXT contains \"count=1\" by 4s"
+  ]
+}

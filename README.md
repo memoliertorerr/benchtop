@@ -74,12 +74,15 @@ USB-OTG port (a "USB-OTG (TinyUSB)" build's `Serial`, enumerated by the bench's 
 I2C controllers, SPI, and the board's RGB LED (a WS2812 on GPIO48 through the RMT); the debugger
 shows the core `loop()` runs on, and WiFi and sleep work as on the ESP32 (below). A build with
 PSRAM (the board menu's QSPI or OPI PSRAM) gets it: 2 MB quad or 8 MB octal, `ps_malloc` and
-PSRAM in the heap. The board's module (Inspector: auto, N8, N8R2 or N8R8) says which PSRAM it
-really has, and sketches compile for it; on auto, a sketch with a `// benchtop: psram` line
+PSRAM in the heap. The board's module (Inspector: auto, N8, N8R2, N8R8 or N16R8) says which PSRAM
+and how much flash it really has (8 or 16 MB: a build for more flash than the chip has stops at
+startup, as on a board), and sketches compile for it; on auto, a sketch with a `// benchtop: psram` line
 compiles with 8 MB octal PSRAM. One with `// benchtop: usb-otg` gets `Serial` on the S3's own USB,
-and the bench's USB host also reads its keyboards, mice, media keys and MIDI ports: the board's
+and the bench's USB host also reads its keyboards, mice, media keys and MIDI ports — the board's
 USB section in the Inspector shows the text typed and the events (`usb received "…"` in a test
-spec).
+spec) — and mounts its USB drives (USBMSC; FAT12, FAT16 or FAT32) as a computer does: their files
+are listed there to open, download, delete or add, and a test spec's `file <board> <path>
+contains "…"` reads them.
 On an N8R8, a wire on IO35–37 (its octal PSRAM's pins) gets a warning. Its ROM comes from the same download as
 the ESP32's.
 
@@ -102,7 +105,8 @@ running the real `.bin` image Arduino-ESP32 2.0.17 builds, on Espressif's real m
 - the SHA, AES and RSA accelerators, which mbedTLS's hashes, ciphers and big-number math run on;
 - PSRAM, as on a WROVER module: a build with the board menu's PSRAM enabled finds 4 MB of it in
   the heap (`ps_malloc`, `ESP.getPsramSize()`), through the cache; the board's module (Inspector:
-  auto, WROOM-32 or WROVER-E) says whether there is any, and sketches compile for it (on auto, a
+  auto, WROOM-32, WROVER-E, WROOM-32E-N8 or -N16, WROVER-E-N16R8) says whether there is any and
+  how much flash the chip has (4, 8 or 16 MB), and sketches compile for it (on auto, a
   `// benchtop: psram` line asks for PSRAM); a wire on the PSRAM's pins (GPIO16/17, also Serial2's
   default pins) gets a warning;
 - speed: a predecoded instruction cache (≈ 35–45 million instructions per second on an Apple
@@ -208,7 +212,7 @@ a microphone pitch meter, a VU meter; Power: a regulator meter (turn the bench s
 hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, an LED Preferences remember, a deep sleep wake counter, a PWM fader, NeoPixel, a
 rainbow ring, an OLED clock, a color TFT, a WROVER's frame buffer in PSRAM, the DAC, the microphone, an I2C scan; ESP32-C3: the RGB LED,
 serial, a potentiometer dimmer, an OLED clock; ESP32-S3: the RGB LED, serial, a potentiometer dimmer, an OLED clock, a deep sleep wake counter, a
-frame buffer in PSRAM on a color TFT, an RGB LED set over USB serial, a USB macro keypad, a USB MIDI controller; WiFi: an ESP32 web server switched by HTTP client
+frame buffer in PSRAM on a color TFT, an RGB LED set over USB serial, a USB macro keypad, a USB MIDI controller, a USB flash drive; WiFi: an ESP32 web server switched by HTTP client
 parts, an ESP32 hosting its own access point and web server, an ESP32-C3 and an ESP32-S3 web server that set their RGB LED, a Pico W and a Pico 2 W web server switching their onboard LEDs, a Pico W and an ESP32 HTTP client talking to a server part, two ESP32s over TCP, an NTP clock on an OLED;
 Raspberry Pi Pico:
 blink, a potentiometer, PWM steps, an OLED, a color TFT, both cores at once; Raspberry Pi Pico 2: the same, NeoPixels
@@ -372,8 +376,8 @@ Other clients take the same command in their JSON configuration:
 The tools: the part catalog (`list_parts`, `describe_part`), `validate_project`,
 `run_simulation`, `run_tests`, live sessions (`sim_open`, `sim_run`, `sim_input`, `sim_serial`,
 `sim_state` — what parts show, boards asleep, and what an ESP32-S3's USB host received,
-`sim_bus` — the decoded I2C/SPI/UART traffic, `sim_files` — a microSD card's
-files, `sim_storage` — a board's EEPROM, or an ESP32's Preferences, as the sketch left them,
+`sim_bus` — the decoded I2C/SPI/UART traffic, `sim_files` — a microSD card's or an ESP32-S3's
+USB drive's files, `sim_storage` — a board's EEPROM, or an ESP32's Preferences, as the sketch left them,
 `sim_wifi` — the access points and who joined them, `sim_http` — a request to a board's
 web server, `sim_update` — edit the circuit while
 it runs, `sim_reset`, `sim_close`, `sim_list`), the gallery (`list_examples`,

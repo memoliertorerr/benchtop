@@ -25,7 +25,6 @@
 import { SR } from '../xtensa/regs.ts';
 import type { Esp32Soc } from '../soc/soc.ts';
 import { CACHE_ENABLE, CACHE_MASK, FlashMmu } from '../soc/mmu.ts';
-import { JEDEC_ID } from '../soc/flash.ts';
 import { RESET_REASON } from '../soc/reset.ts';
 import { buildFlash, type FlashLayout, type FlashTarget } from './flash-image.ts';
 import { type RomImage, unpackRomData } from './rom.ts';
@@ -122,7 +121,8 @@ function bootImage(soc: Esp32Soc, layout: FlashLayout, reason: number): number {
   }
 
   // g_rom_flashchip: device_id as bootloader_read_flash_id returns it (manufacturer high).
-  const words = [(JEDEC_ID[0] << 16) | (JEDEC_ID[1] << 8) | JEDEC_ID[2], layout.flash.length, 0x10000, 0x1000, 0x100, 0xffff];
+  const id = soc.flash.jedecId(); // BT143: the module's chip
+  const words = [(id[0] << 16) | (id[1] << 8) | id[2], layout.flash.length, 0x10000, 0x1000, 0x100, 0xffff];
   words.forEach((w, i) => bus.write32(G_ROM_FLASHCHIP + i * 4, w));
 
   // The ROM's CPU-frequency variable (g_ticks_per_us, written by ets_update_cpu_frequency at
