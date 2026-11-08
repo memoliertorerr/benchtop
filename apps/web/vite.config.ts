@@ -1,10 +1,7 @@
 import { createReadStream, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
-import { MICROPYTHON_BUILDS, MICROPYTHON_CACHE_DIR } from '../../packages/rp2040/src/micropython-manifest.ts';
-import { ROM_CACHE_DIR, ROM_IMAGE } from '../../packages/rp2350/src/rom-manifest.ts';
-import { C3_ROM_CACHE_DIR, C3_ROM_ELF_NAME } from '../../packages/esp32c3/src/rom-manifest.ts';
-import { S3_ROM_CACHE_DIR, S3_ROM_ELF_NAME } from '../../packages/esp32s3/src/rom-manifest.ts';
+import { DOWNLOADS, missingText } from '../../scripts/downloads.ts';
 import { type BundleEntry, precacheScript, shellFiles } from './src/offline/shell.ts';
 
 // Cross-origin isolation lets the simulation worker share memory with the UI thread
@@ -18,47 +15,23 @@ const isolationHeaders = {
 const repoRoot = decodeURIComponent(new URL('../..', import.meta.url).pathname);
 
 /**
- * Dev only (BT34): the simulation worker fetches the ESP32 ROM ELF from /esp32-rom/, served
- * straight from the git-ignored .cache/esp32-rom that `npm run fetch:esp32-rom` fills. It is
- * never copied into dist; a missing file is a 404 the worker turns into a Problem.
+ * Dev only (BT34, BT63, BT66, BT94, BT126; one plugin since BT147): the simulation worker fetches
+ * the downloads scripts/downloads.ts lists — the ESP32, ESP32-C3 and ESP32-S3 ROMs, the RP2350
+ * bootrom, the MicroPython UF2s — from the git-ignored .cache their fetch scripts fill. Never part
+ * of the build: the bridge serves the same table for `npm start`. A missing file is a 404 the
+ * worker turns into a Problem.
  */
-function esp32Rom(): Plugin {
-  const file = resolve(repoRoot, '.cache/esp32-rom/esp32_rev0_rom.elf');
+function downloads(): Plugin {
   return {
-    name: 'benchtop-esp32-rom',
+    name: 'benchtop-downloads',
     apply: 'serve',
     configureServer(server) {
-      server.middlewares.use('/esp32-rom/esp32_rev0_rom.elf', (_req, res) => {
-        if (!existsSync(file)) {
-          res.statusCode = 404;
-          res.end('ESP32 ROM not installed: run npm run fetch:esp32-rom');
-          return;
-        }
-        res.setHeader('Content-Type', 'application/octet-stream');
-        res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
-        createReadStream(file).pipe(res);
-      });
-    },
-  };
-}
-
-/**
- * Dev only (BT63): the worker fetches the Pico's stock MicroPython UF2 from /micropython/,
- * served from the git-ignored .cache/micropython that `npm run fetch:micropython` fills — like
- * the ESP32 ROM, never part of the build; a missing file is a 404 MicroPython sketches report.
- */
-function micropython(): Plugin {
-  return {
-    name: 'benchtop-micropython',
-    apply: 'serve',
-    configureServer(server) {
-      // the Pico's and (BT67) the Pico 2's UF2s, by their pinned names only
-      for (const build of MICROPYTHON_BUILDS) {
-        const file = resolve(repoRoot, MICROPYTHON_CACHE_DIR, build.name);
-        server.middlewares.use(`/micropython/${build.name}`, (_req, res) => {
+      for (const download of DOWNLOADS) {
+        const file = resolve(repoRoot, download.file);
+        server.middlewares.use(download.path, (_req, res) => {
           if (!existsSync(file)) {
             res.statusCode = 404;
-            res.end('MicroPython not installed: run npm run fetch:micropython');
+            res.end(missingText(download));
             return;
           }
           res.setHeader('Content-Type', 'application/octet-stream');
@@ -66,78 +39,6 @@ function micropython(): Plugin {
           createReadStream(file).pipe(res);
         });
       }
-    },
-  };
-}
-
-/**
- * Dev only (BT66): the worker fetches the RP2350 bootrom from /rp2350-rom/, served from the
- * git-ignored .cache/rp2350-rom that `npm run fetch:rp2350-rom` fills; never part of the build.
- */
-function rp2350Rom(): Plugin {
-  const file = resolve(repoRoot, ROM_CACHE_DIR, ROM_IMAGE.name);
-  return {
-    name: 'benchtop-rp2350-rom',
-    apply: 'serve',
-    configureServer(server) {
-      server.middlewares.use(`/rp2350-rom/${ROM_IMAGE.name}`, (_req, res) => {
-        if (!existsSync(file)) {
-          res.statusCode = 404;
-          res.end('RP2350 bootrom not installed: run npm run fetch:rp2350-rom');
-          return;
-        }
-        res.setHeader('Content-Type', 'application/octet-stream');
-        res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
-        createReadStream(file).pipe(res);
-      });
-    },
-  };
-}
-
-/**
- * Dev only (BT94): the worker fetches the ESP32-C3 ROM from /esp32c3-rom/, served from the
- * git-ignored .cache/esp32c3-rom that `npm run fetch:esp32-rom` fills; never part of the build.
- */
-function esp32c3Rom(): Plugin {
-  const file = resolve(repoRoot, C3_ROM_CACHE_DIR, C3_ROM_ELF_NAME);
-  return {
-    name: 'benchtop-esp32c3-rom',
-    apply: 'serve',
-    configureServer(server) {
-      server.middlewares.use(`/esp32c3-rom/${C3_ROM_ELF_NAME}`, (_req, res) => {
-        if (!existsSync(file)) {
-          res.statusCode = 404;
-          res.end('ESP32-C3 ROM not installed: run npm run fetch:esp32-rom');
-          return;
-        }
-        res.setHeader('Content-Type', 'application/octet-stream');
-        res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
-        createReadStream(file).pipe(res);
-      });
-    },
-  };
-}
-
-/**
- * Dev only (BT126): the ESP32-S3 ROM from /esp32s3-rom/, as the C3's — .cache/esp32s3-rom, which
- * `npm run fetch:esp32-rom` fills; never part of the build.
- */
-function esp32s3Rom(): Plugin {
-  const file = resolve(repoRoot, S3_ROM_CACHE_DIR, S3_ROM_ELF_NAME);
-  return {
-    name: 'benchtop-esp32s3-rom',
-    apply: 'serve',
-    configureServer(server) {
-      server.middlewares.use(`/esp32s3-rom/${S3_ROM_ELF_NAME}`, (_req, res) => {
-        if (!existsSync(file)) {
-          res.statusCode = 404;
-          res.end('ESP32-S3 ROM not installed: run npm run fetch:esp32-rom');
-          return;
-        }
-        res.setHeader('Content-Type', 'application/octet-stream');
-        res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
-        createReadStream(file).pipe(res);
-      });
     },
   };
 }
@@ -162,7 +63,7 @@ export default defineConfig({
   oxc: {
     jsx: { runtime: 'automatic', importSource: 'preact' },
   },
-  plugins: [esp32Rom(), esp32c3Rom(), esp32s3Rom(), micropython(), rp2350Rom(), appShell()],
+  plugins: [downloads(), appShell()],
   worker: { format: 'es' },
   build: { target: 'es2023' },
   server: {

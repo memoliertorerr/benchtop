@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HidDecoder, type HidLayout, hidBits, parseHidReports } from './usb-hid.ts';
+import { HidDecoder, type HidLayout, type HidLockState, hidBits, parseHidReports } from './usb-hid.ts';
 import { UsbLog } from './usb-log.ts';
 
 // BT138: HID report descriptors (HID 1.11 §6.2.2) and what the host makes of the reports. The
@@ -77,6 +77,19 @@ describe('HID report descriptors (BT138)', () => {
     expect(vendor.reports.map((r) => [r.kind, r.bytes])).toEqual([['other', 64]]);
   });
 
+  it('BT145: a keyboard’s output report — its lock LEDs by usage, the report ID, constants and other usages skipped', () => {
+    const boot = parseHidReports(new Uint8Array([0x05, 0x01, 0x09, 0x06, 0xa1, 0x01, 0x05, 0x07, 0x19, 0xe0, 0x29, 0xe7, 0x15, 0x00, 0x25, 0x01, 0x75, 0x01, 0x95, 0x08, 0x81, 0x02, 0x95, 0x05, 0x05, 0x08, 0x19, 0x01, 0x29, 0x05, 0x91, 0x02, 0x95, 0x06, 0x75, 0x08, 0x25, 0x65, 0x05, 0x07, 0x19, 0x00, 0x29, 0x65, 0x81, 0x00, 0xc0])) as HidLayout;
+    expect(boot.leds).toEqual({ id: 0, bytes: 1, num: 0, caps: 1, scroll: 2 });
+    // ID 1, a constant bit first, then Caps Lock and Num Lock listed out of order; Scroll Lock absent.
+    const ids = parseHidReports(new Uint8Array([...KEYBOARD.slice(0, -1), 0x95, 0x01, 0x75, 0x01, 0x91, 0x01, 0x05, 0x08, 0x09, 0x02, 0x09, 0x01, 0x95, 0x02, 0x91, 0x02, 0x95, 0x05, 0x91, 0x01, 0xc0])) as HidLayout;
+    expect(ids.leds).toEqual({ id: 1, bytes: 1, num: 2, caps: 1, scroll: -1 });
+    expect(ids.reports.map((r) => [r.id, r.kind, r.bytes])).toEqual([[1, 'keyboard', 8]]);
+    // Outputs of other pages (a vendor's) aren't LEDs; the composite descriptor has none.
+    expect((parseHidReports(new Uint8Array([0x06, 0x00, 0xff, 0x09, 0x01, 0xa1, 0x01, 0x75, 0x08, 0x95, 0x08, 0x09, 0x01, 0x91, 0x02, 0xc0])) as HidLayout).leds).toBeNull();
+    expect((parseHidReports(COMPOSITE) as HidLayout).leds).toBeNull();
+    expect(parseHidReports(new Uint8Array([0x75, 0x08, 0x95, 0xff, 0x96, 0xff, 0x7f, 0x91, 0x02]))).toBe('output report 0 too large');
+  });
+
   it('refuses broken descriptors without throwing: truncated, unbalanced, report ID 0, too deep, a pop without a push, too long', () => {
     expect(parseHidReports(new Uint8Array([0x05]))).toBe('truncated item at byte 0');
     expect(parseHidReports(new Uint8Array([0xc0]))).toBe('an end of collection without a collection');
@@ -86,7 +99,7 @@ describe('HID report descriptors (BT138)', () => {
     expect(parseHidReports(new Uint8Array([0xb4]))).toBe('a pop without a push');
     expect(parseHidReports(new Uint8Array(5000))).toBe('report descriptor of 5000 bytes (at most 4096)');
     expect(parseHidReports(new Uint8Array([0x75, 0x08, 0x95, 0xff, 0x96, 0xff, 0x7f, 0x81, 0x02]))).toBe('report 0 too large');
-    expect(parseHidReports(new Uint8Array([0xfe, 0x02, 0x10, 0xaa, 0xbb]))).toEqual({ ids: false, reports: [] }); // a long item, skipped
+    expect(parseHidReports(new Uint8Array([0xfe, 0x02, 0x10, 0xaa, 0xbb]))).toEqual({ ids: false, reports: [], leds: null }); // a long item, skipped
   });
 
   it('bits LSB first, across bytes, sign-extended when the range is signed', () => {
@@ -123,6 +136,27 @@ describe('HID reports as a computer sees them (BT138)', () => {
     send(1, 0, 0, 0x52, 0x2c, 0x2d, 0x59, 0x2b, 0); // Up, space, -, keypad 1, Tab
     expect(log.typed).toBe('Hi1?!A\n[F1][Ctrl+C][Ctrl+Alt+Del][GUI+2][Up] -1\t');
     expect(log.events).toEqual([]);
+  });
+
+  it('BT145: the lock keys toggle the host’s shared state (none is typed); Caps Lock reads it', () => {
+    const layout = parseHidReports(COMPOSITE) as HidLayout;
+    const log = new UsbLog(() => 0);
+    const toggled: string[] = [];
+    const locks: HidLockState & { caps: boolean } = {
+      caps: true, // another keyboard turned it on
+      toggle(lock) {
+        toggled.push(lock);
+        if (lock === 'caps') this.caps = !this.caps;
+      },
+    };
+    const hid = new HidDecoder(layout, log, locks);
+    const send = (...bytes: number[]) => hid.report(new Uint8Array(bytes), bytes.length);
+    send(1, 0, 0, 0x04, 0, 0, 0, 0, 0); // a, Caps Lock on
+    send(1, 0, 0, 0x53, 0x47, 0, 0, 0, 0); // Num Lock and Scroll Lock
+    send(1, 0, 0, 0x39, 0, 0, 0, 0, 0); // Caps Lock
+    send(1, 0, 0, 0x04, 0, 0, 0, 0, 0);
+    expect(toggled).toEqual(['num', 'scroll', 'caps']);
+    expect(log.typed).toBe('Aa');
   });
 
   it('mouse: buttons down and up, moves merged into one line while it keeps moving, the wheel and pan', () => {

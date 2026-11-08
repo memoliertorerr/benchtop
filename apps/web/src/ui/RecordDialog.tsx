@@ -65,9 +65,12 @@ export function RecordDialog() {
       </header>
       <div class="record-body">
         <p class="muted">
-          {test.steps.length} input{test.steps.length === 1 ? '' : 's'} over {seconds(test.durationNs)}, replayed at the same instants by{' '}
+          {test.steps.length} step{test.steps.length === 1 ? '' : 's'} over {seconds(test.durationNs)}, replayed at the same instants by{' '}
           <code>npm run bench -- test</code>.
-          {test.dropped > 0 ? ` ${test.dropped} inputs past the limit weren't kept.` : ''}
+          {test.dropped > 0 ? ` ${test.dropped} steps past the limit weren't kept.` : ''}
+          {test.droppedFiles > 0 ? ` ${test.droppedFiles} file write${test.droppedFiles === 1 ? '' : 's'} over 256 KB weren't kept.` : ''}
+          {Object.keys(test.cards).length > 0 ? ` The spec's circuit starts ${Object.keys(test.cards).join(', ')} with the files ${Object.keys(test.cards).length === 1 ? 'it' : 'they'} held when recording began.` : ''}
+          {test.cardsNotKept.length > 0 ? ` ${test.cardsNotKept.join(', ')} held more than 256 KB of files when recording began, so the replay starts ${test.cardsNotKept.length === 1 ? 'it' : 'them'} from the project's files and may differ.` : ''}
         </p>
         <label class="record-field">
           <span>Name</span>

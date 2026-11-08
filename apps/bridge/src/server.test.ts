@@ -6,6 +6,7 @@ import * as CORE from '../../../packages/core/src/project/validate.ts';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { CompileResult } from './compile.ts';
 import * as SAFETY from './safety.ts';
+import { DOWNLOADS } from '../../../scripts/downloads.ts';
 import { type Bridge, createBridge } from './server.ts';
 
 interface Reply {
@@ -170,6 +171,77 @@ describe('bridge static files', () => {
     expect((await send(port, { path: '/../secret.txt' })).status).toBe(404);
     expect((await send(port, { path: '/%2e%2e/secret.txt' })).status).toBe(404);
     expect((await send(port, { path: '/a%00b' })).status).toBe(400);
+  });
+});
+
+describe('bridge downloads (BT147)', () => {
+  let bridge: Bridge;
+  let port: number;
+  const repo = join(scratch, 'repo');
+  const elf = Buffer.from([0x7f, 0x45, 0x4c, 0x46, 1, 2, 3]);
+
+  beforeAll(async () => {
+    const root = join(scratch, 'dist-downloads');
+    mkdirSync(root, { recursive: true });
+    writeFileSync(join(root, 'index.html'), '<!doctype html><title>t</title>');
+    mkdirSync(join(repo, '.cache', 'esp32-rom'), { recursive: true });
+    writeFileSync(join(repo, '.cache', 'esp32-rom', 'esp32_rev0_rom.elf'), elf);
+    writeFileSync(join(repo, '.cache', 'esp32-rom', 'esp-rom-elfs-20241011.tar.gz'), 'not served');
+    bridge = createBridge({ cli: undefined, serveDir: root, downloadsRoot: repo });
+    port = await bridge.listen(0);
+  });
+  afterAll(() => bridge.close());
+
+  it('lists what the worker fetches: the ESP32, C3 and S3 ROMs, the RP2350 bootrom, both MicroPython UF2s', () => {
+    expect(DOWNLOADS.map((d) => [d.path, d.file])).toEqual([
+      ['/esp32-rom/esp32_rev0_rom.elf', '.cache/esp32-rom/esp32_rev0_rom.elf'],
+      ['/esp32c3-rom/esp32c3_rev3_rom.elf', '.cache/esp32c3-rom/esp32c3_rev3_rom.elf'],
+      ['/esp32s3-rom/esp32s3_rev0_rom.elf', '.cache/esp32s3-rom/esp32s3_rev0_rom.elf'],
+      ['/rp2350-rom/bootrom-combined.bin', '.cache/rp2350-rom/bootrom-combined.bin'],
+      [expect.stringMatching(/^\/micropython\/RPI_PICO-.*\.uf2$/), expect.stringMatching(/^\.cache\/micropython\/RPI_PICO-.*\.uf2$/)],
+      [expect.stringMatching(/^\/micropython\/RPI_PICO2-.*\.uf2$/), expect.stringMatching(/^\.cache\/micropython\/RPI_PICO2-.*\.uf2$/)],
+    ]);
+    // The dev server answers from the same table.
+    const vite = readFileSync(join(import.meta.dirname, '..', '..', 'web', 'vite.config.ts'), 'utf8');
+    expect(vite).toContain("import { DOWNLOADS, missingText } from '../../scripts/downloads.ts';");
+    expect(vite).toContain('plugins: [downloads(), appShell()]');
+  });
+
+  it('serves a download from .cache: its bytes, octet-stream, same-origin CORP and isolation headers; HEAD without a body', async () => {
+    const got = await send(port, { path: '/esp32-rom/esp32_rev0_rom.elf' });
+    expect(got.status).toBe(200);
+    expect(got.body).toBe(elf.toString('utf8'));
+    expect(got.headers['content-type']).toBe('application/octet-stream');
+    expect(got.headers['content-length']).toBe('7');
+    expect(got.headers['cross-origin-resource-policy']).toBe('same-origin');
+    expect(got.headers['cross-origin-embedder-policy']).toBe('require-corp');
+    const head = await send(port, { method: 'HEAD', path: '/esp32-rom/esp32_rev0_rom.elf' });
+    expect(head.status).toBe(200);
+    expect(head.headers['content-length']).toBe('7');
+    expect(head.body).toBe('');
+  });
+
+  it('a missing download is a 404 naming its fetch command; other names in those folders, POST, a foreign Host or Origin are refused', async () => {
+    const missing = await send(port, { path: '/esp32s3-rom/esp32s3_rev0_rom.elf' });
+    expect(missing.status).toBe(404);
+    expect(missing.body).toBe('ESP32-S3 ROM not installed: run npm run fetch:esp32-rom');
+    expect((await send(port, { path: '/micropython/x.uf2' })).body).toMatch(/not found/);
+    expect((await send(port, { path: '/esp32-rom/esp-rom-elfs-20241011.tar.gz' })).status).toBe(404);
+    expect((await send(port, { path: '/esp32-rom/../esp32-rom/esp32_rev0_rom.elf' })).status).toBe(200); // the URL parser folds ..
+    expect((await send(port, { path: '/esp32-rom/' })).status).toBe(404);
+    expect((await send(port, { method: 'POST', path: '/esp32-rom/esp32_rev0_rom.elf', headers: ORIGIN, body: '{}' })).status).toBe(404);
+    expect((await send(port, { path: '/esp32-rom/esp32_rev0_rom.elf', headers: { host: 'evil.example' } })).status).toBe(403);
+    expect((await send(port, { path: '/esp32-rom/esp32_rev0_rom.elf', headers: { origin: 'http://evil.example' } })).status).toBe(403);
+  });
+
+  it('without a served folder (the dev server proxying /api), the bridge serves none', async () => {
+    const bare = createBridge({ cli: undefined, downloadsRoot: repo });
+    const barePort = await bare.listen(0);
+    try {
+      expect((await send(barePort, { path: '/esp32-rom/esp32_rev0_rom.elf' })).status).toBe(404);
+    } finally {
+      await bare.close();
+    }
   });
 });
 

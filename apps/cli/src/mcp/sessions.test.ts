@@ -311,6 +311,34 @@ describe('live sessions', () => {
     expect(asleep.sleeping?.s3.timerWakesAt).toMatch(/^5\d{3}ms$/);
   }, 120_000);
 
+  it('sim_usb (BT146): MIDI by note and by bytes to the synth, the lock keys to a keyboard; sim_state says what the device takes', async () => {
+    const server = testServer({ maxWallMs: 120_000 });
+    const synth = ((await tool(server, 'sim_open', { project: 'fixtures/projects/esp32s3-usb-synth.json', firmware: { s3: 'fixtures/firmware/esp32s3/usb-synth.bin' } })).value as { session: string }).session;
+    expect((await tool(server, 'sim_usb', { session: synth, note: 'A4' })).text).toMatch(/no USB device on the board's port/);
+    await tool(server, 'sim_run', { session: synth, untilSerial: 'usb synth ready', duration: '2s' });
+    expect((await tool(server, 'sim_usb', { session: synth, note: 'A4', velocity: 90 })).value).toMatchObject({ board: 's3', sent: '90 45 5A' });
+    expect((await tool(server, 'sim_usb', { session: synth, note: '69', off: true })).value).toMatchObject({ sent: '80 45 00' });
+    expect((await tool(server, 'sim_usb', { session: synth, note: 'C#5', channel: 2 })).value).toMatchObject({ sent: '91 49 64' });
+    expect((await tool(server, 'sim_usb', { session: synth, midi: 'B0 7B 00' })).value).toMatchObject({ sent: 'B0 7B 00' });
+    const run = (await tool(server, 'sim_run', { session: synth, duration: '100ms' })).value as Run;
+    expect(run.serial.s3).toContain('note on 69 90\nnote off 69\nnote on 73 100\ncc 123 0\n');
+    expect((await tool(server, 'sim_usb', { session: synth, note: 'H2' })).text).toMatch(/"H2" isn't a note/);
+    expect((await tool(server, 'sim_usb', { session: synth })).text).toMatch(/give one of "note", "midi" or "locks"/);
+    expect((await tool(server, 'sim_usb', { session: synth, midi: '90 3C', velocity: 5 })).text).toMatch(/"velocity", "channel" and "off" go with "note"/);
+    expect((await tool(server, 'sim_usb', { session: synth, midi: '90 3C' })).text).toMatch(/needs 2 data bytes/);
+    expect((await tool(server, 'sim_usb', { session: synth, midi: 'zz' })).text).toMatch(/MIDI bytes in hex/);
+    type Usb = { usb: Record<string, { takesMidi: boolean; keyboardLeds: boolean; locks: string[] }> };
+    expect(((await tool(server, 'sim_state', { session: synth, parts: [] })).value as Usb).usb.s3).toMatchObject({ takesMidi: true, keyboardLeds: false, locks: [] });
+    // A keyboard: the lock keys come back as its LEDs.
+    const keys = ((await tool(server, 'sim_open', { project: 'fixtures/projects/esp32s3-usb-keys.json', firmware: { s3: 'fixtures/firmware/esp32s3/usb-locks.bin' } })).value as { session: string }).session;
+    await tool(server, 'sim_run', { session: keys, untilSerial: 'usb locks ready', duration: '2s' });
+    expect((await tool(server, 'sim_usb', { session: keys, locks: ['caps', 'caps'] })).value).toMatchObject({ board: 's3', locks: ['caps'] });
+    expect(((await tool(server, 'sim_run', { session: keys, duration: '100ms' })).value as Run).serial.s3).toContain('leds num 0 caps 1 scroll 0\n');
+    expect(((await tool(server, 'sim_state', { session: keys, parts: [] })).value as Usb).usb.s3).toMatchObject({ takesMidi: false, keyboardLeds: true, locks: ['caps'] });
+    expect((await tool(server, 'sim_usb', { session: keys, note: 'C4' })).text).toMatch(/has no MIDI port to send to/);
+    expect((await tool(server, 'sim_usb', { session: keys, board: 'type', locks: [] })).text).toMatch(/no board "type" in the session/);
+  }, 120_000);
+
   it('limits: the session count, the duration and the wall-clock budget', async () => {
     const server = testServer({ maxSessions: 2, maxSimNs: 5e9 });
     await tool(server, 'sim_open', blink);

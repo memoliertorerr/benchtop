@@ -47,7 +47,7 @@ describe('sensors in the environment (BT55)', () => {
     expect(a0(t.lines().at(-1) ?? '')).toBeGreaterThan(a0(clean) + 200);
     expect(t.lines().at(-1)).toMatch(/alarm=1$/);
     expect(t.bench.envSample('gas', 'gas')).toBeGreaterThan(500);
-  });
+  }, 60_000); // seconds of a busy Uno; verify runs it beside every other file
 
   it('a flame sensor sees a candle to its left, not one behind it', () => {
     // The module (85, 0, 52.9 × 16.3) looks left from its centre (111.5, 8.1).

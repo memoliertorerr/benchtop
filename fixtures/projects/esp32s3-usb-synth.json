@@ -1,0 +1,57 @@
+{
+  "format": 1,
+  "name": "esp32s3-usb-synth",
+  "parts": [
+    {
+      "id": "s3",
+      "type": "esp32-s3-devkitc-1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "speaker",
+      "type": "speaker",
+      "x": -45,
+      "y": 12,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "speaker",
+        "pin": "1"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "IO5"
+      },
+      "color": "green",
+      "waypoints": []
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "speaker",
+        "pin": "2"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "GND.1"
+      },
+      "color": "black",
+      "waypoints": []
+    }
+  ],
+  "firmware": {
+    "s3": {
+      "kind": "file",
+      "name": "usb-synth.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

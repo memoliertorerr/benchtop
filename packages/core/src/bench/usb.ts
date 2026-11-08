@@ -4,7 +4,8 @@
  * keyboard typed and the other events (mouse, media keys, MIDI messages). For the hosts to show
  * (the Inspector's USB section, `sim_state`, a spec's `usb … received`). Not a contract: an MCU
  * with such a host opts in with `usbHost()`, found by `usesUsbHost`, as `usesSleep` finds
- * `sleepState`.
+ * `sleepState`. BT145: the host also sends — MIDI to the device and its lock keys' LEDs — through
+ * `UsbSending`, found by `usesUsbSending`.
  */
 
 import type { PartStorage } from './storage.ts';
@@ -26,6 +27,13 @@ export interface UsbDrive {
   readonly problem: string;
   /** Files the mount didn't read yet (past its 1 MB of data). */
   readonly unread: number;
+}
+
+/** BT145: the host's lock keys, one state for all its keyboards, as a computer's. */
+export interface UsbLocks {
+  readonly num: boolean;
+  readonly caps: boolean;
+  readonly scroll: boolean;
 }
 
 export interface UsbHostEvent {
@@ -52,6 +60,12 @@ export interface McuUsbHost {
   readonly now: number;
   /** BT141: the device's USB drive, or null when it has none. */
   readonly drive: UsbDrive | null;
+  /** BT145: the host's lock keys (a keyboard's lock key toggles one). */
+  readonly locks: UsbLocks;
+  /** BT145: the device has a keyboard that shows lock LEDs (its report takes them). */
+  readonly keyboardLeds: boolean;
+  /** BT145: the device has a MIDI port the host can send to. */
+  readonly midiIn: boolean;
 }
 
 /** An MCU with a USB host; `usbHost()` is null when its firmware never touched the port. */
@@ -72,6 +86,19 @@ export function usesUsbStorage(mcu: object): mcu is UsbStorageHosting {
   return typeof (mcu as Partial<UsbStorageHosting>).usbStorage === 'function';
 }
 
+/** BT145: an MCU whose USB host sends to the device: MIDI to its MIDI port, the lock keys' LEDs. */
+export interface UsbSending {
+  /** Whole MIDI 1.0 messages to the device's MIDI port; why not (no device, no MIDI port, malformed), or null. */
+  usbMidi(bytes: Uint8Array): string | null;
+  /** Sets the host's lock keys; each keyboard with lock LEDs gets its report. */
+  usbLocks(locks: UsbLocks): void;
+}
+
+export function usesUsbSending(mcu: object): mcu is UsbSending {
+  const m = mcu as Partial<UsbSending>;
+  return typeof m.usbMidi === 'function' && typeof m.usbLocks === 'function';
+}
+
 /** A board's USB host as the bench reports it: event times in bench nanoseconds. */
 export interface BoardUsb {
   readonly phase: McuUsbHost['phase'];
@@ -81,6 +108,9 @@ export interface BoardUsb {
   readonly events: readonly UsbHostEvent[];
   readonly dropped: number;
   readonly drive: UsbDrive | null;
+  readonly locks: UsbLocks;
+  readonly keyboardLeds: boolean;
+  readonly midiIn: boolean;
 }
 
 /** Whether a board's USB host received `needle`: in the typed text or an event's line. */

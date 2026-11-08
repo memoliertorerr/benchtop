@@ -8,10 +8,13 @@
  * each Input field's bit offset, size, count, usages and logical range, and what the report is,
  * by its top-level application collection — keyboard (Generic Desktop 6, keypad 7), mouse (2,
  * pointer 1), consumer control (Consumer 1), system control (Generic Desktop 0x80), gamepad (5,
- * joystick 4), or other. Output and feature reports aren't read (the host sends none).
+ * joystick 4), or other. BT145: of the output reports, a keyboard's lock LEDs (page 0x08: Num
+ * Lock 1, Caps Lock 2, Scroll Lock 3) are found — where the host puts its lock state; feature
+ * reports aren't read.
  *
  * `HidDecoder` turns each input report into what a computer shows (`UsbLog`): a keyboard's newly
- * pressed keys as text with a US layout (Shift and the host's Caps Lock; Enter a newline,
+ * pressed keys as text with a US layout (Shift and the host's Caps Lock — BT145: the lock keys
+ * toggle the host's state, which all its keyboards share, and aren't typed; Enter a newline,
  * Backspace deletes, other keys and Ctrl/Alt/GUI chords as "[F1]", "[Ctrl+C]"); a mouse's
  * buttons and moves ("mouse: left down", "mouse: moved +20 -10", merged while it keeps moving);
  * media and system keys as they go down ("media: Volume Up"); a gamepad's buttons and axes.
@@ -47,10 +50,30 @@ export interface HidReport {
   readonly bytes: number;
 }
 
+/** BT145: where a keyboard's output report keeps its lock LEDs. */
+export interface HidLeds {
+  /** The output report's ID (0: the device uses none). */
+  readonly id: number;
+  /** Data bytes (without the ID byte). */
+  readonly bytes: number;
+  /** The bit of Num Lock, Caps Lock and Scroll Lock in the data (−1: not in the report). */
+  readonly num: number;
+  readonly caps: number;
+  readonly scroll: number;
+}
+
 export interface HidLayout {
   /** Every input report starts with its ID byte. */
   readonly ids: boolean;
   readonly reports: readonly HidReport[];
+  /** BT145: the first output report with lock LEDs, or null. */
+  readonly leds: HidLeds | null;
+}
+
+/** BT145: the host's lock keys, one state its keyboards share; a keyboard's lock key toggles one. */
+export interface HidLockState {
+  readonly caps: boolean;
+  toggle(lock: 'num' | 'caps' | 'scroll'): void;
 }
 
 /** Limits on untrusted descriptors. */
@@ -105,6 +128,7 @@ export function parseHidReports(d: Uint8Array): HidLayout | string {
   /** Open collections: their full usage and whether each is an application collection. */
   const collections: { usage: number; app: boolean }[] = [];
   const reports = new Map<number, { kind: HidKind; fields: HidField[]; bits: number }>();
+  const outputs = new Map<number, { bits: number; num: number; caps: number; scroll: number }>();
   let ids = false;
   let fields = 0;
   for (let o = 0; o < d.length; ) {
@@ -153,6 +177,22 @@ export function parseHidReports(d: Uint8Array): HidLayout | string {
           logicalMax: Math.min(logicalMax, 2 ** 32 - 1),
         });
         report.bits += bits;
+      } else if (tag === 0x9) {
+        // BT145: an Output item. Its LED usages (page 0x08) are where the host puts its locks.
+        let out = outputs.get(g.id);
+        if (out === undefined) outputs.set(g.id, (out = { bits: 0, num: -1, caps: -1, scroll: -1 }));
+        const bits = g.size * g.count;
+        if (g.size > 32 || out.bits + bits > MAX_REPORT_BITS) return `output report ${g.id} too large`;
+        if ((data & 3) === 2 && g.size === 1) {
+          const list = usages.length === 0 && usageMin >= 0 ? range(usageMin, usageMax, g.count) : usages;
+          for (let i = 0; i < g.count && i < list.length; i++) {
+            const bit = out.bits + i;
+            if (list[i] === 0x80001 && out.num < 0) out.num = bit;
+            else if (list[i] === 0x80002 && out.caps < 0) out.caps = bit;
+            else if (list[i] === 0x80003 && out.scroll < 0) out.scroll = bit;
+          }
+        }
+        out.bits += bits;
       } else if (tag === 0xa) {
         if (collections.length >= MAX_DEPTH) return `collections nested deeper than ${MAX_DEPTH}`;
         collections.push({ usage: usages[0] ?? (usageMin >= 0 ? usageMin : 0), app: data === 1 });
@@ -160,7 +200,7 @@ export function parseHidReports(d: Uint8Array): HidLayout | string {
         if (collections.length === 0) return 'an end of collection without a collection';
         collections.pop();
       }
-      // Output (9) and Feature (0xB) reports aren't read.
+      // Feature (0xB) reports aren't read.
       usages = [];
       usageMin = -1;
       usageMax = -1;
@@ -211,7 +251,13 @@ export function parseHidReports(d: Uint8Array): HidLayout | string {
   if (collections.length !== 0) return 'a collection left open';
   const out: HidReport[] = [];
   for (const [id, r] of reports) out.push({ id, kind: r.kind, fields: r.fields, bytes: Math.ceil(r.bits / 8) });
-  return { ids, reports: out };
+  let leds: HidLeds | null = null;
+  for (const [id, o] of outputs) {
+    if (o.num < 0 && o.caps < 0 && o.scroll < 0) continue;
+    leds = { id, bytes: Math.ceil(o.bits / 8), num: o.num, caps: o.caps, scroll: o.scroll };
+    break;
+  }
+  return { ids, reports: out, leds };
 }
 
 function range(min: number, max: number, count: number): number[] {
@@ -339,6 +385,19 @@ const HAT = ['up', 'up-right', 'right', 'down-right', 'down', 'down-left', 'left
 
 const plus = (n: number): string => (n >= 0 ? `+${n}` : String(n));
 
+/** Lock keys for a decoder on its own (tests): toggled, never sent anywhere. */
+function ownLocks(): HidLockState {
+  const state = { num: false, caps: false, scroll: false };
+  return {
+    get caps() {
+      return state.caps;
+    },
+    toggle(lock) {
+      state[lock] = !state[lock];
+    },
+  };
+}
+
 /** One report's per-ID state between reports. */
 interface ReportState {
   readonly report: HidReport;
@@ -353,15 +412,16 @@ export class HidDecoder {
   readonly layout: HidLayout;
   private readonly log: UsbLog;
   private readonly states = new Map<number, ReportState>();
-  /** The host's Caps Lock (a keyboard's 0x39 toggles it). */
-  private caps = false;
+  /** BT145: the host's lock keys (its own, when the decoder runs alone). */
+  private readonly locks: HidLockState;
   /** A mouse's moves since its last other event, for the merged "moved" line. */
   private dx = 0;
   private dy = 0;
 
-  constructor(layout: HidLayout, log: UsbLog) {
+  constructor(layout: HidLayout, log: UsbLog, locks?: HidLockState) {
     this.layout = layout;
     this.log = log;
+    this.locks = locks ?? ownLocks();
     for (const report of layout.reports) this.states.set(report.id, { report, down: new Set(), buttons: 0, axes: '' });
   }
 
@@ -427,8 +487,8 @@ export class HidDecoder {
     const chord = [(mods & 0x11) !== 0 ? 'Ctrl' : '', (mods & 0x44) !== 0 ? 'Alt' : '', (mods & 0x88) !== 0 ? 'GUI' : ''].filter((m) => m !== '');
     for (const key of down) {
       if (state.down.has(key) || (key >= 0xe0 && key <= 0xe7)) continue;
-      if (key === 0x39) {
-        this.caps = !this.caps;
+      if (key === 0x39 || key === 0x53 || key === 0x47) {
+        this.locks.toggle(key === 0x39 ? 'caps' : key === 0x53 ? 'num' : 'scroll');
         continue;
       }
       if (chord.length > 0) {
@@ -439,7 +499,7 @@ export class HidDecoder {
         this.log.backspace();
         continue;
       }
-      const text = keyText(key, shift, this.caps);
+      const text = keyText(key, shift, this.locks.caps);
       this.log.type(text ?? `[${shift ? 'Shift+' : ''}${keyName(key)}]`);
     }
     state.down = down;

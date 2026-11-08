@@ -195,6 +195,77 @@ export const simSerial: Tool<SimContext> = {
   },
 };
 
+/** BT146: the board whose USB port the bench hosts (an ESP32-S3), named or the only one. */
+function usbBoard(session: Session, board: unknown): string {
+  const hosted = session.boards.filter((b) => CATALOG.get(session.doc.parts.find((p) => p.id === b)?.type ?? '')?.board?.mcu === 'esp32s3');
+  if (board === undefined) {
+    if (hosted.length !== 1) throw new ToolError(`say which board ("board"): the session's boards with a USB host are ${hosted.length === 0 ? 'none' : hosted.join(', ')}`);
+    return hosted[0];
+  }
+  if (typeof board !== 'string' || !hosted.includes(board)) throw new ToolError(typeof board === 'string' && session.boards.includes(board) ? `"${board}" has no USB port the bench hosts (an ESP32-S3 board has)` : `no board "${String(board)}" in the session`);
+  return board;
+}
+
+/** BT146: a note by name ("C4" — middle C, 60 —, "F#3", "Bb2") or its number ("60"). */
+export function midiNote(note: unknown): number | null {
+  if (typeof note !== 'string') return null;
+  if (/^\d{1,3}$/.test(note.trim())) return Number(note) <= 127 ? Number(note) : null;
+  const m = /^([A-Ga-g])([#b]?)(-1|[0-9])$/.exec(note.trim());
+  if (m === null) return null;
+  const n = { c: 0, d: 2, e: 4, f: 5, g: 7, a: 9, b: 11 }[m[1].toLowerCase() as 'c'] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0) + (Number(m[3]) + 1) * 12;
+  return n >= 0 && n <= 127 ? n : null;
+}
+
+export const simUsb: Tool<SimContext> = {
+  name: 'sim_usb',
+  title: 'Send to a board\'s USB device',
+  description:
+    'For an ESP32-S3 whose sketch uses its own USB (USB-OTG): the bench\'s USB host — the computer on that port — sends the device MIDI or sets its lock keys, as a computer does. Give one of: "note" — a note by name or number ("C4" is middle C, 60; "F#3", "Bb2") ("60" works too) with "velocity" (1–127, default 100), "channel" (1–16, default 1) and "off": true for its note off; "midi" — whole MIDI 1.0 messages as hex bytes ("90 3C 64 80 3C 00", SysEx "F0 … F7"); "locks" — the lock keys to have on, any of "num", "caps", "scroll" ([] for none), which each keyboard on the port gets as its LEDs (a keyboard\'s own lock keys toggle them too). sim_run then shows what the sketch did; sim_state\'s "usb" says whether the device takes MIDI and the locks.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      session: SESSION,
+      board: { type: 'string', maxLength: 64, description: 'Needed with several ESP32-S3 boards.' },
+      note: { type: 'string', maxLength: 4, description: 'A note: "C4", "F#3", "Bb2", or its number ("60").' },
+      velocity: { type: 'integer', minimum: 1, maximum: 127 },
+      channel: { type: 'integer', minimum: 1, maximum: 16 },
+      off: { type: 'boolean', description: 'Send the note\'s note off.' },
+      midi: { type: 'string', maxLength: 12_288, description: 'MIDI bytes in hex.' },
+      locks: { type: 'array', maxItems: 3, items: { type: 'string', enum: ['num', 'caps', 'scroll'] } },
+    },
+    required: ['session'],
+    additionalProperties: false,
+  },
+  annotations: { readOnlyHint: true, openWorldHint: false },
+  run(args, context) {
+    const session = context.sessions.get(args.session as string);
+    const board = usbBoard(session, args.board);
+    const given = [args.note, args.midi, args.locks].filter((v) => v !== undefined).length;
+    if (given !== 1) throw new ToolError('give one of "note", "midi" or "locks"');
+    const now = (): string => timeText(session.bench.now());
+    if (args.locks !== undefined) {
+      const on = args.locks as string[];
+      session.bench.setUsbLocks(board, { num: on.includes('num'), caps: on.includes('caps'), scroll: on.includes('scroll') });
+      return { session: session.id, now: now(), board, locks: [...new Set(on)] };
+    }
+    let bytes: number[];
+    if (args.midi !== undefined) {
+      const text = (args.midi as string).trim();
+      if (!/^[0-9a-fA-F]{2}(\s+[0-9a-fA-F]{2})*$/.test(text)) throw new ToolError('"midi" is MIDI bytes in hex, e.g. "90 3C 64"');
+      bytes = text.split(/\s+/).map((h) => Number.parseInt(h, 16));
+    } else {
+      const note = midiNote(args.note);
+      if (note === null) throw new ToolError(`"note" ${JSON.stringify(args.note)} isn't a note: a name such as "C4", "F#3" or "Bb2", or its number 0–127`);
+      const channel = ((args.channel as number | undefined) ?? 1) - 1;
+      bytes = args.off === true ? [0x80 | channel, note, 0] : [0x90 | channel, note, (args.velocity as number | undefined) ?? 100];
+    }
+    if (args.note === undefined && (args.velocity !== undefined || args.channel !== undefined || args.off !== undefined)) throw new ToolError('"velocity", "channel" and "off" go with "note"');
+    const why = session.bench.usbMidi(board, new Uint8Array(bytes));
+    if (why !== null) throw new ToolError(why);
+    return { session: session.id, now: now(), board, sent: bytes.map((b) => b.toString(16).toUpperCase().padStart(2, '0')).join(' ') };
+  },
+};
+
 export const simState: Tool<SimContext> = {
   name: 'sim_state',
   title: 'Read a live simulation\'s state',
@@ -243,6 +314,10 @@ export const simState: Tool<SimContext> = {
         typed: host.typed.slice(-2000),
         events: host.events.slice(-50).map((e) => ({ at: timeText(Math.round(e.at / 1e3) * 1e3), text: e.text })),
         ...(total > 50 ? { earlierEvents: total - 50 } : {}),
+        // BT146: what the host can send it (sim_usb), and its lock keys.
+        takesMidi: host.midiIn,
+        keyboardLeds: host.keyboardLeds,
+        locks: (['num', 'caps', 'scroll'] as const).filter((l) => host.locks[l]),
       };
     }
     return { session: session.id, now: timeText(session.bench.now()), parts, ...(Object.keys(pins).length > 0 ? { pins } : {}), ...(Object.keys(sleeping).length > 0 ? { sleeping } : {}), ...(Object.keys(usb).length > 0 ? { usb } : {}) };
@@ -634,4 +709,4 @@ export const simList: Tool<SimContext> = {
   },
 };
 
-export const SIM_TOOLS: readonly Tool<SimContext>[] = [simOpen, simRun, simInput, simSerial, simState, simBus, simFiles, simStorage, simWifi, simHttp, simUpdate, simReset, simClose, simList];
+export const SIM_TOOLS: readonly Tool<SimContext>[] = [simOpen, simRun, simInput, simSerial, simUsb, simState, simBus, simFiles, simStorage, simWifi, simHttp, simUpdate, simReset, simClose, simList];

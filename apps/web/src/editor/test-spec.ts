@@ -2,7 +2,8 @@
  * A recorded test as a `.bench.json` spec (BT50; the format is apps/cli/src/spec.ts). The
  * circuit goes in inline — the spec replays exactly what was recorded against — and the firmware
  * as paths the user names (the browser can't know where their builds live; they're relative to
- * where the spec is saved). Steps keep the recording's exact times. DOM-free: the dialog
+ * where the spec is saved). Steps keep the recording's exact times; a microSD card starts with
+ * the files it had when the recording began (BT144). DOM-free: the dialog
  * (ui/RecordDialog.tsx) and the Node tests share it.
  */
 
@@ -27,14 +28,19 @@ export interface SpecDraft {
 /** The spec's JSON value. */
 export function buildSpec(draft: SpecDraft): Record<string, unknown> {
   const boards = Object.keys(draft.firmware);
-  const steps = draft.test.steps.map((step) =>
-    'serial' in step
-      ? { at: timeText(step.at), ...(boards.length > 1 ? { board: step.board } : {}), serial: step.serial }
-      : { at: timeText(step.at), part: step.part, input: step.input },
-  );
+  const steps = draft.test.steps.map((step) => {
+    const at = timeText(step.at);
+    if ('serial' in step) return { at, ...(boards.length > 1 ? { board: step.board } : {}), serial: step.serial };
+    if ('input' in step) return { at, part: step.part, input: step.input };
+    const { at: _ns, ...file } = step; // BT144: write (text or base64) and remove steps are spec steps as they are
+    return { at, ...file };
+  });
+  // BT144: cards start with the files they had when the recording began (a reset keeps them).
+  const cards = draft.test.cards;
+  const project = Object.keys(cards).length === 0 ? draft.doc : { ...draft.doc, parts: draft.doc.parts.map((p) => (Object.hasOwn(cards, p.id) ? { ...p, props: { ...p.props, files: cards[p.id] } } : p)) };
   return {
     name: draft.name,
-    project: draft.doc,
+    project,
     firmware: { ...draft.firmware },
     duration: timeText(draft.test.durationNs),
     ...(steps.length > 0 ? { steps } : {}),

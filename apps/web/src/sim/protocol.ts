@@ -20,9 +20,10 @@ import type {
   SymbolTableData,
   VisualState,
   BoardUsb,
+  UsbLocks,
 } from '@benchtop/core';
 
-export const PROTOCOL_VERSION = 18; // BT139: `usb`
+export const PROTOCOL_VERSION = 20; // BT146: `usbSend`
 
 export type ToSim =
   | { type: 'hello'; protocol: number }
@@ -100,7 +101,13 @@ export type ToSim =
    */
   | { type: 'memory'; id: number; board: string; op: 'read' | 'erase' }
   /** BT139: a board's USB host (`Bench.usbOf`): what the device on its USB port sent. Answered by a `usb` message with the same `id`. */
-  | { type: 'usb'; id: number; board: string };
+  | { type: 'usb'; id: number; board: string }
+  /**
+   * BT146: the board's USB host sends its device whole MIDI messages (`Bench.usbMidi`) or sets
+   * its lock keys (`Bench.setUsbLocks`). Answered by a `usbSent` message with the same `id`.
+   */
+  | { type: 'usbSend'; id: number; board: string; midi: Uint8Array }
+  | { type: 'usbSend'; id: number; board: string; locks: UsbLocks };
 
 /** BT139: the answer to a `usb` request: the board's host view, or null when its firmware never started USB. */
 export interface UsbReply {
@@ -110,6 +117,15 @@ export interface UsbReply {
   ok: boolean;
   error?: string;
   usb?: BoardUsb | null;
+}
+
+/** BT146: the answer to a `usbSend` request: sent (queued for the device), or why not. */
+export interface UsbSentReply {
+  type: 'usbSent';
+  id: number;
+  board: string;
+  ok: boolean;
+  error?: string;
 }
 
 /** BT120: one sector of a board's saved EEPROM or flash data. */
@@ -163,7 +179,17 @@ export interface StorageReply {
 }
 
 /** A recorded step (BT50): a part input, or text typed into a board's serial monitor. */
-export type RecordedStep = { at: Nanos; part: string; input: PartInput } | { at: Nanos; board: string; serial: string };
+export type RecordedStep =
+  | { at: Nanos; part: string; input: PartInput }
+  | { at: Nanos; board: string; serial: string }
+  /** BT144: a file the Inspector wrote on a part's storage — its text when UTF-8, else base64. */
+  | { at: Nanos; part: string; write: string; text: string }
+  | { at: Nanos; part: string; write: string; base64: string }
+  /** BT144: a file or directory the Inspector removed. */
+  | { at: Nanos; part: string; remove: string }
+  /** BT146: MIDI the Inspector sent a board's USB device (hex bytes), or the lock keys it set. */
+  | { at: Nanos; board: string; midi: string }
+  | { at: Nanos; board: string; locks: ('num' | 'caps' | 'scroll')[] };
 
 /** A finished recording: its length, steps, and the expectations that held at its end. */
 export interface RecordedTest {
@@ -172,6 +198,15 @@ export interface RecordedTest {
   proposals: string[];
   /** Inputs past the recording's step limit (not kept). */
   dropped: number;
+  /** BT144: file writes bigger than a step holds (not kept). */
+  droppedFiles: number;
+  /**
+   * BT144: a microSD card whose files at the recording's start differ from the project's power-up
+   * files (a reset keeps a card's files) → its `files` prop then, so the replay starts from them.
+   */
+  cards: Record<string, string>;
+  /** BT144: cards whose files at the start held more than the `files` prop takes (the replay starts from the project's). */
+  cardsNotKept: string[];
 }
 
 /** Why a debuggable board is not running. */
@@ -268,4 +303,5 @@ export type FromSim =
   | StorageReply
   | MemoryReply
   | UsbReply
+  | UsbSentReply
   | { type: 'error'; message: string };

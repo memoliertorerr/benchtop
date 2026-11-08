@@ -2,24 +2,37 @@
  * Recording a test in the worker (BT50). "Record test" resets the bench and starts one of these;
  * every input the UI sends (button presses, knob and slider values, keypad keys) and every text
  * typed into a serial monitor is logged with the bench's simulated time — exact to the
- * nanosecond, so the CLI replays it at the same instants. Microphone samples are not recorded (a
+ * nanosecond, so the CLI replays it at the same instants. BT144: so is every file the Inspector
+ * writes or removes on a card or a USB drive, and (BT146) the MIDI and lock keys it sends a
+ * board's USB device. Microphone samples are not recorded (a
  * stream, not a step). Stop ends the recording on the next whole millisecond and proposes
  * expectations from what the bench shows then: the serial lines each board printed (by when they
  * had arrived), the LEDs lit, every non-blank LCD row, each servo's angle (±2°). The UI turns it
  * into a `.bench.json` spec (editor/test-spec.ts).
  */
 
-import { type Nanos, NS_PER_MS, type PartInput, type ProjectDoc, type VisualState } from '@benchtop/core';
+import { type Nanos, NS_PER_MS, type PartInput, type ProjectDoc, type UsbLocks, type VisualState } from '@benchtop/core';
+import { base64Encode, parseCardFiles, utf8Text } from '@benchtop/parts';
 import type { RecordedStep, RecordedTest } from './protocol.ts';
 
 /** Serial lines proposed per board (the most recent distinct ones). */
 export const MAX_PROPOSED_LINES = 8;
 /** Steps one recording keeps; inputs past it are dropped and the result says so. */
 export const MAX_RECORDED_STEPS = 10_000;
+/** BT144: bytes one recorded file write may hold — the CLI's MAX_FILE_STEP (a test checks they match). */
+export const MAX_RECORDED_FILE = 256 * 1024;
 /** Serial text kept per board for proposals. */
 const MAX_SERIAL_TEXT = 256 * 1024;
 
 const LCD_COLS: Readonly<Record<string, number>> = { lcd1602: 16, 'lcd1602-i2c': 16, lcd2004: 20, 'lcd2004-i2c': 20 };
+
+/** Whether two card `files` props put the same files on a card (paths match case-insensitively, as FAT's). */
+function sameFiles(a: string, b: string): boolean {
+  const files = (text: string): Map<string, string> => new Map(parseCardFiles(text).files.map(([path, bytes]) => [path.toUpperCase(), base64Encode(bytes)]));
+  const x = files(a);
+  const y = files(b);
+  return x.size === y.size && [...x].every(([path, bytes]) => y.get(path) === bytes);
+}
 
 /** A time as a spec writes it: whole ms or µs when exact, else ns. */
 export function timeText(ns: Nanos): string {
@@ -33,11 +46,25 @@ export function quoted(text: string): string {
   return `"${text.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`;
 }
 
+/** BT144: a card's files when a recording starts: its `files` prop value, or null when they don't fit one. */
+export interface CardAtStart {
+  part: string;
+  files: string | null;
+}
+
 export class TestRecording {
   private readonly steps: RecordedStep[] = [];
   private dropped = 0;
+  private droppedFiles = 0;
   /** Per board: text received so far, and each complete line with the time its newline arrived. */
   private readonly serial = new Map<string, { text: string; lines: { line: string; at: Nanos }[]; decoder: TextDecoder }>();
+
+  /** Each microSD card's files as the recording started (a bench reset keeps them). */
+  private readonly cards: readonly CardAtStart[];
+
+  constructor(cards: readonly CardAtStart[] = []) {
+    this.cards = cards;
+  }
 
   input(at: Nanos, part: string, event: PartInput): void {
     if (this.full()) return;
@@ -47,6 +74,39 @@ export class TestRecording {
   serialSend(at: Nanos, board: string, bytes: Uint8Array): void {
     if (this.full()) return;
     this.steps.push({ at, board, serial: new TextDecoder().decode(bytes) });
+  }
+
+  /** BT144: a file the Inspector wrote: text when the bytes are UTF-8, else base64; too big → not kept. */
+  fileWrite(at: Nanos, part: string, path: string, bytes: Uint8Array): void {
+    if (bytes.length > MAX_RECORDED_FILE) {
+      this.droppedFiles++;
+      return;
+    }
+    if (this.full()) return;
+    const text = utf8Text(bytes);
+    this.steps.push(text === null ? { at, part, write: path, base64: base64Encode(bytes) } : { at, part, write: path, text });
+  }
+
+  /** BT144: a file or directory the Inspector removed. */
+  fileRemove(at: Nanos, part: string, path: string): void {
+    if (this.full()) return;
+    this.steps.push({ at, part, remove: path });
+  }
+
+  /** BT146: MIDI the Inspector sent a board's USB device, as hex bytes. */
+  usbMidi(at: Nanos, board: string, bytes: Uint8Array): void {
+    if (this.full()) return;
+    this.steps.push({ at, board, midi: Array.from(bytes, (b) => b.toString(16).toUpperCase().padStart(2, '0')).join(' ') });
+  }
+
+  /** BT146: the lock keys the Inspector set on a board's USB host. */
+  usbLocks(at: Nanos, board: string, locks: UsbLocks): void {
+    if (this.full()) return;
+    const on: ('num' | 'caps' | 'scroll')[] = [];
+    if (locks.num) on.push('num');
+    if (locks.caps) on.push('caps');
+    if (locks.scroll) on.push('scroll');
+    this.steps.push({ at, board, locks: on });
   }
 
   /** Bytes a board printed, at the bench time they were flushed. */
@@ -101,7 +161,15 @@ export class TestRecording {
         }
       }
     }
-    return { durationNs: end, steps: this.steps, proposals, dropped: this.dropped };
+    const cards: Record<string, string> = {};
+    const cardsNotKept: string[] = [];
+    for (const card of this.cards) {
+      const part = doc.parts.find((p) => p.id === card.part);
+      if (part === undefined) continue;
+      if (card.files === null) cardsNotKept.push(card.part);
+      else if (!sameFiles(card.files, typeof part.props.files === 'string' ? part.props.files : '')) cards[card.part] = card.files;
+    }
+    return { durationNs: end, steps: this.steps, proposals, dropped: this.dropped, droppedFiles: this.droppedFiles, cards, cardsNotKept };
   }
 
   private full(): boolean {

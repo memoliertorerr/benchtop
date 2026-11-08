@@ -1,0 +1,29 @@
+{
+  "name": "example: esp32s3-usb-synth",
+  "project": "../../projects/esp32s3-usb-synth.json",
+  "firmware": {
+    "s3": "../../firmware/esp32s3/usb-synth.bin"
+  },
+  "steps": [
+    {
+      "at": "600ms",
+      "midi": "90 45 64"
+    },
+    {
+      "at": "900ms",
+      "midi": "80 45 00 90 48 40"
+    },
+    {
+      "at": "1200ms",
+      "midi": "B0 7B 00"
+    }
+  ],
+  "expect": [
+    "serial contains \"usb synth ready\" by 500ms",
+    "serial contains \"note on 69 100\" by 650ms",
+    "pin s3:IO5 frequency is 440 ±1% between 650ms and 900ms",
+    "serial contains \"note on 72 64\" by 950ms",
+    "pin s3:IO5 frequency is 523.25 ±1% between 950ms and 1200ms",
+    "serial contains \"cc 123 0\" by 1250ms"
+  ]
+}

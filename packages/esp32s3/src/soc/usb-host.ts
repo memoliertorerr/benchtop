@@ -22,6 +22,14 @@
  * mounts a flash drive. Interfaces of other classes (audio streaming, DFU, vendor…) enumerate and
  * are named once through `onNote`; nothing drives them.
  *
+ * BT145: the host talks back. Its Num, Caps and Scroll Lock are one state for all its keyboards,
+ * as a computer's: a keyboard's lock key toggles one (usb-hid.ts), and `setLocks` sets them. On
+ * every change each keyboard whose report descriptor declares lock LEDs gets its output report —
+ * on its interrupt OUT endpoint when it has one, else as SET_REPORT(Output) on endpoint 0 — and
+ * after configuration it gets one when a lock is on, as Linux sends it. `sendMidi` turns whole
+ * MIDI 1.0 messages into USB-MIDI packets (usb-midi.ts) for the first MIDI streaming interface
+ * with a bulk OUT endpoint, sent as fast as the device takes them.
+ *
  * Time: `frame()` is the 1 ms start-of-frame; `service()` runs whatever can make progress now and
  * is called on each frame and whenever the device changes something the host waits for (`kick` on
  * the controller's side). A transaction the device NAKs is retried on the next call; a control
@@ -30,8 +38,8 @@
  */
 
 /** A transaction's outcome besides a length or ACK. */
-import { HidDecoder, parseHidReports } from './usb-hid.ts';
-import { MidiDecoder } from './usb-midi.ts';
+import { HidDecoder, type HidLockState, parseHidReports } from './usb-hid.ts';
+import { encodeMidi, MidiDecoder } from './usb-midi.ts';
 import { MscDrive } from './usb-msc.ts';
 import { UsbLog } from './usb-log.ts';
 
@@ -103,13 +111,28 @@ interface HidInterface {
   interval: number;
   nextPoll: number;
   decoder: HidDecoder | null;
+  /** BT145: its interrupt OUT endpoint (−1: none — LED reports go as SET_REPORT) and packet size. */
+  outEp: number;
+  outSize: number;
+  /** BT145: the lock state changed since this keyboard's last LED report. */
+  ledsDirty: boolean;
 }
 
 /** BT138: a MIDI streaming interface the host reads. */
 interface MidiInterface {
   readonly iface: number;
   inEp: number;
+  /** BT145: its bulk OUT endpoint (−1: none) and packet size. */
+  outEp: number;
+  outSize: number;
   readonly decoder: MidiDecoder;
+}
+
+/** BT145: the host's lock keys as the bench reads them. */
+export interface HostLocks {
+  readonly num: boolean;
+  readonly caps: boolean;
+  readonly scroll: boolean;
 }
 
 /** What the host calls each kind of HID report it reads. */
@@ -163,11 +186,84 @@ export class UsbHost {
   drive: MscDrive | null = null;
   /** What the device offers, as the host drives it ("serial (CDC-ACM)", "keyboard", "MIDI", …). */
   private functionNames: string[] = [];
+  /** BT145: the host's lock keys, which its keyboards share (and toggle). */
+  private readonly lockState: HidLockState & { num: boolean; caps: boolean; scroll: boolean };
+  /** BT145: a keyboard's LED output report as it is sent. */
+  private readonly ledPacket = new Uint8Array(64);
+  /** BT145: USB-MIDI packets for the device (a ring of bytes, 4 a packet). */
+  private midiTx = new Uint8Array(1024);
+  private midiHead = 0;
+  private midiCount = 0;
+  private readonly midiPacket = new Uint8Array(64);
+  /** BT145: the MIDI streaming interface the host's MIDI goes to (the first with a bulk OUT). */
+  private midiOut: MidiInterface | null = null;
 
   /** `now`: the clock the log's events carry (the MCU's seconds). */
   constructor(port: UsbDevicePort, now: () => number = () => 0) {
     this.port = port;
     this.log = new UsbLog(now);
+    const host = this;
+    this.lockState = {
+      num: false,
+      caps: false,
+      scroll: false,
+      toggle(lock) {
+        this[lock] = !this[lock];
+        host.locksChanged();
+      },
+    };
+  }
+
+  /** BT145: the host's Num, Caps and Scroll Lock. */
+  get locks(): HostLocks {
+    return { num: this.lockState.num, caps: this.lockState.caps, scroll: this.lockState.scroll };
+  }
+
+  /** BT145: sets the host's lock keys; every keyboard with lock LEDs then gets its report. */
+  setLocks(locks: HostLocks): void {
+    const s = this.lockState;
+    if (s.num === locks.num && s.caps === locks.caps && s.scroll === locks.scroll) return;
+    s.num = locks.num;
+    s.caps = locks.caps;
+    s.scroll = locks.scroll;
+    this.locksChanged();
+  }
+
+  /** BT145: a keyboard (of the device's) whose report takes lock LEDs. */
+  get keyboardLeds(): boolean {
+    return this.state === STATE.RUNNING && this.hids.some((h) => (h.decoder?.layout.leds ?? null) !== null);
+  }
+
+  /** BT145: the device has a MIDI port the host can send to. */
+  get midiIn(): boolean {
+    return this.state === STATE.RUNNING && this.midiOut !== null;
+  }
+
+  /**
+   * BT145: whole MIDI 1.0 messages for the device's MIDI port, sent as USB-MIDI packets once it
+   * takes them; why not when it can't (no device running, no MIDI port, a malformed message).
+   */
+  sendMidi(bytes: Uint8Array): string | null {
+    if (this.state !== STATE.RUNNING) return 'no USB device is running on the port';
+    if (this.midiOut === null) return `${this.deviceName()} has no MIDI port to send to`;
+    const packets = encodeMidi(bytes);
+    if (typeof packets === 'string') return packets;
+    for (let i = 0; i < packets.length; i++) {
+      if (this.midiCount === this.midiTx.length) {
+        const grown = new Uint8Array(this.midiTx.length * 2);
+        for (let j = 0; j < this.midiCount; j++) grown[j] = this.midiTx[(this.midiHead + j) % this.midiTx.length];
+        this.midiTx = grown;
+        this.midiHead = 0;
+      }
+      this.midiTx[(this.midiHead + this.midiCount) % this.midiTx.length] = packets[i];
+      this.midiCount++;
+    }
+    return null;
+  }
+
+  /** BT145: the lock state changed: each keyboard with lock LEDs gets a report. */
+  private locksChanged(): void {
+    for (const hid of this.hids) if ((hid.decoder?.layout.leds ?? null) !== null) hid.ledsDirty = true;
   }
 
   /** BT138: where the host is: nothing attached, enumerating, running, or failed. */
@@ -280,6 +376,9 @@ export class UsbHost {
     this.drive = null;
     this.functionNames = [];
     this.product = '';
+    this.midiHead = 0;
+    this.midiCount = 0;
+    this.midiOut = null;
   }
 
   // ── Control transfers ─────────────────────────────────────────────────────────────────
@@ -455,9 +554,9 @@ export class UsbHost {
         } else if (ifaceClass === 0x0a) {
           if (!datas.has(iface)) datas.set(iface, { bulkIn: -1, bulkOut: -1, outSize: 64 });
         } else if (ifaceClass === 0x03) {
-          if (!this.hids.some((h) => h.iface === iface)) this.hids.push({ iface, reportLength: 0, inEp: -1, interval: 1, nextPoll: 0, decoder: null });
+          if (!this.hids.some((h) => h.iface === iface)) this.hids.push({ iface, reportLength: 0, inEp: -1, interval: 1, nextPoll: 0, decoder: null, outEp: -1, outSize: 64, ledsDirty: false });
         } else if (ifaceClass === 0x01 && ifaceSubclass === 0x03) {
-          if (!this.midis.some((m) => m.iface === iface)) this.midis.push({ iface, inEp: -1, decoder: new MidiDecoder(this.log) });
+          if (!this.midis.some((m) => m.iface === iface)) this.midis.push({ iface, inEp: -1, outEp: -1, outSize: 64, decoder: new MidiDecoder(this.log) });
         } else if (ifaceClass === 0x01 && ifaceSubclass === 0x01) {
           // Audio control: the MIDI streaming interface's companion; nothing to read.
         } else if (ifaceClass === 0x08 && ifaceSubclass === 0x06 && ifaceProtocol === 0x50 && this.mscFound === null) {
@@ -486,15 +585,22 @@ export class UsbHost {
             }
           }
         } else if (ifaceClass === 0x02 && pendingComm !== null && kind === 3 && (address & 0x80) !== 0) pendingComm.notify = address & 0x0f;
-        else if (ifaceClass === 0x03 && kind === 3 && (address & 0x80) !== 0) {
+        else if (ifaceClass === 0x03 && kind === 3) {
           const hid = this.hids.find((h) => h.iface === iface);
-          if (hid !== undefined && hid.inEp < 0) {
+          if (hid !== undefined && (address & 0x80) !== 0 && hid.inEp < 0) {
             hid.inEp = address & 0x0f;
             hid.interval = Math.max(1, config[o + 6]);
+          } else if (hid !== undefined && (address & 0x80) === 0 && hid.outEp < 0) {
+            hid.outEp = address & 0x0f; // BT145: where its LED reports go
+            hid.outSize = Math.min(64, size || 64);
           }
-        } else if (ifaceClass === 0x01 && ifaceSubclass === 0x03 && kind === 2 && (address & 0x80) !== 0) {
+        } else if (ifaceClass === 0x01 && ifaceSubclass === 0x03 && kind === 2) {
           const midi = this.midis.find((m) => m.iface === iface);
-          if (midi !== undefined && midi.inEp < 0) midi.inEp = address & 0x0f;
+          if (midi !== undefined && (address & 0x80) !== 0 && midi.inEp < 0) midi.inEp = address & 0x0f;
+          else if (midi !== undefined && (address & 0x80) === 0 && midi.outEp < 0) {
+            midi.outEp = address & 0x0f; // BT145: where the host's MIDI goes
+            midi.outSize = Math.min(64, size || 64);
+          }
         } else if (ifaceClass === 0x08 && kind === 2 && this.mscFound !== null && this.mscFound.iface === iface) {
           if ((address & 0x80) !== 0) this.mscFound.bulkIn = address & 0x0f;
           else {
@@ -522,10 +628,11 @@ export class UsbHost {
       this.hids.splice(i, 1);
     }
     for (let i = this.midis.length - 1; i >= 0; i--) {
-      if (this.midis[i].inEp >= 0) continue;
-      notes.push(`its MIDI interface (${this.midis[i].iface}) has no bulk IN endpoint: the bench's USB host can't read it`);
+      if (this.midis[i].inEp >= 0 || this.midis[i].outEp >= 0) continue;
+      notes.push(`its MIDI interface (${this.midis[i].iface}) has no bulk endpoints: the bench's USB host can't use it`);
       this.midis.splice(i, 1);
     }
+    this.midiOut = this.midis.find((m) => m.outEp >= 0) ?? null;
     if (this.mscFound !== null && (this.mscFound.bulkIn < 0 || this.mscFound.bulkOut < 0)) {
       notes.push(`its mass storage interface (${this.mscFound.iface}) lacks a bulk endpoint: the bench's USB host can't read it`);
       this.mscFound = null;
@@ -569,7 +676,10 @@ export class UsbHost {
         const layout = descriptor === null ? 'the device stalled GET_DESCRIPTOR(report)' : parseHidReports(descriptor);
         if (typeof layout === 'string') this.onNote?.(`${this.deviceName()}: its HID interface (${hid.iface}) can't be read: ${layout}`);
         else {
-          hid.decoder = new HidDecoder(layout, this.log);
+          hid.decoder = new HidDecoder(layout, this.log, this.lockState);
+          // BT145: a computer tells a new keyboard its locks when one is on (Linux does).
+          const s = this.lockState;
+          if (layout.leds !== null && (s.num || s.caps || s.scroll)) hid.ledsDirty = true;
           const kinds = hid.decoder.kinds();
           for (const kind of kinds) {
             const name = HID_KIND_NAMES[kind];
@@ -617,10 +727,11 @@ export class UsbHost {
 
   // ── HID and MIDI data (BT138) ─────────────────────────────────────────────────────────
 
-  /** Each HID interface's interrupt IN endpoint, once per its interval in frames. */
+  /** Each HID interface's interrupt IN endpoint, once per its interval in frames (BT145: its LEDs first). */
   private hidIo(): void {
     for (let i = 0; i < this.hids.length; i++) {
       const hid = this.hids[i];
+      if (hid.ledsDirty) this.sendLeds(hid);
       if (hid.decoder === null || this.frames < hid.nextPoll) continue;
       hid.nextPoll = this.frames + hid.interval;
       const n = this.port.in(hid.inEp, this.packet);
@@ -628,10 +739,51 @@ export class UsbHost {
     }
   }
 
-  /** Each MIDI streaming interface's bulk IN endpoint: 4-byte event packets. */
+  /**
+   * BT145: a keyboard's LED output report — the report ID first when the device uses IDs — on its
+   * interrupt OUT endpoint (again next time when NAKed), else as SET_REPORT(Output).
+   */
+  private sendLeds(hid: HidInterface): void {
+    const leds = hid.decoder?.layout.leds ?? null;
+    if (leds === null) {
+      hid.ledsDirty = false;
+      return;
+    }
+    const ids = leds.id !== 0;
+    const n = Math.min(this.ledPacket.length, leds.bytes + (ids ? 1 : 0));
+    const p = this.ledPacket;
+    p.fill(0, 0, n);
+    if (ids) p[0] = leds.id;
+    const base = ids ? 8 : 0;
+    const s = this.lockState;
+    if (s.num && leds.num >= 0) p[(base + leds.num) >> 3] |= 1 << ((base + leds.num) & 7);
+    if (s.caps && leds.caps >= 0) p[(base + leds.caps) >> 3] |= 1 << ((base + leds.caps) & 7);
+    if (s.scroll && leds.scroll >= 0) p[(base + leds.scroll) >> 3] |= 1 << ((base + leds.scroll) & 7);
+    if (hid.outEp >= 0 && n <= hid.outSize) {
+      const result = this.port.out(hid.outEp, p, n);
+      if (result === USB_NAK) return;
+      hid.ledsDirty = false;
+      if (result === USB_STALL) this.onNote?.(`${this.deviceName()}: its keyboard stalled the lock LEDs' report`);
+      return;
+    }
+    hid.ledsDirty = false;
+    this.request(0x21, 0x09, 0x0200 | leds.id, hid.iface, n, p.slice(0, n), () => {});
+  }
+
+  /** Each MIDI streaming interface's bulk IN endpoint: 4-byte event packets (BT145: and the host's out). */
   private midiIo(): void {
     for (let m = 0; m < this.midis.length; m++) {
       const midi = this.midis[m];
+      if (midi === this.midiOut && this.midiCount > 0) {
+        for (let i = 0; i < BURST && this.midiCount > 0; i++) {
+          const n = Math.min(this.midiCount, midi.outSize - (midi.outSize % 4));
+          for (let j = 0; j < n; j++) this.midiPacket[j] = this.midiTx[(this.midiHead + j) % this.midiTx.length];
+          if (this.port.out(midi.outEp, this.midiPacket, n) !== USB_ACK) break;
+          this.midiHead = (this.midiHead + n) % this.midiTx.length;
+          this.midiCount -= n;
+        }
+      }
+      if (midi.inEp < 0) continue;
       for (let i = 0; i < BURST; i++) {
         const n = this.port.in(midi.inEp, this.packet);
         if (n < 0) break;

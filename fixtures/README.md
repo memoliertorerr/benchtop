@@ -52,7 +52,10 @@ fixtures/firmware/esp32s3/<name>.bin|.partitions.bin|.syms.tsv  the same for the
                                               keyboard, mouse, media keys) and usb-midi
                                               (TinyUSB's MIDI class), the same options;
                                               usb-drive (USBMSC over a FAT12 RAM disk), the
-                                              same options; flash-info, FlashSize=16M — also
+                                              same options; usb-locks (a keyboard showing the
+                                              host's lock LEDs) and usb-synth (MIDI from the
+                                              host played on IO5), the same options;
+                                              flash-info, FlashSize=16M — also
                                               esp32/flash-info)
 fixtures/firmware/pico*/debug-demo.syms.tsv   the same for the Pico and Pico 2 debug-demos only (the
                                               debugger's tests; `SYMBOL_SKETCHES` in fixture-boards.ts)

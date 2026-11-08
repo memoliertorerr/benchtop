@@ -51,11 +51,11 @@ import {
   type VisualState,
 } from '@benchtop/core';
 import { decodeNvs, nvsPartitions } from '@benchtop/esp32';
-import { analogSpecFor, envSpecFor, netSpecFor } from '@benchtop/parts';
+import { analogSpecFor, cardFilesProp, envSpecFor, netSpecFor, SD_FILES_MAX } from '@benchtop/parts';
 import { createBenchEnv, type RecordingEnv } from './env.ts';
 import { createFrameRingBuffer, FrameRingWriter } from './frame-ring.ts';
 import { type BusChunk, type BusRow, type DebugStopReason, type FrameStats, type FromSim, type MemoryReply, type MemorySector, type ProbeChunk, PROTOCOL_VERSION, type StorageReply, type ToSim } from './protocol.ts';
-import { TestRecording } from './recording.ts';
+import { type CardAtStart, TestRecording } from './recording.ts';
 
 /** Most bus records decoded per frame (the newest; the rest are counted as lost). */
 const MAX_BUS_RECORDS = 1 << 16;
@@ -247,7 +247,7 @@ export class SimSession {
         return;
       case 'recordStart':
         this.resetBench();
-        this.recording = new TestRecording();
+        this.recording = new TestRecording(this.cardsAtStart());
         return;
       case 'recordStop':
         this.stopRecording();
@@ -309,6 +309,9 @@ export class SimSession {
         return;
       case 'usb':
         this.answerUsb(message);
+        return;
+      case 'usbSend':
+        this.answerUsbSend(message);
         return;
       case 'removeProbe': {
         const probe = this.probes.get(message.key);
@@ -476,6 +479,27 @@ export class SimSession {
     this.postFrame();
     this.postProblems(true);
     if (!this.running) this.postDebugStates('pause');
+  }
+
+  /** BT144: each microSD card's files now — a reset keeps them, and a recording's replay must start from them. */
+  private cardsAtStart(): CardAtStart[] {
+    const bench = this.requireBench();
+    const cards: CardAtStart[] = [];
+    for (const part of this.doc?.parts ?? []) {
+      if (part.type !== 'microsd-card') continue;
+      const storage = bench.storage(part.id);
+      if (storage === undefined) continue;
+      const files: [string, Uint8Array][] = [];
+      let total = 0;
+      for (const file of storage.list()) {
+        const bytes = file.dir ? undefined : storage.read(file.path);
+        if (bytes === undefined) continue;
+        total += bytes.length;
+        files.push([file.path, bytes]);
+      }
+      cards.push({ part: part.id, files: total > SD_FILES_MAX ? null : cardFilesProp(files) });
+    }
+    return cards;
   }
 
   /** Ends a recording on the next whole millisecond (paused there) and posts it. */
@@ -838,6 +862,25 @@ export class SimSession {
     }
   }
 
+  /** BT146: MIDI or the lock keys from a board's USB host to its device (recorded when sent). */
+  private answerUsbSend(message: Extract<ToSim, { type: 'usbSend' }>): void {
+    const base = { type: 'usbSent' as const, id: message.id, board: message.board };
+    const bench = this.bench;
+    if (bench === null) {
+      this.deps.post({ ...base, ok: false, error: 'nothing is loaded' }, []);
+      return;
+    }
+    let error: string | null;
+    try {
+      error = 'midi' in message ? bench.usbMidi(message.board, message.midi) : bench.setUsbLocks(message.board, message.locks);
+    } catch {
+      error = `"${message.board}" isn't a board`;
+    }
+    if (error === null && 'midi' in message) this.recording?.usbMidi(bench.now(), message.board, message.midi);
+    else if (error === null && 'locks' in message) this.recording?.usbLocks(bench.now(), message.board, message.locks);
+    this.deps.post(error === null ? { ...base, ok: true } : { ...base, ok: false, error }, []);
+  }
+
   /** BT120: a board's EEPROM or flash data — its sectors and what they hold — or erased. */
   private answerMemory(message: Extract<ToSim, { type: 'memory' }>): void {
     const reply = (ok: boolean, more: Partial<MemoryReply> = {}): void => {
@@ -900,12 +943,18 @@ export class SimSession {
         reply(bytes !== undefined, bytes === undefined ? { error: `no file "${message.path}"` } : { bytes: bytes.slice() });
         return;
       }
-      case 'write':
-        reply(storage.write(message.path, message.bytes), {});
+      case 'write': {
+        const ok = storage.write(message.path, message.bytes);
+        if (ok) this.recording?.fileWrite(this.requireBench().now(), message.part, message.path, message.bytes);
+        reply(ok, {});
         return;
-      case 'remove':
-        reply(storage.remove(message.path), {});
+      }
+      case 'remove': {
+        const ok = storage.remove(message.path);
+        if (ok) this.recording?.fileRemove(this.requireBench().now(), message.part, message.path);
+        reply(ok, {});
         return;
+      }
     }
   }
 

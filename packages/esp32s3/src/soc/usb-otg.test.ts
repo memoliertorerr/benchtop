@@ -199,8 +199,11 @@ describe('the bench’s USB host against a scripted device (BT134)', () => {
       }
       return USB_NAK;
     }
+    /** BT145: control transfers' data stages (host → device). */
+    readonly controlOut: number[][] = [];
     out(ep: number, data: Uint8Array, length: number): number {
       if (ep === 2) this.received.push(...data.subarray(0, length));
+      if (ep === 0 && length > 0) this.controlOut.push([...data.subarray(0, length)]);
       return USB_ACK;
     }
   }
@@ -238,6 +241,37 @@ describe('the bench’s USB host against a scripted device (BT134)', () => {
     host.send(new TextEncoder().encode('x'.repeat(100)));
     host.service();
     expect(device.received.length).toBe(100);
+  });
+
+  it('BT145: a keyboard without an interrupt OUT endpoint gets the lock LEDs as SET_REPORT(Output); its Num Lock key toggles the host’s', () => {
+    const device = new ScriptedDevice();
+    const host = new UsbHost(device);
+    host.setLocks({ num: false, caps: true, scroll: false }); // on before the keyboard arrives
+    const frames = (n: number) => {
+      for (let f = 0; f < n; f++) {
+        host.frame();
+        for (let i = 0; i < 4; i++) host.service();
+      }
+    };
+    frames(60);
+    expect(host.keyboardLeds).toBe(true);
+    expect(host.midiIn).toBe(false);
+    // After configuration, the state once (a lock is on): the boot keyboard's LEDs are bits 0–4, no report ID.
+    expect(device.requests.slice(12)).toEqual(['21 9 200 2 1']);
+    expect(device.controlOut.slice(-1)).toEqual([[0x02]]);
+    host.setLocks({ num: false, caps: true, scroll: false }); // unchanged: nothing sent
+    frames(5);
+    expect(device.requests.length).toBe(13);
+    device.reports.push([0, 0, 0x53, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0]); // Num Lock down, up
+    frames(30);
+    expect(host.locks).toEqual({ num: true, caps: true, scroll: false });
+    expect(host.log.typed).toBe(''); // a lock key isn't typed
+    expect(device.requests.slice(13)).toEqual(['21 9 200 2 1']);
+    expect(device.controlOut.slice(-1)).toEqual([[0x03]]);
+    host.setLocks({ num: false, caps: false, scroll: true });
+    frames(5);
+    expect(device.controlOut.slice(-1)).toEqual([[0x04]]);
+    expect(host.sendMidi(new Uint8Array([0x90, 60, 100]))).toBe('USB device "Pad!" has no MIDI port to send to');
   });
 });
 
@@ -356,6 +390,71 @@ describe('USB HID and MIDI builds on the S3 (BT138)', () => {
     ]);
     expect(usb.events[2].at - usb.events[1].at).toBeCloseTo(0.3, 1);
     expect(serial()).toContain('usb midi ready\r\nsent b0 07 00\nsent 90 3c 64\nsent 80 3c 00\n');
+    expect(notes).toEqual([]);
+  });
+
+  it('usb-locks (BT145): the host’s lock keys reach the keyboard as its LED report; its own Caps Lock key comes back the same way', () => {
+    const { mcu, notes, run, press, serial } = boot('usb-locks');
+    run(500);
+    expect(mcu.usbHost()).toMatchObject({ phase: 'running', functions: ['serial (CDC-ACM)', 'keyboard'], keyboardLeds: true, midiIn: false, locks: { num: false, caps: false, scroll: false } });
+    expect(serial()).toBe('usb locks ready\r\n');
+    mcu.usbLocks({ num: false, caps: true, scroll: false });
+    run(50);
+    expect(serial()).toBe('usb locks ready\r\nleds num 0 caps 1 scroll 0\n');
+    press(4);
+    expect(mcu.usbHost()!.typed).toBe('A');
+    press(5); // the keyboard's own Caps Lock: the host turns it off and tells the keyboard
+    expect(mcu.usbHost()!.locks).toEqual({ num: false, caps: false, scroll: false });
+    press(4);
+    expect(mcu.usbHost()!.typed).toBe('Aa');
+    mcu.usbLocks({ num: true, caps: false, scroll: true });
+    mcu.usbLocks({ num: true, caps: false, scroll: true }); // no change: no report
+    run(50);
+    expect(serial()).toBe('usb locks ready\r\nleds num 0 caps 1 scroll 0\nleds num 0 caps 0 scroll 0\nleds num 1 caps 0 scroll 1\n');
+    // A reset: the computer keeps its locks, and the keyboard hears them once it is back.
+    mcu.reset();
+    run(600);
+    expect(mcu.usbHost()!.locks).toEqual({ num: true, caps: false, scroll: true });
+    expect(serial()).toMatch(/scroll 1\nusb locks ready\r\nleds num 1 caps 0 scroll 1\n$/);
+    expect(notes).toEqual([]);
+  });
+
+  it('usb-synth (BT145): MIDI from the host plays its note on IO5 at the note’s pitch; note off, all notes off and SysEx arrive', () => {
+    const { mcu, notes, run, serial } = boot('usb-synth');
+    const pin = mcu.pins.get('GPIO5')!;
+    const rises: number[] = [];
+    let last = pin.outputLevel();
+    pin.onOutputChange(() => {
+      const level = pin.outputLevel();
+      if (level === 1 && last !== 1) rises.push(mcu.cycles);
+      last = level;
+    });
+    const hz = (from: number, to: number): number => {
+      const r = rises.filter((t) => t >= from && t < to);
+      return r.length < 2 ? 0 : (REF_HZ * (r.length - 1)) / (r[r.length - 1] - r[0]);
+    };
+    expect(mcu.usbMidi(new Uint8Array([0x90, 69, 100]))).toBe("no USB device on the board's port (the firmware hasn't started USB)");
+    run(500);
+    expect(mcu.usbHost()).toMatchObject({ phase: 'running', functions: ['serial (CDC-ACM)', 'MIDI'], midiIn: true, keyboardLeds: false });
+    expect(mcu.usbMidi(new Uint8Array([0x90, 69, 100]))).toBeNull(); // A4
+    run(50);
+    const a4 = mcu.cycles;
+    run(200);
+    expect(hz(a4, mcu.cycles)).toBeCloseTo(440, 0);
+    expect(mcu.usbMidi(new Uint8Array([0x90, 72, 64]))).toBeNull(); // C5: the last note sounds
+    run(50);
+    const c5 = mcu.cycles;
+    run(200);
+    expect(hz(c5, mcu.cycles) / 523.25).toBeCloseTo(1, 2);
+    expect(mcu.usbMidi(new Uint8Array([0x80, 72, 0]))).toBeNull();
+    run(50);
+    const quiet = rises.length;
+    run(100);
+    expect(rises.length).toBe(quiet);
+    expect(mcu.usbMidi(new Uint8Array([0xb0, 123, 0, 0xf0, 0x7e, 0x7f, 0x06, 0x01, 0xf7, 0xc0, 5]))).toBeNull();
+    run(50);
+    expect(serial()).toBe('usb synth ready\r\nnote on 69 100\nnote on 72 64\nnote off 72\ncc 123 0\nsysex F0 7E 7F 06 01 F7\r\nmidi C0 05\r\n');
+    expect(mcu.usbMidi(new Uint8Array([0x3c]))).toBe('byte 1 (3C) is a data byte without a status (each message needs its own)');
     expect(notes).toEqual([]);
   });
 });

@@ -43,7 +43,7 @@
  * - PSRAM (BT130) is the build's: soc.ts's `psram` answers the quad or octal driver.
  */
 
-import type { BoardSpec, PartProps, PartStorage, Debuggable, FirmwareImage, I2cController, I2cDevice, Level, Mcu, McuDebug, McuPin, McuSleep, McuUsbHost, NetState, NonVolatile, NvMemory, PinClaim, PinClaims, PinMode, Problem, RunResult, Sleeper, SpiController, SpiDevice, SymbolTable, UartPort, UsbHosting, UsbStorageHosting, WifiRadio, WifiStation } from '@benchtop/core';
+import type { BoardSpec, PartProps, PartStorage, Debuggable, FirmwareImage, I2cController, I2cDevice, Level, Mcu, McuDebug, McuPin, McuSleep, McuUsbHost, NetState, NonVolatile, NvMemory, PinClaim, PinClaims, PinMode, Problem, RunResult, Sleeper, SpiController, SpiDevice, SymbolTable, UartPort, UsbHosting, UsbLocks, UsbSending, UsbStorageHosting, WifiRadio, WifiStation } from '@benchtop/core';
 import { describeFirmwareFormat, macFromName, SectorMemory } from '@benchtop/core';
 import { Hle, sha256Hex, type SocProblem, WifiDriver } from '@benchtop/esp32';
 import type { SpiAttachment } from '@benchtop/esp32c3';
@@ -286,7 +286,7 @@ class S3Uart implements UartPort {
   }
 }
 
-export class Esp32s3Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sleeper, PinClaims, UsbHosting, UsbStorageHosting {
+export class Esp32s3Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sleeper, PinClaims, UsbHosting, UsbStorageHosting, UsbSending {
   readonly kind = 'esp32s3' as const;
   readonly clockHz = REF_HZ;
   readonly pins: ReadonlyMap<string, McuPin>;
@@ -511,6 +511,9 @@ export class Esp32s3Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sl
       events: host.log.events.map((e) => ({ at: e.at, text: e.text })),
       dropped: host.log.dropped,
       now: this.soc.now() / REF_HZ,
+      locks: host.locks,
+      keyboardLeds: host.keyboardLeds,
+      midiIn: host.midiIn,
       drive: drive === null
         ? null
         : {
@@ -526,6 +529,17 @@ export class Esp32s3Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sl
             unread: drive.unread.size,
           },
     };
+  }
+
+  /** BT145: MIDI messages from the bench's host to the device's MIDI port. */
+  usbMidi(bytes: Uint8Array): string | null {
+    const otg = this.soc.usbOtg;
+    return otg.active ? otg.host.sendMidi(bytes) : 'no USB device on the board\'s port (the firmware hasn\'t started USB)';
+  }
+
+  /** BT145: the bench's host's lock keys, which its keyboards show. */
+  usbLocks(locks: UsbLocks): void {
+    this.soc.usbOtg.host.setLocks(locks);
   }
 
   /** BT141: the USB drive the bench's host mounted (the board's storage: Bench.storage), or null. */
@@ -588,6 +602,9 @@ export class Esp32s3Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sl
       this.usbTalked = true;
       this.uarts[0].emit(byte);
     };
+    // BT145: the lock keys are the computer's: they outlive the board's resets.
+    const old = (this as { soc?: Esp32s3Soc }).soc;
+    if (old !== undefined) soc.usbOtg.host.setLocks(old.usbOtg.host.locks);
     soc.usbOtg.host.onData = (bytes, length) => {
       for (let i = 0; i < length; i++) this.uarts[0].emit(bytes[i]);
     };

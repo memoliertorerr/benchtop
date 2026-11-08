@@ -3564,6 +3564,45 @@
     },
     {
       "board": "esp32s3",
+      "name": "usb-locks",
+      "fqbn": "esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=cdc",
+      "file": "esp32s3/usb-locks.bin",
+      "sha256": "5882f02f0eaccf6dbd727ae8aa09c25c1cf4703fe3a27446f0f51137a7bd042c",
+      "bytes": 294080,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "USB": "2.0.0"
+      },
+      "source": "a24007cc633299ab0bca43b45cc76e4543eb8abead220c9144e22f192053c2f5"
+    },
+    {
+      "board": "esp32s3",
+      "name": "usb-locks",
+      "fqbn": "esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=cdc",
+      "file": "esp32s3/usb-locks.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "USB": "2.0.0"
+      },
+      "source": "a24007cc633299ab0bca43b45cc76e4543eb8abead220c9144e22f192053c2f5"
+    },
+    {
+      "board": "esp32s3",
+      "name": "usb-locks",
+      "fqbn": "esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=cdc",
+      "file": "esp32s3/usb-locks.syms.tsv",
+      "sha256": "ef5e9553efcf9611855285e58c019a6c21aae3b1a8ff9e79c5f201ab2d5e304a",
+      "bytes": 180770,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "USB": "2.0.0"
+      },
+      "source": "a24007cc633299ab0bca43b45cc76e4543eb8abead220c9144e22f192053c2f5"
+    },
+    {
+      "board": "esp32s3",
       "name": "usb-midi",
       "fqbn": "esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=cdc",
       "file": "esp32s3/usb-midi.bin",
@@ -3627,6 +3666,39 @@
       "core": "esp32:esp32@2.0.17",
       "libraries": {},
       "source": "3b560415dadd753545453c4db19d6860c0748869785a290b54829d01b884cdd6"
+    },
+    {
+      "board": "esp32s3",
+      "name": "usb-synth",
+      "fqbn": "esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=cdc",
+      "file": "esp32s3/usb-synth.bin",
+      "sha256": "5538618e9a65c0fabf2ef5cfffeda937d11940106a4c0d4b05b8b6cf47e47c2a",
+      "bytes": 296928,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "bfe979f3e5d02a04d727b578e5bd417c2ba567558c6a42dea052ec73a6648b45"
+    },
+    {
+      "board": "esp32s3",
+      "name": "usb-synth",
+      "fqbn": "esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=cdc",
+      "file": "esp32s3/usb-synth.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "bfe979f3e5d02a04d727b578e5bd417c2ba567558c6a42dea052ec73a6648b45"
+    },
+    {
+      "board": "esp32s3",
+      "name": "usb-synth",
+      "fqbn": "esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=cdc",
+      "file": "esp32s3/usb-synth.syms.tsv",
+      "sha256": "3180443992f471e0f570326464286e96da62385203a485f71e11d9fff444aa3e",
+      "bytes": 180314,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "bfe979f3e5d02a04d727b578e5bd417c2ba567558c6a42dea052ec73a6648b45"
     },
     {
       "board": "esp32s3",

@@ -117,12 +117,26 @@ export const ESP32S3_CHECKS: Record<string, (r: ExampleRun) => void> = {
     expect(pixel()).toBe(0x00ff00);
     expect(r.serial('s3')).toContain('config led=green\nled green\n');
   },
+  // BT146: MIDI from the bench's USB host — what the Inspector's keyboard sends — plays on the speaker.
+  'esp32s3-usb-synth'(r) {
+    const pixel = (): number => ((r.visual('s3')?.pixels as number[] | undefined) ?? [0])[0];
+    r.runTo(600);
+    expect(r.bench.usbOf('s3')).toMatchObject({ functions: ['serial (CDC-ACM)', 'MIDI'], midiIn: true });
+    expect(r.bench.usbMidi('s3', new Uint8Array([0x90, 64, 127]))).toBeNull(); // E4, full velocity
+    r.runTo(800);
+    expect(r.serial('s3')).toContain('note on 64 127\n');
+    expect(pixel()).toBe(0xfefe00); // E's yellow at 254/255
+    expect(r.visual('speaker')).toBeDefined();
+    expect(r.bench.usbMidi('s3', new Uint8Array([0x80, 64, 0]))).toBeNull();
+    r.runTo(900);
+    expect(pixel()).toBe(0);
+  },
 };
 
 describe('every ESP32-S3 example runs as described (BT126)', () => {
   const withS3 = EXAMPLES.filter((e) => Object.values(e.boards).some((b) => 'firmware' in b && b.firmware.startsWith('esp32s3/')));
   it('has a check for each', () => {
-    expect(withS3.length).toBe(11);
+    expect(withS3.length).toBe(12);
     expect(withS3.map((e) => e.id).filter((id) => ESP32S3_CHECKS[id] === undefined)).toEqual([]);
   });
   for (const example of withS3) {

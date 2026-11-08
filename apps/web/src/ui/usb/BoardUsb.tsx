@@ -4,11 +4,14 @@
  * it enumerated and what it uses, the text a keyboard typed, and the last events (mouse, media
  * keys, MIDI messages) with their times. Refreshed every 500 ms while running. BT142: a USB drive
  * the host mounted — its vendor, size and file system, and its files (the board's storage,
- * `sim.storage(board)`): open, download, delete, upload, or write a text file onto it.
+ * `sim.storage(board)`): open, download, delete, upload, or write a text file onto it. BT146: the
+ * computer's side talks back — its lock keys (lit when on; a click toggles one, and a keyboard on
+ * the port gets them as its LEDs) and a one-octave MIDI keyboard for a device that takes MIDI
+ * (`sim.usbSend`), both recorded by Record test.
  */
 
-import type { StoredFile, UsbDrive } from '@benchtop/core';
-import { useEffect, useState } from 'preact/hooks';
+import type { StoredFile, UsbDrive, UsbLocks } from '@benchtop/core';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { editorMessage } from '../../editor/app-store.ts';
 import type { UsbReply } from '../../sim/protocol.ts';
 import { sim, simLoaded, simRunning } from '../../sim/host.ts';
@@ -29,6 +32,146 @@ const DRIVE_STATES: Readonly<Record<UsbDrive['state'], string>> = {
   unreadable: 'The bench\'s USB host can\'t read this drive',
   failed: 'The drive stopped answering',
 };
+
+const LOCK_KEYS = [
+  ['num', 'Num Lock'],
+  ['caps', 'Caps Lock'],
+  ['scroll', 'Scroll Lock'],
+] as const;
+
+/** BT146: the computer's lock keys: lit when on; a click toggles one, and the device's keyboard gets its LEDs. */
+function Locks({ board, locks, onSent }: { board: string; locks: UsbLocks; onSent: () => void }) {
+  const toggle = async (lock: keyof UsbLocks): Promise<void> => {
+    const reply = await sim.usbSend(board, { locks: { ...locks, [lock]: !locks[lock] } });
+    if (!reply.ok) editorMessage.value = reply.error ?? "The lock keys didn't change";
+    onSent();
+  };
+  return (
+    <>
+      <div class="field-label">Lock keys</div>
+      <div class="usb-locks" role="group" aria-label="The computer's lock keys">
+        {LOCK_KEYS.map(([key, label]) => (
+          <button key={key} type="button" class={`tool-button usb-lock${locks[key] ? ' on' : ''}`} aria-pressed={locks[key]} onClick={() => void toggle(key)}>
+            <span class="usb-lock-light" aria-hidden="true" />
+            {label}
+          </button>
+        ))}
+      </div>
+    </>
+  );
+}
+
+/** One octave, C to B: each key's semitone and, for the black ones, where it sits (in white-key widths). */
+const PIANO: readonly { semitone: number; name: string; black: number | null }[] = [
+  { semitone: 0, name: 'C', black: null },
+  { semitone: 1, name: 'C#', black: 0.68 },
+  { semitone: 2, name: 'D', black: null },
+  { semitone: 3, name: 'D#', black: 1.72 },
+  { semitone: 4, name: 'E', black: null },
+  { semitone: 5, name: 'F', black: null },
+  { semitone: 6, name: 'F#', black: 3.66 },
+  { semitone: 7, name: 'G', black: null },
+  { semitone: 8, name: 'G#', black: 4.7 },
+  { semitone: 9, name: 'A', black: null },
+  { semitone: 10, name: 'A#', black: 5.74 },
+  { semitone: 11, name: 'B', black: null },
+];
+
+/** BT146: a one-octave MIDI keyboard for a device that takes MIDI: a note sounds while its key is held. */
+function MidiKeys({ board }: { board: string }) {
+  const [octave, setOctave] = useState(4);
+  const [channel, setChannel] = useState(1);
+  const [velocity, setVelocity] = useState(100);
+  /** Notes on, and the channel each went out on. */
+  const held = useRef(new Map<number, number>());
+  const send = (bytes: number[]): void => {
+    void sim.usbSend(board, { midi: new Uint8Array(bytes) }).then((reply) => {
+      if (!reply.ok) editorMessage.value = reply.error ?? "The MIDI didn't go out";
+    });
+  };
+  const noteOn = (note: number): void => {
+    if (held.current.has(note)) return;
+    held.current.set(note, channel);
+    send([0x90 | (channel - 1), note, velocity]);
+  };
+  const noteOff = (note: number): void => {
+    const ch = held.current.get(note);
+    if (ch === undefined) return;
+    held.current.delete(note);
+    send([0x80 | (ch - 1), note, 0]);
+  };
+  useEffect(
+    () => () => {
+      for (const note of [...held.current.keys()]) noteOff(note);
+    },
+    [board],
+  );
+  const base = (octave + 1) * 12; // C4 = 60
+  const key = (k: (typeof PIANO)[number]) => {
+    const note = base + k.semitone;
+    return (
+      <button
+        key={k.name}
+        type="button"
+        class={`usb-key${k.black === null ? '' : ' black'}`}
+        style={k.black === null ? undefined : { left: `calc(100% / 7 * ${k.black})` }}
+        aria-label={`${k.name}${octave} (${note})`}
+        title={`${k.name}${octave} (${note})`}
+        onPointerDown={(e) => {
+          (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+          noteOn(note);
+        }}
+        onPointerUp={() => noteOff(note)}
+        onPointerCancel={() => noteOff(note)}
+        onKeyDown={(e) => {
+          if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) {
+            e.preventDefault();
+            noteOn(note);
+          }
+        }}
+        onKeyUp={(e) => {
+          if (e.key === ' ' || e.key === 'Enter') noteOff(note);
+        }}
+        onBlur={() => noteOff(note)}
+      />
+    );
+  };
+  return (
+    <>
+      <div class="field-label">MIDI keyboard</div>
+      <div class="usb-piano" role="group" aria-label={`MIDI keyboard, C${octave} to B${octave}`}>
+        {PIANO.filter((k) => k.black === null).map(key)}
+        {PIANO.filter((k) => k.black !== null).map(key)}
+      </div>
+      <div class="usb-midi-controls">
+        <button type="button" class="tool-button" aria-label="Octave down" disabled={octave <= -1} onClick={() => setOctave(octave - 1)}>
+          −
+        </button>
+        <span class="muted">
+          C{octave}–B{octave}
+        </span>
+        <button type="button" class="tool-button" aria-label="Octave up" disabled={octave >= 8} onClick={() => setOctave(octave + 1)}>
+          +
+        </button>
+        <label>
+          Channel{' '}
+          <select value={channel} onChange={(e) => setChannel(Number((e.target as HTMLSelectElement).value))}>
+            {Array.from({ length: 16 }, (_, i) => (
+              <option key={i} value={i + 1}>
+                {i + 1}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Velocity{' '}
+          <input type="range" min={1} max={127} value={velocity} onInput={(e) => setVelocity(Number((e.target as HTMLInputElement).value))} />
+          <span class="muted">{velocity}</span>
+        </label>
+      </div>
+    </>
+  );
+}
 
 /** BT142: a USB drive the host mounted — what it is, and its files while mounted. */
 function Drive({ board, drive, tick }: { board: string; drive: UsbDrive; tick: number }) {
@@ -217,6 +360,8 @@ export function BoardUsb({ board }: { board: string }) {
         )}
         {total > SHOWN_EVENTS && <p class="muted panel-note">The last {SHOWN_EVENTS} of {total} events.</p>}
         {usb.typed === '' && usb.events.length === 0 && usb.drive === null && <p class="muted panel-note">Nothing received yet.</p>}
+        {usb.keyboardLeds && <Locks board={board} locks={usb.locks} onSent={() => setTick((n) => n + 1)} />}
+        {usb.midiIn && <MidiKeys board={board} />}
         {usb.drive !== null && <Drive board={board} drive={usb.drive} tick={tick} />}
       </>
     );

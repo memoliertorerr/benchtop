@@ -15,7 +15,10 @@
  *        stream for one TCP connection — `open` {id}, `data` (base64), `close` {error};
  *        POST /api/net/send { id, data }, /api/net/end { id }, /api/net/close { id } (network.ts).
  *   With `serveDir`: every other GET serves a file from it (cross-origin isolation headers, no
- *   directory listing, no path escape).
+ *   directory listing, no path escape). BT147: and the downloads the simulation worker fetches
+ *   (scripts/downloads.ts — the ESP32, C3 and S3 ROMs, the RP2350 bootrom, the MicroPython UF2s)
+ *   from the repository's .cache, by their exact names (GET or HEAD; another name in their
+ *   folders is a 404; a missing file a 404 naming its fetch command), as the dev server does.
  *
  * Every request must carry an allowed Host; any Origin must be allowed, and POST must have one.
  */
@@ -27,6 +30,7 @@ import { extname, join, resolve, sep } from 'node:path';
 import { type CompileResult, compileInlineSketch, compile as runCompile } from './compile.ts';
 import { type NetEntry, NetworkProxy } from './network.ts';
 import { runArduinoCli } from '../../../scripts/arduino-cli.ts';
+import { type Download, downloadFor, missingText } from '../../../scripts/downloads.ts';
 import {
   FQBN_ALLOWLIST,
   isAllowedFqbn,
@@ -45,6 +49,8 @@ export interface BridgeOptions {
   cli: string | undefined;
   /** Static files to serve (the built app), or undefined. */
   serveDir?: string;
+  /** BT147: the folder whose .cache holds the downloads (the repository root, by default). */
+  downloadsRoot?: string;
   /** Injected for tests; defaults to the real compile. `buildKey` names the build cache; `module` BT137's. */
   compile?: (sketchDir: string, fqbn: string, buildKey?: string, module?: string) => Promise<CompileResult>;
   /** BT101: the real hosts the app's simulated WiFi may reach (`--network`); empty or absent: none. */
@@ -281,6 +287,20 @@ export function createBridge(options: BridgeOptions): Bridge {
     watching.add(client);
   };
 
+  /** BT147: a download from .cache (scripts/downloads.ts), or the 404 naming its fetch command. */
+  const handleDownload = (res: ServerResponse, download: Download, head: boolean): void => {
+    let bytes: Buffer;
+    try {
+      bytes = readFileSync(join(options.downloadsRoot ?? REPO_ROOT, download.file));
+    } catch {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', ...ISOLATION });
+      res.end(missingText(download));
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/octet-stream', 'Content-Length': String(bytes.length), 'Cross-Origin-Resource-Policy': 'same-origin', ...ISOLATION });
+    res.end(head ? undefined : bytes);
+  };
+
   const handleStatic = (res: ServerResponse, pathname: string): void => {
     const root = resolve(options.serveDir as string);
     let decoded: string;
@@ -365,6 +385,11 @@ export function createBridge(options: BridgeOptions): Bridge {
           }
         }
         if (url.pathname.startsWith('/api/')) return send(res, 404, { error: 'no such endpoint' });
+        if ((req.method === 'GET' || req.method === 'HEAD') && options.serveDir !== undefined) {
+          const download = downloadFor(url.pathname);
+          if (download === null) return send(res, 404, { error: 'not found' });
+          if (download !== undefined) return handleDownload(res, download, req.method === 'HEAD');
+        }
         if (req.method === 'GET' && options.serveDir !== undefined) return handleStatic(res, url.pathname);
         return send(res, 404, { error: 'not found' });
       } catch (error) {
@@ -394,6 +419,9 @@ export function createBridge(options: BridgeOptions): Bridge {
     },
   };
 }
+
+/** BT147: the repository, whose .cache holds the downloads. */
+const REPO_ROOT = join(import.meta.dirname, '..', '..', '..');
 
 /** Where the built app is, relative to this file (for `--serve` without a path). */
 export const DEFAULT_SERVE_DIR = join(import.meta.dirname, '..', '..', 'web', 'dist');

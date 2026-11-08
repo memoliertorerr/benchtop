@@ -88,7 +88,7 @@ import { usesWifi } from '../net/radio.ts';
 import { type NvMemory, usesNonVolatile } from './nonvolatile.ts';
 import { type BoardSleep, usesSleep } from './sleep.ts';
 import { type PinClaim, usesPinClaims } from './claims.ts';
-import { type BoardUsb, usesUsbHost, usesUsbStorage } from './usb.ts';
+import { type BoardUsb, type UsbLocks, usesUsbHost, usesUsbSending, usesUsbStorage } from './usb.ts';
 import { NetRuntime } from '../net/runtime.ts';
 import type { NetSpecFor } from '../net/spec.ts';
 import type { Uplink } from '../net/uplink.ts';
@@ -992,7 +992,21 @@ export class Bench {
     if (usb === null) return null;
     const now = this.now();
     const events = usb.events.map((e) => ({ at: Math.max(0, now - Math.round((usb.now - e.at) * 1e9)), text: e.text }));
-    return { phase: usb.phase, device: usb.device, functions: usb.functions, typed: usb.typed, events, dropped: usb.dropped, drive: usb.drive };
+    return { phase: usb.phase, device: usb.device, functions: usb.functions, typed: usb.typed, events, dropped: usb.dropped, drive: usb.drive, locks: usb.locks, keyboardLeds: usb.keyboardLeds, midiIn: usb.midiIn };
+  }
+
+  /** BT145: whole MIDI 1.0 messages to the device on a board's USB port; why not, or null once queued. */
+  usbMidi(boardPartId: string, bytes: Uint8Array): string | null {
+    const mcu = this.mcuSlot(boardPartId).mcu;
+    return usesUsbSending(mcu) ? mcu.usbMidi(bytes) : `"${boardPartId}" has no USB port the bench hosts`;
+  }
+
+  /** BT145: the lock keys of a board's USB host (its keyboards get their LEDs); why not, or null. */
+  setUsbLocks(boardPartId: string, locks: UsbLocks): string | null {
+    const mcu = this.mcuSlot(boardPartId).mcu;
+    if (!usesUsbSending(mcu)) return `"${boardPartId}" has no USB port the bench hosts`;
+    mcu.usbLocks(locks);
+    return null;
   }
 
   /** A board's debugger view, or undefined when its MCU isn't debuggable. */

@@ -9,6 +9,8 @@
  * hex, the first 32), the system common and real-time messages by name. A stream of one
  * controller, pressure or pitch bend on one channel merges into one line. Timing clock (0xF8) and
  * active sensing (0xFE) are counted, not logged.
+ *
+ * BT145: `encodeMidi` goes the other way, for the host's MIDI to the device.
  */
 
 import type { UsbLog } from './usb-log.ts';
@@ -141,4 +143,51 @@ export class MidiDecoder {
     else if (status === 0xf1) this.log.event(`${prefix} time code ${hex(a)}`, `midi-mtc ${prefix}`);
     else this.log.event(`${prefix} ${[status, a, b].slice(0, length).map(hex).join(' ')}`);
   }
+}
+
+// ── Host to device (BT145) ──────────────────────────────────────────────────────────────
+
+/** Data bytes after a channel voice status (by its high nibble), or after a system common one. */
+const CHANNEL_DATA: Readonly<Record<number, number>> = { 0x8: 2, 0x9: 2, 0xa: 2, 0xb: 2, 0xc: 1, 0xd: 1, 0xe: 2 };
+const COMMON_DATA: Readonly<Record<number, number>> = { 0xf1: 1, 0xf2: 2, 0xf3: 1, 0xf6: 0 };
+
+/**
+ * Whole MIDI 1.0 messages → USB-MIDI event packets on cable 0 (4 bytes each), or why not:
+ * channel voice messages (CIN = the status's high nibble), system common (CIN 2 or 3 by length,
+ * 5 for a lone byte), real-time bytes (CIN 0xF) and SysEx (F0 … F7: CIN 4 per 3 bytes, the last
+ * packet 5, 6 or 7 by how many bytes it ends with). No running status: each message carries its
+ * status byte.
+ */
+export function encodeMidi(bytes: Uint8Array): Uint8Array | string {
+  const out: number[] = [];
+  const at = (i: number): string => `byte ${i + 1} (${hex(bytes[i])})`;
+  for (let i = 0; i < bytes.length; ) {
+    const status = bytes[i];
+    if (status < 0x80) return `${at(i)} is a data byte without a status (each message needs its own)`;
+    if (status >= 0xf8) {
+      out.push(0x0f, status, 0, 0);
+      i++;
+      continue;
+    }
+    if (status === 0xf0) {
+      let end = i + 1;
+      while (end < bytes.length && bytes[end] < 0x80) end++;
+      if (end >= bytes.length || bytes[end] !== 0xf7) return `the SysEx at ${at(i)} doesn't end with F7`;
+      const length = end - i + 1;
+      for (let k = 0; k < length; k += 3) {
+        const left = length - k;
+        const cin = left > 3 ? 0x4 : 0x4 + left;
+        out.push(cin, bytes[i + k], left > 1 ? bytes[i + k + 1] : 0, left > 2 ? bytes[i + k + 2] : 0);
+      }
+      i = end + 1;
+      continue;
+    }
+    const data = status < 0xf0 ? CHANNEL_DATA[status >> 4] : COMMON_DATA[status];
+    if (data === undefined) return `${at(i)} isn't a message MIDI 1.0 defines`;
+    for (let k = 1; k <= data; k++) if (bytes[i + k] === undefined || bytes[i + k] >= 0x80) return `the message at ${at(i)} needs ${data} data byte${data === 1 ? '' : 's'}`;
+    const cin = status < 0xf0 ? status >> 4 : data === 0 ? 0x5 : data === 1 ? 0x2 : 0x3;
+    out.push(cin, status, data > 0 ? bytes[i + 1] : 0, data > 1 ? bytes[i + 2] : 0);
+    i += 1 + data;
+  }
+  return new Uint8Array(out);
 }

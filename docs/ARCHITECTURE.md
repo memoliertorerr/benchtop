@@ -2798,7 +2798,25 @@ sequence, files matched by basename or trailing path.
   `bench/usb.ts`'s `UsbHosting`, found by duck typing — and `Bench.usbOf(board)` turns the times
   into bench nanoseconds. Other classes (mass storage, audio streaming, DFU, vendor) enumerate and
   are named once (`esp32s3-usb-device`, info), as is a HID report that is none of those kinds.
-  Nothing goes from the host to the device but CDC bytes (no keyboard LEDs, no MIDI to the board) and a drive's blocks. A mass storage interface
+  The host talks back. Its Num, Caps and Scroll Lock are one state for all its keyboards, as a
+  computer's: a keyboard's lock key (0x53, 0x39, 0x47) toggles one and isn't typed, and the bench
+  sets them (`UsbHost.setLocks`). The report descriptor parser also reads Output items: the first
+  output report with LED usages (page 0x08: Num Lock 1, Caps Lock 2, Scroll Lock 3) is
+  `HidLayout.leds` — its ID, size and each lock's bit. On every change each such keyboard gets
+  that report (its ID byte first when the device uses IDs) on its interrupt OUT endpoint, again
+  next frame while NAKed, or — with no OUT endpoint — as SET_REPORT(Output, ID) on endpoint 0;
+  after configuration it gets one when a lock is on, as Linux sends it. MIDI to the device:
+  `encodeMidi` (usb-midi.ts) turns whole MIDI 1.0 messages into USB-MIDI packets on cable 0 —
+  channel voice (CIN = the status's high nibble), system common by length (2, 3, or 5 for a lone
+  byte), real-time bytes (0xF), SysEx in 3-byte packets (CIN 4) ended by 5, 6 or 7 — refusing data
+  without a status (no running status), short messages, undefined statuses and an unended SysEx;
+  `sendMidi` queues them for the first MIDI streaming interface with a bulk OUT endpoint (a MIDI
+  interface needs only one of IN and OUT), sent in packets of up to 64 bytes as the device ACKs
+  them. `usbHost()` also says the locks, `keyboardLeds` (a keyboard that takes them) and `midiIn`
+  (a MIDI port to send to); `bench/usb.ts`'s `UsbSending` (`usbMidi`, `usbLocks`) is how the bench
+  sends — `Bench.usbMidi(board, bytes)` (why not, or null) and `Bench.setUsbLocks(board, locks)`.
+  The runner's `midi` and `locks` steps use them. Beside CDC bytes, MIDI and the LEDs, the host
+  sends a drive's blocks. A mass storage interface
   (class 8, SCSI, Bulk-Only) is `drive` (`usb-msc.ts` `MscDrive`, clean-room from the Bulk-Only
   Transport 1.0 and the SCSI command layouts): after the HID set-up, GET MAX LUN (LUN 0 read, more
   named), INQUIRY (vendor, product, revision), TEST UNIT READY (every 100 frames until the medium
@@ -2832,12 +2850,17 @@ sequence, files matched by basename or trailing path.
   esp32s3-circuits.test.ts). `usb-drive` — Arduino's USBMSC over a 64 KB RAM disk the sketch lays
   out as FAT12 (README.TXT, COUNT.TXT; a CONFIG.TXT the computer writes sets the RGB LED; a button
   rewrites COUNT.TXT and toggles the medium) — mounted, read, written (`soc/usb-msc.test.ts`, with
-  a scripted Bulk-Only target; on the bench in esp32s3-circuits.test.ts).
+  a scripted Bulk-Only target; on the bench in esp32s3-circuits.test.ts). `usb-locks` (Arduino's
+  keyboard: its LED event printed and shown on the RGB LED; a button types "a", another presses its
+  own Caps Lock) and `usb-synth` (TinyUSB's MIDI class: notes from the host played as a square wave
+  on IO5 at their pitch, the RGB LED by note; control changes, SysEx and the rest printed) —
+  `soc/usb-otg.test.ts`, with the SET_REPORT path against the scripted boot keyboard (no OUT
+  endpoint); the runner's steps in `apps/cli/src/usb-steps.test.ts`.
 
 ## Worker protocol
 
 `apps/web/src/sim/protocol.ts` defines `ToSim` (UI → worker) and `FromSim` (worker → UI)
-messages, versioned by `PROTOCOL_VERSION` (18: `usb`; `memory` and the saved memory beside `load`/`edit`; the debug ELF beside a load's images and the MCU
+messages, versioned by `PROTOCOL_VERSION` (20: `usbSend`/`usbSent`; recorded file steps and cards; `usb`; `memory` and the saved memory beside `load`/`edit`; the debug ELF beside a load's images and the MCU
 kind and register names in `debugInfo`, then `edit`/`edited`, then `busWatch` and a frame's `bus`
 chunk, then `storage`, then `debugSyms`: a board's symbol table as `nm` text beside `load`, `edit`
 and `setFirmware` when it has no ELF — a gallery example's `.syms.tsv`, which the ESP32's WiFi
@@ -3221,6 +3244,14 @@ mounted: probing, no medium, being read, unreadable) — and, while mounted, its
 `sim.storage(board)` (the board's storage, `Bench.storage`): open one (a preview), download,
 delete, upload, or write a text file (a name and its text) onto the drive. The microSD card's
 `download` and `readPicked` helpers are shared (`ui/card/CardControls.tsx`).
+The host talks back from here. For a device with a keyboard that takes lock LEDs
+(`keyboardLeds`) the section shows the computer's Num, Caps and Scroll Lock as toggle buttons,
+lit when on; a click sends `usbSend { locks }` (`Bench.setUsbLocks`). For a device that takes MIDI
+(`midiIn`) it shows a one-octave keyboard (C to B, octave − and +, channel 1–16, velocity 1–127):
+pressing a key (pointer or Space/Enter) sends a note on, letting go (or losing focus, or the
+section closing) its note off, as `usbSend { midi }` (`Bench.usbMidi`); the worker answers
+`usbSent` with why not when it can't (no device yet, no MIDI port). Both are recorded by Record
+test as `midi` (hex bytes) and `locks` steps with the board's id.
 
 ### Bus tab
 
@@ -3352,7 +3383,17 @@ nothing from `apps/web`.
   board's UART 0 as the serial monitor would (`board` optional with one board; ≤ 64 Ki
   characters), or `{ at, reset: <board> }`: that board reset (`Bench.resetBoard` — a power cycle;
   its EEPROM or flash keeps what it stored, and the rest of the bench runs on). Runs start with
-  erased memory. Steps apply at exactly their time, in file order.
+  erased memory. `{ at, part, write: <path>, text | base64 }` creates or replaces a file on a
+  part's storage (`Bench.storage`: a microSD card, or an ESP32-S3 board's USB drive), making
+  directories on the way — at most 256 KB a step — and `{ at, part, remove: <path> }` deletes a
+  file or a directory with what is in it; a file step that can't apply then (no volume, the drive
+  not mounted yet, a bad name, full, write-protected, nothing to remove) ends the run with an
+  error naming the step and why (exit 2). `{ at, midi: "<hex bytes>", board? }` sends whole MIDI
+  1.0 messages from a board's USB host to the device's MIDI port (`Bench.usbMidi`; malformed bytes
+  are a usage error, a device without a MIDI port then a run error) and `{ at, locks: ["num" |
+  "caps" | "scroll", …], board? }` sets the host's lock keys (`[]` none); `board` may be left out
+  with one board whose USB port the bench hosts. Steps apply at exactly their time, in file order;
+  `file` assertions due then see them.
 - Assertions (`--expect`, repeatable, plus the script's): `serial contains "<text>" by <time>`
   (`serial[<board>]` with several boards; escapes `\"`, `\\`, `\n`) passes at the first
   match at or before that time — matched as the bytes stream in, so output past the report's
@@ -3430,6 +3471,15 @@ CLI validates it like a file), the steps at exact times (`1500us`, `123456789ns`
 ms), the duration and the chosen expectations. `apps/web/src/sim/recording.test.ts` records in
 real time on the session's manual clock and replays the spec through `runHeadless`: identical
 serial output, every proposal passing.
+
+The Inspector's file writes and removes (a card's, a USB drive's — the worker's `storage`
+requests that succeed) are recorded as `write` steps (`text` when the bytes are UTF-8, else
+`base64`; a write over 256 KB isn't kept and the dialog says so) and `remove` steps. A bench
+reset keeps a microSD card's files, so `recordStart` snapshots each card's files and, when they
+differ from the project's power-up files, the spec's inline circuit gives the card them as its
+`files` prop (a card holding more than that prop takes, 256 KB, starts from the project's files
+and the dialog says the replay may differ). Boards' EEPROM and flash aren't carried: a replay
+starts them erased.
 
 ### The examples as a regression suite
 
@@ -3535,7 +3585,11 @@ Model Context Protocol on stdio — one more front end over the headless runner,
   type, value — 64-bit numbers as decimal strings, blobs as the first 64 bytes in hex with their
   size; `erase` erases the data, the program staying); `sim_files` (a card part's
   files as the sketch left them — list them; read one as text when it is UTF-8, else base64, 64 KB
-  at most; write one from `write` text or `writeBase64`; `remove` one or a directory); `sim_wifi`
+  at most; write one from `write` text or `writeBase64`; `remove` one or a directory); `sim_usb`
+  (for an ESP32-S3 whose sketch uses its own USB, the bench's host sends the device a `note` — by
+  name, "C4" is 60, or number — with `velocity`, `channel` and `off`, or `midi` bytes in hex, or
+  sets its `locks`; errors name a bad note, malformed bytes, a device without a MIDI port;
+  `sim_state`'s `usb` adds `takesMidi`, `keyboardLeds` and the `locks` on); `sim_wifi`
   (the access points — SSID, on, channel, signal, security — with the boards joined to
   each, their addresses and hostnames, the server and client parts on its LAN, and each ESP32
   and ESP32-C3 board's state; `softAccessPoints`, the APs boards host — board, SSID, channel,
@@ -3693,7 +3747,15 @@ its compile code — the run, diagnostics, inline sketches, the FQBN allowlist a
 sketch rules — in `scripts/compile.ts`, shared with the CLI's MCP server;
 plain Node type stripping) does it on the same machine: `npm run bridge` listens on
 127.0.0.1:5175 and the Vite dev server proxies `/api` to it; `npm start` builds the app and
-serves it from the bridge on one origin (with the same cross-origin isolation headers).
+serves it from the bridge on one origin (with the same cross-origin isolation headers). The
+downloads the simulation worker fetches — the ESP32, ESP32-C3 and ESP32-S3 ROMs, the RP2350
+bootrom, the Pico's and Pico 2's MicroPython UF2s — are one table, `scripts/downloads.ts` (URL path
+→ the file in the git-ignored .cache, and its fetch command). The dev server's one `downloads()`
+plugin and the bridge (when it serves the app) both answer from it: GET (and HEAD on the bridge)
+of those exact names, `Cross-Origin-Resource-Policy: same-origin`, the bridge's Host and Origin
+rules; another name in those folders is a 404, a missing file a 404 naming its fetch command
+("ESP32-S3 ROM not installed: run npm run fetch:esp32-rom"). So every board runs under `npm start`,
+not only in development. Nothing is copied into dist; the service worker doesn't precache them.
 
 - `GET /api/health` → the CLI's version and installed cores (`null` when no CLI was found —
   discovery is `scripts/arduino-cli.ts`, shared with the fixture build).

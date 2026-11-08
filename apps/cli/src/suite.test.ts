@@ -150,7 +150,7 @@ describe('test specs (BT48)', () => {
     wellFormed(xml);
     expect(normalized(xml)).toBe(golden('suite.junit.xml', normalized(xml)));
     expect(markdownReport(report)).toBe(golden('suite.md', markdownReport(report)));
-  });
+  }, 60_000); // ≈ 10 s alone; verify runs it beside every other file
 
   it('runs the same suite on worker threads with the same results, in discovery order', async () => {
     const files = discoverSpecs([join(REPO_ROOT, 'fixtures/specs')], nodeIo).filter((f) => !f.includes('/examples/'));

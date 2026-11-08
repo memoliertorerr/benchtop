@@ -104,7 +104,7 @@ export const FIXTURE_BOARDS: Readonly<Record<string, FixtureBoard>> = {
       { from: 'partitions.bin', ext: 'partitions.bin' },
     ],
     symbols: 'xtensa-esp32s3-elf-nm',
-    options: { 'cdc-hello': 'CDCOnBoot=cdc', 'psram-quad': 'PSRAM=enabled', 'psram-octal': 'PSRAM=opi', 'psram-frame': 'PSRAM=opi', 'usb-cdc': 'USBMode=default,CDCOnBoot=cdc', 'usb-rgb': 'USBMode=default,CDCOnBoot=cdc', 'usb-keys': 'USBMode=default,CDCOnBoot=cdc', 'usb-midi': 'USBMode=default,CDCOnBoot=cdc', 'usb-drive': 'USBMode=default,CDCOnBoot=cdc', 'flash-info': 'FlashSize=16M' },
+    options: { 'cdc-hello': 'CDCOnBoot=cdc', 'psram-quad': 'PSRAM=enabled', 'psram-octal': 'PSRAM=opi', 'psram-frame': 'PSRAM=opi', 'usb-cdc': 'USBMode=default,CDCOnBoot=cdc', 'usb-rgb': 'USBMode=default,CDCOnBoot=cdc', 'usb-keys': 'USBMode=default,CDCOnBoot=cdc', 'usb-midi': 'USBMode=default,CDCOnBoot=cdc', 'usb-drive': 'USBMode=default,CDCOnBoot=cdc', 'usb-locks': 'USBMode=default,CDCOnBoot=cdc', 'usb-synth': 'USBMode=default,CDCOnBoot=cdc', 'flash-info': 'FlashSize=16M' },
   },
   // BT60: the Raspberry Pi Pico with the arduino-pico core (6.2.0). The UF2 is what a user drops
   // on the board; the ELF (1.3 MB, mostly DWARF) isn't committed.

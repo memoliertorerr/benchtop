@@ -38,12 +38,23 @@
  *   temperature) or { at, serial, board? } (BT48: text sent to a board's UART 0, as typed in the
  *   serial monitor; `board` may be left out with one board). Steps apply at exactly their time,
  *   in file order; assertions at the same time see their effect.
+ * - BT144: { at, part, write: "<path>", text: "…" } (or base64: "…") creates or replaces a file
+ *   on a part's storage — a microSD card, or an ESP32-S3 board's USB drive — and { at, part,
+ *   remove: "<path>" } deletes a file or a directory with what is in it. A file step that can't
+ *   apply then (no volume, the drive not mounted yet, a bad name, full, nothing to remove) ends
+ *   the run with an error naming the step.
+ * - BT145: { at, midi: "90 3C 64", board? } sends whole MIDI 1.0 messages (hex bytes) from a
+ *   board's USB host to the device's MIDI port (an error when it has none then); { at, locks:
+ *   ["caps"], board? } sets the host's lock keys on (num, caps, scroll; [] none), which its
+ *   keyboards get as their LEDs. `board` may be left out with one board whose USB port the
+ *   bench hosts (an ESP32-S3).
  *
  * Exit codes: 0 every assertion passed, 1 one failed, 2 usage, load or run error.
  */
 
-import { type Bench, BusDecoder, type BusTransaction, ipString, MAX_PROBES, type Mcu, type NetEvent, type NetState, type PartInput, type Problem, type ProjectDoc, type VisualState } from '@benchtop/core';
-import { CATALOG, envSpecFor, netSpecFor, sevenSegmentText } from '@benchtop/parts';
+import { type Bench, BusDecoder, type BusTransaction, ipString, MAX_PROBES, type Mcu, type NetEvent, type NetState, type PartInput, type Problem, type ProjectDoc, type UsbLocks, type VisualState } from '@benchtop/core';
+import { encodeMidi } from '@benchtop/esp32s3';
+import { base64Decode, CATALOG, envSpecFor, netSpecFor, sevenSegmentText } from '@benchtop/parts';
 import { buildBench, cachedRoms, type CliIo, loadFirmware, loadTables, loadProject, parseJson, projectFromJson, readText, resolvePin, UsageError } from './load.ts';
 import { uplinkFor } from './uplink.ts';
 
@@ -285,7 +296,27 @@ export type ScriptStep =
   | { kind: 'input'; at: number; part: string; input: PartInput }
   | { kind: 'serial'; at: number; board: string; text: string }
   /** BT119: a board reset (a power cycle: its EEPROM or flash keeps what it stored). */
-  | { kind: 'reset'; at: number; board: string };
+  | { kind: 'reset'; at: number; board: string }
+  /** BT144: a file created or replaced on a part's storage (a microSD card, an S3 board's USB drive). */
+  | { kind: 'write'; at: number; part: string; path: string; bytes: Uint8Array; where: string }
+  /** BT144: a file or a directory (with what is in it) removed from a part's storage. */
+  | { kind: 'remove'; at: number; part: string; path: string; where: string }
+  /** BT145: MIDI messages from a board's USB host to its device. */
+  | { kind: 'midi'; at: number; board: string; bytes: Uint8Array; where: string }
+  /** BT145: the lock keys of a board's USB host. */
+  | { kind: 'locks'; at: number; board: string; locks: UsbLocks };
+
+type FileStep = Extract<ScriptStep, { kind: 'write' | 'remove' }>;
+
+/** BT144: bytes one `write` step may hold (a spec file holds 1 MB). */
+export const MAX_FILE_STEP = 256 * 1024;
+/** Characters a file step's path may have. */
+const MAX_FILE_PATH = 1024;
+
+/** Part types whose storage file steps and `file` assertions read: a microSD card, an ESP32-S3 board (its USB drive). */
+function keepsFiles(type: string): boolean {
+  return FILE_TYPES.has(type) || CATALOG.get(type)?.board?.mcu === 'esp32s3';
+}
 
 /** Characters one serial step may send. */
 export const MAX_SERIAL_STEP = 64 * 1024;
@@ -325,6 +356,78 @@ function parseSet(value: unknown, where: string): PartInput[] {
   });
 }
 
+/** BT144: a `write` or `remove` step (its part is in the project). */
+function parseFileStep(step: { at?: unknown; input?: unknown; set?: unknown; write?: unknown; remove?: unknown; text?: unknown; base64?: unknown }, part: string, doc: ProjectDoc, where: string): FileStep {
+  if (step.input !== undefined || step.set !== undefined || (step.write !== undefined && step.remove !== undefined)) throw new UsageError(`${where}: give one of "input", "set", "write" or "remove"`);
+  const type = doc.parts.find((p) => p.id === part)?.type ?? '';
+  if (!keepsFiles(type)) throw new UsageError(`${where}: "${part}" is a ${type}, not a part that keeps files (a microSD card, or an ESP32-S3 board's USB drive)`);
+  const key = step.write !== undefined ? 'write' : 'remove';
+  const path = step.write ?? step.remove;
+  if (typeof path !== 'string' || path.trim() === '' || path.length > MAX_FILE_PATH) throw new UsageError(`${where}: "${key}" must be a file's path (up to ${MAX_FILE_PATH} characters)`);
+  const at = parseTime(step.at as string);
+  if (key === 'remove') {
+    if (step.text !== undefined || step.base64 !== undefined) throw new UsageError(`${where}: a "remove" step takes no "text" or "base64"`);
+    return { kind: 'remove', at, part, path, where };
+  }
+  if ((step.text === undefined) === (step.base64 === undefined)) throw new UsageError(`${where}: a "write" step needs "text" or "base64" (one of them)`);
+  let bytes: Uint8Array | null;
+  if (step.text !== undefined) {
+    if (typeof step.text !== 'string') throw new UsageError(`${where}: "text" must be a string`);
+    bytes = new TextEncoder().encode(step.text);
+  } else {
+    if (typeof step.base64 !== 'string') throw new UsageError(`${where}: "base64" must be a string`);
+    bytes = base64Decode(step.base64);
+    if (bytes === null) throw new UsageError(`${where}: "base64" is not base64`);
+  }
+  if (bytes.length > MAX_FILE_STEP) throw new UsageError(`${where}: a "write" step holds at most ${MAX_FILE_STEP} bytes; this one has ${bytes.length}`);
+  return { kind: 'write', at, part, path, bytes, where };
+}
+
+/** BT144: a file step on its part's storage; one that can't apply ends the run, naming why. */
+function applyFileStep(bench: Bench, step: FileStep): void {
+  const what = `${step.where} (${step.kind === 'write' ? 'write' : 'remove'} ${step.path} on ${step.part}) at ${formatNs(step.at)}`;
+  const board = bench.boards().includes(step.part);
+  const drive = board ? (bench.usbOf(step.part)?.drive ?? null) : null;
+  const notReady = drive !== null && drive.state !== 'mounted' ? `: its USB drive is ${drive.state}${drive.problem === '' ? '' : ` (${drive.problem})`}` : '';
+  const storage = bench.storage(step.part);
+  if (storage === undefined) throw new Error(`${what}: "${step.part}" keeps no files then${board ? ' (no USB drive mounted yet)' : ''}`);
+  if (step.kind === 'remove') {
+    if (!storage.remove(step.path)) throw new Error(`${what}: nothing there to remove${notReady}`);
+    return;
+  }
+  if (!storage.write(step.path, step.bytes)) throw new Error(`${what}: it couldn't be written${notReady === '' ? ' (no volume, a bad name, a file where a directory goes, full or write-protected)' : notReady}`);
+}
+
+/** BT145: bytes one `midi` step may send. */
+export const MAX_MIDI_STEP = 4096;
+const LOCK_NAMES = ['num', 'caps', 'scroll'] as const;
+
+/** BT145: a `midi` or `locks` step, for a board whose USB port the bench hosts. */
+function parseUsbStep(step: { at?: unknown; board?: unknown; midi?: unknown; locks?: unknown; part?: unknown }, doc: ProjectDoc, boards: readonly string[], where: string): ScriptStep {
+  if (step.midi !== undefined && step.locks !== undefined) throw new UsageError(`${where}: give "midi" or "locks", not both`);
+  if (step.part !== undefined) throw new UsageError(`${where}: a "${step.midi !== undefined ? 'midi' : 'locks'}" step names a "board", not a "part"`);
+  const hosted = boards.filter((b) => CATALOG.get(doc.parts.find((p) => p.id === b)?.type ?? '')?.board?.mcu === 'esp32s3');
+  let board: string;
+  if (step.board === undefined) {
+    if (hosted.length !== 1) throw new UsageError(`${where}: say "board" (the project's boards with a USB host: ${hosted.length === 0 ? 'none' : hosted.join(', ')})`);
+    board = hosted[0];
+  } else if (typeof step.board !== 'string' || !hosted.includes(step.board)) {
+    throw new UsageError(`${where}: ${typeof step.board === 'string' && boards.includes(step.board) ? `"${step.board}" has no USB port the bench hosts (an ESP32-S3 board has)` : `no board "${String(step.board)}"`}`);
+  } else board = step.board;
+  const at = parseTime(step.at as string);
+  if (step.locks !== undefined) {
+    const list = step.locks;
+    if (!Array.isArray(list) || list.some((l) => typeof l !== 'string' || !(LOCK_NAMES as readonly string[]).includes(l))) throw new UsageError(`${where}: "locks" lists the lock keys on: "num", "caps", "scroll" ([] for none)`);
+    return { kind: 'locks', at, board, locks: { num: list.includes('num'), caps: list.includes('caps'), scroll: list.includes('scroll') } };
+  }
+  if (typeof step.midi !== 'string' || !/^\s*[0-9a-fA-F]{2}(\s+[0-9a-fA-F]{2})*\s*$/.test(step.midi)) throw new UsageError(`${where}: "midi" is MIDI bytes in hex, e.g. "90 3C 64"`);
+  const bytes = new Uint8Array(step.midi.trim().split(/\s+/).map((h) => Number.parseInt(h, 16)));
+  if (bytes.length > MAX_MIDI_STEP) throw new UsageError(`${where}: a "midi" step sends at most ${MAX_MIDI_STEP} bytes`);
+  const packets = encodeMidi(bytes);
+  if (typeof packets === 'string') throw new UsageError(`${where}: ${packets}`);
+  return { kind: 'midi', at, board, bytes, where };
+}
+
 /** A script file's steps and assertions; part ids and boards are checked against the project. */
 export function parseScript(json: unknown, doc: ProjectDoc, boards: readonly string[]): { steps: ScriptStep[]; expect: string[] } {
   const body = json as { steps?: unknown; expect?: unknown } | unknown[];
@@ -334,7 +437,7 @@ export function parseScript(json: unknown, doc: ProjectDoc, boards: readonly str
   if (!Array.isArray(expect) || expect.some((e) => typeof e !== 'string')) throw new UsageError('script: "expect" must be an array of strings');
   const parts = new Set(doc.parts.map((p) => p.id));
   const parsed = steps.map((raw: unknown, i): ScriptStep | ScriptStep[] => {
-    const step = raw as { at?: unknown; part?: unknown; input?: unknown; set?: unknown; serial?: unknown; board?: unknown; reset?: unknown } | null;
+    const step = raw as { at?: unknown; part?: unknown; input?: unknown; set?: unknown; serial?: unknown; board?: unknown; reset?: unknown; write?: unknown; remove?: unknown; text?: unknown; base64?: unknown; midi?: unknown; locks?: unknown } | null;
     const where = `script step ${i + 1}`;
     if (typeof step !== 'object' || step === null) throw new UsageError(`${where}: must be an object`);
     if (typeof step.at !== 'string') throw new UsageError(`${where}: "at" must be a time string like "100ms"`);
@@ -342,6 +445,7 @@ export function parseScript(json: unknown, doc: ProjectDoc, boards: readonly str
       if (typeof step.reset !== 'string' || !boards.includes(step.reset)) throw new UsageError(`${where}: "reset" names a board of the project (${boards.join(', ') || 'none'}), not ${JSON.stringify(step.reset)}`);
       return { kind: 'reset', at: parseTime(step.at), board: step.reset };
     }
+    if (step.midi !== undefined || step.locks !== undefined) return parseUsbStep(step, doc, boards, where);
     if (step.serial !== undefined) {
       if (typeof step.serial !== 'string') throw new UsageError(`${where}: "serial" must be a string`);
       if (step.serial.length > MAX_SERIAL_STEP) throw new UsageError(`${where}: "serial" is longer than ${MAX_SERIAL_STEP} characters`);
@@ -354,6 +458,7 @@ export function parseScript(json: unknown, doc: ProjectDoc, boards: readonly str
       return { kind: 'serial', at: parseTime(step.at), board, text: step.serial };
     }
     if (typeof step.part !== 'string' || !parts.has(step.part)) throw new UsageError(`${where}: no part "${String(step.part)}" in the project`);
+    if (step.write !== undefined || step.remove !== undefined) return parseFileStep(step, step.part, doc, where);
     if (step.set !== undefined) {
       if (step.input !== undefined) throw new UsageError(`${where}: give "input" or "set", not both`);
       const at = parseTime(step.at);
@@ -457,7 +562,7 @@ function checkAgainstProject(a: Assertion, doc: ProjectDoc, boards: readonly str
   }
   if (a.kind === 'file') {
     // BT142: an ESP32-S3 board's USB drive (its host's mass storage) keeps files too.
-    if (!FILE_TYPES.has(part.type) && CATALOG.get(part.type)?.board?.mcu !== 'esp32s3') throw new UsageError(`${a.text}: "${a.part}" is a ${part.type}, not a part that keeps files (a microSD card, or an ESP32-S3 board's USB drive)`);
+    if (!keepsFiles(part.type)) throw new UsageError(`${a.text}: "${a.part}" is a ${part.type}, not a part that keeps files (a microSD card, or an ESP32-S3 board's USB drive)`);
     return;
   }
   if (a.kind === 'pin' || a.kind === 'frequency' || a.kind === 'duty') {
@@ -825,8 +930,14 @@ export function runHeadless(options: RunOptions, io: RunIo): RunReport {
         if (step.at !== t) continue;
         if (step.kind === 'serial') bench.sendSerial(step.board, encoder.encode(step.text));
         else if (step.kind === 'reset') bench.resetBoard(step.board);
+        else if (step.kind === 'write' || step.kind === 'remove') applyFileStep(bench, step);
+        else if (step.kind === 'midi') {
+          const why = bench.usbMidi(step.board, step.bytes);
+          if (why !== null) throw new Error(`${step.where} (midi to ${step.board}) at ${formatNs(step.at)}: ${why}`);
+        } else if (step.kind === 'locks') bench.setUsbLocks(step.board, step.locks);
         else bench.input(step.part, step.input);
       }
+      checkFiles(); // BT144: a file step at this time counts for the assertions due now
       collect();
       for (const a of assertions) {
         if (a.kind === 'serial' || a.kind === 'match' || a.kind === 'bus' || a.kind === 'file' || a.kind === 'usb' || isNetAssertion(a) || decidedAt(a) !== t) continue;

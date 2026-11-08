@@ -82,7 +82,11 @@ and the bench's USB host also reads its keyboards, mice, media keys and MIDI por
 USB section in the Inspector shows the text typed and the events (`usb received "…"` in a test
 spec) — and mounts its USB drives (USBMSC; FAT12, FAT16 or FAT32) as a computer does: their files
 are listed there to open, download, delete or add, and a test spec's `file <board> <path>
-contains "…"` reads them.
+contains "…"` reads them. The host talks back as a computer does: its Caps, Num and Scroll Lock
+reach the sketch's keyboard as its LEDs (and the keyboard's own Caps Lock key toggles them) —
+the USB section has the lock keys, and a one-octave MIDI keyboard for a USB MIDI device — and
+a test spec sends MIDI to a USB MIDI device (`{ "at": "1s", "midi": "90 3C 64" }`, `{ "at": "2s",
+"locks": ["caps"] }`).
 On an N8R8, a wire on IO35–37 (its octal PSRAM's pins) gets a warning. Its ROM comes from the same download as
 the ESP32's.
 
@@ -212,7 +216,7 @@ a microphone pitch meter, a VU meter; Power: a regulator meter (turn the bench s
 hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, an LED Preferences remember, a deep sleep wake counter, a PWM fader, NeoPixel, a
 rainbow ring, an OLED clock, a color TFT, a WROVER's frame buffer in PSRAM, the DAC, the microphone, an I2C scan; ESP32-C3: the RGB LED,
 serial, a potentiometer dimmer, an OLED clock; ESP32-S3: the RGB LED, serial, a potentiometer dimmer, an OLED clock, a deep sleep wake counter, a
-frame buffer in PSRAM on a color TFT, an RGB LED set over USB serial, a USB macro keypad, a USB MIDI controller, a USB flash drive; WiFi: an ESP32 web server switched by HTTP client
+frame buffer in PSRAM on a color TFT, an RGB LED set over USB serial, a USB macro keypad, a USB MIDI controller, a USB MIDI synth, a USB flash drive; WiFi: an ESP32 web server switched by HTTP client
 parts, an ESP32 hosting its own access point and web server, an ESP32-C3 and an ESP32-S3 web server that set their RGB LED, a Pico W and a Pico 2 W web server switching their onboard LEDs, a Pico W and an ESP32 HTTP client talking to a server part, two ESP32s over TCP, an NTP clock on an OLED;
 Raspberry Pi Pico:
 blink, a potentiometer, PWM steps, an OLED, a color TFT, both cores at once; Raspberry Pi Pico 2: the same, NeoPixels
@@ -316,7 +320,9 @@ when it ends. You can also drop a `.py` file on a Pico, or run one headless:
 `npm run bridge` starts a local compile bridge on 127.0.0.1 that uses the `arduino-cli` bundled
 with **Arduino IDE 2** (with the `arduino:avr` and `esp32:esp32` 2.0.17 cores installed). The
 editor can then open a sketch folder, show compile errors on the board and reload the firmware
-when you save. `npm start` builds the app and serves it from the bridge on one origin.
+when you save. `npm start` builds the app and serves it from the bridge on one origin, with
+the ROMs and MicroPython firmware you fetched (`npm run fetch:esp32-rom` and the others), so
+ESP32, ESP32-C3, ESP32-S3, Pico 2 and MicroPython boards run there too.
 
 ### The real network (optional)
 
@@ -375,6 +381,7 @@ Other clients take the same command in their JSON configuration:
 
 The tools: the part catalog (`list_parts`, `describe_part`), `validate_project`,
 `run_simulation`, `run_tests`, live sessions (`sim_open`, `sim_run`, `sim_input`, `sim_serial`,
+`sim_usb` — MIDI notes and lock keys from an ESP32-S3's USB host to its device,
 `sim_state` — what parts show, boards asleep, and what an ESP32-S3's USB host received,
 `sim_bus` — the decoded I2C/SPI/UART traffic, `sim_files` — a microSD card's or an ESP32-S3's
 USB drive's files, `sim_storage` — a board's EEPROM, or an ESP32's Preferences, as the sketch left them,
@@ -421,7 +428,10 @@ temperature, humidity, light, sound) reads the room at a part. On a WiFi bench, 
 connected by 3s`, `http api served GET /api/hello by 3s` (an HTTP server part answered it) and
 `http on got 200 with "led on" by 3s` (an HTTP client part's response) read the network. A step
 `{ "at": "2s", "reset": "uno" }` resets one board as a power cycle would: its EEPROM or flash
-keeps what the sketch stored (a run starts with them erased).
+keeps what the sketch stored (a run starts with them erased). On a microSD card or an ESP32-S3
+board's USB drive, `{ "at": "1s", "part": "sd", "write": "CONFIG.TXT", "text": "rate=5\n" }`
+(or `"base64"` for bytes) puts a file there and `{ "at": "2s", "part": "sd", "remove": "LOG.TXT" }`
+deletes one, as a computer would.
 
 `test` runs every spec it finds, in parallel, and writes JUnit XML (which CI systems show as test
 results) and a Markdown summary:
@@ -433,8 +443,8 @@ npm run bench -- test fixtures/specs --junit results.xml --markdown summary.md
 It exits 0 when every spec passes, 1 when an expectation fails and 2 when a spec can't run.
 
 You can also record a test by using the app: **Record test** in the toolbar restarts the bench
-and records every button press, knob turn, keypad key and serial input at its exact simulated
-time; **Stop** proposes expectations from where it ended (serial lines, lit LEDs, LCD rows,
+and records every button press, knob turn, keypad key, serial input and file you write or remove
+in the Inspector at its exact simulated time; **Stop** proposes expectations from where it ended (serial lines, lit LEDs, LCD rows,
 servo angles) — tick the ones you want, name the firmware files, and download the spec. Every
 example in the gallery has such a spec in `fixtures/specs/examples/`.
 

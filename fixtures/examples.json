@@ -963,6 +963,19 @@
     "description": "The S3's RAM as a USB flash drive (Arduino's USBMSC over a FAT12 disk the sketch lays out): the bench's USB host mounts it, and the board's USB section in the Inspector lists its files. Write a CONFIG.TXT holding led=green there and the RGB LED follows; the button rewrites COUNT.TXT and makes the computer read the drive again."
   },
   {
+    "id": "esp32s3-usb-synth",
+    "title": "ESP32-S3 USB MIDI synth",
+    "category": "ESP32-S3",
+    "project": "esp32s3-usb-synth",
+    "boards": {
+      "s3": {
+        "firmware": "esp32s3/usb-synth.bin",
+        "sketch": "esp32s3/usb-synth"
+      }
+    },
+    "description": "A USB MIDI instrument on the S3's own USB (TinyUSB's MIDI class): play the one-octave keyboard in the board's USB section of the Inspector and the speaker on IO5 sounds each note at its pitch while the RGB LED takes its color; the serial monitor lists what arrived."
+  },
+  {
     "id": "esp32-wifi-webserver",
     "title": "ESP32 WiFi web server",
     "category": "WiFi",

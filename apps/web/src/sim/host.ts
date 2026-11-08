@@ -10,10 +10,10 @@
  * isolated) — the ring's changed slots, read once per animation frame.
  */
 
-import type { FirmwareImage, MemorySpace, Nanos, PartInput, PinRef, Problem, ProjectDoc, VisualState } from '@benchtop/core';
+import type { FirmwareImage, MemorySpace, Nanos, PartInput, PinRef, Problem, ProjectDoc, UsbLocks, VisualState } from '@benchtop/core';
 import { signal } from '@preact/signals';
 import { FrameRingReader } from './frame-ring.ts';
-import { type FrameStats, type FromSim, type MemoryReply, type MemorySector, PROTOCOL_VERSION, type RecordedTest, type StorageReply, type StorageRequest, type ToSim, type UsbReply } from './protocol.ts';
+import { type FrameStats, type FromSim, type MemoryReply, type MemorySector, PROTOCOL_VERSION, type RecordedTest, type StorageReply, type StorageRequest, type ToSim, type UsbReply, type UsbSentReply } from './protocol.ts';
 
 export type SimStatus = 'starting' | 'ready' | 'error';
 export type SimFrame = Extract<FromSim, { type: 'frame' }>;
@@ -44,6 +44,7 @@ const memoryWaiters = new Map<number, (reply: MemoryReply) => void>();
 let memoryId = 0;
 const usbWaiters = new Map<number, (reply: UsbReply) => void>();
 let usbId = 0;
+const usbSentWaiters = new Map<number, (reply: UsbSentReply) => void>();
 let worker: Worker | null = null;
 let ring: FrameRingReader | null = null;
 let ringFrame = 0;
@@ -190,6 +191,15 @@ export const sim = {
       send({ type: 'usb', id, board });
     });
   },
+  /** BT146: MIDI or the lock keys from a board's USB host to its device. Resolves with the worker's answer. */
+  usbSend(board: string, what: { midi: Uint8Array } | { locks: UsbLocks }): Promise<UsbSentReply> {
+    if (worker === null) return Promise.resolve({ type: 'usbSent', id: 0, board, ok: false, error: 'the simulator is not running' });
+    const id = ++usbId;
+    return new Promise((resolve) => {
+      usbSentWaiters.set(id, resolve);
+      send({ type: 'usbSend', id, board, ...what });
+    });
+  },
   /** BT87: the Bus tab opened (frames carry decoded bus transactions) or closed. */
   busWatch(on: boolean): void {
     send({ type: 'busWatch', on });
@@ -272,6 +282,10 @@ function receive(message: FromSim): void {
     case 'usb':
       usbWaiters.get(message.id)?.(message);
       usbWaiters.delete(message.id);
+      return;
+    case 'usbSent':
+      usbSentWaiters.get(message.id)?.(message);
+      usbSentWaiters.delete(message.id);
       return;
     case 'debugInfo':
     case 'debugStopped':

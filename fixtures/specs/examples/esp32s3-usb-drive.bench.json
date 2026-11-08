@@ -18,6 +18,12 @@
       "input": {
         "kind": "release"
       }
+    },
+    {
+      "at": "3.5s",
+      "part": "s3",
+      "write": "CONFIG.TXT",
+      "text": "led=green\n"
     }
   ],
   "expect": [
@@ -25,6 +31,7 @@
     "file s3 README.TXT contains \"an ESP32-S3's RAM\" by 700ms",
     "file s3 COUNT.TXT contains \"count=0\" by 700ms",
     "serial contains \"count 1\" by 1.2s",
-    "file s3 COUNT.TXT contains \"count=1\" by 4s"
+    "file s3 COUNT.TXT contains \"count=1\" by 4s",
+    "serial contains \"led green\" by 4s"
   ]
 }

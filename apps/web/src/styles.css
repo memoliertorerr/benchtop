@@ -1041,6 +1041,85 @@ input {
   overflow-wrap: anywhere;
 }
 
+/* The computer's lock keys and a MIDI keyboard (BT146) */
+.usb-locks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.usb-lock-light {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.usb-lock.on {
+  border-color: var(--accent);
+}
+
+.usb-lock.on .usb-lock-light {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+}
+
+.usb-piano {
+  position: relative;
+  display: flex;
+  height: 72px;
+  margin-bottom: 6px;
+  user-select: none;
+  touch-action: none;
+}
+
+.usb-key {
+  flex: 1;
+  margin: 0 1px 0 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 0 0 4px 4px;
+  background: #f7f9fb;
+  cursor: pointer;
+}
+
+.usb-key.black {
+  position: absolute;
+  top: 0;
+  width: calc(100% / 7 * 0.6);
+  height: 60%;
+  border-color: #0b1016;
+  background: #1b232c;
+  z-index: 1;
+}
+
+.usb-key:active,
+.usb-key.black:active {
+  background: var(--accent);
+}
+
+.usb-key:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.usb-midi-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.usb-midi-controls input[type='range'] {
+  width: 90px;
+  vertical-align: middle;
+}
+
 /* microSD card (BT91) */
 .card-files {
   display: grid;
