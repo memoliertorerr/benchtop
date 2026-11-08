@@ -49,8 +49,8 @@ describe('bridge request guards', () => {
   beforeAll(async () => {
     bridge = createBridge({
       cli: undefined,
-      compile: (dir, fqbn) => {
-        calls.push(`${dir} ${fqbn}`);
+      compile: (dir, fqbn, _buildKey, module) => {
+        calls.push(`${dir} ${fqbn}${module === undefined ? '' : ` ${module}`}`);
         return Promise.resolve(okResult(calls.length));
       },
     });
@@ -113,6 +113,19 @@ describe('bridge request guards', () => {
     expect(body).toMatchObject({ ok: true, stdout: 'build 1', artifacts: { hex: ':00000001FF\n' } });
     expect([...Buffer.from(body.artifacts.elf, 'base64')]).toEqual([0x7f, 0x45, 1]);
     expect(calls).toEqual([`${sketch} arduino:avr:uno`]);
+  });
+
+  it('BT137: passes on a board module its FQBN knows; refuses another before compiling (compile and watch)', async () => {
+    const before = calls.length;
+    const post = (body: unknown) => send(port, { method: 'POST', path: '/api/compile', headers: ORIGIN, body: JSON.stringify(body) });
+    expect((await post({ sketch, fqbn: 'esp32:esp32:esp32', module: 'N8R8' })).status).toBe(400);
+    expect(JSON.parse((await post({ sketch, fqbn: 'arduino:avr:uno', module: 'WROVER-E' })).body).error).toMatch(/no modules/);
+    const watch = await send(port, { path: `/api/watch?fqbn=esp32:esp32:esp32s3&module=WROVER-E&sketch=${encodeURIComponent(sketch)}` });
+    expect(watch.status).toBe(400);
+    expect(calls.length).toBe(before);
+    expect((await post({ sketch, fqbn: 'esp32:esp32:esp32', module: 'WROVER-E' })).status).toBe(200);
+    expect((await post({ sketch, fqbn: 'esp32:esp32:esp32', module: 'auto' })).status).toBe(200);
+    expect(calls.slice(before)).toEqual([`${sketch} esp32:esp32:esp32 WROVER-E`, `${sketch} esp32:esp32:esp32`]);
   });
 
   it('answers 404 for unknown endpoints and static files when nothing is served', async () => {
@@ -285,14 +298,14 @@ describe('inline sketches (BT42)', () => {
   let bridge: Bridge;
   let port: number;
   /** What the fake compile saw: the folder, its files at that moment, the build key. */
-  const seen: { dir: string; fqbn: string; buildKey: string | undefined; files: Record<string, string> }[] = [];
+  const seen: { dir: string; fqbn: string; buildKey: string | undefined; module?: string | undefined; files: Record<string, string> }[] = [];
 
   beforeAll(async () => {
     bridge = createBridge({
       cli: undefined,
-      compile: (dir, fqbn, buildKey) => {
+      compile: (dir, fqbn, buildKey, module) => {
         const files = Object.fromEntries(readdirSync(dir).map((name) => [name, readFileSync(join(dir, name), 'utf8')]));
-        seen.push({ dir, fqbn, buildKey, files });
+        seen.push({ dir, fqbn, buildKey, module, files });
         // arduino-cli reports absolute paths, macOS's temp dir through /private.
         const real = realpathSync(dir);
         return Promise.resolve({
@@ -332,6 +345,15 @@ describe('inline sketches (BT42)', () => {
       ['/opt/arduino/Arduino.h', 1, 1],
     ]);
     expect(result.stderr).toBe('sketch.ino:3:5: error');
+  });
+
+  it('BT137: an inline sketch\u2019s module reaches the compile; a module its FQBN lacks is refused', async () => {
+    const reply = await post({ fqbn: 'esp32:esp32:esp32s3', files, main: 'sketch.ino', module: 'N8R8' });
+    expect(reply.status).toBe(200);
+    expect(seen.at(-1)?.module).toBe('N8R8');
+    const count = seen.length;
+    expect((await post({ fqbn: 'esp32:esp32:esp32s3', files, main: 'sketch.ino', module: 'WROVER-E' })).status).toBe(400);
+    expect(seen.length).toBe(count);
   });
 
   it('refuses unsafe or oversize sketches before writing anything', async () => {

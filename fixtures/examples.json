@@ -924,6 +924,32 @@
     "description": "Serial over the S3's own USB (USB-OTG and TinyUSB, opened by the bench's USB host): type red, green, blue, white or off in the serial monitor and the DevKitC-1's RGB LED follows. Its `// benchtop: usb-otg` line builds it in that USB mode."
   },
   {
+    "id": "esp32s3-usb-keys",
+    "title": "ESP32-S3 USB macro keypad",
+    "category": "ESP32-S3",
+    "project": "esp32s3-usb-keys",
+    "boards": {
+      "s3": {
+        "firmware": "esp32s3/usb-keys.bin",
+        "sketch": "esp32s3/usb-keys"
+      }
+    },
+    "description": "The S3's own USB as a keyboard, a mouse and media keys (Arduino's USB library over USB-OTG): one button types a line, one moves the mouse and clicks, one turns the volume up. The board's USB section in the Inspector shows what the computer received."
+  },
+  {
+    "id": "esp32s3-usb-midi",
+    "title": "ESP32-S3 USB MIDI controller",
+    "category": "ESP32-S3",
+    "project": "esp32s3-usb-midi",
+    "boards": {
+      "s3": {
+        "firmware": "esp32s3/usb-midi.bin",
+        "sketch": "esp32s3/usb-midi"
+      }
+    },
+    "description": "A USB MIDI device on the S3's own USB (TinyUSB's MIDI class): two buttons play C4 and E4, the pot sends the volume controller. The board's USB section in the Inspector lists the MIDI messages the computer received."
+  },
+  {
     "id": "esp32-wifi-webserver",
     "title": "ESP32 WiFi web server",
     "category": "WiFi",

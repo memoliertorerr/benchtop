@@ -69,6 +69,9 @@ describe('compile_sketch', () => {
       expect((await tool(server, 'compile_sketch', { sketch: 'blink', board: 'led' })).text).toMatch(/"led" is not a board part type/);
       expect((await tool(server, 'compile_sketch', { files: { '../a.ino': '' }, board: 'arduino-uno' })).text).toMatch(/bad file name/);
       expect((await tool(server, 'compile_sketch', { sketch: 'blink', fqbn: 'arduino:avr:leonardo' })).isError).toBe(true);
+      // BT137: a module must be one the board's FQBN knows (refused before arduino-cli runs).
+      expect((await tool(server, 'compile_sketch', { sketch: 'blink', board: 'esp32-devkit-v1', module: 'N8R8' })).text).toMatch(/module must be auto or one of WROOM-32, WROVER-E/);
+      expect((await tool(server, 'compile_sketch', { sketch: 'blink', board: 'arduino-uno', module: 'WROVER-E' })).text).toMatch(/has no modules/);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

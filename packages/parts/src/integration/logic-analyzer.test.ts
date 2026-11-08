@@ -91,13 +91,16 @@ describe('logic analyzer probes', () => {
     const mhz = (probes: number): number => {
       const bench = load('blink-led', 'blink');
       for (const pin of ['13', '12', '2', 'A0'].slice(0, probes)) bench.addProbe({ part: 'uno', pin });
-      const start = performance.now();
+      // This process's CPU time, not wall time: other processes on the machine (another
+      // verify, say) preempt a run without costing it CPU time (2026-11-08: wall time failed
+      // once at -5.4 % under load; alone the two agree within 0.2 %).
+      const start = process.cpuUsage();
       bench.runUntil(200 * NS_PER_MS);
-      return 3.2e6 / ((performance.now() - start) * 1000);
+      const used = process.cpuUsage(start);
+      return 3.2e6 / (used.user + used.system);
     };
     mhz(4); // warm up
-    // Best of many short alternating runs: machine load only ever slows a run down, and the
-    // full verify runs test files in parallel.
+    // Best of many short alternating runs: load only ever slows a run down (caches, clock).
     let none = 0;
     let four = 0;
     for (let k = 0; k < 8; k++) {

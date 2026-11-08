@@ -199,7 +199,7 @@ export const simState: Tool<SimContext> = {
   name: 'sim_state',
   title: 'Read a live simulation\'s state',
   description:
-    'What an open session shows now: each part\'s visual state (an LED\'s brightness, a servo\'s angle, an LCD\'s text, a NeoPixel\'s colors, a display\'s framebuffer summarized unless "full"), the level and volts of the pins asked for ("part:pin"), and the boards asleep (an ESP32\'s or ESP32-C3\'s light or deep sleep: "sleeping", with what wakes it — the timer\'s time, the wake pins). Filter parts with "parts".',
+    'What an open session shows now: each part\'s visual state (an LED\'s brightness, a servo\'s angle, an LCD\'s text, a NeoPixel\'s colors, a display\'s framebuffer summarized unless "full"), the level and volts of the pins asked for ("part:pin"), and the boards asleep (an ESP32\'s or ESP32-C3\'s light or deep sleep: "sleeping", with what wakes it — the timer\'s time, the wake pins), and for an ESP32-S3 whose sketch uses its own USB (USB-OTG) what the bench\'s USB host received ("usb": the device, what it uses, the text a keyboard typed, the last 50 events — mouse, media keys, MIDI messages). Filter parts with "parts".',
   inputSchema: {
     type: 'object',
     properties: {
@@ -230,7 +230,22 @@ export const simState: Tool<SimContext> = {
       const sleep = session.bench.sleepOf(board);
       if (sleep !== null) sleeping[board] = { sleep: sleep.deep ? 'deep' : 'light', ...(sleep.wakeAt === null ? {} : { timerWakesAt: timeText(Math.round(sleep.wakeAt / 1e6) * 1e6) }), wakePins: sleep.pins };
     }
-    return { session: session.id, now: timeText(session.bench.now()), parts, ...(Object.keys(pins).length > 0 ? { pins } : {}), ...(Object.keys(sleeping).length > 0 ? { sleeping } : {}) };
+    // BT139: boards whose USB host has a device: what it received.
+    const usb: Record<string, unknown> = {};
+    for (const board of session.boards) {
+      const host = session.bench.usbOf(board);
+      if (host === null || host.phase === 'waiting') continue;
+      const total = host.events.length + host.dropped;
+      usb[board] = {
+        phase: host.phase,
+        device: host.device,
+        functions: host.functions,
+        typed: host.typed.slice(-2000),
+        events: host.events.slice(-50).map((e) => ({ at: timeText(Math.round(e.at / 1e3) * 1e3), text: e.text })),
+        ...(total > 50 ? { earlierEvents: total - 50 } : {}),
+      };
+    }
+    return { session: session.id, now: timeText(session.bench.now()), parts, ...(Object.keys(pins).length > 0 ? { pins } : {}), ...(Object.keys(sleeping).length > 0 ? { sleeping } : {}), ...(Object.keys(usb).length > 0 ? { usb } : {}) };
   },
 };
 

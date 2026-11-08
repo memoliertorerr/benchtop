@@ -26,7 +26,9 @@
  * WROOM-1/-2) are refused: the bench can't drive them (`setPadInput` ignores them), and firmware
  * that turns one into a GPIO (MCU_SEL 1) gets a warning, `esp32s3-flash-pin` — on a board that cuts
  * the flash off; here the flash model doesn't notice. GPIO33–37 carry PSRAM only on octal-PSRAM
- * modules (N8R8), and PSRAM isn't modeled: they are free pads.
+ * modules (N8R8): free pads here, but BT136's `octalPsram` watch reports (`pin-reserved`, once per
+ * pad) firmware that makes one a GPIO while the octal PSRAM runs — on a board the PSRAM stops
+ * answering; the simulated one keeps working.
  *
  * Pads resolve as the C3's do (its file says how): a matrix output, an IO_MUX function that drives
  * the pad directly (U0TXD on 43, U1TXD on 17, FSPICLK/FSPID/FSPICS0 on 12/11/10 or 36/35/34), open
@@ -113,7 +115,11 @@ const ENA_CPU_NMI = 1 << 14;
 /** GPIO_STRAP: GPIO0 high (SPI boot), GPIO46 low. */
 const STRAP_SPI_BOOT = 0x08;
 
-const MUX = { FUN_WPD: 1 << 7, FUN_WPU: 1 << 8, FUN_IE: 1 << 9, DRV2: 2 << 10 } as const;
+const MUX = { FUN_WPD: 1 << 7, FUN_WPU: 1 << 8, FUN_IE: 1 << 9, DRV2: 2 << 10, MCU_SEL: 7 << 12 } as const;
+/** BT136: a pad the module's PSRAM holds, taken by the firmware (the bench's code, as the ESP32's). */
+export const CODE_S3_PIN_RESERVED = 'pin-reserved';
+/** BT136: what GPIO33–37 carry for an octal PSRAM (the datasheet's pin list). */
+export const OCTAL_PSRAM_PADS = ['SPIIO4', 'SPIIO5', 'SPIIO6', 'SPIIO7', 'SPIDQS'] as const;
 /** IO_MUX's sleep-mode fields (MCU_OE, SLP_SEL, MCU_WPD, MCU_WPU, MCU_IE and reserved, 6:0). */
 const MUX_SLEEP_FIELDS = 0x7f;
 /** IO_MUX output functions as (gpio << 3 | MCU_SEL) → the signal they carry. */
@@ -143,6 +149,8 @@ export class S3IoMux implements Peripheral {
   readonly configured = new Uint8Array(S3_PADS);
   /** Something that decides a pad's mode changed. */
   onConfig: (() => void) | null = null;
+  /** BT136: whether the octal PSRAM runs (it holds GPIO33–37); null: no watch. */
+  octalPsram: (() => boolean) | null = null;
   private readonly problems: ProblemLog | null;
 
   constructor(problems: ProblemLog | null = null) {
@@ -193,6 +201,9 @@ export class S3IoMux implements Peripheral {
       if (((before ^ value) & ~MUX_SLEEP_FIELDS) !== 0) this.configured[g] = 1;
       if (isS3FlashPad(g) && this.isGpio(g) && this.problems !== null) {
         this.problems.report('warning', CODE_S3_FLASH_PIN, S3_IO_MUX_BASE + offset, `GPIO${g} is the module's SPI flash (${FLASH_PAD_NAMES[g - 26]}): using it as a GPIO cuts the flash off on a board (the simulator's flash keeps working). Pick another pin.`);
+      }
+      if (g >= 33 && g <= 37 && ((before ^ value) & MUX.MCU_SEL) !== 0 && this.isGpio(g) && this.problems !== null && this.octalPsram !== null && this.octalPsram()) {
+        this.problems.report('warning', CODE_S3_PIN_RESERVED, S3_IO_MUX_BASE + offset, `The firmware made GPIO${g} a GPIO, but it carries the octal PSRAM's ${OCTAL_PSRAM_PADS[g - 33]}: on a board the PSRAM stops answering (the simulator's keeps working). On an N8R8 module IO35–37 aren't free: pick another pin.`);
       }
       this.onConfig?.();
     }

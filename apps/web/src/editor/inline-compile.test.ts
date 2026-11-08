@@ -100,6 +100,10 @@ describe('inline sketch: Compile & Run (BT42)', () => {
     const ref = templateRef('arduino:avr:uno');
     const hash = sourceHash(ref);
     expect(sourceHash(structuredClone(ref))).toBe(hash);
+    // BT137: a board module that picks the build is part of the source; none (auto) keeps the old hash.
+    expect(sourceHash(ref, undefined)).toBe(hash);
+    expect(sourceHash(ref, 'WROVER-E')).not.toBe(hash);
+    expect(sourceHash(ref, 'WROVER-E')).not.toBe(sourceHash(ref, 'WROOM-32'));
     expect(sourceHash({ ...ref, files: { ...ref.files, 'pins.h': '' } })).not.toBe(hash);
     expect(sourceHash({ ...ref, files: { [MAIN_FILE]: `${ref.files[MAIN_FILE]} ` } })).not.toBe(hash);
     expect(sourceHash({ ...ref, fqbn: 'esp32:esp32:esp32' })).not.toBe(hash);

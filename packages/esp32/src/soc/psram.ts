@@ -27,6 +27,10 @@ export class QuadPsram {
   qpi = false;
   /** BT135: the module has the chip; false, CS1 has nothing on it and reads 0. */
   present = true;
+  /** BT136: a driver has read the chip's ID (0x9F) since power-on — a build that uses PSRAM. */
+  identified = false;
+  /** BT136: called when `identified` becomes true. */
+  onIdentified: (() => void) | null = null;
 
   constructor(capacity: number, id: readonly number[]) {
     this.capacity = capacity;
@@ -63,6 +67,7 @@ export class QuadPsram {
     this.bytes = null;
     this.words = null;
     this.qpi = false;
+    this.identified = false;
   }
 
   /** One SPI transaction on CS1: `mosi` holds what the host sends, `miso` gets the reply. */
@@ -74,6 +79,10 @@ export class QuadPsram {
     switch (command) {
       case 0x9f: // read ID
         for (let i = 0; i < miso.length; i++) miso[i] = this.id[i] ?? 0;
+        if (!this.identified) {
+          this.identified = true;
+          this.onIdentified?.();
+        }
         return;
       case 0x66: // reset enable
         return;

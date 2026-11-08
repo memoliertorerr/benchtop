@@ -87,6 +87,8 @@ import type { EnvSpecFor, PointField } from '../env/spec.ts';
 import { usesWifi } from '../net/radio.ts';
 import { type NvMemory, usesNonVolatile } from './nonvolatile.ts';
 import { type BoardSleep, usesSleep } from './sleep.ts';
+import { type PinClaim, usesPinClaims } from './claims.ts';
+import { type BoardUsb, usesUsbHost } from './usb.ts';
 import { NetRuntime } from '../net/runtime.ts';
 import type { NetSpecFor } from '../net/spec.ts';
 import type { Uplink } from '../net/uplink.ts';
@@ -219,6 +221,8 @@ const MAX_BUS_INDEX = 4;
 /** Timer callbacks in a row that may run without the clock advancing before the bench gives up. */
 const MAX_STALLED_STEPS = 1_000_000;
 const MAX_REPORTED = 1000;
+/** A board whose MCU holds no pins (BT136). */
+const NO_CLAIMS: readonly PinClaim[] = Object.freeze([]);
 /** Simulated time between dynamic circuit checks. */
 const CHECK_INTERVAL_NS = 10 * NS_PER_MS;
 
@@ -819,6 +823,10 @@ export class Bench {
         return island >= 0 && analog.tooLarge[island] === 0;
       },
       breadboards,
+      (board) => {
+        const mcu = this.mcuByPart.get(board)?.mcu;
+        return mcu !== undefined && usesPinClaims(mcu) ? mcu.pinClaims() : NO_CLAIMS;
+      },
     );
     this.scheduler.schedule(this.time + CHECK_INTERVAL_NS, this.checkTick);
 
@@ -971,6 +979,20 @@ export class Bench {
     const sleep = usesSleep(mcu) ? mcu.sleepState() : null;
     if (sleep === null) return null;
     return { deep: sleep.deep, wakeAt: sleep.wakeIn === null ? null : this.now() + sleep.wakeIn, pins: sleep.pins };
+  }
+
+  /**
+   * BT138: a board's USB host — the device it enumerated and what that sent (a keyboard's text,
+   * mouse, media and MIDI events, timed in bench nanoseconds) — or null when the board has none or
+   * its firmware never started USB. Throws for a part that isn't a board.
+   */
+  usbOf(boardPartId: string): BoardUsb | null {
+    const mcu = this.mcuSlot(boardPartId).mcu;
+    const usb = usesUsbHost(mcu) ? mcu.usbHost() : null;
+    if (usb === null) return null;
+    const now = this.now();
+    const events = usb.events.map((e) => ({ at: Math.max(0, now - Math.round((usb.now - e.at) * 1e9)), text: e.text }));
+    return { phase: usb.phase, device: usb.device, functions: usb.functions, typed: usb.typed, events, dropped: usb.dropped };
   }
 
   /** A board's debugger view, or undefined when its MCU isn't debuggable. */

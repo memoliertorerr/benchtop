@@ -13,7 +13,7 @@ import { frameDoc } from '../editor/frame.ts';
 import { importNotes } from '../editor/import-notes.ts';
 import { micropythonFqbnOf } from '../editor/fqbn.ts';
 import { sourceHash, storedMicroPython } from '../editor/inline-compile.ts';
-import { fqbnOf } from '../editor/sketch-actions.ts';
+import { fqbnOf, moduleOf } from '../editor/sketch-actions.ts';
 import { firmwareChanged } from '../sim/controller.ts';
 import { resetPcb } from '../pcb/mode.ts';
 import { EXAMPLES, loadFirmware, loadMicroPython, loadPcb, loadProject, loadSketch, loadSymbols } from './manifest.ts';
@@ -51,7 +51,7 @@ export async function openExample(id: string): Promise<void> {
       const ref = { kind: 'inline' as const, fqbn, files: sketch.files, main: sketch.main };
       firmware[board] = ref;
       // BT100: a WiFi example's symbols (its driver's API is answered by name).
-      stored.push([board, { name: files.firmware.split('/').pop() as string, format: formatOf(files.firmware), bytes, source: sourceHash(ref), ...(syms === undefined ? {} : { debugSyms: syms }) }]);
+      stored.push([board, { name: files.firmware.split('/').pop() as string, format: formatOf(files.firmware), bytes, source: sourceHash(ref, part === undefined ? undefined : moduleOf(part.type, part.props)), ...(syms === undefined ? {} : { debugSyms: syms }) }]);
     }
     const doc: ProjectDoc = { ...parsed.doc, name: example.title, firmware: { ...parsed.doc.firmware, ...firmware } };
     await Promise.all(stored.map(([board, f]) => firmwareStore.put(board, f)));

@@ -9,7 +9,7 @@ import { existsSync, statSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { benchEnvParts } from '@benchtop/parts';
 import { fabricationFiles, fabricationZip, fileBase } from '@benchtop/pcb';
-import { type CompileResult, compile, compileInlineSketch, FQBN_ALLOWLIST, findArduinoCli, isAllowedFqbn, validateInlineSketch } from '../../../../../scripts/compile.ts';
+import { type CompileResult, compile, compileInlineSketch, FQBN_ALLOWLIST, findArduinoCli, isAllowedFqbn, moduleError, validateInlineSketch } from '../../../../../scripts/compile.ts';
 import { parseJson, projectFromJson, readText } from '../../load.ts';
 import { projectPcb } from '../../pcb.ts';
 import { type Tool, ToolError } from '../server.ts';
@@ -52,6 +52,7 @@ export const compileSketch: Tool<ToolContext> = {
       main: { type: 'string', maxLength: 64, description: 'The inline sketch\'s main .ino (default: its only .ino).' },
       board: { type: 'string', maxLength: 64, description: 'The board part type to compile for.' },
       fqbn: { type: 'string', enum: FQBN_ALLOWLIST, description: 'An FQBN instead of a board type.' },
+      module: { type: 'string', maxLength: 16, description: "The board's module, which picks the PSRAM build option: ESP32 auto, WROOM-32 or WROVER-E; ESP32-S3 auto, N8, N8R2 or N8R8 (a board's `module` prop). Default auto: a sketch's `// benchtop: psram` line decides." },
     },
     additionalProperties: false,
   },
@@ -60,6 +61,9 @@ export const compileSketch: Tool<ToolContext> = {
     const fqbn = typeof args.fqbn === 'string' ? args.fqbn : typeof args.board === 'string' ? fqbnOfBoard(args.board) : undefined;
     if (fqbn === undefined) throw new ToolError(typeof args.board === 'string' ? `"${args.board}" is not a board part type` : 'give "board" (a board part type) or "fqbn"');
     if (!isAllowedFqbn(fqbn)) throw new ToolError(`fqbn must be one of ${FQBN_ALLOWLIST.join(', ')}`);
+    const refused = moduleError(fqbn, args.module);
+    if (refused !== null) throw new ToolError(refused);
+    const module = typeof args.module === 'string' && args.module !== 'auto' ? args.module : undefined;
     if ((args.sketch === undefined) === (args.files === undefined)) throw new ToolError('give exactly one of "sketch" (a folder under the root) or "files" (inline)');
     const cli = findArduinoCli();
     if (cli === undefined) throw new ToolError('arduino-cli not found: install Arduino IDE 2 (its bundled arduino-cli is used) with the board\'s core');
@@ -70,16 +74,16 @@ export const compileSketch: Tool<ToolContext> = {
       if (!existsSync(dir) || !statSync(dir).isDirectory()) throw new ToolError(`sketch ${args.sketch} is not a folder`);
       name = basename(dir);
       if (!existsSync(join(dir, `${name}.ino`))) throw new ToolError(`the folder has no ${name}.ino`);
-      result = await compile(cli, dir, fqbn);
+      result = await compile(cli, dir, fqbn, undefined, undefined, module);
     } else {
       const files = args.files as Record<string, string>;
       const inos = Object.keys(files).filter((f) => f.endsWith('.ino'));
       const main = typeof args.main === 'string' ? args.main : inos.length === 1 ? inos[0] : undefined;
       if (main === undefined) throw new ToolError('say which .ino is the main file ("main")');
-      const check = validateInlineSketch({ fqbn, files, main });
+      const check = validateInlineSketch({ fqbn, files, main, module });
       if (!check.ok) throw new ToolError(check.error);
       name = main.slice(0, -'.ino'.length);
-      result = await compileInlineSketch((dir, f, key) => compile(cli, dir, f, undefined, key), fqbn, check.files, check.main);
+      result = await compileInlineSketch((dir, f, key, m) => compile(cli, dir, f, undefined, key, m), fqbn, check.files, check.main, check.module);
     }
     const a = result.artifacts;
     const base = `${name}.ino`;
@@ -94,6 +98,7 @@ export const compileSketch: Tool<ToolContext> = {
     return {
       ok: result.ok,
       fqbn,
+      ...(module === undefined ? {} : { module }),
       durationMs: result.durationMs,
       diagnostics: result.diagnostics,
       ...(result.error === undefined ? {} : { error: result.error }),

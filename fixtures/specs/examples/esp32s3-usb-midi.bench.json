@@ -1,0 +1,46 @@
+{
+  "name": "example: esp32s3-usb-midi",
+  "project": "../../projects/esp32s3-usb-midi.json",
+  "firmware": {
+    "s3": "../../firmware/esp32s3/usb-midi.bin"
+  },
+  "steps": [
+    {
+      "at": "400ms",
+      "part": "c4",
+      "input": {
+        "kind": "press"
+      }
+    },
+    {
+      "at": "600ms",
+      "part": "c4",
+      "input": {
+        "kind": "release"
+      }
+    },
+    {
+      "at": "800ms",
+      "part": "volume",
+      "input": {
+        "kind": "value",
+        "value": 1
+      }
+    },
+    {
+      "at": "1s",
+      "part": "volume",
+      "input": {
+        "kind": "value",
+        "value": 0
+      }
+    }
+  ],
+  "expect": [
+    "serial contains \"usb midi ready\" by 400ms",
+    "usb received \"MIDI: note on ch 1 C4 (60) velocity 100\" by 500ms",
+    "usb received \"MIDI: note off ch 1 C4 (60)\" by 700ms",
+    "usb received \"control change ch 1 #7 = 127\" by 900ms",
+    "usb received \"control change ch 1 #7 = 0\" by 1.1s"
+  ]
+}

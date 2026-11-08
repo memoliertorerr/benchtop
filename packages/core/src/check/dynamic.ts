@@ -19,6 +19,9 @@
  *   source, or sink, more together than the group's limit — the per-pin currents above, summed by
  *   board, group and direction, each MCU pin once per net. Held for 1 s like a pin's.
  * - unpowered-part (warning): a wired part whose power nets, or ground nets, all have no driver.
+ * - pin-reserved (warning, BT136): a board pin whose MCU pin the board's module holds (`claims`:
+ *   the MCU's `pinClaims()` — a WROVER's PSRAM on GPIO16/17) and whose net reaches another part
+ *   (breadboards don't count). The pin keeps working here; on a board it isn't free.
  */
 
 import type { BoardSpec, Problem } from '../contracts/part.ts';
@@ -26,6 +29,7 @@ import type { McuPin } from '../contracts/mcu.ts';
 import { type NetState, Strength } from '../contracts/signal.ts';
 import type { Netlist } from '../netlist/netlist.ts';
 import { STRONG_OHMS } from '../analog/layer.ts';
+import type { PinClaim } from '../bench/claims.ts';
 import { type PortGroup, PORT_GROUPS } from './port-groups.ts';
 import { MAX_INPUT_VOLTS } from './static.ts';
 
@@ -98,6 +102,8 @@ export class DynamicChecks {
   private readonly slotProblems: (Problem | null)[];
   /** Parts that only connect (breadboards): reaching one isn't being wired to a part. */
   private readonly interconnects: ReadonlySet<string>;
+  /** The MCU pins a board's module holds (BT136), as its MCU says now. */
+  private readonly claims: (board: string) => readonly PinClaim[];
 
   constructor(
     boardPins: readonly CheckedBoardPin[],
@@ -106,8 +112,10 @@ export class DynamicChecks {
     state: (net: number) => NetState,
     solved: (net: number) => boolean = () => false,
     interconnects: ReadonlySet<string> = new Set(),
+    claims: (board: string) => readonly PinClaim[] = () => [],
   ) {
     this.interconnects = interconnects;
+    this.claims = claims;
     this.boardPins = boardPins;
     this.parts = parts;
     this.netlist = netlist;
@@ -159,6 +167,19 @@ export class DynamicChecks {
           message: `${p.board}:${p.header} is an INPUT with nothing driving it (floating).`,
           parts: [p.board, ...others],
         });
+      }
+      const claims = this.claims(p.board);
+      if (claims.length > 0) {
+        const claim = claims.find((c) => c.pin === p.pin.id);
+        const wired = claim === undefined ? [] : others.filter((part) => !this.interconnects.has(part));
+        if (claim !== undefined && wired.length > 0) {
+          problems.push({
+            severity: 'warning',
+            code: 'pin-reserved',
+            message: `${p.board}:${p.header} is wired to ${wired.join(', ')}, but ${claim.pin} is ${claim.by}${claim.note === undefined ? '' : ` (${claim.note})`}: on a board it isn't free. Use another pin.`,
+            parts: [p.board, ...wired],
+          });
+        }
       }
       if ((p.mcu === 'esp32' || p.mcu === 'esp32c3' || p.mcu === 'esp32s3') && s.volts > MAX_INPUT_VOLTS[p.mcu]) {
         problems.push({

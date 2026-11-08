@@ -19,9 +19,10 @@ import type {
   StoredFile,
   SymbolTableData,
   VisualState,
+  BoardUsb,
 } from '@benchtop/core';
 
-export const PROTOCOL_VERSION = 17;
+export const PROTOCOL_VERSION = 18; // BT139: `usb`
 
 export type ToSim =
   | { type: 'hello'; protocol: number }
@@ -97,7 +98,19 @@ export type ToSim =
    * BT120: a board's EEPROM or flash data (`Bench.nonVolatileOf`): `read` its sectors (to save)
    * and what they hold (to show), or `erase` it. Answered by a `memory` message with the same `id`.
    */
-  | { type: 'memory'; id: number; board: string; op: 'read' | 'erase' };
+  | { type: 'memory'; id: number; board: string; op: 'read' | 'erase' }
+  /** BT139: a board's USB host (`Bench.usbOf`): what the device on its USB port sent. Answered by a `usb` message with the same `id`. */
+  | { type: 'usb'; id: number; board: string };
+
+/** BT139: the answer to a `usb` request: the board's host view, or null when its firmware never started USB. */
+export interface UsbReply {
+  type: 'usb';
+  id: number;
+  board: string;
+  ok: boolean;
+  error?: string;
+  usb?: BoardUsb | null;
+}
 
 /** BT120: one sector of a board's saved EEPROM or flash data. */
 export interface MemorySector {
@@ -254,4 +267,5 @@ export type FromSim =
   | { type: 'recorded'; test: RecordedTest }
   | StorageReply
   | MemoryReply
+  | UsbReply
   | { type: 'error'; message: string };

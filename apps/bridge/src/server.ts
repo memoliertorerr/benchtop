@@ -2,11 +2,12 @@
  * The bridge's HTTP server, bound to 127.0.0.1 only.
  *
  *   GET  /api/health                     → { cli: version | null, cores: [{ id, version }], network: ["host:port"] }
- *   POST /api/compile { sketch, fqbn }   → CompileResult (binary artifacts base64)
- *   POST /api/compile-inline { fqbn, files, main } → CompileResult (BT42): the files go into a
+ *   POST /api/compile { sketch, fqbn, module? } → CompileResult (binary artifacts base64); BT137:
+ *        `module`, a board module its FQBN knows (MODULE_OPTIONS), picks the PSRAM build option
+ *   POST /api/compile-inline { fqbn, files, main, module? } → CompileResult (BT42): the files go into a
  *        fresh folder under the system temp dir, named after main, which is compiled and then
  *        removed; diagnostics name the files as given; one build cache per board + sketch name.
- *   GET  /api/watch?sketch=…&fqbn=…      → Server-Sent Events: `compile-start`, then
+ *   GET  /api/watch?sketch=…&fqbn=…[&module=…] → Server-Sent Events: `compile-start`, then
  *        `compile-result` (CompileResult) on start and after every saved .ino/.h/.hpp/.c/.cpp
  *        change (300 ms debounce; one compile at a time per sketch; a change during a compile
  *        queues exactly one more).
@@ -34,6 +35,7 @@ import {
   MAX_BODY_BYTES,
   MAX_INLINE_BODY_BYTES,
   MAX_RESPONSE_BYTES,
+  moduleError,
   validateInlineSketch,
   validateSketchPath,
 } from './safety.ts';
@@ -43,8 +45,8 @@ export interface BridgeOptions {
   cli: string | undefined;
   /** Static files to serve (the built app), or undefined. */
   serveDir?: string;
-  /** Injected for tests; defaults to the real compile. `buildKey` names the build cache. */
-  compile?: (sketchDir: string, fqbn: string, buildKey?: string) => Promise<CompileResult>;
+  /** Injected for tests; defaults to the real compile. `buildKey` names the build cache; `module` BT137's. */
+  compile?: (sketchDir: string, fqbn: string, buildKey?: string, module?: string) => Promise<CompileResult>;
   /** BT101: the real hosts the app's simulated WiFi may reach (`--network`); empty or absent: none. */
   network?: readonly NetEntry[];
   /** Injected for tests: how a connection out is opened. */
@@ -102,12 +104,14 @@ class SketchWatch {
   private queued = false;
   private readonly dir: string;
   private readonly fqbn: string;
-  private readonly compile: (dir: string, fqbn: string) => Promise<CompileResult>;
+  private readonly module: string | undefined;
+  private readonly compile: (dir: string, fqbn: string, buildKey?: string, module?: string) => Promise<CompileResult>;
   private readonly onEmpty: () => void;
 
-  constructor(dir: string, fqbn: string, compile: (dir: string, fqbn: string) => Promise<CompileResult>, onEmpty: () => void) {
+  constructor(dir: string, fqbn: string, module: string | undefined, compile: (dir: string, fqbn: string, buildKey?: string, module?: string) => Promise<CompileResult>, onEmpty: () => void) {
     this.dir = dir;
     this.fqbn = fqbn;
+    this.module = module;
     this.compile = compile;
     this.onEmpty = onEmpty;
   }
@@ -155,7 +159,7 @@ class SketchWatch {
         this.broadcast('compile-start', JSON.stringify({ sketch: this.dir, fqbn: this.fqbn }));
         let json: string;
         try {
-          json = compileResultToJson(await this.compile(this.dir, this.fqbn));
+          json = compileResultToJson(await this.compile(this.dir, this.fqbn, this.dir, this.module));
         } catch (error) {
           json = JSON.stringify({ ok: false, durationMs: 0, diagnostics: [], stdout: '', stderr: '', artifacts: {}, error: error instanceof Error ? error.message : String(error) });
         }
@@ -175,16 +179,16 @@ export function createBridge(options: BridgeOptions): Bridge {
   const cli = options.cli;
   const compileOnce =
     options.compile ??
-    ((dir: string, fqbn: string, buildKey?: string): Promise<CompileResult> => {
+    ((dir: string, fqbn: string, buildKey?: string, module?: string): Promise<CompileResult> => {
       if (cli === undefined) {
         return Promise.resolve({ ok: false, durationMs: 0, diagnostics: [], stdout: '', stderr: '', artifacts: {}, error: 'arduino-cli not found' });
       }
-      return runCompile(cli, dir, fqbn, undefined, buildKey);
+      return runCompile(cli, dir, fqbn, undefined, buildKey, module);
     });
   // A build cache serves one compile at a time (watch and POST alike).
   const queues = new Map<string, Promise<unknown>>();
-  const compile = (dir: string, fqbn: string, buildKey = dir): Promise<CompileResult> => {
-    const next = (queues.get(buildKey) ?? Promise.resolve()).then(() => compileOnce(dir, fqbn, buildKey));
+  const compile = (dir: string, fqbn: string, buildKey = dir, module?: string): Promise<CompileResult> => {
+    const next = (queues.get(buildKey) ?? Promise.resolve()).then(() => compileOnce(dir, fqbn, buildKey, module));
     const settled = next.catch(() => undefined);
     queues.set(buildKey, settled);
     void settled.then(() => {
@@ -194,7 +198,7 @@ export function createBridge(options: BridgeOptions): Bridge {
   };
 
   /** An inline sketch (BT42): written to a fresh temp folder, compiled, removed. */
-  const compileInline = (fqbn: string, files: Record<string, string>, main: string): Promise<CompileResult> => compileInlineSketch(compile, fqbn, files, main);
+  const compileInline = (fqbn: string, files: Record<string, string>, main: string, module?: string): Promise<CompileResult> => compileInlineSketch(compile, fqbn, files, main, module);
   const watches = new Map<string, SketchWatch>();
   const network = new NetworkProxy(options.network ?? [], options.connectTo);
   const networkList = network.allow.map((e) => `${e.host}:${e.port}`);
@@ -251,14 +255,18 @@ export function createBridge(options: BridgeOptions): Bridge {
   const handleWatch = (req: IncomingMessage, res: ServerResponse, url: URL): void => {
     const fqbn = url.searchParams.get('fqbn');
     if (!isAllowedFqbn(fqbn)) return send(res, 400, { error: `fqbn must be one of ${FQBN_ALLOWLIST.join(', ')}` });
+    const module = url.searchParams.get('module') ?? undefined;
+    const refused = moduleError(fqbn, module);
+    if (refused !== null) return send(res, 400, { error: refused });
     const sketch = validateSketchPath(url.searchParams.get('sketch'));
     if (!sketch.ok) return send(res, 400, { error: sketch.error });
+    const chosen = module === 'auto' ? undefined : module;
     res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive' });
     res.write(': benchtop bridge\n\n');
-    const key = `${sketch.dir}\u0000${fqbn}`;
+    const key = `${sketch.dir}\u0000${fqbn}\u0000${chosen ?? ''}`;
     let entry = watches.get(key);
     if (entry === undefined) {
-      entry = new SketchWatch(sketch.dir, fqbn, compile, () => watches.delete(key));
+      entry = new SketchWatch(sketch.dir, fqbn, chosen, compile, () => watches.delete(key));
       watches.set(key, entry);
     }
     const client = (event: string, data: string): void => {
@@ -305,16 +313,19 @@ export function createBridge(options: BridgeOptions): Bridge {
           if (origin === undefined) return send(res, 403, { error: 'origin required' });
           const text = await readBody(req);
           if (text === null) return send(res, 413, { error: `request body over ${MAX_BODY_BYTES} bytes` });
-          let body: { sketch?: unknown; fqbn?: unknown };
+          let body: { sketch?: unknown; fqbn?: unknown; module?: unknown };
           try {
             body = JSON.parse(text) as typeof body;
           } catch {
             return send(res, 400, { error: 'body must be JSON' });
           }
           if (!isAllowedFqbn(body.fqbn)) return send(res, 400, { error: `fqbn must be one of ${FQBN_ALLOWLIST.join(', ')}` });
+          const refused = moduleError(body.fqbn, body.module);
+          if (refused !== null) return send(res, 400, { error: refused });
           const sketch = validateSketchPath(body.sketch);
           if (!sketch.ok) return send(res, 400, { error: sketch.error });
-          return send(res, 200, compileResultToJson(await compile(sketch.dir, body.fqbn)));
+          const module = typeof body.module === 'string' && body.module !== 'auto' ? body.module : undefined;
+          return send(res, 200, compileResultToJson(await compile(sketch.dir, body.fqbn, sketch.dir, module)));
         }
         if (req.method === 'POST' && url.pathname === '/api/compile-inline') {
           if (origin === undefined) return send(res, 403, { error: 'origin required' });
@@ -328,7 +339,7 @@ export function createBridge(options: BridgeOptions): Bridge {
           }
           const sketch = validateInlineSketch(body);
           if (!sketch.ok) return send(res, 400, { error: sketch.error });
-          return send(res, 200, compileResultToJson(await compileInline(sketch.fqbn, sketch.files, sketch.main)));
+          return send(res, 200, compileResultToJson(await compileInline(sketch.fqbn, sketch.files, sketch.main, sketch.module)));
         }
         if (req.method === 'GET' && url.pathname === '/api/watch') return handleWatch(req, res, url);
         // BT101: the network proxy — POSTs only, so a browser always sends the Origin checked above.

@@ -48,7 +48,9 @@ fixtures/firmware/esp32s3/<name>.bin|.partitions.bin|.syms.tsv  the same for the
                                               (PSRAM=opi): per-sketch board options in
                                               scripts/fixture-boards.ts; usb-cdc and usb-rgb,
                                               USBMode=default,CDCOnBoot=cdc — Serial on
-                                              TinyUSB's CDC port over USB-OTG)
+                                              TinyUSB's CDC port over USB-OTG; usb-keys (HID
+                                              keyboard, mouse, media keys) and usb-midi
+                                              (TinyUSB's MIDI class), the same options)
 fixtures/firmware/pico*/debug-demo.syms.tsv   the same for the Pico and Pico 2 debug-demos only (the
                                               debugger's tests; `SYMBOL_SKETCHES` in fixture-boards.ts)
 fixtures/firmware/pico/<name>.uf2             Raspberry Pi Pico firmware (arduino-pico 6.2.0; the

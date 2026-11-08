@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { type BridgeCompileResult, type BridgeDeps, bridgeState, checkBridge, compileSketch, BridgeRefusal, watchSketch } from './bridge-client.ts';
+import { type BridgeCompileResult, type BridgeDeps, bridgeState, checkBridge, compileInlineSketch, compileSketch, BridgeRefusal, watchSketch } from './bridge-client.ts';
 
 type Timer = ReturnType<typeof setTimeout>;
 
@@ -182,5 +182,17 @@ describe('health and one-shot compile', () => {
     await expect(compileSketch('/s/blink', 'arduino:avr:mega', fake.deps)).rejects.toBeInstanceOf(BridgeRefusal);
     await expect(compileSketch('/s/blink', 'arduino:avr:uno', fake.deps)).rejects.toThrow('not reachable');
     expect(bridgeState.value).toBe('down');
+  });
+
+  it('BT137: sends a board module with a compile, an inline compile and a watch', async () => {
+    const fake = fakeBridge([() => Promise.resolve(Response.json(result)), () => Promise.resolve(Response.json(result)), () => new Promise<Response>(() => {})]);
+    await compileSketch('/s/psram', 'esp32:esp32:esp32', fake.deps, 'WROVER-E');
+    expect(fake.requests[0]?.init?.body).toBe('{"sketch":"/s/psram","fqbn":"esp32:esp32:esp32","module":"WROVER-E"}');
+    await compileInlineSketch({ fqbn: 'esp32:esp32:esp32s3', files: { 'a.ino': '' }, main: 'a.ino', module: 'N8R2' }, fake.deps);
+    expect(JSON.parse(String(fake.requests[1]?.init?.body)).module).toBe('N8R2');
+    const watch = watchSketch('/s/psram', 'esp32:esp32:esp32s3', { onStart() {}, onResult() {}, onRefused() {}, onConnection() {} }, fake.deps, 'N8R8');
+    await flush();
+    expect(fake.requests[2]?.url).toBe('/api/watch?sketch=%2Fs%2Fpsram&fqbn=esp32%3Aesp32%3Aesp32s3&module=N8R8');
+    watch.close();
   });
 });

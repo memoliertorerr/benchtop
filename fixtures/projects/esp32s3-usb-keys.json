@@ -1,0 +1,125 @@
+{
+  "format": 1,
+  "name": "esp32s3-usb-keys",
+  "parts": [
+    {
+      "id": "s3",
+      "type": "esp32-s3-devkitc-1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "type",
+      "type": "pushbutton",
+      "x": -38,
+      "y": 4,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "mouse",
+      "type": "pushbutton",
+      "x": -38,
+      "y": 20,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "volume",
+      "type": "pushbutton",
+      "x": -38,
+      "y": 36,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "type",
+        "pin": "2.r"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "IO4"
+      },
+      "color": "green",
+      "waypoints": []
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "type",
+        "pin": "1.l"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "GND.1"
+      },
+      "color": "black",
+      "waypoints": []
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "mouse",
+        "pin": "2.r"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "IO5"
+      },
+      "color": "green",
+      "waypoints": []
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "mouse",
+        "pin": "1.l"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "GND.1"
+      },
+      "color": "black",
+      "waypoints": []
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "volume",
+        "pin": "2.r"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "IO6"
+      },
+      "color": "green",
+      "waypoints": []
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "volume",
+        "pin": "1.l"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "GND.1"
+      },
+      "color": "black",
+      "waypoints": []
+    }
+  ],
+  "firmware": {
+    "s3": {
+      "kind": "file",
+      "name": "usb-keys.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

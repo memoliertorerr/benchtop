@@ -307,6 +307,9 @@ export class SimSession {
       case 'memory':
         this.answerMemory(message);
         return;
+      case 'usb':
+        this.answerUsb(message);
+        return;
       case 'removeProbe': {
         const probe = this.probes.get(message.key);
         if (probe === undefined) return;
@@ -819,6 +822,20 @@ export class SimSession {
     const counts = { error: 0, warning: 0, info: 0 };
     for (const p of list) counts[p.severity]++;
     this.post({ type: 'problems', list, counts });
+  }
+
+  /** BT139: a board's USB host — the device on its USB port and what it sent (`Bench.usbOf`). */
+  private answerUsb(message: Extract<ToSim, { type: 'usb' }>): void {
+    const base = { type: 'usb' as const, id: message.id, board: message.board };
+    if (this.bench === null) {
+      this.deps.post({ ...base, ok: false, error: 'nothing is loaded' }, []);
+      return;
+    }
+    try {
+      this.deps.post({ ...base, ok: true, usb: this.bench.usbOf(message.board) }, []);
+    } catch {
+      this.deps.post({ ...base, ok: false, error: `"${message.board}" isn't a board` }, []);
+    }
   }
 
   /** BT120: a board's EEPROM or flash data — its sectors and what they hold — or erased. */

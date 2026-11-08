@@ -23,6 +23,12 @@
  *   6. Otherwise the pad is an input: `input-pullup` / `input-pulldown` from RTC IO RUE/RDE on
  *      RTC pads (GPIO34–39 have no pulls) and from IO_MUX FUN_PU/FUN_PD on the others; a pad
  *      with both reads as pulled up.
+ *
+ * BT136: while the PSRAM runs (`psramRunning`: its driver read the chip's ID), GPIO16 and GPIO17
+ * carry its chip select (SPICS1) and clock (SPICLK). Once a pad has carried its signal, firmware
+ * that takes it away — another matrix signal or IO_MUX function (Serial2's default pins are these
+ * two), a GPIO output or input — gets a `pin-reserved` warning, once per pad: on a board the PSRAM
+ * stops answering. The simulated PSRAM keeps working.
  */
 
 import type { Gpio } from './gpio.ts';
@@ -61,6 +67,23 @@ const DIRECT_IN: ReadonlyMap<number, number> = new Map([
  * SPICLK, to GPIO17), as a WROVER module wires them.
  */
 export const IDLE_HIGH_SIGNALS: ReadonlySet<number> = new Set([14, 17, 198, 29, 30, 95, 96, 6]);
+/** BT136: a pad the module's PSRAM holds, taken by the firmware. */
+export const CODE_PIN_RESERVED = 'pin-reserved';
+/** BT136: the PSRAM's pads as IDF 4.4's psram driver routes them on a WROVER (D0WD): GPIO16 SPICS1, GPIO17 SPICLK. */
+const PSRAM_GPIO = [16, 17] as const;
+const PSRAM_SIGNAL = [6, 0] as const;
+const PSRAM_ROLE = ['chip select', 'clock'] as const;
+/** Signal names for the PSRAM pads' warning: what took the pad, as an output or an input (gpio_sig_map.h). */
+const OUT_NAMES: ReadonlyMap<number, string> = new Map([
+  [14, 'U0TXD'],
+  [17, 'U1TXD'],
+  [198, "U2TXD (Serial2's TX)"],
+]);
+const IN_NAMES: ReadonlyMap<number, string> = new Map([
+  [14, 'U0RXD'],
+  [17, 'U1RXD'],
+  [198, "U2RXD (Serial2's RX)"],
+]);
 
 export class Pads {
   readonly mode = new Uint8Array(40);
@@ -69,6 +92,10 @@ export class Pads {
   readonly dacVolts = new Float64Array(40).fill(Number.NaN);
   /** Called with each GPIO whose mode or level changed. */
   onPin: ((gpio: number) => void) | null = null;
+  /** BT136: whether the PSRAM runs (its driver read the chip's ID); null: no watch. */
+  psramRunning: (() => boolean) | null = null;
+  /** Per PSRAM pad: 0 not seen carrying its signal yet, 1 carrying it, 2 taken and reported. */
+  private readonly psramPad = new Uint8Array(PSRAM_GPIO.length);
   private readonly gpio: Gpio;
   private readonly iomux: IoMux;
   private readonly rtcio: RtcIo;
@@ -112,6 +139,43 @@ export class Pads {
       const dac = this.dacVolts[g];
       if (this.mode[g] !== mode || this.level[g] !== level || (dac !== volts && !(Number.isNaN(dac) && Number.isNaN(volts)))) this.onPin?.(g);
     }
+    const running = this.psramRunning;
+    if (running !== null && running()) this.watchPsram();
+  }
+
+  /** BT136: a PSRAM pad that carried its signal and no longer does is reported once (also run when the PSRAM comes up). */
+  watchPsram(): void {
+    for (let i = 0; i < PSRAM_GPIO.length; i++) {
+      const g = PSRAM_GPIO[i];
+      const carrying = this.iomux.isGpio(g) && (this.gpio.outConfig(g) & 0x1ff) === PSRAM_SIGNAL[i] && this.mode[g] === PAD_MODE.PERIPHERAL;
+      if (carrying) {
+        if (this.psramPad[i] === 0) this.psramPad[i] = 1;
+      } else if (this.psramPad[i] === 1) {
+        this.psramPad[i] = 2;
+        this.problems.report(
+          'warning',
+          CODE_PIN_RESERVED,
+          g,
+          `The firmware made GPIO${g} ${this.describePad(g)}, but it carries the PSRAM's ${PSRAM_ROLE[i]}: on a board the PSRAM stops answering (the simulator's keeps working). Leave GPIO16 and GPIO17 to the PSRAM — Serial2's default pins are these two; give Serial2.begin others.`,
+        );
+      }
+    }
+  }
+
+  /** What pad `g` is now, for people. */
+  private describePad(g: number): string {
+    if (!this.iomux.isGpio(g)) {
+      const func = this.iomux.func(g);
+      const out = DIRECT_OUT.get((g << 3) | func);
+      if (out !== undefined) return OUT_NAMES.get(out) ?? `IO_MUX function ${func}`;
+      const input = DIRECT_IN.get((g << 3) | func);
+      if (input !== undefined) return IN_NAMES.get(input) ?? `IO_MUX function ${func}`;
+      return `IO_MUX function ${func}`;
+    }
+    const signal = this.gpio.outConfig(g) & 0x1ff;
+    if (signal === SIG_GPIO_OUT) return this.mode[g] === PAD_MODE.OUTPUT ? 'a GPIO output' : 'a GPIO input';
+    if (this.mode[g] !== PAD_MODE.PERIPHERAL) return 'an input (its output disabled)';
+    return `the output of ${OUT_NAMES.get(signal) ?? `matrix signal ${signal}`}`;
   }
 
   /** Does pad `g` have its pull-up / pull-down on (by the rules above)? */

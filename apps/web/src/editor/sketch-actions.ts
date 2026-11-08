@@ -17,10 +17,10 @@ import { simRunning, simTime } from '../sim/host.ts';
 import { serialBuffer, serialVersion } from '../ui/serial-state.ts';
 import { editor, editorMessage } from './app-store.ts';
 import { firmwareStore, type StoredFirmware } from './firmware-store.ts';
-import { fqbnOf } from './fqbn.ts';
+import { fqbnOf, moduleOf } from './fqbn.ts';
 import { compileInline, type InlineRef, sourceHash } from './inline-compile.ts';
 
-export { fqbnOf };
+export { fqbnOf, moduleOf };
 
 type SketchRef = Extract<FirmwareRef, { kind: 'sketch' }>;
 
@@ -80,6 +80,12 @@ function remember(path: string): void {
   }
 }
 
+/** BT137: the module a board's builds follow (its `module` prop; undefined for auto or a board without). */
+function boardModule(board: string, doc = editor.doc.peek()): string | undefined {
+  const part = doc.parts.find((p) => p.id === board);
+  return part === undefined ? undefined : moduleOf(part.type, part.props);
+}
+
 function sketchRef(board: string): SketchRef | undefined {
   const ref = editor.doc.peek().firmware[board];
   return ref?.kind === 'sketch' ? ref : undefined;
@@ -125,7 +131,7 @@ export async function compileNow(board: string): Promise<void> {
   if (ref === undefined) return;
   patch(board, { phase: 'compiling', detail: '' });
   try {
-    applyResult(board, ref.path, await compileSketch(ref.path, ref.fqbn));
+    applyResult(board, ref.path, await compileSketch(ref.path, ref.fqbn, undefined, boardModule(board)));
   } catch (error) {
     if (sketchRef(board)?.path !== ref.path) return;
     const message = error instanceof BridgeRefusal ? error.message : 'compile bridge not running';
@@ -190,7 +196,7 @@ function inlineRef(board: string): InlineRef | undefined {
 export function inlineStale(board: string): boolean {
   const ref = editor.doc.value.firmware[board];
   if (ref?.kind !== 'inline') return false;
-  return firmwareStore.get(board)?.source !== sourceHash(ref);
+  return firmwareStore.get(board)?.source !== sourceHash(ref, boardModule(board, editor.doc.value));
 }
 
 /**
@@ -202,9 +208,10 @@ export async function compileAndRun(board: string): Promise<void> {
   const ref = inlineRef(board);
   if (ref === undefined) return;
   patch(board, { phase: 'compiling', detail: '' });
+  const module = boardModule(board);
   try {
     const outcome = await compileInline(board, ref, {
-      compile: (sketch) => compileInlineSketch(sketch),
+      compile: (sketch) => compileInlineSketch(module === undefined ? sketch : { ...sketch, module }),
       store: (b, firmware) => void firmwareStore.put(b, firmware), // memory is set before this returns
       deliver: (b) => {
         if (firmwareCompiled(b)) {
@@ -213,7 +220,7 @@ export async function compileAndRun(board: string): Promise<void> {
         }
         if (!simRunning.peek()) run();
       },
-    });
+    }, module);
     setRows(board, outcome.rows);
     patch(board, { phase: outcome.ok ? 'ok' : 'error', detail: outcome.detail });
   } catch (error) {
@@ -228,11 +235,13 @@ const watches = new Map<string, { key: string; watch: Watch }>();
 // Keeps one watch per board that has Watch on and a sketch folder; closes the rest. Problems
 // of boards that no longer have a sketch folder go away.
 effect(() => {
-  const firmware = editor.doc.value.firmware;
+  const doc = editor.doc.value;
+  const firmware = doc.firmware;
   const statuses = sketchStatus.value;
+  // BT137: the board's module is part of the key — a changed module restarts the watch, which compiles.
   const keyOf = (board: string): string => {
     const ref = firmware[board];
-    return ref?.kind === 'sketch' ? `${ref.path}\u0000${ref.fqbn}` : '';
+    return ref?.kind === 'sketch' ? `${ref.path}\u0000${ref.fqbn}\u0000${boardModule(board, doc) ?? ''}` : '';
   };
   for (const [board, entry] of watches) {
     if (statuses[board]?.watching === true && keyOf(board) === entry.key) continue;
@@ -251,7 +260,7 @@ effect(() => {
         setRows(board, compileProblemRows(board, path, { ok: false, diagnostics: [], error: message }));
       },
       onConnection: (connected) => patch(board, { connected }),
-    });
+    }, undefined, boardModule(board, doc));
     watches.set(board, { key: keyOf(board), watch });
   }
   for (const board of Object.keys(compileRows.peek())) {

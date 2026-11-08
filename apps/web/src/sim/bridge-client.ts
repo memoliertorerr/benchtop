@@ -85,14 +85,17 @@ export async function checkBridge(deps: BridgeDeps = defaultDeps): Promise<Bridg
   }
 }
 
-/** One compile. Throws BridgeRefusal for a refused request, Error when the bridge is down. */
-export function compileSketch(sketch: string, fqbn: string, deps: BridgeDeps = defaultDeps): Promise<BridgeCompileResult> {
-  return post('/api/compile', { sketch, fqbn }, deps);
+/**
+ * One compile. Throws BridgeRefusal for a refused request, Error when the bridge is down. BT137:
+ * `module`, the board's (fqbn.ts moduleOf), picks the PSRAM build option.
+ */
+export function compileSketch(sketch: string, fqbn: string, deps: BridgeDeps = defaultDeps, module?: string): Promise<BridgeCompileResult> {
+  return post('/api/compile', { sketch, fqbn, ...(module === undefined ? {} : { module }) }, deps);
 }
 
-/** An inline sketch's compile (BT42): its files, main and FQBN. Throws as compileSketch does. */
-export function compileInlineSketch(sketch: { fqbn: string; files: Record<string, string>; main: string }, deps: BridgeDeps = defaultDeps): Promise<BridgeCompileResult> {
-  return post('/api/compile-inline', { fqbn: sketch.fqbn, files: sketch.files, main: sketch.main }, deps);
+/** An inline sketch's compile (BT42): its files, main, FQBN and (BT137) board module. Throws as compileSketch does. */
+export function compileInlineSketch(sketch: { fqbn: string; files: Record<string, string>; main: string; module?: string }, deps: BridgeDeps = defaultDeps): Promise<BridgeCompileResult> {
+  return post('/api/compile-inline', { fqbn: sketch.fqbn, files: sketch.files, main: sketch.main, ...(sketch.module === undefined ? {} : { module: sketch.module }) }, deps);
 }
 
 async function post(path: string, body: unknown, deps: BridgeDeps): Promise<BridgeCompileResult> {
@@ -134,8 +137,8 @@ export interface Watch {
 }
 
 /** Watches a sketch folder through the bridge until `close()`. */
-export function watchSketch(sketch: string, fqbn: string, handlers: WatchHandlers, deps: BridgeDeps = defaultDeps): Watch {
-  const url = `/api/watch?sketch=${encodeURIComponent(sketch)}&fqbn=${encodeURIComponent(fqbn)}`;
+export function watchSketch(sketch: string, fqbn: string, handlers: WatchHandlers, deps: BridgeDeps = defaultDeps, module?: string): Watch {
+  const url = `/api/watch?sketch=${encodeURIComponent(sketch)}&fqbn=${encodeURIComponent(fqbn)}${module === undefined ? '' : `&module=${encodeURIComponent(module)}`}`;
   const backoff = new Backoff();
   const parser = new SseParser();
   let closed = false;

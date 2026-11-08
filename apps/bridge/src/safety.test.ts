@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, describe, expect, it } from 'vitest';
-import { sketchFqbn } from '../../../scripts/compile.ts';
+import { moduleError, sketchFqbn, validateInlineSketch } from '../../../scripts/compile.ts';
 import { isAllowedFqbn, isAllowedHost, isAllowedOrigin, validateSketchPath } from './safety.ts';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
@@ -113,5 +113,32 @@ describe('request guards', () => {
     expect(sketchFqbn('esp32:esp32:esp32s3', '// benchtop: usb-otg=1 PSRAM=opi;x\n')).toBe('esp32:esp32:esp32s3');
     expect(sketchFqbn('esp32:esp32:esp32c3', '// benchtop: psram\n')).toBe('esp32:esp32:esp32c3');
     expect(sketchFqbn('arduino:avr:uno', '// benchtop: psram\n')).toBe('arduino:avr:uno');
+  });
+
+  it('BT137: a board module picks the PSRAM option; a comment\u2019s psram then adds nothing; other words stay', () => {
+    expect(sketchFqbn('esp32:esp32:esp32', 'void setup() {}\n', 'WROVER-E')).toBe('esp32:esp32:esp32:PSRAM=enabled');
+    expect(sketchFqbn('esp32:esp32:esp32', '// benchtop: psram\n', 'WROOM-32')).toBe('esp32:esp32:esp32');
+    expect(sketchFqbn('esp32:esp32:esp32', '// benchtop: psram\n', 'auto')).toBe('esp32:esp32:esp32:PSRAM=enabled');
+    expect(sketchFqbn('esp32:esp32:esp32s3', '// benchtop: psram\n', 'N8R2')).toBe('esp32:esp32:esp32s3:PSRAM=enabled');
+    expect(sketchFqbn('esp32:esp32:esp32s3', '', 'N8R8')).toBe('esp32:esp32:esp32s3:PSRAM=opi');
+    expect(sketchFqbn('esp32:esp32:esp32s3', '// benchtop: psram usb-otg\n', 'N8')).toBe('esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=cdc');
+    expect(sketchFqbn('esp32:esp32:esp32s3', '// benchtop: usb-otg\n', 'N8R8')).toBe('esp32:esp32:esp32s3:PSRAM=opi,USBMode=default,CDCOnBoot=cdc');
+    expect(sketchFqbn('esp32:esp32:esp32s3', '// benchtop: psram\n')).toBe('esp32:esp32:esp32s3:PSRAM=opi');
+    expect(sketchFqbn('arduino:avr:uno', '// benchtop: psram\n', 'WROVER-E')).toBe('arduino:avr:uno');
+  });
+
+  it('BT137: a module must be absent, auto, or one its FQBN knows', () => {
+    expect(moduleError('esp32:esp32:esp32', undefined)).toBeNull();
+    expect(moduleError('esp32:esp32:esp32', 'auto')).toBeNull();
+    expect(moduleError('esp32:esp32:esp32', 'WROVER-E')).toBeNull();
+    expect(moduleError('esp32:esp32:esp32s3', 'N8R2')).toBeNull();
+    expect(moduleError('esp32:esp32:esp32', 'N8R8')).toBe('module must be auto or one of WROOM-32, WROVER-E');
+    expect(moduleError('esp32:esp32:esp32s3', 'toString')).toBe('module must be auto or one of N8, N8R2, N8R8');
+    expect(moduleError('esp32:esp32:esp32s3', 7)).toBe('module must be auto or one of N8, N8R2, N8R8');
+    expect(moduleError('arduino:avr:uno', 'WROVER-E')).toBe('module: arduino:avr:uno has no modules to choose (auto only)');
+    const sketch = { fqbn: 'esp32:esp32:esp32', files: { 'a.ino': '' }, main: 'a.ino' };
+    expect(validateInlineSketch({ ...sketch, module: 'N8' })).toEqual({ ok: false, error: 'module must be auto or one of WROOM-32, WROVER-E' });
+    expect(validateInlineSketch({ ...sketch, module: 'WROVER-E' })).toEqual({ ok: true, ...sketch, module: 'WROVER-E' });
+    expect(validateInlineSketch({ ...sketch, module: 'auto' })).toEqual({ ok: true, ...sketch });
   });
 });

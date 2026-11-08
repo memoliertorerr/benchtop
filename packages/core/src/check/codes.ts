@@ -23,6 +23,10 @@ export const PROBLEM_CODES: Readonly<Record<string, ProblemCodeInfo>> = {
     title: '5 V on an ESP32 pin',
     hint: 'ESP32 GPIOs take at most 3.6 V. Use a level shifter or a voltage divider.',
   },
+  'pin-reserved': {
+    title: "Pin taken by the board's module",
+    hint: "The board's module wires this pin to its own chips (a WROVER's or an R8 module's PSRAM): on a real board it isn't free, and using it can stop the PSRAM. Move the wire, or the signal, to a free pin.",
+  },
   'unpowered-part': { title: 'Part without power', hint: "Wire the part's power (VCC/VDD) and ground (GND/VSS) pins." },
   'unconnected-pins': { title: 'Unconnected pins', hint: 'Fine if the sketch never uses them.' },
   'unwired-part': { title: 'Unwired part', hint: 'The part has no connections yet.' },

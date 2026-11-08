@@ -35,18 +35,42 @@ const SKETCH_OPTIONS: Readonly<Record<string, Readonly<Record<string, string>>>>
 };
 
 /**
+ * BT137: the PSRAM option a board's module gives (its `module` prop — packages/parts
+ * BOARD_MODULES), per allowlisted FQBN; '' builds without PSRAM. `auto`, or no module, leaves it
+ * to the sketch's comment lines.
+ */
+export const MODULE_OPTIONS: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+  'esp32:esp32:esp32': { 'WROOM-32': '', 'WROVER-E': 'PSRAM=enabled' },
+  'esp32:esp32:esp32s3': { N8: '', N8R2: 'PSRAM=enabled', N8R8: 'PSRAM=opi' },
+};
+
+/** BT137: why a compile request's `module` is refused, or null: absent, `auto`, or one of its FQBN's. */
+export function moduleError(fqbn: string, module: unknown): string | null {
+  if (module === undefined || module === 'auto') return null;
+  const known = MODULE_OPTIONS[fqbn];
+  if (known === undefined) return `module: ${fqbn} has no modules to choose (auto only)`;
+  if (typeof module === 'string' && Object.hasOwn(known, module)) return null;
+  return `module must be auto or one of ${Object.keys(known).join(', ')}`;
+}
+
+/**
  * Board options a sketch asks for in its main file: `// benchtop: psram` (or `usb-otg`, or both:
  * words on one line or a line each), each line of its own. The FQBN the caller asked for stays one
  * of the allowlist's, and the options are fixed ones (SKETCH_OPTIONS), never the sketch's text.
+ * BT137: a board's `module` (checked by moduleError) decides the PSRAM option — a comment's `psram`
+ * then adds nothing, the board has the PSRAM it has; other words still apply.
  */
-export function sketchFqbn(fqbn: string, mainSource: string): string {
+export function sketchFqbn(fqbn: string, mainSource: string, module?: string): string {
   const known = SKETCH_OPTIONS[fqbn];
   if (known === undefined) return fqbn;
   const asked = new Set<string>();
   for (const match of mainSource.matchAll(/^[ \t]*\/\/[ \t]*benchtop:(.*)$/gim)) {
     for (const word of match[1].toLowerCase().split(/[\s,]+/)) if (word !== '' && Object.hasOwn(known, word)) asked.add(word);
   }
+  const fromModule = module === undefined || module === 'auto' ? undefined : MODULE_OPTIONS[fqbn]?.[module];
+  if (fromModule !== undefined) asked.delete('psram');
   const options = Object.keys(known).filter((name) => asked.has(name)).map((name) => known[name]);
+  if (fromModule !== undefined && fromModule !== '') options.unshift(fromModule);
   return options.length === 0 ? fqbn : `${fqbn}:${options.join(',')}`;
 }
 
@@ -128,11 +152,11 @@ export function buildPathFor(key: string): string {
  * from a fresh temp folder each time but keep one cache per board and sketch name, so a
  * recompile is incremental.
  */
-export async function compile(cli: string, sketchDir: string, fqbn: string, timeoutMs = COMPILE_TIMEOUT_MS, buildKey = sketchDir): Promise<CompileResult> {
+export async function compile(cli: string, sketchDir: string, fqbn: string, timeoutMs = COMPILE_TIMEOUT_MS, buildKey = sketchDir, module?: string): Promise<CompileResult> {
   const start = performance.now();
   const outDir = mkdtempSync(join(tmpdir(), 'benchtop-out-'));
   const mainIno = join(sketchDir, `${basename(sketchDir)}.ino`);
-  const effectiveFqbn = sketchFqbn(fqbn, existsSync(mainIno) ? readFileSync(mainIno, 'utf8') : '');
+  const effectiveFqbn = sketchFqbn(fqbn, existsSync(mainIno) ? readFileSync(mainIno, 'utf8') : '', module);
   try {
     const run = await runArduinoCli(
       cli,
@@ -183,17 +207,19 @@ function readArtifacts(dir: string, name: string): CompileArtifacts {
   return artifacts;
 }
 
-export type InlineCheck = { ok: true; fqbn: string; files: Record<string, string>; main: string } | { ok: false; error: string };
+export type InlineCheck = { ok: true; fqbn: string; files: Record<string, string>; main: string; module?: string } | { ok: false; error: string };
 
 /**
- * An inline sketch (BT42): `{ fqbn, files: { name: text }, main }` — an allowed FQBN, 1–32 files
- * with safe names (written into a fresh folder, so a name can't leave it), at most 256 KB of
- * UTF-8 source, and `main` one of them ending in .ino.
+ * An inline sketch (BT42): `{ fqbn, files: { name: text }, main, module? }` — an allowed FQBN, 1–32
+ * files with safe names (written into a fresh folder, so a name can't leave it), at most 256 KB of
+ * UTF-8 source, `main` one of them ending in .ino, and (BT137) a module its FQBN knows.
  */
 export function validateInlineSketch(body: unknown): InlineCheck {
   if (typeof body !== 'object' || body === null) return { ok: false, error: 'body must be an object' };
-  const { fqbn, files, main } = body as { fqbn?: unknown; files?: unknown; main?: unknown };
+  const { fqbn, files, main, module } = body as { fqbn?: unknown; files?: unknown; main?: unknown; module?: unknown };
   if (!isAllowedFqbn(fqbn)) return { ok: false, error: `fqbn must be one of ${FQBN_ALLOWLIST.join(', ')}` };
+  const refused = moduleError(fqbn, module);
+  if (refused !== null) return { ok: false, error: refused };
   if (typeof files !== 'object' || files === null || Array.isArray(files)) return { ok: false, error: 'files must be an object of name → text' };
   const names = Object.keys(files);
   if (names.length === 0 || names.length > MAX_SKETCH_FILES) return { ok: false, error: `a sketch has 1–${MAX_SKETCH_FILES} files` };
@@ -208,7 +234,7 @@ export function validateInlineSketch(body: unknown): InlineCheck {
   }
   if (bytes > MAX_SKETCH_BYTES) return { ok: false, error: `the sketch is ${bytes} bytes, at most ${MAX_SKETCH_BYTES}` };
   if (typeof main !== 'string' || !main.endsWith('.ino') || !Object.hasOwn(out, main)) return { ok: false, error: 'main must name one of the files, a .ino' };
-  return { ok: true, fqbn, files: out, main };
+  return { ok: true, fqbn, files: out, main, ...(typeof module === 'string' && module !== 'auto' ? { module } : {}) };
 }
 
 /**
@@ -217,14 +243,14 @@ export function validateInlineSketch(body: unknown): InlineCheck {
  * diagnostics name files as the sketch does, and the temp folder never shows in the output.
  * `run` compiles a folder (the bridge passes its queued compile; the CLI the plain one).
  */
-export async function compileInlineSketch(run: (dir: string, fqbn: string, buildKey: string) => Promise<CompileResult>, fqbn: string, files: Record<string, string>, main: string): Promise<CompileResult> {
+export async function compileInlineSketch(run: (dir: string, fqbn: string, buildKey: string, module?: string) => Promise<CompileResult>, fqbn: string, files: Record<string, string>, main: string, module?: string): Promise<CompileResult> {
   const root = mkdtempSync(join(tmpdir(), 'benchtop-inline-'));
   const name = main.slice(0, -'.ino'.length);
   const dir = join(root, name);
   try {
     mkdirSync(dir);
     for (const [file, text] of Object.entries(files)) writeFileSync(join(dir, file), text);
-    const result = await run(dir, fqbn, `inline\u0000${fqbn}\u0000${name}`);
+    const result = await run(dir, fqbn, `inline\u0000${fqbn}\u0000${name}`, module);
     // Name the files as the editor does: macOS's temp dir also appears under /private.
     const roots = [realpathSync(dir), dir].sort((a, b) => b.length - a.length);
     const local = (file: string): string => {

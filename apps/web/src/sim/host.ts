@@ -13,7 +13,7 @@
 import type { FirmwareImage, MemorySpace, Nanos, PartInput, PinRef, Problem, ProjectDoc, VisualState } from '@benchtop/core';
 import { signal } from '@preact/signals';
 import { FrameRingReader } from './frame-ring.ts';
-import { type FrameStats, type FromSim, type MemoryReply, type MemorySector, PROTOCOL_VERSION, type RecordedTest, type StorageReply, type StorageRequest, type ToSim } from './protocol.ts';
+import { type FrameStats, type FromSim, type MemoryReply, type MemorySector, PROTOCOL_VERSION, type RecordedTest, type StorageReply, type StorageRequest, type ToSim, type UsbReply } from './protocol.ts';
 
 export type SimStatus = 'starting' | 'ready' | 'error';
 export type SimFrame = Extract<FromSim, { type: 'frame' }>;
@@ -42,6 +42,8 @@ const storageWaiters = new Map<number, (reply: StorageReply) => void>();
 let storageId = 0;
 const memoryWaiters = new Map<number, (reply: MemoryReply) => void>();
 let memoryId = 0;
+const usbWaiters = new Map<number, (reply: UsbReply) => void>();
+let usbId = 0;
 let worker: Worker | null = null;
 let ring: FrameRingReader | null = null;
 let ringFrame = 0;
@@ -179,6 +181,15 @@ export const sim = {
       send({ type: 'memory', id, board, op });
     });
   },
+  /** BT139: a board's USB host on the loaded bench — the device and what it sent. Resolves with the worker's answer. */
+  usb(board: string): Promise<UsbReply> {
+    if (worker === null) return Promise.resolve({ type: 'usb', id: 0, board, ok: false, error: 'the simulator is not running' });
+    const id = ++usbId;
+    return new Promise((resolve) => {
+      usbWaiters.set(id, resolve);
+      send({ type: 'usb', id, board });
+    });
+  },
   /** BT87: the Bus tab opened (frames carry decoded bus transactions) or closed. */
   busWatch(on: boolean): void {
     send({ type: 'busWatch', on });
@@ -257,6 +268,10 @@ function receive(message: FromSim): void {
     case 'memory':
       memoryWaiters.get(message.id)?.(message);
       memoryWaiters.delete(message.id);
+      return;
+    case 'usb':
+      usbWaiters.get(message.id)?.(message);
+      usbWaiters.delete(message.id);
       return;
     case 'debugInfo':
     case 'debugStopped':

@@ -1031,6 +1031,16 @@ input {
   font-size: 11px;
 }
 
+/* A board's USB host (BT139): events wide, times narrow; typed text wraps */
+.usb-events li {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.usb-typed {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 /* microSD card (BT91) */
 .card-files {
   display: grid;

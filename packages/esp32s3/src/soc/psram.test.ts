@@ -9,6 +9,7 @@ import { DROM_FLASH_BASE, IRAM_BASE } from './memory.ts';
 import { S3_PSRAM_QUAD_BYTES } from './psram.ts';
 import { REF_HZ } from './rtc-cntl.ts';
 import { Esp32s3Soc, MMU_TABLE_BASE } from './soc.ts';
+import { CODE_S3_PIN_RESERVED } from './gpio.ts';
 
 // BT130: the S3's PSRAM — the chip on SPI1's CS1 (quad and octal protocols), its pages on the data
 // bus through the MMU's SPIRAM entries, and the builds that use it (fixtures/sketches/esp32s3/psram-*).
@@ -209,5 +210,53 @@ describe('the board\u2019s module (BT135)', () => {
     expect(problems).toEqual([]);
     expect(make('N16R8').soc.psram.protocols).toBe('both');
     expect(problems.map((p) => p.code)).toEqual([CODE_S3_MODULE]);
+  });
+});
+
+describe('the pins the octal PSRAM holds (BT136)', () => {
+  const rom = loadCachedS3Rom();
+  const IO_MUX_PAD = (g: number) => 0x60009000 + 4 + 4 * g;
+  const reserved = (soc: Esp32s3Soc) => soc.problems.problems.filter((p) => p.code === CODE_S3_PIN_RESERVED);
+  const boot = (name: string) => {
+    const booted = bootS3Fixture(name);
+    for (let i = 0; i < 1200 && !booted.uart[0].includes('done'); i++) booted.soc.runUntil(booted.soc.now() + REF_HZ / 1000);
+    return booted.soc;
+  };
+
+  it('an octal build puts GPIO33–37 on their SPI functions; firmware making one a GPIO afterwards is reported once per pad', () => {
+    const soc = boot('psram-octal');
+    expect([33, 34, 35, 36, 37].map((g) => soc.iomux.isGpio(g))).toEqual([false, false, false, false, false]);
+    expect(reserved(soc)).toEqual([]);
+    const bus = soc.buses[0];
+    const pinMode = (g: number) => bus.write32(IO_MUX_PAD(g), (bus.read32(IO_MUX_PAD(g)) & ~(7 << 12)) | (1 << 12)); // PIN_FUNC_GPIO
+    pinMode(35);
+    pinMode(35);
+    bus.write32(IO_MUX_PAD(35), bus.read32(IO_MUX_PAD(35)) | (1 << 8)); // a pull-up on the taken pad: nothing new
+    const found = reserved(soc);
+    expect(found).toHaveLength(1);
+    expect(found[0].message).toContain("The firmware made GPIO35 a GPIO, but it carries the octal PSRAM's SPIIO6: on a board the PSRAM stops answering");
+    pinMode(37);
+    expect(reserved(soc).map((p) => /GPIO\d+/.exec(p.message)?.[0])).toEqual(['GPIO35', 'GPIO37']);
+  });
+
+  it('a quad build leaves GPIO33–37 free', () => {
+    const soc = boot('psram-quad');
+    const bus = soc.buses[0];
+    bus.write32(IO_MUX_PAD(35), (bus.read32(IO_MUX_PAD(35)) & ~(7 << 12)) | (1 << 12));
+    expect(reserved(soc)).toEqual([]);
+  });
+
+  it('the Mcu’s claims: an N8R8 holds GPIO33–37 from the start; auto once an octal build’s PSRAM runs; N8R2 and a quad build none', () => {
+    expect(createEsp32s3Mcu({ rom, psram: 'octal' }).pinClaims().map((c) => c.pin)).toEqual(['GPIO33', 'GPIO34', 'GPIO35', 'GPIO36', 'GPIO37']);
+    expect(createEsp32s3Mcu({ rom, psram: 'quad' }).pinClaims()).toEqual([]);
+    const run = (fixture: string) => {
+      const mcu = createEsp32s3Mcu({ rom });
+      mcu.load({ format: 'esp32-bin', ...s3FixtureImage(fixture) });
+      expect(mcu.pinClaims()).toEqual([]);
+      mcu.runUntil(REF_HZ / 2);
+      return mcu.pinClaims();
+    };
+    expect(run('psram-octal').map((c) => `${c.pin} ${c.by}`)[2]).toBe("GPIO35 the octal PSRAM's SPIIO6 (this build uses it, as on an N8R8)");
+    expect(run('psram-quad')).toEqual([]);
   });
 });

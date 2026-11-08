@@ -16,6 +16,7 @@ import { lazyComponent } from './lazy.tsx';
 
 const PcbInspector = lazyComponent(() => import('../pcb/PcbInspector.tsx').then((m) => m.PcbInspector));
 const BoardStorage = lazyComponent(() => import('./storage/BoardStorage.tsx').then((m) => m.BoardStorage));
+const BoardUsb = lazyComponent(() => import('./usb/BoardUsb.tsx').then((m) => m.BoardUsb)); // BT139
 
 export function Inspector() {
   if (viewMode.value === 'pcb') return <PcbInspector />;
@@ -127,25 +128,34 @@ export function Inspector() {
         </div>
       )}
       {def.board !== undefined && <BoardStorage board={part.id} />}
+      {def.board?.mcu === 'esp32s3' && <BoardUsb board={part.id} />}
       <PartControls part={part} defaults={def.defaults} />
       {Object.entries(def.defaults).map(([key, fallback]) => {
         if (OWN_SECTION[part.type]?.includes(key)) return null;
         const value = part.props[key] ?? fallback;
         const label = <span class="field-label">{key}</span>;
-        // BT135: a board's module, from its list; PSRAM still needs a PSRAM build.
+        // BT135: a board's module, from its list. BT137: the board's builds follow it.
         const modules = key === 'module' ? BOARD_MODULES[part.type] : undefined;
         if (modules !== undefined) {
           return (
             <label key={key} class="field">
               {label}
-              <select class="tool-select" value={String(value)} onChange={(event) => editor.setProp(part.id, key, (event.target as HTMLSelectElement).value)}>
+              <select
+                class="tool-select"
+                value={String(value)}
+                onChange={(event) => {
+                  editor.setProp(part.id, key, (event.target as HTMLSelectElement).value);
+                  // BT137: a sketch folder builds again for the new module (a watched one restarts by itself).
+                  if (editor.doc.peek().firmware[part.id]?.kind === 'sketch' && !statusOf(part.id).watching) void compileNow(part.id);
+                }}
+              >
                 {modules.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.label}
                   </option>
                 ))}
               </select>
-              <span class="muted panel-note">A sketch that uses PSRAM also needs a line <code>// benchtop: psram</code> to be built with it.</span>
+              <span class="muted panel-note">Sketches build for it: a module with PSRAM builds with its PSRAM (no comment line needed), one without builds without. On auto, a line <code>// benchtop: psram</code> in the sketch asks for PSRAM.</span>
             </label>
           );
         }

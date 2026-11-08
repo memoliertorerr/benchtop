@@ -186,6 +186,7 @@ export class Esp32s3Soc implements SocContext, S3BusParts {
     const psram = options.psram ?? 'auto';
     this.psram.present = psram !== 'none';
     this.psram.protocols = psram === 'quad' || psram === 'octal' ? psram : 'both';
+    this.iomux.octalPsram = () => this.psram.present && this.psram.mode === 'octal'; // BT136
     this.sens = new S3Sens(this);
     this.sens.sample = (adc, channel, attenuation) => this.adcSample(adc, channel, attenuation);
     this.rtc.sens = this.sens;

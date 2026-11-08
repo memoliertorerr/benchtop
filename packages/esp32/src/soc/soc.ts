@@ -218,6 +218,8 @@ export class Esp32Soc implements SocParts, SocContext, ResetSink, SleepSink {
     this.spi1 = new SpiFlashController(this.flash);
     this.spi1.cs1 = this.psram;
     this.psram.present = options.psram !== false;
+    this.pads.psramRunning = () => this.psram.identified; // BT136
+    this.psram.onIdentified = () => this.pads.watchPsram();
     this.rebootSlot = this.events.add(() => this.reboot());
     // BT121: sleep — the timer's wake, pins checked as the bench changes them, RTC fast memory for the CRC unit.
     this.wakeSlot = this.events.add(() => this.wake(WAKE.TIMER));

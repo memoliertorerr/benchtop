@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { REPO_ROOT, withheldFirmware } from '../../../packages/core/src/firmware/fixtures.test-helper.ts';
+import { nodeIo } from './node-io.ts';
 import { parseAssertion, type RunIo, type RunReport, runHeadless } from './run.ts';
 
 // BT49: the richer expectations — parts' visual state, pin timing over a window, serial regexes —
@@ -151,5 +152,43 @@ describe('grammar of the new forms', () => {
     expect(() => parseAssertion('pin uno:9 duty is 125% ±2 between 1ms and 2ms')).toThrow(/at most 100 %/);
     expect(() => parseAssertion('pin uno:9 frequency is 0 ±2% between 1ms and 2ms')).toThrow(/above 0 Hz/);
     expect(() => parseAssertion('led led1 glows at 1s')).toThrow(/not an assertion: .*led <part> is <lit\|dark> at <time>/);
+  });
+});
+
+describe('usb … received (BT139)', () => {
+  // The S3's ROM comes from the cache, as the CLI reads it.
+  const s3io: RunIo = { ...io, esp32s3Rom: () => nodeIo.esp32s3Rom?.() };
+  const usb = (expectations: string[], scriptJson?: unknown) =>
+    runHeadless({ project: 'fixtures/projects/esp32s3-usb-keys.json', firmware: { s3: 'fixtures/firmware/esp32s3/usb-keys.bin' }, expect: expectations, ...(scriptJson === undefined ? {} : { scriptJson }) }, s3io);
+
+  it('parses usb received "<text>" by <time>, with or without a board', () => {
+    expect(parseAssertion('usb received "Hello\\n" by 1s')).toMatchObject({ kind: 'usb', board: null, needle: 'Hello\n', by: 1e9 });
+    expect(parseAssertion('usb[s3] received "MIDI: note on" by 250ms')).toMatchObject({ kind: 'usb', board: 's3', needle: 'MIDI: note on', by: 250e6 });
+  });
+
+  it('passes when the typed text or an event line holds it by then, timed by the event; fails with what it waited for', () => {
+    const steps = [
+      { at: '400ms', part: 'type', input: { kind: 'press' } },
+      { at: '500ms', part: 'type', input: { kind: 'release' } },
+      { at: '600ms', part: 'mouse', input: { kind: 'press' } },
+      { at: '700ms', part: 'mouse', input: { kind: 'release' } },
+    ];
+    const r = usb(['usb received "Hello from Benchtop!" by 500ms', 'usb[s3] received "mouse: left down" by 700ms', 'usb received "media: Volume Up" by 800ms', 'usb received "Hello" by 410ms'], steps);
+    const [typed, click, volume, early] = r.assertions;
+    expect(typed.ok).toBe(true);
+    expect(click.ok).toBe(true);
+    expect(click.atNs).toBeGreaterThan(600e6);
+    expect(click.atNs).toBeLessThan(650e6);
+    expect(volume).toMatchObject({ ok: false, atNs: null, detail: 'not received by 800 ms' });
+    expect(early.ok).toBe(false);
+    expect(early.detail).toMatch(/^received at .*, after 410 ms$/);
+  }, 60_000);
+
+  it('refuses a board without a USB host, or a project whose boards leave it ambiguous', () => {
+    const uno = runHeadless({ project: 'fixtures/projects/blink-led.json', firmware: { uno: 'fixtures/firmware/uno/blink.hex' }, expect: ['usb received "x" by 1s'] }, io);
+    expect(uno.exitCode).toBe(2);
+    expect(uno.error).toBe('usb received "x" by 1s: say usb[<board>] (the project\'s boards with a USB host: none)');
+    const named = runHeadless({ project: 'fixtures/projects/blink-led.json', firmware: { uno: 'fixtures/firmware/uno/blink.hex' }, expect: ['usb[uno] received "x" by 1s'] }, io);
+    expect(named.error).toBe('usb[uno] received "x" by 1s: "uno" has no USB port the bench hosts (an ESP32-S3 board has)');
   });
 });

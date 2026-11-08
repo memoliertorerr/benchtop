@@ -167,7 +167,7 @@ export class S3UsbOtg implements UsbDevicePort {
       this.hostAt = -1;
       this.host.service();
     });
-    this.host = new UsbHost(this);
+    this.host = new UsbHost(this, () => ctx.now() / ctx.refHz); // BT138: the log in the chip's seconds
     this.blocks.push({ read32: (o) => this.readReg(o), write32: (o, v) => this.writeReg(o, v), systemReset: () => this.reset() });
     for (let w = 0; w < 16; w++) {
       this.blocks.push({ read32: () => this.popData(), write32: (_o, v) => this.pushData(w, v) });

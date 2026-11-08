@@ -12,7 +12,7 @@ import { basename, isAbsolute, join, sep } from 'node:path';
 
 // The FQBN allowlist and an inline sketch's rules live with the compile code they guard
 // (scripts/compile.ts, shared with the CLI's MCP server since BT70).
-export { FQBN_ALLOWLIST, type InlineCheck, isAllowedFqbn, MAX_SKETCH_BYTES, MAX_SKETCH_FILES, SKETCH_FILE_PATTERN, validateInlineSketch } from '../../../scripts/compile.ts';
+export { FQBN_ALLOWLIST, type InlineCheck, isAllowedFqbn, MAX_SKETCH_BYTES, MAX_SKETCH_FILES, MODULE_OPTIONS, moduleError, SKETCH_FILE_PATTERN, validateInlineSketch } from '../../../scripts/compile.ts';
 
 /** The Vite dev server's origins (npm run dev). */
 export const DEV_ORIGINS: readonly string[] = ['http://localhost:5173', 'http://127.0.0.1:5173'];

@@ -78,12 +78,40 @@ export const ESP32S3_CHECKS: Record<string, (r: ExampleRun) => void> = {
     expect(pixel()).toBe(0x0000ff);
     expect(r.serial('s3')).toContain('led green\nunknown purple\nled blue\n');
   },
+  // BT139: the S3's own USB as a keyboard, mouse and media keys, and as a MIDI controller — what the bench's USB host received.
+  'esp32s3-usb-keys'(r) {
+    r.runTo(400);
+    expect(r.serial('s3')).toContain('usb keys ready');
+    r.input('type', { kind: 'press' });
+    r.runTo(500);
+    r.input('type', { kind: 'release' });
+    r.input('volume', { kind: 'press' });
+    r.runTo(700);
+    r.input('volume', { kind: 'release' });
+    r.runTo(800);
+    const usb = r.bench.usbOf('s3');
+    expect(usb?.functions).toEqual(['serial (CDC-ACM)', 'keyboard', 'mouse', 'media keys']);
+    expect(usb?.typed).toBe('Hello from Benchtop!\n');
+    expect(usb?.events.map((e) => e.text)).toEqual(['media: Volume Up']);
+  },
+  'esp32s3-usb-midi'(r) {
+    r.runTo(400);
+    r.input('c4', { kind: 'press' });
+    r.runTo(500);
+    r.input('c4', { kind: 'release' });
+    r.input('volume', { kind: 'value', value: 1 });
+    r.runTo(700);
+    const lines = r.bench.usbOf('s3')?.events.map((e) => e.text) ?? [];
+    expect(lines).toContain('MIDI: note on ch 1 C4 (60) velocity 100');
+    expect(lines).toContain('MIDI: note off ch 1 C4 (60)');
+    expect(lines.at(-1)).toBe('MIDI: control change ch 1 #7 = 127');
+  },
 };
 
 describe('every ESP32-S3 example runs as described (BT126)', () => {
   const withS3 = EXAMPLES.filter((e) => Object.values(e.boards).some((b) => 'firmware' in b && b.firmware.startsWith('esp32s3/')));
   it('has a check for each', () => {
-    expect(withS3.length).toBe(8);
+    expect(withS3.length).toBe(10);
     expect(withS3.map((e) => e.id).filter((id) => ESP32S3_CHECKS[id] === undefined)).toEqual([]);
   });
   for (const example of withS3) {

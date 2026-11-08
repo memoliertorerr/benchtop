@@ -1,0 +1,59 @@
+{
+  "name": "example: esp32s3-usb-keys",
+  "project": "../../projects/esp32s3-usb-keys.json",
+  "firmware": {
+    "s3": "../../firmware/esp32s3/usb-keys.bin"
+  },
+  "steps": [
+    {
+      "at": "400ms",
+      "part": "type",
+      "input": {
+        "kind": "press"
+      }
+    },
+    {
+      "at": "500ms",
+      "part": "type",
+      "input": {
+        "kind": "release"
+      }
+    },
+    {
+      "at": "700ms",
+      "part": "mouse",
+      "input": {
+        "kind": "press"
+      }
+    },
+    {
+      "at": "800ms",
+      "part": "mouse",
+      "input": {
+        "kind": "release"
+      }
+    },
+    {
+      "at": "1s",
+      "part": "volume",
+      "input": {
+        "kind": "press"
+      }
+    },
+    {
+      "at": "1.1s",
+      "part": "volume",
+      "input": {
+        "kind": "release"
+      }
+    }
+  ],
+  "expect": [
+    "serial contains \"usb keys ready\" by 400ms",
+    "usb received \"Hello from Benchtop!\\n\" by 600ms",
+    "usb received \"mouse: moved +20 -10\" by 800ms",
+    "usb received \"mouse: left down\" by 800ms",
+    "usb received \"media: Volume Up\" by 1.2s",
+    "serial contains \"volume up\" by 1.2s"
+  ]
+}

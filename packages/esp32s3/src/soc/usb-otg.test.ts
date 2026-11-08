@@ -1,5 +1,6 @@
+import { Strength } from '@benchtop/core';
 import { describe, expect, it } from 'vitest';
-import { createEsp32s3Mcu } from '../esp32s3-mcu.ts';
+import { CODE_S3_USB_DEVICE, createEsp32s3Mcu } from '../esp32s3-mcu.ts';
 import { bootS3Fixture, s3FixtureImage } from '../test-support/boot.test-helper.ts';
 import { loadCachedS3Rom } from '../test-support/rom.test-helper.ts';
 import { S3_SRC } from './intmatrix.ts';
@@ -150,6 +151,14 @@ describe('the bench’s USB host against a scripted device (BT134)', () => {
       9, 0x21, 0x11, 0x01, 0, 1, 0x22, 63, 0,
       7, 5, 0x83, 3, 8, 0, 10,
     ]);
+    /** BT138: the boot keyboard's report descriptor (HID 1.11 Appendix E.6), 63 bytes. */
+    readonly keyboard = new Uint8Array([
+      0x05, 0x01, 0x09, 0x06, 0xa1, 0x01, 0x05, 0x07, 0x19, 0xe0, 0x29, 0xe7, 0x15, 0x00, 0x25, 0x01, 0x75, 0x01, 0x95, 0x08, 0x81, 0x02,
+      0x95, 0x01, 0x75, 0x08, 0x81, 0x01, 0x95, 0x05, 0x75, 0x01, 0x05, 0x08, 0x19, 0x01, 0x29, 0x05, 0x91, 0x02, 0x95, 0x01, 0x75, 0x03,
+      0x91, 0x01, 0x95, 0x06, 0x75, 0x08, 0x15, 0x00, 0x25, 0x65, 0x05, 0x07, 0x19, 0x00, 0x29, 0x65, 0x81, 0x00, 0xc0,
+    ]);
+    /** BT138: keyboard reports waiting on the interrupt IN endpoint 3. */
+    reports: number[][] = [];
     attached(): boolean {
       return true;
     }
@@ -167,6 +176,7 @@ describe('the bench’s USB host against a scripted device (BT134)', () => {
       else if (packet[1] === 6 && value >>> 8 === 2) reply = this.config;
       else if (packet[1] === 6 && value === 0x0300) reply = new Uint8Array([4, 3, 0x09, 0x04]);
       else if (packet[1] === 6 && value === 0x0302) reply = new Uint8Array([10, 3, 0x50, 0, 0x61, 0, 0x64, 0, 0x21, 0]);
+      else if (packet[0] === 0x81 && packet[1] === 6 && value === 0x2200) reply = this.keyboard;
       this.pending = reply.slice(0, length);
       this.sent = 0;
     }
@@ -182,6 +192,11 @@ describe('the bench’s USB host against a scripted device (BT134)', () => {
         into.set(bytes);
         return bytes.length;
       }
+      const report = ep === 3 ? this.reports.shift() : undefined;
+      if (report !== undefined) {
+        into.set(report);
+        return report.length;
+      }
       return USB_NAK;
     }
     out(ep: number, data: Uint8Array, length: number): number {
@@ -190,7 +205,7 @@ describe('the bench’s USB host against a scripted device (BT134)', () => {
     }
   }
 
-  it('enumerates (descriptors, address, configuration), opens the CDC port (line coding, DTR/RTS), names the HID interface, and moves data both ways', () => {
+  it('enumerates (descriptors, address, configuration), opens the CDC port (line coding, DTR/RTS), reads the HID keyboard (BT138), and moves data both ways', () => {
     const device = new ScriptedDevice();
     const host = new UsbHost(device);
     const notes: string[] = [];
@@ -204,12 +219,19 @@ describe('the bench’s USB host against a scripted device (BT134)', () => {
       for (let i = 0; i < 4; i++) host.service();
     }
     expect(device.resets).toBe(1);
-    expect(device.requests).toEqual(['80 6 100 0 64', '0 5 1 0 0', '80 6 100 0 18', '80 6 200 0 9', '80 6 200 0 91', '80 6 300 0 255', '80 6 302 9 255', '0 9 1 0 0', '21 32 0 0 7', '21 34 3 0 0']);
+    expect(device.requests).toEqual(['80 6 100 0 64', '0 5 1 0 0', '80 6 100 0 18', '80 6 200 0 9', '80 6 200 0 91', '80 6 300 0 255', '80 6 302 9 255', '0 9 1 0 0', '21 32 0 0 7', '21 34 3 0 0', '81 6 2200 2 63', '21 10 0 2 0']);
     expect(host.isRunning).toBe(true);
     expect(host.productName).toBe('Pad!');
     expect(host.ports).toEqual([{ comm: 0, bulkIn: 2, bulkOut: 2, outSize: 64, notify: 1 }]);
     expect(opened).toBe(1);
-    expect(notes).toEqual([`USB device "Pad!": its HID interface (2) enumerates, but the bench's USB host doesn't drive it`]);
+    expect(notes).toEqual([]);
+    expect(host.functions).toEqual(['serial (CDC-ACM)', 'keyboard']);
+    // BT138: Shift+H, then i, then nothing, then Enter: polled every 10 frames (bInterval).
+    device.reports.push([0x02, 0, 0x0b, 0, 0, 0, 0, 0], [0, 0, 0x0c, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0x28, 0, 0, 0, 0, 0]);
+    for (let f = 0; f < 25; f++) host.frame();
+    expect(host.log.typed).toBe('Hi');
+    for (let f = 0; f < 20; f++) host.frame();
+    expect(host.log.typed).toBe('Hi\n');
     device.bulkIn.push(...new TextEncoder().encode('from the device'));
     host.service();
     expect(got).toBe('from the device');
@@ -267,5 +289,73 @@ describe('USB-OTG builds on the S3 (BT134)', () => {
     for (let i = 0; i < 300 && !usj.includes('\n'); i++) cdc.soc.runUntil(cdc.soc.now() + REF_HZ / 1000);
     expect(usj.length).toBeGreaterThan(0);
     expect(cdc.soc.usbOtg.attached()).toBe(false);
+  });
+});
+
+describe('USB HID and MIDI builds on the S3 (BT138)', () => {
+  /** Boots `name` with GPIO4–6 pulled high (no bench here to apply INPUT_PULLUP), and a way to press them. */
+  function boot(name: string) {
+    const mcu = createEsp32s3Mcu({ rom: loadCachedS3Rom() });
+    const notes: string[] = [];
+    mcu.onProblem = (p) => {
+      if (p.code === CODE_S3_USB_DEVICE) notes.push(p.message); // the host's notes, not the boot's register notes
+    };
+    let serial = '';
+    mcu.uart(0)!.onTransmit((b) => (serial += String.fromCharCode(b)));
+    const set = (g: number, level: 0 | 1) => mcu.pins.get(`GPIO${g}`)!.setInput({ level, strength: Strength.strong, conflict: false, volts: level * 3.3 });
+    for (const g of [4, 5, 6]) set(g, 1);
+    mcu.load({ format: 'esp32-bin', ...s3FixtureImage(name) });
+    const run = (ms: number) => {
+      const end = mcu.cycles + (REF_HZ * ms) / 1000;
+      while (mcu.cycles < end) mcu.runUntil(Math.min(end, mcu.cycles + REF_HZ / 1000));
+    };
+    const press = (g: number, ms = 200) => {
+      set(g, 0);
+      run(ms);
+      set(g, 1);
+      run(50);
+    };
+    return { mcu, notes, run, press, serial: () => serial };
+  }
+
+  it('usb-keys: one device with a CDC port and a HID keyboard, mouse and media keys; what each button sends', () => {
+    const { mcu, notes, run, press, serial } = boot('usb-keys');
+    expect(mcu.usbHost()).toBeNull(); // nothing yet: the firmware hasn't touched USB0
+    run(500);
+    let usb = mcu.usbHost()!;
+    expect(usb).toMatchObject({ phase: 'running', device: 'ESP32S3_DEV', functions: ['serial (CDC-ACM)', 'keyboard', 'mouse', 'media keys'], typed: '', events: [] });
+    expect(serial()).toBe('usb keys ready\r\n');
+    press(4);
+    usb = mcu.usbHost()!;
+    expect(usb.typed).toBe('Hello from Benchtop!\n');
+    press(5);
+    press(6);
+    usb = mcu.usbHost()!;
+    expect(usb.events.map((e) => e.text)).toEqual(['mouse: moved +20 -10', 'mouse: left down', 'mouse: left up', 'mouse: wheel +1', 'media: Volume Up']);
+    // Each in the order and at the time it happened (the MCU's seconds).
+    expect(usb.events[0].at).toBeGreaterThan(0.75);
+    expect(usb.events[4].at).toBeGreaterThan(usb.events[0].at + 0.2);
+    expect(usb.now).toBeGreaterThan(usb.events[4].at);
+    expect(serial()).toBe('usb keys ready\r\ntyped\r\nmouse\r\nvolume up\r\n');
+    expect(notes).toEqual([]);
+  });
+
+  it('usb-midi: a CDC port and a USB-MIDI interface added through TinyUSB; notes while buttons are held, the volume controller', () => {
+    const { mcu, notes, run, press, serial } = boot('usb-midi');
+    run(500);
+    expect(mcu.usbHost()).toMatchObject({ phase: 'running', functions: ['serial (CDC-ACM)', 'MIDI'] });
+    press(4, 300);
+    press(5, 100);
+    const usb = mcu.usbHost()!;
+    expect(usb.events.map((e) => e.text)).toEqual([
+      'MIDI: control change ch 1 #7 = 0', // the pot's first reading (nothing on IO1 here)
+      'MIDI: note on ch 1 C4 (60) velocity 100',
+      'MIDI: note off ch 1 C4 (60)',
+      'MIDI: note on ch 1 E4 (64) velocity 100',
+      'MIDI: note off ch 1 E4 (64)',
+    ]);
+    expect(usb.events[2].at - usb.events[1].at).toBeCloseTo(0.3, 1);
+    expect(serial()).toContain('usb midi ready\r\nsent b0 07 00\nsent 90 3c 64\nsent 80 3c 00\n');
+    expect(notes).toEqual([]);
   });
 });

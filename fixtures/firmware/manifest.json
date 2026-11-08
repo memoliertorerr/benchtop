@@ -3426,6 +3426,78 @@
     },
     {
       "board": "esp32s3",
+      "name": "usb-keys",
+      "fqbn": "esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=cdc",
+      "file": "esp32s3/usb-keys.bin",
+      "sha256": "06baa540aa16dc6157c4d1ba87f44d6799036462de62762267923bdfba986f3d",
+      "bytes": 294496,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "USB": "2.0.0"
+      },
+      "source": "750d70b5540953b57eb441e8a554bff2b00fa3818aa24515e2e1901f2ac92d88"
+    },
+    {
+      "board": "esp32s3",
+      "name": "usb-keys",
+      "fqbn": "esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=cdc",
+      "file": "esp32s3/usb-keys.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "USB": "2.0.0"
+      },
+      "source": "750d70b5540953b57eb441e8a554bff2b00fa3818aa24515e2e1901f2ac92d88"
+    },
+    {
+      "board": "esp32s3",
+      "name": "usb-keys",
+      "fqbn": "esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=cdc",
+      "file": "esp32s3/usb-keys.syms.tsv",
+      "sha256": "14f4c93bbce3dbc7e3fe02ded9f507bec5337d2db00df49bff27e26baa3664da",
+      "bytes": 181593,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "USB": "2.0.0"
+      },
+      "source": "750d70b5540953b57eb441e8a554bff2b00fa3818aa24515e2e1901f2ac92d88"
+    },
+    {
+      "board": "esp32s3",
+      "name": "usb-midi",
+      "fqbn": "esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=cdc",
+      "file": "esp32s3/usb-midi.bin",
+      "sha256": "c3cc95de2322eff3a23ff026f1cf6f8c0e091ebb7437be4473fea5f16cdfaee3",
+      "bytes": 293616,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "0c74e21ed80037f3c87b1016d2d8cea46676b61cc4e887328334dce9d4c0b13a"
+    },
+    {
+      "board": "esp32s3",
+      "name": "usb-midi",
+      "fqbn": "esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=cdc",
+      "file": "esp32s3/usb-midi.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "0c74e21ed80037f3c87b1016d2d8cea46676b61cc4e887328334dce9d4c0b13a"
+    },
+    {
+      "board": "esp32s3",
+      "name": "usb-midi",
+      "fqbn": "esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=cdc",
+      "file": "esp32s3/usb-midi.syms.tsv",
+      "sha256": "53f2f51f33ce828c041b4066bb35f92e5d58a62ad7390c959488be5d152082ff",
+      "bytes": 181933,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "0c74e21ed80037f3c87b1016d2d8cea46676b61cc4e887328334dce9d4c0b13a"
+    },
+    {
+      "board": "esp32s3",
       "name": "usb-rgb",
       "fqbn": "esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=cdc",
       "file": "esp32s3/usb-rgb.bin",

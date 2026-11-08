@@ -13,8 +13,13 @@
  * descriptor or the next data interface) then gets SET_LINE_CODING (115200 8N1) and
  * SET_CONTROL_LINE_STATE (DTR and RTS) — what a serial monitor opening the port does — and from
  * then on its bulk IN endpoint is read (bytes to `onData`) and `send`'s bytes go out its bulk OUT
- * endpoint, as fast as the device ACKs. Interfaces of other classes (HID, mass storage, audio and
- * MIDI, DFU…) enumerate and are named once through `onNote`; nothing drives them.
+ * endpoint, as fast as the device ACKs. BT138: each HID interface's report descriptor is read
+ * (GET_DESCRIPTOR(report), then SET_IDLE(0) as computers send it) and its interrupt IN endpoint
+ * polled every bInterval frames, the reports decoded by usb-hid.ts; a MIDI streaming interface
+ * (audio class, subclass 3) has its bulk IN endpoint read as CDC's is, the packets decoded by
+ * usb-midi.ts. What they send goes to `log` (usb-log.ts: typed text and events). Interfaces of
+ * other classes (mass storage, audio streaming, DFU, vendor…) enumerate and are named once
+ * through `onNote`; nothing drives them.
  *
  * Time: `frame()` is the 1 ms start-of-frame; `service()` runs whatever can make progress now and
  * is called on each frame and whenever the device changes something the host waits for (`kick` on
@@ -24,6 +29,10 @@
  */
 
 /** A transaction's outcome besides a length or ACK. */
+import { HidDecoder, parseHidReports } from './usb-hid.ts';
+import { MidiDecoder } from './usb-midi.ts';
+import { UsbLog } from './usb-log.ts';
+
 export const USB_NAK = -1;
 export const USB_STALL = -2;
 export const USB_ACK = 0;
@@ -82,6 +91,28 @@ const CLASS_NAMES: ReadonlyMap<number, string> = new Map([
   [0xff, 'vendor specific'],
 ]);
 
+/** BT138: a HID interface the host reads. */
+interface HidInterface {
+  readonly iface: number;
+  /** The report descriptor's length (from the HID descriptor). */
+  reportLength: number;
+  inEp: number;
+  /** Frames between polls (bInterval at full speed). */
+  interval: number;
+  nextPoll: number;
+  decoder: HidDecoder | null;
+}
+
+/** BT138: a MIDI streaming interface the host reads. */
+interface MidiInterface {
+  readonly iface: number;
+  inEp: number;
+  readonly decoder: MidiDecoder;
+}
+
+/** What the host calls each kind of HID report it reads. */
+const HID_KIND_NAMES = { keyboard: 'keyboard', mouse: 'mouse', consumer: 'media keys', system: 'system control', gamepad: 'gamepad', other: '' } as const;
+
 interface ControlRequest {
   readonly setup: Uint8Array;
   /** Bytes to send (host → device data stage), or null. */
@@ -96,6 +127,8 @@ export class UsbHost {
   onNote: ((message: string) => void) | null = null;
   /** The device is configured and its first CDC-ACM port open (DTR set). */
   onOpen: (() => void) | null = null;
+  /** BT138: what the device's keyboards, mice, media keys and MIDI ports sent. */
+  readonly log: UsbLog;
   private readonly port: UsbDevicePort;
   private state: HostState = STATE.DETACHED;
   private frameNumber = 0;
@@ -120,9 +153,27 @@ export class UsbHost {
   private txHead = 0;
   private txCount = 0;
   private readonly txPacket = new Uint8Array(64);
+  private readonly hids: HidInterface[] = [];
+  private readonly midis: MidiInterface[] = [];
+  /** What the device offers, as the host drives it ("serial (CDC-ACM)", "keyboard", "MIDI", …). */
+  private functionNames: string[] = [];
 
-  constructor(port: UsbDevicePort) {
+  /** `now`: the clock the log's events carry (the MCU's seconds). */
+  constructor(port: UsbDevicePort, now: () => number = () => 0) {
     this.port = port;
+    this.log = new UsbLog(now);
+  }
+
+  /** BT138: where the host is: nothing attached, enumerating, running, or failed. */
+  get phase(): 'waiting' | 'enumerating' | 'running' | 'failed' {
+    if (this.state === STATE.RUNNING) return 'running';
+    if (this.state === STATE.FAILED) return 'failed';
+    return this.state === STATE.DETACHED ? 'waiting' : 'enumerating';
+  }
+
+  /** BT138: the device's functions the host uses (empty until running). */
+  get functions(): readonly string[] {
+    return this.state === STATE.RUNNING ? this.functionNames : [];
   }
 
   /** Enumerated and running, with the CDC-ACM ports it opened. */
@@ -204,6 +255,8 @@ export class UsbHost {
       case STATE.RUNNING:
         this.control();
         this.cdcIo();
+        this.hidIo();
+        this.midiIo();
         return;
       default:
     }
@@ -214,6 +267,9 @@ export class UsbHost {
     this.queue.length = 0;
     this.current = null;
     this.cdcs.length = 0;
+    this.hids.length = 0;
+    this.midis.length = 0;
+    this.functionNames = [];
     this.product = '';
   }
 
@@ -317,6 +373,8 @@ export class UsbHost {
   private enumerate(): void {
     this.ep0Size = 64;
     this.cdcs.length = 0;
+    this.hids.length = 0;
+    this.midis.length = 0;
     this.request(0x80, 6, 0x0100, 0, 64, null, (device) => {
       if (device === null || device.length < 8) return this.fail();
       this.ep0Size = device[7] === 8 || device[7] === 16 || device[7] === 32 || device[7] === 64 ? device[7] : 8;
@@ -383,6 +441,12 @@ export class UsbHost {
           comms.push(pendingComm);
         } else if (ifaceClass === 0x0a) {
           if (!datas.has(iface)) datas.set(iface, { bulkIn: -1, bulkOut: -1, outSize: 64 });
+        } else if (ifaceClass === 0x03) {
+          if (!this.hids.some((h) => h.iface === iface)) this.hids.push({ iface, reportLength: 0, inEp: -1, interval: 1, nextPoll: 0, decoder: null });
+        } else if (ifaceClass === 0x01 && ifaceSubclass === 0x03) {
+          if (!this.midis.some((m) => m.iface === iface)) this.midis.push({ iface, inEp: -1, decoder: new MidiDecoder(this.log) });
+        } else if (ifaceClass === 0x01 && ifaceSubclass === 0x01) {
+          // Audio control: the MIDI streaming interface's companion; nothing to read.
         } else if (!named.has(iface) && ifaceClass !== 0x02) {
           named.add(iface);
           const name = CLASS_NAMES.get(ifaceClass) ?? `class 0x${ifaceClass.toString(16).padStart(2, '0')}`;
@@ -390,6 +454,9 @@ export class UsbHost {
         }
       } else if (type === 0x24 && length >= 5 && config[o + 2] === 0x06 && pendingComm !== null) {
         pendingComm.data = config[o + 4]; // union: the subordinate (data) interface
+      } else if (type === 0x21 && length >= 9 && ifaceClass === 0x03 && config[o + 6] === 0x22) {
+        const hid = this.hids.find((h) => h.iface === iface);
+        if (hid !== undefined) hid.reportLength = config[o + 7] | (config[o + 8] << 8);
       } else if (type === 5 && length >= 7) {
         const address = config[o + 2];
         const kind = config[o + 3] & 3;
@@ -404,6 +471,16 @@ export class UsbHost {
             }
           }
         } else if (ifaceClass === 0x02 && pendingComm !== null && kind === 3 && (address & 0x80) !== 0) pendingComm.notify = address & 0x0f;
+        else if (ifaceClass === 0x03 && kind === 3 && (address & 0x80) !== 0) {
+          const hid = this.hids.find((h) => h.iface === iface);
+          if (hid !== undefined && hid.inEp < 0) {
+            hid.inEp = address & 0x0f;
+            hid.interval = Math.max(1, config[o + 6]);
+          }
+        } else if (ifaceClass === 0x01 && ifaceSubclass === 0x03 && kind === 2 && (address & 0x80) !== 0) {
+          const midi = this.midis.find((m) => m.iface === iface);
+          if (midi !== undefined && midi.inEp < 0) midi.inEp = address & 0x0f;
+        }
       }
       o += length;
     }
@@ -417,12 +494,25 @@ export class UsbHost {
       if (data === undefined || data.bulkIn < 0 || data.bulkOut < 0) continue;
       this.cdcs.push({ comm: comm.comm, bulkIn: data.bulkIn, bulkOut: data.bulkOut, outSize: data.outSize, notify: comm.notify });
     }
+    for (let i = this.hids.length - 1; i >= 0; i--) {
+      const hid = this.hids[i];
+      if (hid.inEp >= 0 && hid.reportLength > 0) continue;
+      notes.push(`its HID interface (${hid.iface}) has no interrupt IN endpoint or report descriptor: the bench's USB host can't read it`);
+      this.hids.splice(i, 1);
+    }
+    for (let i = this.midis.length - 1; i >= 0; i--) {
+      if (this.midis[i].inEp >= 0) continue;
+      notes.push(`its MIDI interface (${this.midis[i].iface}) has no bulk IN endpoint: the bench's USB host can't read it`);
+      this.midis.splice(i, 1);
+    }
+    this.functionNames = this.cdcs.map(() => 'serial (CDC-ACM)');
+    if (this.midis.length > 0) this.functionNames.push('MIDI');
     return notes;
   }
 
   private openCdcs(): void {
     if (this.cdcs.length === 0) {
-      this.started();
+      this.openHids();
       return;
     }
     let left = this.cdcs.length;
@@ -431,6 +521,37 @@ export class UsbHost {
       const coding = new Uint8Array([0x00, 0xc2, 0x01, 0x00, 0, 0, 8]);
       this.request(0x21, 0x20, 0, cdc.comm, 7, coding, () => {
         this.request(0x21, 0x22, 0x0003, cdc.comm, 0, null, () => {
+          left--;
+          if (left === 0) this.openHids();
+        });
+      });
+    }
+  }
+
+  /**
+   * BT138: each HID interface's report descriptor (GET_DESCRIPTOR(report) to the interface), then
+   * SET_IDLE(0) — what a computer sends (a stall is fine) —, then running.
+   */
+  private openHids(): void {
+    let left = this.hids.length;
+    if (left === 0) {
+      this.started();
+      return;
+    }
+    for (const hid of this.hids) {
+      this.request(0x81, 6, 0x2200, hid.iface, hid.reportLength, null, (descriptor) => {
+        const layout = descriptor === null ? 'the device stalled GET_DESCRIPTOR(report)' : parseHidReports(descriptor);
+        if (typeof layout === 'string') this.onNote?.(`${this.deviceName()}: its HID interface (${hid.iface}) can't be read: ${layout}`);
+        else {
+          hid.decoder = new HidDecoder(layout, this.log);
+          const kinds = hid.decoder.kinds();
+          for (const kind of kinds) {
+            const name = HID_KIND_NAMES[kind];
+            if (name !== '' && !this.functionNames.includes(name)) this.functionNames.push(name);
+          }
+          if (kinds.includes('other')) this.onNote?.(`${this.deviceName()}: its HID interface (${hid.iface}) also sends reports that aren't a keyboard, mouse, media keys or gamepad (vendor-defined): the bench's USB host doesn't read those`);
+        }
+        this.request(0x21, 0x0a, 0, hid.iface, 0, null, () => {
           left--;
           if (left === 0) this.started();
         });
@@ -452,6 +573,31 @@ export class UsbHost {
 
   private deviceName(): string {
     return this.product === '' ? 'the USB device' : `USB device "${this.product}"`;
+  }
+
+  // ── HID and MIDI data (BT138) ─────────────────────────────────────────────────────────
+
+  /** Each HID interface's interrupt IN endpoint, once per its interval in frames. */
+  private hidIo(): void {
+    for (let i = 0; i < this.hids.length; i++) {
+      const hid = this.hids[i];
+      if (hid.decoder === null || this.frames < hid.nextPoll) continue;
+      hid.nextPoll = this.frames + hid.interval;
+      const n = this.port.in(hid.inEp, this.packet);
+      if (n > 0) hid.decoder.report(this.packet, n);
+    }
+  }
+
+  /** Each MIDI streaming interface's bulk IN endpoint: 4-byte event packets. */
+  private midiIo(): void {
+    for (let m = 0; m < this.midis.length; m++) {
+      const midi = this.midis[m];
+      for (let i = 0; i < BURST; i++) {
+        const n = this.port.in(midi.inEp, this.packet);
+        if (n < 0) break;
+        for (let at = 0; at + 4 <= n; at += 4) midi.decoder.packet(this.packet, at);
+      }
+    }
   }
 
   // ── CDC-ACM data ──────────────────────────────────────────────────────────────────────

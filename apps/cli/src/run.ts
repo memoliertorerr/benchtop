@@ -28,6 +28,10 @@
  *   http-server part answered such a request) and `http <part> got <status> [with "<text>"] by
  *   <time>` (an http-client part's request came back with that status, its body holding the
  *   text): the first such event on the bench's network, by that time.
+ * - BT139: `usb received "<text>" by <time>` (or `usb[<board>] …`): the board's USB host (an
+ *   ESP32-S3's USB-OTG port, enumerated by the bench) received the text — in what a keyboard typed
+ *   or in an event's line ("mouse: left down", "MIDI: note on ch 1 C4 (60) velocity 100") — by
+ *   that time; checked every 10 ms, timed by the event (or the check, for typed text).
  * - Script: an array of steps or { steps: [...], expect: [...] }. A step is { at, part, input }
  *   (a part input), { at, part, set: { <channel>: <number|boolean>, … } } (BT55: channel inputs
  *   `set:<channel>=<v>`, booleans as 1/0 — an environment source's rate or on/off, a DHT22's
@@ -39,7 +43,7 @@
  */
 
 import { type Bench, BusDecoder, type BusTransaction, ipString, MAX_PROBES, type Mcu, type NetEvent, type NetState, type PartInput, type Problem, type ProjectDoc, type VisualState } from '@benchtop/core';
-import { envSpecFor, netSpecFor, sevenSegmentText } from '@benchtop/parts';
+import { CATALOG, envSpecFor, netSpecFor, sevenSegmentText } from '@benchtop/parts';
 import { buildBench, cachedRoms, type CliIo, loadFirmware, loadTables, loadProject, parseJson, projectFromJson, readText, resolvePin, UsageError } from './load.ts';
 import { uplinkFor } from './uplink.ts';
 
@@ -126,6 +130,7 @@ export type Assertion =
   | { kind: 'env'; text: string; field: EnvField; part: string; op: EnvOp; value: number; tolerance: number; at: number }
   | { kind: 'bus'; text: string; bus: 'i2c' | 'spi'; part: string; how: 'wrote' | 'read' | 'sent'; bytes: number[]; by: number }
   | { kind: 'file'; text: string; part: string; path: string; needle: string; by: number }
+  | { kind: 'usb'; text: string; board: string | null; needle: string; by: number }
   | { kind: 'wifi'; text: string; board: string; by: number }
   | { kind: 'served'; text: string; part: string; method: string; path: string; by: number }
   | { kind: 'got'; text: string; part: string; status: number; needle: string | null; by: number };
@@ -140,7 +145,7 @@ const ENV_UNITS: Readonly<Record<EnvField, string>> = { gas: 'ppm', temperature:
 
 /** The time an assertion is decided at: its `at`, its `by`, or the end of its window. */
 export function decidedAt(a: Assertion): number {
-  if (a.kind === 'serial' || a.kind === 'match' || a.kind === 'bus' || a.kind === 'file' || isNetAssertion(a)) return a.by;
+  if (a.kind === 'serial' || a.kind === 'match' || a.kind === 'bus' || a.kind === 'file' || a.kind === 'usb' || isNetAssertion(a)) return a.by;
   if (a.kind === 'frequency' || a.kind === 'duty') return a.to;
   return a.at;
 }
@@ -174,6 +179,7 @@ const FORMS = [
   'wifi <board> connected by <time>',
   'http <server part> served <METHOD> <path> by <time>',
   'http <client part> got <status> [with "<text>"] by <time>',
+  'usb received "<text>" by <time>',
 ];
 
 const NUM = String.raw`(\d+(?:\.\d+)?)`;
@@ -197,6 +203,7 @@ const GRAMMAR = {
   wifi: re(String.raw`wifi\s+(\S+)\s+connected\s+by\s+(\S+)`),
   served: re(String.raw`http\s+(\S+)\s+served\s+(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|\*)\s+(\/\S*)\s+by\s+(\S+)`),
   got: re(String.raw`http\s+(\S+)\s+got\s+(\d{3})(?:\s+with\s+${QUOTED})?\s+by\s+(\S+)`),
+  usb: re(String.raw`usb(?:\[([^\]]+)\])?\s+received\s+${QUOTED}\s+by\s+(\S+)`),
 };
 
 /** A regex from `serial matches /…/flags`: i, m, s and u only (g and y would make it stateful). */
@@ -216,6 +223,7 @@ export function parseAssertion(text: string): Assertion {
   let m: RegExpExecArray | null;
   if ((m = GRAMMAR.serial.exec(t)) !== null) return { kind: 'serial', text: t, board: m[1] ?? null, needle: unescape(m[2], t), by: parseTime(m[3]) };
   if ((m = GRAMMAR.match.exec(t)) !== null) return { kind: 'match', text: t, board: m[1] ?? null, regex: serialRegex(m[2], m[3], t), by: parseTime(m[4]) };
+  if ((m = GRAMMAR.usb.exec(t)) !== null) return { kind: 'usb', text: t, board: m[1] ?? null, needle: unescape(m[2], t), by: parseTime(m[3]) };
   if ((m = GRAMMAR.pin.exec(t)) !== null) {
     const level: Level = m[3] === '0' ? 0 : m[3] === '1' ? 1 : (m[3] as 'z' | 'x');
     return { kind: 'pin', text: t, part: m[1], pin: m[2], level, at: parseTime(m[4]) };
@@ -425,6 +433,15 @@ function checkAgainstProject(a: Assertion, doc: ProjectDoc, boards: readonly str
     } else if (!boards.includes(a.board)) throw new UsageError(`${a.text}: no board "${a.board}"`);
     return;
   }
+  if (a.kind === 'usb') {
+    // BT139: boards whose own USB port the bench hosts (an ESP32-S3's USB-OTG).
+    const hosted = boards.filter((b) => CATALOG.get(doc.parts.find((p) => p.id === b)?.type ?? '')?.board?.mcu === 'esp32s3');
+    if (a.board === null) {
+      if (hosted.length !== 1) throw new UsageError(`${a.text}: say usb[<board>] (the project's boards with a USB host: ${hosted.length === 0 ? 'none' : hosted.join(', ')})`);
+      a.board = hosted[0];
+    } else if (!hosted.includes(a.board)) throw new UsageError(`${a.text}: ${boards.includes(a.board) ? `"${a.board}" has no USB port the bench hosts (an ESP32-S3 board has)` : `no board "${a.board}"`}`);
+    return;
+  }
   if (a.kind === 'wifi') {
     if (!boards.includes(a.board)) throw new UsageError(`${a.text}: no board "${a.board}"`);
     if (!doc.parts.some((p) => netSpecFor(p.type, p.props)?.kind === 'access-point')) throw new UsageError(`${a.text}: the project has no WiFi access point`);
@@ -520,6 +537,8 @@ const LIT = 0.3;
 const DARK = 0.05;
 /** A window's probe is drained at least this often (ns). */
 const DRAIN_NS = 50e6;
+/** BT139: how often usb assertions read a board's USB host. */
+const USB_CHECK_NS = 10_000_000;
 
 interface Window {
   a: Extract<Assertion, { kind: 'frequency' | 'duty' }>;
@@ -741,6 +760,22 @@ export function runHeadless(options: RunOptions, io: RunIo): RunReport {
     };
     if (fileAssertions.length > 0) for (let t = DRAIN_NS; t < duration; t += DRAIN_NS) drains.push(t);
 
+    // BT139: usb assertions read the board's USB host at every stop and every 10 ms; an event's
+    // line is timed by the event, typed text by the check that first saw it.
+    const usbAssertions = assertions.filter((a): a is Extract<Assertion, { kind: 'usb' }> => a.kind === 'usb');
+    const usbSeen = new Map<Assertion, number>();
+    const checkUsb = (): void => {
+      for (const a of usbAssertions) {
+        if (usbSeen.has(a)) continue;
+        const host = bench.usbOf(a.board as string);
+        if (host === null) continue;
+        const event = host.events.find((e) => e.text.includes(a.needle));
+        if (event !== undefined) usbSeen.set(a, event.at);
+        else if (host.typed.includes(a.needle)) usbSeen.set(a, bench.now());
+      }
+    };
+    if (usbAssertions.length > 0) for (let t = USB_CHECK_NS; t < duration; t += USB_CHECK_NS) drains.push(t);
+
     // BT100: network assertions listen to the bench's network; each is satisfied by the first
     // event that matches it (a board connected, a server part's answer, a client part's response).
     const netAssertions = assertions.filter(isNetAssertion);
@@ -784,6 +819,7 @@ export function runHeadless(options: RunOptions, io: RunIo): RunReport {
       for (const w of windows) drainWindow(bench, w);
       drainBus();
       checkFiles();
+      checkUsb();
       for (const step of script.steps) {
         if (step.at !== t) continue;
         if (step.kind === 'serial') bench.sendSerial(step.board, encoder.encode(step.text));
@@ -792,7 +828,7 @@ export function runHeadless(options: RunOptions, io: RunIo): RunReport {
       }
       collect();
       for (const a of assertions) {
-        if (a.kind === 'serial' || a.kind === 'match' || a.kind === 'bus' || a.kind === 'file' || isNetAssertion(a) || decidedAt(a) !== t) continue;
+        if (a.kind === 'serial' || a.kind === 'match' || a.kind === 'bus' || a.kind === 'file' || a.kind === 'usb' || isNetAssertion(a) || decidedAt(a) !== t) continue;
         if (a.kind === 'frequency' || a.kind === 'duty') {
           const w = windows.find((x) => x.a === a) as Window;
           results.set(a, { text: a.text, atNs: t, ...closeWindow(w) });
@@ -818,6 +854,12 @@ export function runHeadless(options: RunOptions, io: RunIo): RunReport {
       const ok = at !== undefined && at <= a.by;
       const why = fileNotes.get(a) ?? 'not checked';
       const detail = at === undefined ? `not seen by ${formatNs(a.by)}: ${why}` : ok ? `seen at ${formatNs(at)}` : `seen at ${formatNs(at)}, after ${formatNs(a.by)}`;
+      results.set(a, { text: a.text, ok, atNs: at ?? null, detail });
+    }
+    for (const a of usbAssertions) {
+      const at = usbSeen.get(a);
+      const ok = at !== undefined && at <= a.by;
+      const detail = at === undefined ? `not received by ${formatNs(a.by)}` : ok ? `received at ${formatNs(at)}` : `received at ${formatNs(at)}, after ${formatNs(a.by)}`;
       results.set(a, { text: a.text, ok, atNs: at ?? null, detail });
     }
     for (const a of netAssertions) {

@@ -3,6 +3,7 @@ import { S3_MODULES } from '@benchtop/esp32s3';
 import { describe, expect, it } from 'vitest';
 import { CATALOG } from '../catalog.ts';
 import { BOARD_MODULES } from './modules.ts';
+import { MODULE_OPTIONS } from '../../../../scripts/compile.ts';
 
 // BT135: the Inspector's module choices are the ids the MCU factories read, and each board's
 // default is auto.
@@ -15,5 +16,10 @@ describe('board modules (BT135)', () => {
       const def = CATALOG.get(type);
       expect(def?.defaults.module).toBe('auto');
     }
+  });
+
+  it('BT137: the compile step knows every module but auto, by the board\u2019s FQBN', () => {
+    expect(Object.keys(MODULE_OPTIONS['esp32:esp32:esp32'])).toEqual(BOARD_MODULES['esp32-devkit-v1'].map((m) => m.id).filter((id) => id !== 'auto'));
+    expect(Object.keys(MODULE_OPTIONS['esp32:esp32:esp32s3'])).toEqual(BOARD_MODULES['esp32-s3-devkitc-1'].map((m) => m.id).filter((id) => id !== 'auto'));
   });
 });

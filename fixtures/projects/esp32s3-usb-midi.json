@@ -1,0 +1,140 @@
+{
+  "format": 1,
+  "name": "esp32s3-usb-midi",
+  "parts": [
+    {
+      "id": "s3",
+      "type": "esp32-s3-devkitc-1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "c4",
+      "type": "pushbutton",
+      "x": -38,
+      "y": 4,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "e4",
+      "type": "pushbutton",
+      "x": -38,
+      "y": 20,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "volume",
+      "type": "potentiometer",
+      "x": 40,
+      "y": 14,
+      "rotation": 0,
+      "props": {
+        "value": 0.5
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "c4",
+        "pin": "2.r"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "IO4"
+      },
+      "color": "green",
+      "waypoints": []
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "c4",
+        "pin": "1.l"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "GND.1"
+      },
+      "color": "black",
+      "waypoints": []
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "e4",
+        "pin": "2.r"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "IO5"
+      },
+      "color": "green",
+      "waypoints": []
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "e4",
+        "pin": "1.l"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "GND.1"
+      },
+      "color": "black",
+      "waypoints": []
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "volume",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "3V3.1"
+      },
+      "color": "red",
+      "waypoints": []
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "volume",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "GND.2"
+      },
+      "color": "black",
+      "waypoints": []
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "volume",
+        "pin": "SIG"
+      },
+      "to": {
+        "part": "s3",
+        "pin": "IO1"
+      },
+      "color": "green",
+      "waypoints": []
+    }
+  ],
+  "firmware": {
+    "s3": {
+      "kind": "file",
+      "name": "usb-midi.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

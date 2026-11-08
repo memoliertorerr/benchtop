@@ -79,6 +79,9 @@ describe('examples gallery (BT38, BT43, BT45, BT47, BT56)', () => {
       // BT135
       'esp32-psram-frame',
       'esp32s3-usb-rgb',
+      // BT139
+      'esp32s3-usb-keys',
+      'esp32s3-usb-midi',
     ];
     for (const id of planned) expect(ALL_EXAMPLES.some((e) => e.id === id), id).toBe(true);
     for (const category of CATEGORIES) expect(EXAMPLES.some((e) => e.category === category), category).toBe(true);

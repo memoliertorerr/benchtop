@@ -1,6 +1,6 @@
 /** Which FQBN the compile bridge builds a board's sketch with (DOM-free; sketch-actions re-exports it). */
 
-import { CATALOG } from '@benchtop/parts';
+import { BOARD_MODULES, CATALOG } from '@benchtop/parts';
 
 /** The FQBN per board part type (BT45: per board, not per MCU — the Nano and the Uno share a chip). */
 const FQBNS: Readonly<Record<string, string>> = {
@@ -27,6 +27,16 @@ const MCU_FQBNS = {
 export function fqbnOf(partType: string): string | undefined {
   const mcu = CATALOG.get(partType)?.board?.mcu;
   return mcu === undefined ? undefined : (FQBNS[partType] ?? MCU_FQBNS[mcu]);
+}
+
+/**
+ * BT137: the module a board's builds follow — its `module` prop when that is one of the board's
+ * (BOARD_MODULES) other than `auto`; else undefined (the sketch's comment lines decide).
+ */
+export function moduleOf(partType: string, props: Readonly<Record<string, unknown>> | undefined): string | undefined {
+  const module = props?.module;
+  if (typeof module !== 'string' || module === 'auto') return undefined;
+  return BOARD_MODULES[partType]?.some((m) => m.id === module) === true ? module : undefined;
 }
 
 /** BT63: the MicroPython sketch "FQBN" per MCU, for boards whose stock MicroPython runs here. */

@@ -37,7 +37,7 @@
  *   (24:0A:C4 and three bytes of a hash), so two boards on one LAN differ.
  */
 
-import { type BoardSpec, type PartProps, type Debuggable, type FirmwareImage, type I2cController, type I2cDevice, type Level, type Mcu, type McuDebug, type McuPin, type NetState, type McuSleep, type NonVolatile, type NvMemory, type PinMode, type Problem, type RunResult, SectorMemory, type Sleeper, type SpiController, type SpiDevice, type SymbolTable, type UartPort, type WifiRadio, type WifiStation } from '@benchtop/core';
+import { type BoardSpec, type PartProps, type Debuggable, type FirmwareImage, type I2cController, type I2cDevice, type Level, type Mcu, type McuDebug, type McuPin, type NetState, type McuSleep, type NonVolatile, type NvMemory, type PinClaim, type PinClaims, type PinMode, type Problem, type RunResult, SectorMemory, type Sleeper, type SpiController, type SpiDevice, type SymbolTable, type UartPort, type WifiRadio, type WifiStation } from '@benchtop/core';
 import { macFromName } from '@benchtop/core';
 import { Esp32Debug } from './debug/debug.ts';
 import { describeFirmwareFormat } from '@benchtop/core';
@@ -70,6 +70,8 @@ export interface Esp32McuOptions {
   mac?: readonly number[];
   /** BT135: the module has PSRAM (a WROVER's; true by default — a PSRAM build finds it). */
   psram?: boolean;
+  /** BT136: the board's module (`auto` by default): a WROVER-E holds GPIO16/17 for its PSRAM. */
+  module?: Esp32Module;
 }
 
 /**
@@ -77,7 +79,19 @@ export interface Esp32McuOptions {
  * a WROVER-E answers any PSRAM build (BT133) —, `WROOM-32` (no PSRAM), `WROVER-E` (8 MB PSRAM).
  */
 export const ESP32_MODULES = ['auto', 'WROOM-32', 'WROVER-E'] as const;
+export type Esp32Module = (typeof ESP32_MODULES)[number];
 export const CODE_ESP32_MODULE = 'esp32-module';
+
+/** BT136: GPIO16/17 as a WROVER-E's PSRAM holds them (and as a PSRAM build on `auto` uses them). */
+const WROVER_CLAIMS: readonly PinClaim[] = Object.freeze([
+  { pin: 'GPIO16', by: "the WROVER-E module's PSRAM chip select", note: "Serial2's default RX" },
+  { pin: 'GPIO17', by: "the WROVER-E module's PSRAM clock", note: "Serial2's default TX" },
+]);
+const PSRAM_BUILD_CLAIMS: readonly PinClaim[] = Object.freeze([
+  { pin: 'GPIO16', by: "the PSRAM's chip select (this build uses PSRAM, as on a WROVER)", note: "Serial2's default RX" },
+  { pin: 'GPIO17', by: "the PSRAM's clock (this build uses PSRAM, as on a WROVER)", note: "Serial2's default TX" },
+]);
+const NO_CLAIMS: readonly PinClaim[] = Object.freeze([]);
 
 /** Parsed ROMs by byte array (a bench rebuild creates new Mcus with the same bytes). */
 const parsedRoms = new WeakMap<Uint8Array, RomImage | string>();
@@ -266,7 +280,7 @@ class Esp32Uart implements UartPort {
   }
 }
 
-export class Esp32Mcu implements Mcu, Debuggable, WifiStation, NonVolatile, Sleeper {
+export class Esp32Mcu implements Mcu, Debuggable, WifiStation, NonVolatile, Sleeper, PinClaims {
   readonly kind = 'esp32' as const;
   readonly clockHz = REF_HZ;
   readonly pins: ReadonlyMap<string, McuPin>;
@@ -297,6 +311,8 @@ export class Esp32Mcu implements Mcu, Debuggable, WifiStation, NonVolatile, Slee
   private readonly mac: readonly number[] | undefined;
   /** BT135: the module has PSRAM. */
   private readonly psram: boolean;
+  /** BT136: the board's module. */
+  private readonly module: Esp32Module;
   private radioReported = false;
   /** BT118: the board's SPI flash, kept across resets (null until an image boots), and the view hosts get of it. */
   private flashBytes: Uint8Array | null = null;
@@ -308,6 +324,7 @@ export class Esp32Mcu implements Mcu, Debuggable, WifiStation, NonVolatile, Slee
     this.rom = romFrom(options.rom);
     this.mac = options.mac;
     this.psram = options.psram !== false;
+    this.module = options.module ?? 'auto';
     const pins = new Map<string, McuPin>();
     for (const g of GPIO_NUMBERS) {
       const pin = new Esp32Pin(this, g);
@@ -437,6 +454,15 @@ export class Esp32Mcu implements Mcu, Debuggable, WifiStation, NonVolatile, Slee
     return { deep: this.soc.sleeping.deep, wakeIn: wakes.at < 0 ? null : (Math.max(0, wakes.at - now) / REF_HZ) * 1e9, pins: wakes.pins };
   }
 
+  /**
+   * BT136: the pins the module holds — a WROVER-E's GPIO16/17 (its PSRAM's chip select and clock)
+   * always; on `auto`, the same once the build's PSRAM driver has read the chip's ID.
+   */
+  pinClaims(): readonly PinClaim[] {
+    if (this.module === 'WROVER-E') return WROVER_CLAIMS;
+    return this.psram && this.soc.psram.identified ? PSRAM_BUILD_CLAIMS : NO_CLAIMS;
+  }
+
   /** The flash a boot ran from becomes the board's; what it wrote is the program's. */
   private keepFlash(flash: Uint8Array, written: readonly { offset: number; length: number }[]): void {
     if (this.flashBytes !== flash || this.nvm === null) {
@@ -558,7 +584,8 @@ export function esp32McuFactory(rom: Uint8Array | undefined): (board: BoardSpec,
     const known = (ESP32_MODULES as readonly unknown[]).includes(module);
     if (!known) report?.({ severity: 'warning', code: CODE_ESP32_MODULE, message: `Unknown ESP32 module ${JSON.stringify(module)}: one of ${ESP32_MODULES.join(', ')}. Running as auto.`, parts: [partId] });
     const psram = !known || module !== 'WROOM-32';
-    const mcu = createEsp32Mcu(rom === undefined ? { mac, psram } : { rom, mac, psram });
+    const chosen: Esp32Module = known ? (module as Esp32Module) : 'auto';
+    const mcu = createEsp32Mcu(rom === undefined ? { mac, psram, module: chosen } : { rom, mac, psram, module: chosen });
     if (report !== undefined) {
       const seen = new Map<string, { messages: string[]; count: number }>();
       let soc = mcu.soc;

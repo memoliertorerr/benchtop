@@ -11,6 +11,7 @@ import { createTestSoc } from '../test-support/soc.test-helper.ts';
 import { CODE, PAGE } from './bus.ts';
 import { APP_TABLE, CACHE_ENABLE, CACHE_MASK, DPORT_REG, PRO_TABLE, PSRAM_FIRST_ENTRY } from './mmu.ts';
 import { ESP32_PSRAM_BYTES } from './psram.ts';
+import { CODE_PIN_RESERVED, PAD_MODE } from './pads.ts';
 import { SPI1_BASE } from './spi-flash.ts';
 
 // BT133: the ESP32's PSRAM — the chip on SPI1's CS1, its 32 KB pages at 0x3F800000 through the
@@ -190,6 +191,64 @@ describe('the board\u2019s module (BT135)', () => {
     expect(make('WROVER-B').soc.psram.present).toBe(true);
     expect(problems.map((p) => p.code)).toEqual([CODE_ESP32_MODULE]);
     expect(problems[0].message).toContain('WROVER-B');
+  });
+});
+
+describe('the pins the PSRAM holds (BT136)', () => {
+  const rom = loadCachedRom();
+  const GPIO = 0x3ff44000;
+  const IO_MUX = 0x3ff49000;
+  const reserved = (soc: { problems: { problems: { code: string; message: string }[] } }) => soc.problems.problems.filter((p) => p.code === CODE_PIN_RESERVED);
+
+  it('the build routes GPIO16 to SPICS1 and GPIO17 to SPICLK; firmware taking either afterwards is reported once per pad', () => {
+    const { soc, uart } = bootFixture('psram');
+    runUntil(soc, 2, () => uart[0].includes('done'));
+    expect(soc.psram.identified).toBe(true);
+    expect(soc.gpio.outConfig(16) & 0x1ff).toBe(6);
+    expect(soc.gpio.outConfig(17) & 0x1ff).toBe(0);
+    expect(soc.pads.mode[16]).toBe(PAD_MODE.PERIPHERAL);
+    expect(soc.pads.mode[17]).toBe(PAD_MODE.PERIPHERAL);
+    expect(reserved(soc)).toEqual([]);
+    const bus = soc.buses[0];
+    // pinMode(17, OUTPUT): FUNC17_OUT_SEL to the GPIO_OUT bit, then its output enable.
+    bus.write32(GPIO + 0x530 + 17 * 4, 0x100);
+    bus.write32(GPIO + 0x24, 1 << 17);
+    // Serial2.begin's RX on GPIO16 through IO_MUX (function 4, U2RXD).
+    bus.write32(IO_MUX + 0x4c, (bus.read32(IO_MUX + 0x4c) & ~(7 << 12)) | (4 << 12));
+    const found = reserved(soc);
+    expect(found.map((p) => p.message.slice(0, 40))).toEqual(['The firmware made GPIO17 a GPIO output, ', "The firmware made GPIO16 U2RXD (Serial2'"]);
+    expect(found[0].message).toContain("carries the PSRAM's clock: on a board the PSRAM stops answering");
+    expect(found[1].message).toContain("carries the PSRAM's chip select");
+    bus.write32(GPIO + 0x28, 1 << 17); // more changes to a taken pad: no more reports
+    expect(reserved(soc)).toHaveLength(2);
+    // The simulated PSRAM keeps working.
+    expect(soc.buses[0].read32(0x3f800000)).toBe(soc.psram.dataWords[0]);
+  });
+
+  it('a build without PSRAM may use GPIO16/17 freely', () => {
+    const { soc } = bootFixture('serial-hello');
+    runUntil(soc, 0.3);
+    soc.buses[0].write32(GPIO + 0x530 + 17 * 4, 0x100);
+    soc.buses[0].write32(GPIO + 0x24, 1 << 17);
+    expect(soc.psram.identified).toBe(false);
+    expect(reserved(soc)).toEqual([]);
+  });
+
+  it('the Mcu’s claims: a WROVER-E holds GPIO16/17 from the start; auto once the build reads the chip’s ID; a WROOM-32 never', () => {
+    const wrover = createEsp32Mcu({ rom, module: 'WROVER-E' });
+    expect(wrover.pinClaims().map((c) => c.pin)).toEqual(['GPIO16', 'GPIO17']);
+    const auto = createEsp32Mcu({ rom });
+    expect(auto.pinClaims()).toEqual([]);
+    let out = '';
+    auto.uart(0)!.onTransmit((b) => (out += String.fromCharCode(b)));
+    auto.load({ format: 'esp32-bin', ...fixtureImage('psram') });
+    while (auto.pinClaims().length === 0 && auto.cycles < REF_HZ) auto.runUntil(auto.cycles + REF_HZ / 10_000);
+    expect(auto.pinClaims().map((c) => `${c.pin} ${c.by}`)).toEqual(["GPIO16 the PSRAM's chip select (this build uses PSRAM, as on a WROVER)", "GPIO17 the PSRAM's clock (this build uses PSRAM, as on a WROVER)"]);
+    expect(out).not.toContain('psram found'); // the app's setup() hadn't printed yet: the claim came with the ID read
+    const wroom = createEsp32Mcu({ rom, psram: false, module: 'WROOM-32' });
+    wroom.load({ format: 'esp32-bin', ...fixtureImage('psram') });
+    wroom.runUntil(REF_HZ / 2);
+    expect(wroom.pinClaims()).toEqual([]);
   });
 });
 

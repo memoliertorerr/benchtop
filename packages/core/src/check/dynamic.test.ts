@@ -189,3 +189,37 @@ describe('port-overcurrent', () => {
     expect(esp32.codes()).toEqual([]);
   });
 });
+
+describe('pin-reserved (BT136)', () => {
+  function setup(claims: { pin: string; by: string; note?: string }[], partsOnNet: string[], interconnects: string[] = []) {
+    const pin = new FakeMcuPin('GPIO16');
+    pin.set('input-pullup', 0);
+    const state = (): NetState => ({ level: 1, strength: Strength.weak, conflict: false, volts: 3.3 });
+    const netlist = { pinsOfNet: () => [{ part: 'b', pin: 'RX2' }, ...partsOnNet.map((part) => ({ part, pin: 'A' }))] } as unknown as Netlist;
+    let current = claims;
+    const checks = new DynamicChecks([{ board: 'b', header: 'RX2', mcu: 'esp32', pin, net: 0, vcc: 3.3, changes: 0 }], [], netlist, state, () => false, new Set(interconnects), (board) => (board === 'b' ? current : []));
+    return { checks, claim: (next: typeof claims) => (current = next) };
+  }
+
+  it('a claimed pin wired to a part is a warning naming the header, the parts and what holds it; it follows the claims', () => {
+    const t = setup([], ['led1', 'bb'], ['bb']);
+    expect(t.checks.run()).toEqual([]);
+    t.claim([{ pin: 'GPIO16', by: 'the PSRAM chip select', note: "Serial2's default RX" }]);
+    expect(t.checks.run()).toEqual([
+      {
+        severity: 'warning',
+        code: 'pin-reserved',
+        message: "b:RX2 is wired to led1, but GPIO16 is the PSRAM chip select (Serial2's default RX): on a board it isn't free. Use another pin.",
+        parts: ['b', 'led1'],
+      },
+    ]);
+    t.claim([{ pin: 'GPIO17', by: 'the PSRAM clock' }]);
+    expect(t.checks.run()).toEqual([]);
+  });
+
+  it('a claimed pin with nothing but a breadboard on its net, or nothing at all, is fine', () => {
+    const claims = [{ pin: 'GPIO16', by: 'the PSRAM chip select' }];
+    expect(setup(claims, ['bb'], ['bb']).checks.run()).toEqual([]);
+    expect(setup(claims, []).checks.run()).toEqual([]);
+  });
+});

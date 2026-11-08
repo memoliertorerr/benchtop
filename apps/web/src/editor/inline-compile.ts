@@ -90,14 +90,18 @@ export function storedMicroPython(ref: InlineRef): StoredFirmware {
   return { name: ref.main, format: 'micropython', bytes: microPythonBytes(ref.files, ref.main), source: sourceHash(ref) };
 }
 
-/** Identifies a sketch's source (FNV-1a over the board, main and every file, in name order). */
-export function sourceHash(ref: InlineRef): string {
+/**
+ * Identifies a sketch's source (FNV-1a over the board, main and every file, in name order). BT137:
+ * and the board's module when it picks the build (not `auto`: the hashes from before stay).
+ */
+export function sourceHash(ref: InlineRef, module?: string): string {
   let hash = 0x811c9dc5;
   const mix = (text: string): void => {
     for (let i = 0; i < text.length; i++) hash = Math.imul(hash ^ text.charCodeAt(i), 0x01000193) >>> 0;
     hash = Math.imul(hash ^ 0, 0x01000193) >>> 0;
   };
   mix(ref.fqbn);
+  if (module !== undefined) mix(`\u0000module ${module}`);
   mix(ref.main);
   for (const name of Object.keys(ref.files).sort()) {
     mix(name);
@@ -111,8 +115,8 @@ function base64Bytes(text: string): Uint8Array {
 }
 
 /** The firmware a successful compile produced, tagged with its source; undefined when none. */
-export function storedFromInline(ref: InlineRef, result: BridgeCompileResult): StoredFirmware | undefined {
-  const source = sourceHash(ref);
+export function storedFromInline(ref: InlineRef, result: BridgeCompileResult, module?: string): StoredFirmware | undefined {
+  const source = sourceHash(ref, module);
   // BT74: the ELF rides along for the debugger (symbols, source lines) whatever the image is.
   const elf = result.artifacts.elf;
   const debugElf = elf === undefined ? {} : { debugElf: base64Bytes(elf) };
@@ -151,7 +155,7 @@ export interface InlineOutcome {
  * running — and return the diagnostics as rows. A refusal or an unreachable bridge throws. A
  * MicroPython sketch skips the bridge: Run stores and delivers it at once.
  */
-export async function compileInline(board: string, ref: InlineRef, deps: InlineCompileDeps): Promise<InlineOutcome> {
+export async function compileInline(board: string, ref: InlineRef, deps: InlineCompileDeps, module?: string): Promise<InlineOutcome> {
   if (isMicroPythonFqbn(ref.fqbn)) {
     // Nothing to compile: the board's MicroPython takes the files as they are (BT63).
     deps.store(board, storedMicroPython(ref));
@@ -164,7 +168,7 @@ export async function compileInline(board: string, ref: InlineRef, deps: InlineC
     const errors = result.diagnostics.filter((d) => d.severity === 'error').length;
     return { ok: false, rows, detail: errors > 0 ? `${errors} error${errors === 1 ? '' : 's'}` : (result.error ?? 'compile failed') };
   }
-  const firmware = storedFromInline(ref, result);
+  const firmware = storedFromInline(ref, result, module);
   if (firmware === undefined) return { ok: false, rows, detail: 'the compile produced no firmware' };
   deps.store(board, firmware);
   deps.deliver(board);

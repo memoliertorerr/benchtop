@@ -125,3 +125,36 @@ describe('ESP32-S3-DevKitC-1 on the bench (BT126)', () => {
     expect(bench.problems().map((p) => p.code)).toContain('esp32s3-rom-missing');
   });
 });
+
+describe('the S3’s USB host on the bench (BT138)', () => {
+  it('usb-keys: a button on IO4 types through the host; bench.usbOf shows the text, and its events in bench time', () => {
+    const { bench, runTo, serial } = load(
+      [
+        { id: 'type', type: 'pushbutton', x: -30, y: 10, rotation: 0, props: {} },
+        { id: 'click', type: 'pushbutton', x: -30, y: 40, rotation: 0, props: {} },
+      ],
+      [wire('w1', 'type', '1.l', 's3', 'IO4'), wire('w2', 'type', '2.l', 's3', 'GND.1'), wire('w3', 'click', '1.l', 's3', 'IO5'), wire('w4', 'click', '2.l', 's3', 'GND.1')],
+      'usb-keys',
+    );
+    expect(bench.usbOf('s3')).toBeNull();
+    runTo(500);
+    expect(bench.usbOf('s3')).toMatchObject({ phase: 'running', device: 'ESP32S3_DEV', typed: '', events: [] });
+    bench.input('type', { kind: 'press' });
+    runTo(700);
+    bench.input('type', { kind: 'release' });
+    bench.input('click', { kind: 'press' });
+    const pressedAt = bench.now();
+    runTo(900);
+    bench.input('click', { kind: 'release' });
+    runTo(950);
+    const usb = bench.usbOf('s3');
+    expect(usb?.typed).toBe('Hello from Benchtop!\n');
+    expect(usb?.events.map((e) => e.text)).toEqual(['mouse: moved +20 -10', 'mouse: left down', 'mouse: left up', 'mouse: wheel +1']);
+    const at = usb?.events[0].at ?? 0;
+    expect(at).toBeGreaterThan(pressedAt);
+    expect(at - pressedAt).toBeLessThan(50 * NS_PER_MS);
+    expect(serial()).toBe('usb keys ready\r\ntyped\r\nmouse\r\n');
+    expect(bench.problems().filter((p) => p.severity !== 'info')).toEqual([]);
+  });
+});
+

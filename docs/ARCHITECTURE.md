@@ -482,7 +482,14 @@ message wins; codes, titles and hints in `packages/core/src/check/codes.ts`):
   net, against the datasheet's group limit — `check/port-groups.ts`: ATmega328P 150 mA out /
   100 mA in, ATmega2560 200 or 100 mA; past it the datasheet only says V_OH/V_OL may leave
   spec, hence a warning; it names the pins carrying ≥ 1 mA and the group, held 1 s like a pin's;
-  no ESP32 groups) and `unpowered-part` (a wired power or ground net with no driver).
+  no ESP32 groups), `unpowered-part` (a wired power or ground net with no driver) and
+  `pin-reserved` (warning: a board pin whose MCU pin the board's module holds, wired to another
+  part — a breadboard alone doesn't count). An MCU says which pins its module holds through
+  `pinClaims()` (`bench/claims.ts`: `PinClaims`, found by `usesPinClaims` as `usesSleep` finds
+  `sleepState`; not a contract): the ESP32's GPIO16/17 for a WROVER-E (also the DevKit V1's
+  RX2/TX2, Serial2's default pins), the S3's GPIO33–37 for an N8R8 (the DevKitC-1's IO35–37), and
+  on `auto` the same pins once a build's PSRAM is running. The pins keep working: the warning says
+  what a board would do.
 - **Reported by parts** (`ctx.report`): sticky until reset or a rebuild, except that a
   report with an empty message withdraws it (how `led-overcurrent` clears while the current is
   low; the contract has no clear call). Analog reports (`analog-undefined-level`,
@@ -1620,7 +1627,12 @@ sequence, files matched by basename or trailing path.
   reads 0 and the MMU maps nothing, so the build's `psramInit` fails as on that board and detaches
   GPIO16/17) — is read by `esp32McuFactory`; an unknown module runs as `auto` with `esp32-module`
   (warning). The gallery's `esp32-psram-frame` (a WROVER-E) keeps a 150 KB frame in PSRAM and
-  pushes it to an ILI9341.
+  pushes it to an ILI9341. The chip records the first ID read (`identified`: the build uses PSRAM)
+  — from then on `Esp32Mcu.pinClaims()` holds GPIO16/17 on `auto` (a WROVER-E holds them from the
+  start), and the pads watch them (`Pads.watchPsram`, also run at the ID read): once a pad has
+  carried SPICS1 or SPICLK, firmware that takes it — another matrix signal, an IO_MUX function
+  (Serial2's U2RXD/U2TXD), a GPIO output or input — gets `pin-reserved` (warning, once per pad),
+  as a board's PSRAM would stop answering; the simulated one keeps working.
 
   **The ESP32-C3's sleep (`packages/esp32c3`).** RTC_CNTL at its C3 offsets (`rtc-cntl.ts`):
   STATE0.SLEEP_EN (0x18) with DIG_PWC (0x88) bit 31 for deep; WAKEUP_STATE (0x3C) ENA bits 31:15
@@ -2606,7 +2618,7 @@ sequence, files matched by basename or trailing path.
   numbers and the IO_MUX functions that drive a pad directly (U0TXD/U0RXD on 43/44, U1TXD/U1RXD
   on 17/18, FSPI on 10–13 and 34–37). The module's flash pads (GPIO26–32) are refused: the bench
   can't drive them, and firmware that makes one a GPIO gets `esp32s3-flash-pin`; GPIO33–37 are
-  free (octal PSRAM isn't modeled). The C3's LEDC (8 channels), USB-Serial-JTAG (0x6003_8000),
+  free pads (an octal PSRAM holds them — see the PSRAM paragraph). The C3's LEDC (8 channels), USB-Serial-JTAG (0x6003_8000),
   I2C (two controllers, 0x6001_3000 and 0x6002_7000), SPI2 and RMT run at the S3's addresses and
   sources; the RMT's register layout (`RmtLayout`: 4 TX and 4 RX channels, the RAM at +0x800)
   and the UART's moved fields (`UartFields`: a 10-bit TX-empty threshold, the RX timeout enable
@@ -2701,15 +2713,27 @@ sequence, files matched by basename or trailing path.
   timing registers are storage; no cache timing (as flash). PSRAM is volatile: a reset or a deep
   sleep's wake builds a fresh chip; a light sleep keeps it. `fixtures/sketches/esp32s3/psram-quad`
   and `psram-octal` find 2 MB and 8 MB, check a 1 MB `ps_malloc` buffer and see a 256 KB `malloc`
-  land in PSRAM (`soc/psram.test.ts`). The compile step (`scripts/compile.ts`
+  land in PSRAM (`soc/psram.test.ts`). An octal build sets GPIO33–37's IO_MUX to their SPI
+  functions (SPIIO4–7, SPIDQS); while the octal PSRAM runs, firmware making one a GPIO again gets
+  `pin-reserved` (warning, once per pad: `S3IoMux.octalPsram`), and `Esp32s3Mcu.pinClaims()` holds
+  them — an N8R8 from the start, `auto` once an octal build's PSRAM answers. Quad PSRAM's chip
+  select is GPIO26, a flash pad no header has. The compile step (`scripts/compile.ts`
   `sketchFqbn`, the bridge's and `compile_sketch`'s) builds an S3 sketch whose main file has a
   `// benchtop: psram` line with `PSRAM=opi` — the FQBN asked for stays an allowlisted one and the
   option is fixed, not taken from the sketch's text; the gallery's PSRAM frame buffer (a 150 KB
   240×320 frame in PSRAM pushed whole to an ILI9341) carries the line. The words such lines
   may carry are a fixed table per FQBN (`SKETCH_OPTIONS`): the ESP32's `psram`
   (PSRAM=enabled), the S3's `psram` (PSRAM=opi) and `usb-otg` (USBMode=default,CDCOnBoot=cdc), on
-  one line or a line each; unknown words are ignored. The module prop doesn't choose the build:
-  the Inspector's module list says so next to it.
+  one line or a line each; unknown words are ignored. The board's module chooses the PSRAM option
+  — the bridge's `/api/compile`, `/api/compile-inline` and `/api/watch` and MCP's `compile_sketch`
+  take an optional `module`, refused unless it is `auto` or one its FQBN knows (`moduleError`;
+  `MODULE_OPTIONS`: ESP32 `WROVER-E` PSRAM=enabled, `WROOM-32` none; S3 `N8R2` PSRAM=enabled
+  (quad), `N8R8` PSRAM=opi, `N8` none). An explicit module decides PSRAM — a comment's `psram`
+  then adds nothing — and other words (`usb-otg`) still apply; `auto` leaves it to the comment
+  lines. The app sends its board's module (`fqbn.ts` `moduleOf`) with every compile and watch; an
+  inline sketch's `sourceHash` includes it (not for `auto`, so earlier hashes stand), so a changed
+  module shows the build stale, and a sketch folder compiles again (a watched one restarts its
+  watch, whose key has the module).
 
   **USB-OTG (`soc/usb-otg.ts`, `soc/usb-host.ts`).** The board menu's USB Mode "USB-OTG
   (TinyUSB)" (`USBMode=default`) links TinyUSB's dcd_esp32sx — its ESP32-S2/S3 port of the
@@ -2738,8 +2762,27 @@ sequence, files matched by basename or trailing path.
   interface of subclass 2 and its data interface, by the union descriptor or the next data
   interface) SET_LINE_CODING 115200 8N1 and SET_CONTROL_LINE_STATE DTR|RTS, and from then on its
   bulk IN read and bulk OUT written as fast as the device ACKs (four packets per endpoint per
-  service). Other classes (HID, MSC, audio/MIDI, DFU…) enumerate and are named once
-  (`esp32s3-usb-device`, info). Time: 1 ms frames start at the firmware's first USB0 access (a
+  service). HID and MIDI are read too (`usb-hid.ts`, `usb-midi.ts`, both clean-room from HID 1.11
+  with the HID Usage Tables and USB-MIDI 1.0). After the CDC ports open, each HID interface's
+  report descriptor is read (GET_DESCRIPTOR(report) to the interface, its length from the HID
+  descriptor) and parsed — short items, main/global/local, push/pop, report IDs, collections; each
+  input report is a keyboard, mouse, consumer control, system control, gamepad or "other" by its
+  top-level application collection — then SET_IDLE(0), and the interrupt IN endpoint is polled
+  every bInterval frames. Keyboard reports type text with a US layout (newly pressed keys only,
+  Shift and the host's Caps Lock; Enter a newline; Backspace deletes; named keys and Ctrl/Alt/GUI
+  chords as "[F1]", "[Ctrl+C]"); mouse buttons, moves (merged while moving), wheel and pan, media
+  and system keys, gamepad buttons and axes become events. A MIDI streaming interface (audio
+  class, subclass 3) has its bulk IN read like CDC's; each 4-byte event packet becomes a message
+  line (note on/off, pressures, control change and pitch bend merged while one controller moves,
+  program change, SysEx gathered, real-time by name; clocks counted). `UsbLog` keeps the last 4 KB
+  typed and 256 events, timed in the MCU's seconds; `Esp32s3Mcu.usbHost()` (null until the
+  firmware touches USB0) gives the phase, the product string, the functions used ("serial
+  (CDC-ACM)", "keyboard", "mouse", "media keys", "MIDI", …), the text and the events —
+  `bench/usb.ts`'s `UsbHosting`, found by duck typing — and `Bench.usbOf(board)` turns the times
+  into bench nanoseconds. Other classes (mass storage, audio streaming, DFU, vendor) enumerate and
+  are named once (`esp32s3-usb-device`, info), as is a HID report that is none of those kinds.
+  Nothing goes from the host to the device but CDC bytes (no keyboard LEDs, no MIDI to the board).
+  Time: 1 ms frames start at the firmware's first USB0 access (a
   sketch without USB-OTG costs no events); a change the host waits on — an endpoint enabled, a
   packet queued, the soft connect — brings its service forward to 50 µs from now. `uart(0)` carries
   the open CDC port with UART0 and USB-Serial-JTAG, and typed bytes go to it while it is open.
@@ -2747,12 +2790,16 @@ sequence, files matched by basename or trailing path.
   "ESP32S3_DEV" within 50 ms, its greeting, ticks and an echo (`soc/usb-otg.test.ts`, with the
   controller's pieces on their own and the host against a scripted CDC + HID device). The
   gallery's `esp32s3-usb-rgb` takes colors typed over the USB port and sets the RGB LED; its
-  `// benchtop: usb-otg` line builds it in that mode.
+  `// benchtop: usb-otg` line builds it in that mode. `fixtures/sketches/esp32s3/usb-keys` (a
+  keyboard, mouse and media keys with Arduino's USB library, a CDC port beside them) and
+  `usb-midi` (TinyUSB's MIDI class added through `tinyusb_enable_interface` — Arduino-ESP32 2.0.17
+  has no MIDI class) on buttons and a pot (`soc/usb-otg.test.ts`; on the bench in
+  esp32s3-circuits.test.ts).
 
 ## Worker protocol
 
 `apps/web/src/sim/protocol.ts` defines `ToSim` (UI → worker) and `FromSim` (worker → UI)
-messages, versioned by `PROTOCOL_VERSION` (16: `memory` and the saved memory beside `load`/`edit`; the debug ELF beside a load's images and the MCU
+messages, versioned by `PROTOCOL_VERSION` (18: `usb`; `memory` and the saved memory beside `load`/`edit`; the debug ELF beside a load's images and the MCU
 kind and register names in `debugInfo`, then `edit`/`edited`, then `busWatch` and a frame's `bus`
 chunk, then `storage`, then `debugSyms`: a board's symbol table as `nm` text beside `load`, `edit`
 and `setFirmware` when it has no ELF — a gallery example's `.syms.tsv`, which the ESP32's WiFi
@@ -2766,6 +2813,9 @@ storage's `version`, the files or the bytes, or an `error`; `sim.storage()` retu
 size, the data sectors that aren't erased (transferred, to save) and what they hold, to show — an
 EEPROM's written bytes as [address, value], each NVS partition's entries (values as text, a blob's
 first 32 bytes in hex, 64-bit numbers as decimal) and problems — or an `error`; `sim.memory()`),
+`usb` (`id` and a board — `Bench.usbOf`; answered by a `usb` message with the same id: `ok` and
+the board's USB host view — phase, device, functions, typed text, events timed in bench ns — or
+null when its firmware never started USB, or an `error`; `sim.usb()`),
 `hello`, `load` (a
 project plus firmware images per board; `memory`, saved sectors per board, put back before the
 boards run, and `keepMemory` — the same project as the bench it replaces: a board there keeps
@@ -3122,6 +3172,13 @@ refreshed every 2 s while running and by **Refresh**; **Erase** erases it in the
 firmware sees it at its next reset) and drops the saved copy. With nothing loaded it says what is
 saved for the board and erases that.
 
+An ESP32-S3 board also shows a **USB** section (`ui/usb/BoardUsb.tsx`, lazy-loaded): the
+computer's side of the board's own USB port as `sim.usb(board)` returns it — nothing on the port
+(a sketch built for USB-OTG appears there), enumerating, failed, or the device's product string
+and what the host uses ("serial (CDC-ACM)", "keyboard", "mouse", "media keys", "MIDI"), the text a
+keyboard typed (the last 2,000 characters, wrapped) and the newest 30 events with their bench
+times; refreshed every 500 ms while running and by **Refresh**.
+
 ### Bus tab
 
 The Bus tab (`apps/web/src/ui/bus/`; lazy-loaded) shows the I2C, SPI and UART traffic of
@@ -3276,6 +3333,7 @@ nothing from `apps/web`.
   | `wifi <board> connected by <t>` | the board's station got its address from an access point's DHCP server (`net.listen`'s `connected`) by then; a usage error without a `wifi-ap` part | `connected to ap as 192.168.4.2 at 1.61 s` |
   | `http <p> served <METHOD\|*> <path[?query]> by <t>` | an `http-server` part answered such a request by then (a query, when given, must match too) | `served GET /api/hello → 200 at 1.7 s` |
   | `http <p> got <status> [with "<text>"] by <t>` | an `http-client` part's request came back with that status (and a body holding the text) by then; a failure names the last response (`last: 200`, `last: error: …`) | `got 200 at 2.008 s` |
+  | `usb[<board>] received "<text>" by <t>` | the board's USB host (`Bench.usbOf`: an ESP32-S3's USB-OTG port) received the text — in what a keyboard typed or an event's line (`mouse: left down`, `MIDI: note on ch 1 C4 (60) velocity 100`) — by then; read at every stop and every 10 ms, timed by the event (typed text by the read that saw it); `[<board>]` may be left out with one ESP32-S3 board; a usage error on a board without a host | `received at 612.3 ms` |
 
   Visual forms read the part's latest visual state at `t` (frames are collected at every stop)
   and check the part's type up front (an LED, a servo, an LCD and its row count, a NeoPixel, a
@@ -3422,7 +3480,9 @@ Model Context Protocol on stdio — one more front end over the headless runner,
   frequency (from rising edges), duty and final level over that run; `sim_input` checks the part
   and input through the spec parser (`parseScript`) and sends it at the current time;
   `sim_serial`; `sim_state` returns every part's latest visual state (arrays over 32 entries —
-  framebuffers — summarized unless `full`) and pin levels and volts; `sim_bus` (the I2C,
+  framebuffers — summarized unless `full`) and pin levels and volts (and per ESP32-S3 board whose
+  firmware started USB, `usb` — the host's phase, device, functions, the last 2,000 characters
+  typed and the last 50 events, timed); `sim_bus` (the I2C,
   SPI and UART transactions decoded since the last call — I2C address, R/W, bytes, NACKs; SPI
   frames' MOSI and MISO; UART bursts as text — the newest `max` after a bus-kind or part filter,
   open ones marked, with how many more and what the log lost); `sim_storage` (a board's

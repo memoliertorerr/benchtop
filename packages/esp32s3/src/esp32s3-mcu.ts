@@ -43,7 +43,7 @@
  * - PSRAM (BT130) is the build's: soc.ts's `psram` answers the quad or octal driver.
  */
 
-import type { BoardSpec, PartProps, Debuggable, FirmwareImage, I2cController, I2cDevice, Level, Mcu, McuDebug, McuPin, McuSleep, NetState, NonVolatile, NvMemory, PinMode, Problem, RunResult, Sleeper, SpiController, SpiDevice, SymbolTable, UartPort, WifiRadio, WifiStation } from '@benchtop/core';
+import type { BoardSpec, PartProps, Debuggable, FirmwareImage, I2cController, I2cDevice, Level, Mcu, McuDebug, McuPin, McuSleep, McuUsbHost, NetState, NonVolatile, NvMemory, PinClaim, PinClaims, PinMode, Problem, RunResult, Sleeper, SpiController, SpiDevice, SymbolTable, UartPort, UsbHosting, WifiRadio, WifiStation } from '@benchtop/core';
 import { describeFirmwareFormat, macFromName, SectorMemory } from '@benchtop/core';
 import { Hle, sha256Hex, type SocProblem, WifiDriver } from '@benchtop/esp32';
 import type { SpiAttachment } from '@benchtop/esp32c3';
@@ -101,6 +101,12 @@ export interface Esp32s3McuOptions {
  */
 export const S3_MODULES = { auto: 'auto', N8: 'none', N8R2: 'quad', N8R8: 'octal' } as const;
 export const CODE_S3_MODULE = 'esp32s3-module';
+
+/** BT136: GPIO33–37 as an N8R8's octal PSRAM holds them (and as an octal build on `auto` uses them). */
+const OCTAL_PINS = ['SPIIO4', 'SPIIO5', 'SPIIO6', 'SPIIO7', 'SPIDQS'] as const;
+const R8_CLAIMS: readonly PinClaim[] = Object.freeze(OCTAL_PINS.map((role, i) => ({ pin: `GPIO${33 + i}`, by: `the N8R8 module's octal PSRAM (${role})` })));
+const OCTAL_BUILD_CLAIMS: readonly PinClaim[] = Object.freeze(OCTAL_PINS.map((role, i) => ({ pin: `GPIO${33 + i}`, by: `the octal PSRAM's ${role} (this build uses it, as on an N8R8)` })));
+const NO_CLAIMS: readonly PinClaim[] = Object.freeze([]);
 
 const parsedRoms = new WeakMap<Uint8Array, S3Rom | string>();
 
@@ -274,7 +280,7 @@ class S3Uart implements UartPort {
   }
 }
 
-export class Esp32s3Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sleeper {
+export class Esp32s3Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sleeper, PinClaims, UsbHosting {
   readonly kind = 'esp32s3' as const;
   readonly clockHz = REF_HZ;
   readonly pins: ReadonlyMap<string, McuPin>;
@@ -466,6 +472,35 @@ export class Esp32s3Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sl
   }
 
   /** BT128: the chip's light or deep sleep and what wakes it (the timer in ns from now), or null awake. */
+  /**
+   * BT136: the pins the module holds — an N8R8's GPIO33–37 (its octal PSRAM) always; on `auto`, the
+   * same once an octal build's PSRAM driver has spoken to the chip. Quad PSRAM's chip select is
+   * GPIO26, a flash pad no header has.
+   */
+  pinClaims(): readonly PinClaim[] {
+    if (this.psram === 'octal') return R8_CLAIMS;
+    return this.psram === 'auto' && this.soc.psram.present && this.soc.psram.mode === 'octal' ? OCTAL_BUILD_CLAIMS : NO_CLAIMS;
+  }
+
+  /**
+   * BT138: the bench's USB host on the OTG port — the device it enumerated and what that sent
+   * (typed text, mouse, media and MIDI events) — or null until the firmware touches USB0.
+   */
+  usbHost(): McuUsbHost | null {
+    const otg = this.soc.usbOtg;
+    if (!otg.active) return null;
+    const host = otg.host;
+    return {
+      phase: host.phase,
+      device: host.productName,
+      functions: host.functions,
+      typed: host.log.typed,
+      events: host.log.events.map((e) => ({ at: e.at, text: e.text })),
+      dropped: host.log.dropped,
+      now: this.soc.now() / REF_HZ,
+    };
+  }
+
   sleepState(): McuSleep | null {
     const wakes = this.soc.sleepWakes();
     if (wakes === null || this.soc.sleeping === null) return null;

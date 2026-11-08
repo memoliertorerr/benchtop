@@ -6,3 +6,5 @@ export * from './signature.ts';
 export * from './storage.ts';
 export * from './nonvolatile.ts';
 export * from './sleep.ts';
+export * from './claims.ts';
+export * from './usb.ts';
