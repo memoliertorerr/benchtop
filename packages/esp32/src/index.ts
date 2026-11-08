@@ -19,6 +19,7 @@ export * from './soc/intmatrix.ts';
 export * from './soc/memory.ts';
 export * from './soc/mmu.ts';
 export * from './soc/periph.ts';
+export * from './soc/psram.ts';
 export * from './soc/soc.ts';
 export * from './util/md5.ts';
 export * from './util/sha256.ts';

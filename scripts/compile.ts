@@ -24,13 +24,30 @@ export function isAllowedFqbn(fqbn: unknown): fqbn is string {
 }
 
 /**
- * BT132: board options a sketch asks for in its main file. An ESP32-S3 sketch with a
- * `// benchtop: psram` line builds with OPI PSRAM (8 MB, as the DevKitC-1 N8R8): the FQBN the
- * caller asked for stays one of the allowlist's, and the option is a fixed one, not the sketch's text.
+ * The fixed board options a sketch may ask for, per allowlisted FQBN (BT132, BT135): an ESP32
+ * sketch's `psram` is the board menu's PSRAM "Enabled" (a WROVER's), an ESP32-S3 sketch's `psram`
+ * OPI PSRAM (8 MB, the DevKitC-1 N8R8) and its `usb-otg` the USB Mode "USB-OTG (TinyUSB)" with USB
+ * CDC On Boot (`Serial` on the S3's own USB).
+ */
+const SKETCH_OPTIONS: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+  'esp32:esp32:esp32': { psram: 'PSRAM=enabled' },
+  'esp32:esp32:esp32s3': { psram: 'PSRAM=opi', 'usb-otg': 'USBMode=default,CDCOnBoot=cdc' },
+};
+
+/**
+ * Board options a sketch asks for in its main file: `// benchtop: psram` (or `usb-otg`, or both:
+ * words on one line or a line each), each line of its own. The FQBN the caller asked for stays one
+ * of the allowlist's, and the options are fixed ones (SKETCH_OPTIONS), never the sketch's text.
  */
 export function sketchFqbn(fqbn: string, mainSource: string): string {
-  if (fqbn === 'esp32:esp32:esp32s3' && /^[ \t]*\/\/[ \t]*benchtop:[ \t]*psram\b/im.test(mainSource)) return `${fqbn}:PSRAM=opi`;
-  return fqbn;
+  const known = SKETCH_OPTIONS[fqbn];
+  if (known === undefined) return fqbn;
+  const asked = new Set<string>();
+  for (const match of mainSource.matchAll(/^[ \t]*\/\/[ \t]*benchtop:(.*)$/gim)) {
+    for (const word of match[1].toLowerCase().split(/[\s,]+/)) if (word !== '' && Object.hasOwn(known, word)) asked.add(word);
+  }
+  const options = Object.keys(known).filter((name) => asked.has(name)).map((name) => known[name]);
+  return options.length === 0 ? fqbn : `${fqbn}:${options.join(',')}`;
 }
 
 /** An inline sketch's file names: a plain name, no folders, a C/C++/Arduino extension. */

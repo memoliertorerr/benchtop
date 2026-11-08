@@ -19,7 +19,11 @@
  * 0x40000000–0x40070000; the ROM ELF's code runs to 0x40064EF2 and its .rodata sits at the data-bus
  * view 0x3FF96000). The SRAM0 cache pools (0x40070000/0x40078000, TRM Table 3.3-5) read 0 and report a Problem
  * while a cache that owns them is enabled. Writes to ROM or to flash through the cache are
- * ignored and reported. PSRAM isn't emulated: an access reports a Problem and faults the core.
+ * ignored and reported. PSRAM (BT133): 0x3F800000–0x3FBFFFFF reaches the chip on CS1 through
+ * the MMU's 32 KB PSRAM entries (mmu.ts translatePsram), readable and writable; a 64 KB page
+ * whose two halves map contiguously is armed for the fast path (PSRAM kind, base = chip offset),
+ * any other decides per access. An access the MMU can't serve (no PSRAM started) reports
+ * `esp32-psram` and faults the core.
  * Peripheral registers are words: a byte or halfword access reads (and for writes merges into)
  * the containing word — the TRM says nothing about sub-word register access, and IDF accesses
  * registers as words. Region protection (BT30's TLB attributes, core-matmap.h access-mode
@@ -35,6 +39,9 @@
  * fetch fast path, the slow path and the predecode cache's `codeFetched`). Looking up the block
  * looked up last changes nothing (it is the most recent way of its set), so that case returns
  * at once. Data always comes straight from the flash array. A DPORT cache flush empties the tags.
+ * BT133: PSRAM shares the cache: its loads and stores look their block up too, tagged by chip
+ * offset + PSRAM_TAG (past any flash), and a miss stalls as a flash one does (the chip runs at the
+ * flash's clock in QIO). Write-back traffic isn't modeled.
  *
  * Predecode cache (BT37, xtensa/icache.ts): `codePage` tells a core's cache whether a 4 KB code
  * page may be predecoded — ROM, SRAM0, SRAM1's instruction alias and (PRO_CPU) RTC FAST as plain
@@ -55,8 +62,9 @@ import * as dec from '../xtensa/decode.ts';
 import * as exc from '../xtensa/exceptions.ts';
 import { CODE_NONE, CODE_PLAIN } from '../xtensa/icache.ts';
 import * as memory from './memory.ts';
-import type { DportRegisters, FlashMmu } from './mmu.ts';
+import { type DportRegisters, type FlashMmu, PSRAM_FIRST_ENTRY, PSRAM_VADDR, PSRAM_VADDR_END } from './mmu.ts';
 import { AHB_BASE, AHB_SIZE, AHB_TARGET, PERIPH_BASE, PERIPH_END, type PeripheralMap, type ProblemLog } from './periph.ts';
+import type { QuadPsram } from './psram.ts';
 
 const EXCCAUSE = exc.EXCCAUSE;
 const LOAD_STORE_ERROR = EXCCAUSE.LOAD_STORE_ERROR;
@@ -74,13 +82,20 @@ const RTC_FAST_I_START = memory.RTC_FAST_I_START;
 const lengthOf = dec.lengthOf;
 
 /** Page kinds. SLOW pages decide per access; the others are plain storage at `base`. */
-export const PAGE = { SLOW: 0, DRAM: 1, DROM: 2, IRAM: 3, IROM: 4, FLASH_D: 5, FLASH_I: 6 } as const;
+export const PAGE = { SLOW: 0, DRAM: 1, DROM: 2, IRAM: 3, IROM: 4, FLASH_D: 5, FLASH_I: 6, PSRAM: 7 } as const;
 const K_DRAM = PAGE.DRAM;
 const K_DROM = PAGE.DROM;
 const K_IRAM = PAGE.IRAM;
 const K_IROM = PAGE.IROM;
 const K_FLASH_D = PAGE.FLASH_D;
 const K_FLASH_I = PAGE.FLASH_I;
+const K_PSRAM = PAGE.PSRAM;
+/** BT133: PSRAM blocks' cache tags start here (byte offset; past the largest flash). */
+const PSRAM_TAG = 0x4000000;
+const PSRAM_START = PSRAM_VADDR;
+const PSRAM_END = PSRAM_VADDR_END;
+const NO_BYTES = new Uint8Array(0);
+const NO_WORDS = new Uint32Array(0);
 /** Flash cache: 512 sets of two 32-byte blocks. */
 const CACHE_SETS = 512;
 const SET_MASK = CACHE_SETS - 1;
@@ -118,6 +133,8 @@ export interface SocParts {
   readonly dport: DportRegisters;
   readonly periph: PeripheralMap;
   readonly problems: ProblemLog;
+  /** BT133: the PSRAM on CS1 (a WROVER's), reached through the MMU's PSRAM entries. */
+  readonly psram: QuadPsram;
   /**
    * May CPU `cpu` touch a peripheral now? False while the other core is behind it in time
    * (BT33): the bus then yields (BUS_YIELD) so the other core catches up first.
@@ -142,6 +159,9 @@ export class SocBus implements XtensaBus {
   private readonly code: Uint8Array;
   private flash: Uint8Array;
   private flashWords: Uint32Array;
+  /** BT133: the PSRAM chip's bytes once a page of it is armed (empty until then). */
+  private psramBytes: Uint8Array = NO_BYTES;
+  private psramWords: Uint32Array = NO_WORDS;
   private readonly itlb = new Uint8Array(8).fill(2);
   private readonly dtlb = new Uint8Array(8).fill(2);
   /** Cache tags (block number = flash offset >> 5, −1 empty) per way, and the way to replace next. */
@@ -181,6 +201,11 @@ export class SocBus implements XtensaBus {
       this.cached(o);
       return this.flash[o];
     }
+    if (k === K_PSRAM) {
+      const o = this.base[p] + (a & 0xffff);
+      this.cached(PSRAM_TAG + o);
+      return this.psramBytes[o];
+    }
     return this.slowRead(a, 1);
   }
 
@@ -198,6 +223,11 @@ export class SocBus implements XtensaBus {
         this.cached(o);
         return this.flash[o] | (this.flash[o + 1] << 8);
       }
+      if (k === K_PSRAM) {
+        const o = this.base[p] + (a & 0xffff);
+        this.cached(PSRAM_TAG + o);
+        return this.psramBytes[o] | (this.psramBytes[o + 1] << 8);
+      }
     }
     return this.slowRead(a, 2);
   }
@@ -209,6 +239,10 @@ export class SocBus implements XtensaBus {
     if ((a & 3) === 0 && k !== 0) {
       if (k <= K_IROM) return this.words[(this.base[p] + (a & 0xffff)) >>> 2];
       const o = this.base[p] + (a & 0xffff);
+      if (k === K_PSRAM) {
+        this.cached(PSRAM_TAG + o);
+        return this.psramWords[o >>> 2];
+      }
       this.cached(o);
       return this.flashWords[o >>> 2];
     }
@@ -218,21 +252,32 @@ export class SocBus implements XtensaBus {
   write8(addr: number, value: number): void {
     const a = addr >>> 0;
     const p = a >>> 16;
-    if (this.kind[p] === K_DRAM) {
+    const k = this.kind[p];
+    if (k === K_DRAM) {
       const o = this.base[p] + (a & 0xffff);
       this.bytes[o] = value;
       if (this.code[o >>> 12] !== 0) this.memory.codeWritten(o);
+    } else if (k === K_PSRAM) {
+      const o = this.base[p] + (a & 0xffff);
+      this.cached(PSRAM_TAG + o);
+      this.psramBytes[o] = value;
     } else this.slowWrite(a, value, 1);
   }
 
   write16(addr: number, value: number): void {
     const a = addr >>> 0;
     const p = a >>> 16;
-    if ((a & 1) === 0 && this.kind[p] === K_DRAM) {
+    const k = this.kind[p];
+    if ((a & 1) === 0 && k === K_DRAM) {
       const o = this.base[p] + (a & 0xffff);
       this.bytes[o] = value;
       this.bytes[o + 1] = value >>> 8;
       if (this.code[o >>> 12] !== 0) this.memory.codeWritten(o);
+    } else if ((a & 1) === 0 && k === K_PSRAM) {
+      const o = this.base[p] + (a & 0xffff);
+      this.cached(PSRAM_TAG + o);
+      this.psramBytes[o] = value;
+      this.psramBytes[o + 1] = value >>> 8;
     } else this.slowWrite(a, value, 2);
   }
 
@@ -244,6 +289,10 @@ export class SocBus implements XtensaBus {
       const o = this.base[p] + (a & 0xffff);
       this.words[o >>> 2] = value;
       if (this.code[o >>> 12] !== 0) this.memory.codeWritten(o);
+    } else if ((a & 3) === 0 && k === K_PSRAM) {
+      const o = this.base[p] + (a & 0xffff);
+      this.cached(PSRAM_TAG + o);
+      this.psramWords[o >>> 2] = value;
     } else this.slowWrite(a, value, 4);
   }
 
@@ -353,6 +402,10 @@ export class SocBus implements XtensaBus {
    * disarmed and, for IROM, the core's predecoded code from it dropped.
    */
   mmuChanged(entry: number): void {
+    if (entry >= PSRAM_FIRST_ENTRY) {
+      if (entry < PSRAM_FIRST_ENTRY + 128) this.kind[0x3f80 + ((entry - PSRAM_FIRST_ENTRY) >>> 1)] = 0;
+      return;
+    }
     if (entry < 64) this.kind[0x3f40 + entry] = 0;
     else if (entry < 256) {
       const p = 0x4000 + (entry - 64);
@@ -362,9 +415,9 @@ export class SocBus implements XtensaBus {
     }
   }
 
-  /** Disarms every flash page (a cache-control change, new flash contents), and drops the core's predecoded flash pages. */
+  /** Disarms every flash and PSRAM page (a cache-control change, new flash contents), and drops the core's predecoded flash pages. */
   invalidateFlash(): void {
-    this.kind.fill(0, 0x3f40, 0x3f80);
+    this.kind.fill(0, 0x3f40, 0x3fc0);
     this.kind.fill(0, 0x400c, 0x40c0);
     this.core?.icache.invalidateFlash();
   }
@@ -528,6 +581,10 @@ export class SocBus implements XtensaBus {
     const k = this.kind[p];
     if (k === K_DRAM || k === K_DROM || k === K_IRAM || k === K_IROM) return this.bytes[this.base[p] + (a & 0xffff)];
     if (k === K_FLASH_D || k === K_FLASH_I) return this.flash[this.base[p] + (a & 0xffff)];
+    if (a >= PSRAM_START && a < PSRAM_END) {
+      const o = this.psramPeek(a);
+      return o < 0 ? 0 : this.parts.psram.data[o];
+    }
     const flash = (): number => {
       const off = this.parts.mmu.translate(this.cpu, a, this.flash.length);
       return off < 0 ? 0 : (this.flash[off + (a & 0xffff)] ?? 0);
@@ -552,9 +609,15 @@ export class SocBus implements XtensaBus {
     return 0;
   }
 
-  /** BT73: writes one byte of RAM (SRAM0–2, RTC FAST/SLOW) as the debugger does; false elsewhere. */
+  /** BT73: writes one byte of RAM (SRAM0–2, RTC FAST/SLOW; BT133: mapped PSRAM) as the debugger does; false elsewhere. */
   poke8(address: number, value: number): boolean {
     const a = address >>> 0;
+    if (a >= PSRAM_START && a < PSRAM_END) {
+      const off = this.parts.mmu.translatePsram(this.cpu, a, this.parts.psram.size);
+      if (off < 0) return false;
+      this.parts.psram.data[off + (a & 0x7fff)] = value & 0xff;
+      return true;
+    }
     let o = -1;
     if (a >= SRAM2.start && a < 0x40000000) o = a < SRAM1.start ? SRAM2.offset + (a - SRAM2.start) : SRAM1.offset + (a - SRAM1.start);
     else if (a >= SRAM0.start && a < SRAM1_I_START) o = SRAM0.offset + (a - SRAM0.start);
@@ -646,6 +709,12 @@ export class SocBus implements XtensaBus {
       const f = this.flash;
       return size === 1 ? f[off] : size === 2 ? f[off] | (f[off + 1] << 8) : this.flashWords[off >>> 2];
     }
+    if (a >= PSRAM_START && a < PSRAM_END) {
+      const off = this.psramOffset(a);
+      this.cached(PSRAM_TAG + off);
+      const m = this.psramBytes;
+      return size === 1 ? m[off] : size === 2 ? m[off] | (m[off + 1] << 8) : this.psramWords[off >>> 2];
+    }
     const o = this.dataOffset(a, false);
     if (o < 0) return 0;
     const m = this.bytes;
@@ -664,6 +733,17 @@ export class SocBus implements XtensaBus {
     if (a >= 0x3f400000 && a < 0x3f800000) {
       this.flashPage(a, K_FLASH_D);
       if (this.parts.problems.admit(CODE.FLASH_WRITE, a)) this.parts.problems.add('warning', CODE.FLASH_WRITE, a, `write ${hex(value)} to flash-mapped ${hex(a)} at PC ${hex(this.pc())} ignored (the cache is read-only)`);
+      return;
+    }
+    if (a >= PSRAM_START && a < PSRAM_END) {
+      const off = this.psramOffset(a);
+      this.cached(PSRAM_TAG + off);
+      const m = this.psramBytes;
+      if (size === 1) m[off] = value;
+      else if (size === 2) {
+        m[off] = value;
+        m[off + 1] = value >>> 8;
+      } else this.psramWords[off >>> 2] = value;
       return;
     }
     if (a >= ROM1.start && a < ROM1.start + ROM1.size) {
@@ -691,10 +771,6 @@ export class SocBus implements XtensaBus {
     if (a >= ROM1.start && a < ROM1.start + ROM1.size) return ROM1.offset + (a - ROM1.start);
     if (a >= RTC_FAST.start && a < RTC_FAST.start + RTC_FAST.size) return this.rtcFastAllowed(a, RTC_FAST.offset + (a - RTC_FAST.start), write) ? RTC_FAST.offset + (a - RTC_FAST.start) : -1;
     if (a >= RTC_SLOW.start && a < RTC_SLOW.start + RTC_SLOW.size) return RTC_SLOW.offset + (a - RTC_SLOW.start);
-    if (a >= 0x3f800000 && a < 0x3fc00000) {
-      this.parts.problems.report('error', CODE.PSRAM, a, `PSRAM access at ${hex(a)} (PC ${hex(this.pc())}): external RAM is not emulated`);
-      throw new Error(`PSRAM (0x3F800000–0x3FBFFFFF) is not emulated: ${write ? 'store to' : 'load from'} ${hex(a)}`);
-    }
     throw new XtensaBusError(write ? 'unmapped store' : 'unmapped load', a, LOAD_STORE_ERROR);
   }
 
@@ -760,6 +836,38 @@ export class SocBus implements XtensaBus {
       this.base[p] = off;
     }
     return off;
+  }
+
+  /**
+   * BT133: the PSRAM chip offset of `a`, arming its 64 KB page when both 32 KB halves map
+   * contiguously; reports `esp32-psram` and faults the core when the MMU can't serve it.
+   */
+  private psramOffset(a: number): number {
+    const psram = this.parts.psram;
+    const mmu = this.parts.mmu;
+    const off = mmu.translatePsram(this.cpu, a, psram.size);
+    if (off < 0) {
+      const why = mmu.describePsram(this.cpu, a, off);
+      this.parts.problems.report('error', CODE.PSRAM, a, `${why} (PC ${hex(this.pc())})`);
+      throw new Error(why);
+    }
+    if (this.psramBytes !== psram.data) {
+      this.psramBytes = psram.data;
+      this.psramWords = psram.dataWords;
+    }
+    const page = (a & ~0xffff) >>> 0;
+    const first = mmu.translatePsram(this.cpu, page, psram.size);
+    if (first >= 0 && mmu.translatePsram(this.cpu, page + 0x8000, psram.size) === first + 0x8000 && this.regionAllowsAll(a)) {
+      this.kind[a >>> 16] = K_PSRAM;
+      this.base[a >>> 16] = first;
+    }
+    return off + (a & 0x7fff);
+  }
+
+  /** BT133: the PSRAM byte behind `a` without side effects (the debugger), or −1. */
+  private psramPeek(a: number): number {
+    const off = this.parts.mmu.translatePsram(this.cpu, a, this.parts.psram.size);
+    return off < 0 || !this.parts.psram.allocated ? -1 : off + (a & 0x7fff);
   }
 }
 

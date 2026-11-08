@@ -42,8 +42,8 @@ export function createBenchEnv(roms: BenchRoms = {}): RecordingEnv {
   return {
     mcus,
     part: benchEnvParts,
-    createMcu(board, partId, report) {
-      const mcu = avrMcuFactory(board) ?? esp32(board, partId, report) ?? esp32c3(board, partId, report) ?? esp32s3(board, partId, report) ?? rp2040McuFactory(board, partId, report, roms.micropython) ?? rp2350McuFactory(board, partId, report, { rom: roms.rp2350Rom, micropython: roms.micropythonPico2 });
+    createMcu(board, partId, report, props) {
+      const mcu = avrMcuFactory(board) ?? esp32(board, partId, report, props) ?? esp32c3(board, partId, report) ?? esp32s3(board, partId, report, props) ?? rp2040McuFactory(board, partId, report, roms.micropython) ?? rp2350McuFactory(board, partId, report, { rom: roms.rp2350Rom, micropython: roms.micropythonPico2 });
       if (mcu !== undefined) mcus.set(partId, mcu);
       return mcu;
     },

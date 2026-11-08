@@ -4,6 +4,7 @@ export * from './define.ts';
 export { ARDUINO_MEGA_PIN_PX } from './boards/arduino-mega.ts';
 export { ARDUINO_NANO_PIN_PX } from './boards/arduino-nano.ts';
 export { ESP32_DEVKIT_PIN_PX } from './boards/esp32-devkit-v1.ts';
+export { BOARD_MODULES, type ModuleChoice } from './boards/modules.ts';
 export { BREADBOARD_SPECS, breadboardGeometry, PITCH } from './breadboards/breadboard.ts';
 export { DUTY_HOLD_NS, DUTY_WINDOW_NS, DutyChannel, DutyIntegrator } from './shared/duty.ts';
 export { channelInput, readChannelInput } from './shared/channel-input.ts';

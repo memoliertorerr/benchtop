@@ -9,7 +9,9 @@
  * → GPIO17/GPIO16, VP/VN → GPIO36/GPIO39. 3V3 is the 3.3 V supply; VIN is USB's 5 V while prop
  * `usbPowered` is true (the default, BT44 — the model drives it at supply strength, so a module
  * on VIN is powered), else an input like the Uno's VIN; the two GND pins share a bus. EN (the
- * chip enable / reset button line) isn't modeled and maps to no GPIO.
+ * chip enable / reset button line) isn't modeled and maps to no GPIO. BT135: prop `module` —
+ * `auto` (the default), `WROOM-32` or `WROVER-E` (boards/modules.ts) — tells the MCU factory
+ * whether the board has PSRAM.
  *
  * Model: `led1` follows GPIO2 through D2 (the DevKit's blue LED; brightness 0..1, so PWM dims it),
  * `ledPower` is always on. The ESP32's own Problems (unknown registers, reboots, the ROM) reach
@@ -88,9 +90,9 @@ export const esp32DevkitV1 = definePart({
   size: { w: 28.2, h: 54.053 },
   pins,
   buses: [['GND.1', 'GND.2']],
-  defaults: { usbPowered: true },
+  defaults: { usbPowered: true, module: 'auto' },
   board: { mcu: 'esp32', pinMap },
-  createModel(ctx: PartContext, props: { usbPowered: boolean }) {
+  createModel(ctx: PartContext, props: { usbPowered: boolean; module: string }) {
     // USB power (BT44): on a real DevKit, USB 5 V reaches VIN through a diode (≈ 4.7 V; decided:
     // 5 V — the solver's supplies are nominal). Off, VIN is an input again.
     if (props.usbPowered !== false) ctx.pin('VIN').driveVolts(5, Strength.supply);

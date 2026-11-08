@@ -936,6 +936,78 @@
     },
     {
       "board": "esp32",
+      "name": "psram-frame",
+      "fqbn": "esp32:esp32:esp32:PSRAM=enabled",
+      "file": "esp32/psram-frame.bin",
+      "sha256": "450a16b3e1dc9408a77760991da3186eafbd26de5cca152e4e861d81abba38d2",
+      "bytes": 285968,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "SPI": "2.0.0"
+      },
+      "source": "bdc5d674f52d20347de1d1bc5838a0d4a91086253241498ca4bd2846ce291a36"
+    },
+    {
+      "board": "esp32",
+      "name": "psram-frame",
+      "fqbn": "esp32:esp32:esp32:PSRAM=enabled",
+      "file": "esp32/psram-frame.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "SPI": "2.0.0"
+      },
+      "source": "bdc5d674f52d20347de1d1bc5838a0d4a91086253241498ca4bd2846ce291a36"
+    },
+    {
+      "board": "esp32",
+      "name": "psram-frame",
+      "fqbn": "esp32:esp32:esp32:PSRAM=enabled",
+      "file": "esp32/psram-frame.syms.tsv",
+      "sha256": "fbe94bd758075456c82c4033cfc5d4d3bd2b9f87d96650a789cf020c69954857",
+      "bytes": 120130,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "SPI": "2.0.0"
+      },
+      "source": "bdc5d674f52d20347de1d1bc5838a0d4a91086253241498ca4bd2846ce291a36"
+    },
+    {
+      "board": "esp32",
+      "name": "psram",
+      "fqbn": "esp32:esp32:esp32:PSRAM=enabled",
+      "file": "esp32/psram.bin",
+      "sha256": "9dc8005ce94a08748f70ca63199a7a16a1a52f80eb8dd4ce69d7313c0ea1de0e",
+      "bytes": 280768,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "41f68cc06f481d6f1d6b5b2e524bed2fb6789f8f96de9af8ddb7e48af792c4af"
+    },
+    {
+      "board": "esp32",
+      "name": "psram",
+      "fqbn": "esp32:esp32:esp32:PSRAM=enabled",
+      "file": "esp32/psram.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "41f68cc06f481d6f1d6b5b2e524bed2fb6789f8f96de9af8ddb7e48af792c4af"
+    },
+    {
+      "board": "esp32",
+      "name": "psram",
+      "fqbn": "esp32:esp32:esp32:PSRAM=enabled",
+      "file": "esp32/psram.syms.tsv",
+      "sha256": "fada36c5118e9316cdab9f42f3337145ec6043954905ca470a0fda0b36b66f76",
+      "bytes": 118110,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "41f68cc06f481d6f1d6b5b2e524bed2fb6789f8f96de9af8ddb7e48af792c4af"
+    },
+    {
+      "board": "esp32",
       "name": "pwm-fader",
       "fqbn": "esp32:esp32:esp32",
       "file": "esp32/pwm-fader.bin",
@@ -3318,6 +3390,72 @@
         "SPI": "2.0.0"
       },
       "source": "69f337e6fb1a7a331ab2b3d15262e958702b18978ad0967a0479730261a3bddf"
+    },
+    {
+      "board": "esp32s3",
+      "name": "usb-cdc",
+      "fqbn": "esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=cdc",
+      "file": "esp32s3/usb-cdc.bin",
+      "sha256": "5b9797db8e9fb49d0e9f3083c201ed96d2b6de9e6366ed47aa32e81cca619488",
+      "bytes": 303360,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "a8ee18ad969b6235171058f215c4dbb9b90841a7977b7ef1c914210966c8e977"
+    },
+    {
+      "board": "esp32s3",
+      "name": "usb-cdc",
+      "fqbn": "esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=cdc",
+      "file": "esp32s3/usb-cdc.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "a8ee18ad969b6235171058f215c4dbb9b90841a7977b7ef1c914210966c8e977"
+    },
+    {
+      "board": "esp32s3",
+      "name": "usb-cdc",
+      "fqbn": "esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=cdc",
+      "file": "esp32s3/usb-cdc.syms.tsv",
+      "sha256": "30e18d2010db49733eb8731b27e3a6e4bfd4974b9c47c2f2d5bb8f33be25b07d",
+      "bytes": 184960,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "a8ee18ad969b6235171058f215c4dbb9b90841a7977b7ef1c914210966c8e977"
+    },
+    {
+      "board": "esp32s3",
+      "name": "usb-rgb",
+      "fqbn": "esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=cdc",
+      "file": "esp32s3/usb-rgb.bin",
+      "sha256": "10ae262a16960cdd5678f54a926339304f9e49d74eb93d09b41926261aded610",
+      "bytes": 286208,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "3b560415dadd753545453c4db19d6860c0748869785a290b54829d01b884cdd6"
+    },
+    {
+      "board": "esp32s3",
+      "name": "usb-rgb",
+      "fqbn": "esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=cdc",
+      "file": "esp32s3/usb-rgb.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "3b560415dadd753545453c4db19d6860c0748869785a290b54829d01b884cdd6"
+    },
+    {
+      "board": "esp32s3",
+      "name": "usb-rgb",
+      "fqbn": "esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=cdc",
+      "file": "esp32s3/usb-rgb.syms.tsv",
+      "sha256": "cc357019a8da6c0ffa97efd8a6278316c05b40e32720f444231dafc761280ed8",
+      "bytes": 177297,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "3b560415dadd753545453c4db19d6860c0748869785a290b54829d01b884cdd6"
     },
     {
       "board": "esp32s3",

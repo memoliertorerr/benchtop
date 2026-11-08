@@ -69,12 +69,15 @@ Its ROM comes from the same download as the ESP32's (see "ESP32 ROM" below).
 **ESP32-S3-DevKitC-1** (Xtensa LX7, dual-core): the ESP32's Xtensa emulator with the LX7's
 additions runs both of the S3's cores on its real mask ROM, booting the `.bin` Arduino-ESP32 2.0.17
 builds for `esp32:esp32:esp32s3` — GPIO on the board's 36 header pins and pin interrupts, the
-ADC (both units), LEDC PWM, UART0–2 and the USB-Serial-JTAG port (a CDC build's `Serial`), both
+ADC (both units), LEDC PWM, UART0–2, the USB-Serial-JTAG port (a CDC build's `Serial`) and the
+USB-OTG port (a "USB-OTG (TinyUSB)" build's `Serial`, enumerated by the bench's own USB host), both
 I2C controllers, SPI, and the board's RGB LED (a WS2812 on GPIO48 through the RMT); the debugger
 shows the core `loop()` runs on, and WiFi and sleep work as on the ESP32 (below). A build with
 PSRAM (the board menu's QSPI or OPI PSRAM) gets it: 2 MB quad or 8 MB octal, `ps_malloc` and
-PSRAM in the heap; a sketch with a `// benchtop: psram` line compiles with 8 MB octal PSRAM. Its ROM comes from the
-same download as the ESP32's.
+PSRAM in the heap; a sketch with a `// benchtop: psram` line compiles with 8 MB octal PSRAM, and
+one with `// benchtop: usb-otg` with `Serial` on the S3's own USB. The board's module (Inspector:
+auto, N8, N8R2 or N8R8) says which PSRAM it really has. Its ROM comes from the same download as
+the ESP32's.
 
 **ESP32 DevKit V1** — an Xtensa LX6 dual-core emulator written in TypeScript for this project,
 running the real `.bin` image Arduino-ESP32 2.0.17 builds, on Espressif's real mask ROM:
@@ -93,12 +96,16 @@ running the real `.bin` image Arduino-ESP32 2.0.17 builds, on Espressif's real m
 - the RMT transmitter, so `neopixelWrite` and `rmtWrite` drive NeoPixels with exact bit timing;
 - the DAC on GPIO25/26 (`dacWrite`);
 - the SHA, AES and RSA accelerators, which mbedTLS's hashes, ciphers and big-number math run on;
+- PSRAM, as on a WROVER module: a build with the board menu's PSRAM enabled (or a sketch's
+  `// benchtop: psram` line) finds 4 MB of it in the heap (`ps_malloc`, `ESP.getPsramSize()`),
+  through the cache; the board's module (Inspector: auto, WROOM-32 or WROVER-E) says whether
+  there is any;
 - speed: a predecoded instruction cache (≈ 35–45 million instructions per second on an Apple
   M1 — a blinking sketch runs ~14× faster than real time) and idle skip-ahead, so cores
   waiting in `WAITI` cost almost nothing.
 
-Not on the ESP32 yet: ADC2, the DAC's cosine generator and DMA, touch, I2S, PCNT, CAN, deep
-sleep and PSRAM; Bluetooth is out of scope.
+Not on the ESP32 yet: ADC2, the DAC's cosine generator and DMA, touch, I2S, PCNT, CAN and the ULP
+coprocessor; Bluetooth is out of scope.
 
 **WiFi on the ESP32, the ESP32-C3, the ESP32-S3 and the Pico W** — a network inside the bench, no radio and, unless you allow hosts (see
 "The real network" below), nothing leaving your machine:
@@ -194,9 +201,9 @@ servo knob, a keypad lock, a stepper, an A4988 stepper driver, a relay; Sound: b
 a microphone pitch meter, a VU meter; Power: a regulator meter (turn the bench supply and watch a
 7805 drop out); Storage: an SD card datalogger; Environment: a gas alarm with an extractor fan, a PIR
 hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, an LED Preferences remember, a deep sleep wake counter, a PWM fader, NeoPixel, a
-rainbow ring, an OLED clock, a color TFT, the DAC, the microphone, an I2C scan; ESP32-C3: the RGB LED,
+rainbow ring, an OLED clock, a color TFT, a WROVER's frame buffer in PSRAM, the DAC, the microphone, an I2C scan; ESP32-C3: the RGB LED,
 serial, a potentiometer dimmer, an OLED clock; ESP32-S3: the RGB LED, serial, a potentiometer dimmer, an OLED clock, a deep sleep wake counter, a
-frame buffer in PSRAM on a color TFT; WiFi: an ESP32 web server switched by HTTP client
+frame buffer in PSRAM on a color TFT, an RGB LED set over USB serial; WiFi: an ESP32 web server switched by HTTP client
 parts, an ESP32 hosting its own access point and web server, an ESP32-C3 and an ESP32-S3 web server that set their RGB LED, a Pico W and a Pico 2 W web server switching their onboard LEDs, a Pico W and an ESP32 HTTP client talking to a server part, two ESP32s over TCP, an NTP clock on an OLED;
 Raspberry Pi Pico:
 blink, a potentiometer, PWM steps, an OLED, a color TFT, both cores at once; Raspberry Pi Pico 2: the same, NeoPixels

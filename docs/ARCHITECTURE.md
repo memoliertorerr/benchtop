@@ -63,7 +63,9 @@ models, all from a `ProjectDoc` plus a `BenchEnv` the caller injects (part defin
 MCU factory — core never imports the catalog or an MCU package). `createMcu(board, partId,
 report)` also gets a function that puts a Problem on that board part: the ESP32 adapter's
 own Problems — unknown registers, reboots, a missing ROM — have no channel in the `Mcu`
-contract. `runUntil(t)` repeats:
+contract. It also gets the board part's props over its type's defaults — `BenchEnv` is
+bench.ts's, not a contract — so a board's `module` prop reaches the MCU factory; a carried
+rebuild keeps a board's MCU only while its props are unchanged. `runUntil(t)` repeats:
 tNext = min(next timer, end of the current quantum, t); run every MCU to `nanosToCycles(tNext)`;
 fire the timers due at tNext. Quanta are aligned to multiples of the quantum: 1 ms with one MCU,
 100 µs with several (`BenchOptions.quantum` overrides). While an MCU runs, `ctx.now()` is that
@@ -1049,7 +1051,7 @@ sequence, files matched by basename or trailing path.
   | 0x3FF80000–0x3FF81FFF | 0x400C0000–0x400C1FFF | RTC FAST 8 KB | PRO_CPU only, same order on both buses; the APP_CPU reads 0 + Problem |
   | 0x50000000–0x50001FFF (both) | | RTC SLOW 8 KB | shared by both buses |
   | 0x3F400000–0x3F7FFFFF | 0x400C2000–0x40BFFFFF | flash via cache | MMU entries 0–63 / 64–255 (77 = 0x400D0000) |
-  | 0x3F800000–0x3FBFFFFF | | PSRAM | not emulated: Problem, then the core faults |
+  | 0x3F800000–0x3FBFFFFF | | PSRAM | MMU entries 1152–1279, 32 KB pages of the chip on SPI1's CS1; masked by DRAM1 until the PSRAM driver starts it — an access then is a Problem and the core faults |
   | 0x3FF00000–0x3FF7FFFF, alias 0x60000000–0x6003FFFF → 0x3FF40000 | | peripherals | 4 KB blocks |
 
   Below 0x40000000 is the data bus (any width, unaligned done by the hardware); 0x40000000–
@@ -1100,7 +1102,7 @@ sequence, files matched by basename or trailing path.
   | ROM code | the ROM ELF's sections into ROM0 (0x40000000…) and ROM1 (data view 0x3FF90000, instruction view 0x40060000 — a section straddles the two) | ROM ELF section headers; `SOC_IROM_MASK_HIGH` 0x40070000 in `SDK/include/soc/esp32/include/soc/soc.h` |
   | ROM RAM data | `_rom_store_table` (0x4000d4f8–0x4000d5c8) unpacked: 16-byte entries {start, end, source, always}; PRO_CPU copies all, APP_CPU only `always = 1`. The source bytes (0x4000D670…, past the ELF's `.text`) come from the ELF's non-ALLOC `.data_*` sections covering each destination (`placeRomData`) | ROM reset handler's `unpackloop` at 0x40000501 (table literal at 0x40000424); `_data_start_rom`/`_data_end_rom`/`_rom_store_table` in `SDK/ld/esp32.rom.ld` |
   | Flash MMU | both CPUs' tables (PRO 0x3FF10000, APP 0x3FF12000): each DROM/IROM segment's 64 KB pages → the flash pages it occupies (vaddr − flash offset must agree mod 64 KB, else the image is rejected); every other entry 0x100 (invalid) | `bootloader_utility.c` `set_cache_and_start_app` (`mmu_init(0)`/`mmu_init(1)`, then `cache_flash_mmu_set` for CPU 0 and 1 with `drom_addr_aligned`/`irom_addr_aligned`); ROM `mmu_init` 0x400095a4 |
-  | Cache masks | IRAM0 and DROM0 cleared in DPORT_PRO_CACHE_CTRL1 (0x3FF00044) and DPORT_APP_CACHE_CTRL1 (0x3FF0005C). IDF also clears DRAM1 (PSRAM — not emulated) | `set_cache_and_start_app`, the two `DPORT_REG_CLR_BIT(DPORT_x_CACHE_CTRL1_REG, …)` |
+  | Cache masks | IRAM0 and DROM0 cleared in DPORT_PRO_CACHE_CTRL1 (0x3FF00044) and DPORT_APP_CACHE_CTRL1 (0x3FF0005C). IDF also clears DRAM1 (PSRAM) when it starts the PSRAM — not at boot | `set_cache_and_start_app`, the two `DPORT_REG_CLR_BIT(DPORT_x_CACHE_CTRL1_REG, …)` |
   | Cache enable | PRO cache on (DPORT_PRO_CACHE_CTRL bit 3), APP cache off | `set_cache_and_start_app`: `Cache_Read_Enable(0)` only, with the comment that the app does `Cache_Flush(1)`/`Cache_Read_Enable(1)` — which `call_start_cpu0` (`cpu_start.c`) does |
   | RAM segments | DRAM/IRAM/RTC segments copied (a region may be split over non-adjacent segments) | `bootloader_utility.c` `unpack_load_app` → `load_image` (`esp_image_format.c`, segments with a RAM load address) |
   | `g_rom_flashchip` (0x3ffae270) | device_id 0xEF4016 (manufacturer high), chip_size from the header (4 MB), block 0x10000, sector 0x1000, page 0x100, status_mask 0xFFFF | `bootloader_esp32.c` `bootloader_init_spi_flash` (`g_rom_flashchip.device_id = bootloader_read_flash_id()`) and `update_flash_config` (`esp_rom_spiflash_config_param(…, 0x10000, 0x1000, 0x100, 0xffff)`); struct in `SDK/include/esp_rom/include/esp32/rom/spi_flash.h`; address in `esp32.rom.ld` |
@@ -1183,11 +1185,12 @@ sequence, files matched by basename or trailing path.
   is in a2 once its ENTRY has run), sar, ps, windowbase, windowstart, lbeg, lend, lcount. Memory
   `data` goes through that core's `SocBus.peek8`: the page table's memory and flash pages, the
   MMU for unarmed flash pages, the instruction-bus views (ROM, SRAM0, SRAM1's inverted alias,
-  RTC FAST) — no cache tags touched, no flash page armed, no Problem; peripherals, PSRAM and
-  unmapped addresses read 0. Writes (`poke8`) reach SRAM and RTC memory and drop predecoded code
-  there. Breakpoints are the adapter's set, handed to both cores of every SoC it builds (they
-  survive resets); while it is non-empty a core runs `innerChecked` — chosen per `run`, so the
-  predecoded loop never tests anything per instruction —, which takes a pending interrupt
+  RTC FAST) — no cache tags touched, no flash page armed, no Problem; mapped PSRAM through the
+  MMU; peripherals, unmapped PSRAM and unmapped addresses read 0. Writes (`poke8`) reach SRAM,
+  RTC memory and mapped PSRAM and drop predecoded code there. Breakpoints are the adapter's set,
+  handed to both cores of every SoC it builds (they survive resets); while it is non-empty a core
+  runs `innerChecked` — chosen per `run`, so the predecoded loop never tests anything per
+  instruction —, which takes a pending interrupt
   first, then stops before a PC on a breakpoint (`atBreakpoint`, `resumePc` as on the other
   cores). The SoC reports `breakpoint` with its time at the stopped core's. `stepCore` runs one
   instruction on the debugger's core and lets the rest catch up to its time rounded down
@@ -1589,6 +1592,35 @@ sequence, files matched by basename or trailing path.
   controls): `periph.ts`'s `RADIO_POWER_CONTROL` keeps them from counting as a WiFi driver's
   accesses. `fixtures/sketches/esp32/light-sleep`: ten 100 ms timer sleeps (cause TIMER, millis
   100–103 ms on each), then a minute asleep until the button on D4 — no reboot.
+
+  **PSRAM (`soc/psram.ts`, `spi-flash.ts`, `mmu.ts`, `bus.ts`).** The board menu's PSRAM
+  "Enabled" builds with `BOARD_HAS_PSRAM`, and Arduino's `psramInit` runs IDF 4.4's esp32 psram
+  driver: it talks to the chip on SPI1 with user commands while SPI_PIN (0x34) has CS0_DIS set
+  and CS1_DIS clear — `psram_cmd_recv_start` sets them around each command — so `SpiFlashController`
+  sends those to `cs1`, a `QuadPsram` (the quad protocol the ESP32-S3's PSRAM shares): the ID
+  (0x9F: MFID 0x0D, KGD 0x5D, EID 0x40 — density 2, 64 Mbit, so 8 MB as on a WROVER-E), reset,
+  QPI. The cache side: `psram_cache_init` clears DRAM1 in both CPUs' CACHE_CTRL1 and
+  `cache_sram_mmu_set` fills MMU entries 1152–1279 (32 KB pages: CMMU_SRAM_PAGE_MODE 0, the only
+  size IDF uses) for 0x3F800000–0x3FBFFFFF with the chip's 32 KB page numbers (`FlashMmu
+  .translatePsram`). The bus arms a 64 KB page for the fast path (`PAGE.PSRAM`) when its two halves
+  map contiguously, and decides per access otherwise (himem's banks map single 32 KB pages from
+  beyond 4 MB). PSRAM shares the flash cache: each load and store looks its block up in the same
+  tags (offset by `PSRAM_TAG`), a miss stalling as a flash one — both run at 80 MHz QIO;
+  write-back traffic isn't modeled. A masked or invalid access reports `esp32-psram` and faults
+  the core. The driver routes SPICS1 to GPIO16 and the clock to GPIO17, as a WROVER wires them:
+  the pads show them as peripheral outputs, CS1 idling high (`IDLE_HIGH_SIGNALS`). DPORT's
+  HOST_INF_SEL and RTC_CNTL's SDIO_CONF, which the driver touches, are storage. The chip is
+  volatile: a deep sleep's wake (VDD_SDIO off) drops its bytes (`QuadPsram.powerOff`), a light
+  sleep or a software reset keeps them, and `Mcu.reset` builds a fresh one. Arduino maps 4 MB:
+  `ESP.getPsramSize()` 4192123. himem can't be linked into an Arduino sketch — its constructor
+  asks for the PSRAM's size before `psramInit` runs and aborts, on a board too. `fixtures/sketches
+  /esp32/psram`: found, a 1 MB `ps_malloc` buffer checked, a 256 KB `malloc` in PSRAM
+  (`soc/psram.test.ts`, and on the bench in esp32-circuits.test.ts). The board's `module` prop —
+  `auto` (the default) or `WROVER-E` (PSRAM), `WROOM-32` (none: `QuadPsram.present` false, CS1
+  reads 0 and the MMU maps nothing, so the build's `psramInit` fails as on that board and detaches
+  GPIO16/17) — is read by `esp32McuFactory`; an unknown module runs as `auto` with `esp32-module`
+  (warning). The gallery's `esp32-psram-frame` (a WROVER-E) keeps a 150 KB frame in PSRAM and
+  pushes it to an ILI9341.
 
   **The ESP32-C3's sleep (`packages/esp32c3`).** RTC_CNTL at its C3 offsets (`rtc-cntl.ts`):
   STATE0.SLEEP_EN (0x18) with DIG_PWC (0x88) bit 31 for deep; WAKEUP_STATE (0x3C) ENA bits 31:15
@@ -2657,9 +2689,11 @@ sequence, files matched by basename or trailing path.
   7:5 = 0, 16 Mbit), reset (0x66/0x99), QPI enter/leave (0x35/0xF5), data reads and writes — so
   the chip is 2 MB as on the WROOM-1 N8R2; octal — OPI DTR mode registers through 16-bit commands
   (0x4040 read, 0xC0C0 write: MR1 vendor 0x0D, MR2 Good-Die and density 0x3, 64 Mbit), so 8 MB as
-  on the N8R8. The build decides: `BenchEnv.createMcu` gets no part props, so a module choice on
-  the board would be a contract change; a build without PSRAM never asks, and the bytes
-  are allocated on first use. SPI1 routes a user command to `SpiMem.cs1` while MISC has CS0_DIS
+  on the N8R8. The board's `module` prop narrows it: `auto` (the default) answers both — the
+  build decides —, `N8` nothing (`present` false), `N8R2` only quad, `N8R8` only octal, so a build
+  of the other kind finds no PSRAM, as on that board; a build without PSRAM never asks, and the
+  bytes are allocated on first use. The quad protocol is `@benchtop/esp32`'s `QuadPsram`, which
+  `S3Psram` extends with the octal commands. SPI1 routes a user command to `SpiMem.cs1` while MISC has CS0_DIS
   set and CS1_DIS clear (`@benchtop/esp32c3`'s spi-mem.ts; the C3 has none). The cache side:
   an MMU entry with SPIRAM (bit 15) set arms its data-bus page (`K_PSRAM` in bus.ts) on the chip's
   bytes, read and written as SRAM is, by both cores (`mmuPsramPage`, within the size the protocol
@@ -2671,7 +2705,49 @@ sequence, files matched by basename or trailing path.
   `sketchFqbn`, the bridge's and `compile_sketch`'s) builds an S3 sketch whose main file has a
   `// benchtop: psram` line with `PSRAM=opi` — the FQBN asked for stays an allowlisted one and the
   option is fixed, not taken from the sketch's text; the gallery's PSRAM frame buffer (a 150 KB
-  240×320 frame in PSRAM pushed whole to an ILI9341) carries the line.
+  240×320 frame in PSRAM pushed whole to an ILI9341) carries the line. The words such lines
+  may carry are a fixed table per FQBN (`SKETCH_OPTIONS`): the ESP32's `psram`
+  (PSRAM=enabled), the S3's `psram` (PSRAM=opi) and `usb-otg` (USBMode=default,CDCOnBoot=cdc), on
+  one line or a line each; unknown words are ignored. The module prop doesn't choose the build:
+  the Inspector's module list says so next to it.
+
+  **USB-OTG (`soc/usb-otg.ts`, `soc/usb-host.ts`).** The board menu's USB Mode "USB-OTG
+  (TinyUSB)" (`USBMode=default`) links TinyUSB's dcd_esp32sx — its ESP32-S2/S3 port of the
+  Synopsys DWC2 device driver, slave mode — and with USB CDC On Boot, `Serial` is TinyUSB's CDC-ACM
+  port. `S3UsbOtg` models USB0 at 0x6008_0000 as that driver uses it: the registers block, then
+  sixteen FIFO windows (window n pushes into IN endpoint n's TX FIFO; any read pops the shared RX
+  FIFO); seven IN and seven OUT endpoints. GINTSTS's latched bits are W1C and RXFLVL, IEPINT,
+  OEPINT, OTGINT and the global-NAK-effective bits derived; the USB source (38) is GAHBCFG's
+  global enable && GINTSTS & GINTMSK. IN endpoints keep the core's slave-mode bookkeeping:
+  DIEPTSIZ's XFRSIZ counts bytes not yet in the FIFO — words fill a packet of min(max packet,
+  XFRSIZ) and a full one is queued — and PKTCNT packets not yet sent; the host's IN token takes a
+  queued packet (a zero-length one when XFRSIZ is 0), and PKTCNT 0 clears EPENA and raises XFRC.
+  TXFE (read-only, "FIFO empty") reaches DAINT only through DIEPEMPMSK — the driver's refill
+  interrupt. OUT: an enabled endpoint without NAK accepts the host's packet as an RX FIFO entry
+  (PKTSTS 2, byte count, data), and the transfer's end adds PKTSTS 3 — whose pop raises XFRC —
+  clears EPENA and sets NAK; SETUPs always land (PKTSTS 6 + 4, STUP on the second's pop) and clear
+  endpoint 0's STALLs. CNAK/SNAK/EPDIS/STALL act as the databook says; GRSTCTL's flushes and soft
+  reset are immediate. The PHY: the host sees the device while RTC_CNTL USB_CONF (0x120) has
+  SW_HW_USB_PHY_SEL and SW_USB_PHY_SEL set and USB_WRAP's PHY_SEL is 0 with the pads enabled
+  (usb_ll_int_phy_enable) and D+ is pulled up — DCTL's soft disconnect clear, or USB_WRAP's pull
+  override. USB_WRAP is storage. `UsbHost` is the cable's other end, chip-neutral behind
+  `UsbDevicePort` (one transaction per call: setup, in, out, bus reset, SOF), written from USB 2.0
+  chapter 9 and the CDC PSTN subclass: debounce 10 frames, a 10-frame reset (USBRST, then ENUMDNE
+  at full speed), GET_DESCRIPTOR(device, 64), SET_ADDRESS(1), the device, configuration and
+  product string descriptors, SET_CONFIGURATION; then per CDC-ACM function (a communication
+  interface of subclass 2 and its data interface, by the union descriptor or the next data
+  interface) SET_LINE_CODING 115200 8N1 and SET_CONTROL_LINE_STATE DTR|RTS, and from then on its
+  bulk IN read and bulk OUT written as fast as the device ACKs (four packets per endpoint per
+  service). Other classes (HID, MSC, audio/MIDI, DFU…) enumerate and are named once
+  (`esp32s3-usb-device`, info). Time: 1 ms frames start at the firmware's first USB0 access (a
+  sketch without USB-OTG costs no events); a change the host waits on — an endpoint enabled, a
+  packet queued, the soft connect — brings its service forward to 50 µs from now. `uart(0)` carries
+  the open CDC port with UART0 and USB-Serial-JTAG, and typed bytes go to it while it is open.
+  `fixtures/sketches/esp32s3/usb-cdc` (USBMode=default, CDCOnBoot=cdc): enumerated as
+  "ESP32S3_DEV" within 50 ms, its greeting, ticks and an echo (`soc/usb-otg.test.ts`, with the
+  controller's pieces on their own and the host against a scripted CDC + HID device). The
+  gallery's `esp32s3-usb-rgb` takes colors typed over the USB port and sets the RGB LED; its
+  `// benchtop: usb-otg` line builds it in that mode.
 
 ## Worker protocol
 

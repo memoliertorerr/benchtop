@@ -105,6 +105,11 @@ export class S3RtcCntl implements Peripheral {
     return sel === 1 ? SLOW_CLOCK_HZ[1] : sel === 2 ? SLOW_CLOCK_HZ[2] : SLOW_CLOCK_HZ[0];
   }
 
+  /** BT134: USB_CONF (0x120) — which controller has the internal USB PHY (bits 20 and 19). */
+  usbConf(): number {
+    return this.regs[0x120 >>> 2];
+  }
+
   /** RTC slow clock cycles since power-on. */
   rtcTime(t = this.now()): number {
     return Math.floor(((t - this.origin) * this.slowHz()) / REF_HZ);

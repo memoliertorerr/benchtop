@@ -74,6 +74,7 @@ import type {
   PartDefinition,
   PartInput,
   PartModel,
+  PartProps,
   PinHandle,
   Problem,
   VisualState,
@@ -108,8 +109,9 @@ export interface BenchEnv {
    * A fresh MCU for a board part, or undefined if this environment has no implementation.
    * `report` puts a Problem on that board part (BT34: the ESP32 adapter's own Problems —
    * unknown registers, reboots, a missing ROM — which the Mcu contract has no channel for).
+   * BT135: `props` are the board part's props over its type's defaults (a module choice, say).
    */
-  createMcu(board: BoardSpec, partId: string, report?: (problem: Problem) => void): Mcu | undefined;
+  createMcu(board: BoardSpec, partId: string, report?: (problem: Problem) => void, props?: PartProps): Mcu | undefined;
 }
 
 export interface BenchOptions {
@@ -174,6 +176,7 @@ interface CarriedMcu {
   readonly port: McuPort;
   readonly kind: BoardSpec['mcu'];
   readonly firmware: string;
+  readonly props: string;
   readonly base: Nanos;
   readonly stopped: { reason: string; detail: string } | null;
 }
@@ -393,6 +396,8 @@ interface McuSlot {
   readonly kind: BoardSpec['mcu'];
   /** The board's firmware ref in this bench's document (`firmwareKey`). */
   readonly firmware: string;
+  /** BT135: the board part's props (`propsKey`). */
+  readonly props: string;
   readonly clockHz: number;
   /** Bench time at which the MCU's cycle counter was 0. */
   base: Nanos;
@@ -704,18 +709,20 @@ export class Bench {
       const board = defOf(part.type)?.board;
       if (board === undefined) continue;
       const firmware = firmwareKey(doc.firmware[part.id] as FirmwareRef | undefined);
+      const boardProps = propsKey(part.props);
       const kept = carried?.boards.get(part.id);
-      if (kept !== undefined && kept.kind === board.mcu && kept.firmware === firmware && options.restart?.includes(part.id) !== true) {
+      // BT135: a board whose props changed (its module) starts afresh.
+      if (kept !== undefined && kept.kind === board.mcu && kept.firmware === firmware && kept.props === boardProps && options.restart?.includes(part.id) !== true) {
         carried?.boards.delete(part.id);
         this.keptBoards.add(part.id);
-        this.addMcu(part.id, board, kept.mcu, kept.port, firmware, kept);
+        this.addMcu(part.id, board, kept.mcu, kept.port, firmware, boardProps, kept);
         continue;
       }
       let mcu: Mcu | undefined;
       const port: McuPort = { bench: this, slot: null, entries: new Map(), hooked: false };
       try {
         const id = part.id;
-        mcu = env.createMcu(board, id, (p) => port.bench.report(p.parts.includes(id) ? p : { ...p, parts: [id, ...p.parts] }));
+        mcu = env.createMcu(board, id, (p) => port.bench.report(p.parts.includes(id) ? p : { ...p, parts: [id, ...p.parts] }), { ...defOf(part.type)?.defaults, ...part.props });
       } catch (error) {
         this.buildProblems.push(problem('error', 'mcu-unavailable', `Creating the ${board.mcu} for "${part.id}" failed: ${errorText(error)}`, [part.id]));
         continue;
@@ -724,7 +731,7 @@ export class Bench {
         this.buildProblems.push(problem('error', 'mcu-unavailable', `No ${board.mcu} implementation for "${part.id}".`, [part.id]));
         continue;
       }
-      this.addMcu(part.id, board, mcu, port, firmware, null);
+      this.addMcu(part.id, board, mcu, port, firmware, boardProps, null);
     }
     this.quantum = options.quantum ?? (this.mcus.length > 1 ? 100 * NS_PER_US : NS_PER_MS);
     if (!(this.quantum > 0)) throw new RangeError(`quantum must be > 0, got ${this.quantum}`);
@@ -1200,7 +1207,7 @@ export class Bench {
     this.spiAttached.clear();
     this.i2cBuses.clear();
     const boards = new Map<string, CarriedMcu>();
-    for (const slot of this.mcus) boards.set(slot.partId, { mcu: slot.mcu, port: slot.port, kind: slot.kind, firmware: slot.firmware, base: slot.base, stopped: slot.stopped });
+    for (const slot of this.mcus) boards.set(slot.partId, { mcu: slot.mcu, port: slot.port, kind: slot.kind, firmware: slot.firmware, props: slot.props, base: slot.base, stopped: slot.stopped });
     const parts = new Map<string, PartBinding>();
     const models: PartModel[] = [];
     for (const slot of this.partList) {
@@ -1228,13 +1235,14 @@ export class Bench {
   // ── Build ────────────────────────────────────────────────────────────────────────────────
 
   /** `kept`: the MCU came over running from the previous bench (BT78), with its time base. */
-  private addMcu(partId: string, board: BoardSpec, mcu: Mcu, port: McuPort, firmware: string, kept: CarriedMcu | null): void {
+  private addMcu(partId: string, board: BoardSpec, mcu: Mcu, port: McuPort, firmware: string, props: string, kept: CarriedMcu | null): void {
     const slot: McuSlot = {
       partId,
       mcu,
       port,
       kind: board.mcu,
       firmware,
+      props,
       clockHz: mcu.clockHz,
       // A new MCU starts from reset now (a rebuilt bench's time isn't 0).
       base: kept?.base ?? this.time,

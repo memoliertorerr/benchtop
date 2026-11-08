@@ -257,4 +257,26 @@ describe('Bench.carry', () => {
     expect(bench3.carriedBoard('uno')).toBe(false);
     expect(bench3.carriedBoard('uno2')).toBe(true);
   });
+
+  it('BT135: createMcu gets a board part\u2019s props over its defaults; a board whose props change starts afresh, the others carry over', () => {
+    const moduleBoard: PartDefinition = { ...board, type: 'module-board', defaults: { module: 'auto' } };
+    const asked: string[] = [];
+    const made: Record<string, number> = {};
+    const e: BenchEnv = {
+      part: (type) => [...definitions, moduleBoard].find((d) => d.type === type),
+      createMcu: (_board, partId, _report, props) => {
+        asked.push(`${partId} ${String(props?.module)}`);
+        made[partId] = (made[partId] ?? 0) + 1;
+        return new FakeMcu({ pins: BOARD_PINS });
+      },
+    };
+    const bench1 = new Bench(testDoc({ a: 'module-board', b: 'module-board' }, [], { a: { module: 'WROVER-E' } }), e);
+    expect(asked).toEqual(['a WROVER-E', 'b auto']);
+    bench1.runUntil(2 * NS_PER_MS);
+    const bench2 = rebuilt(testDoc({ a: 'module-board', b: 'module-board' }, [], { a: { module: 'WROOM-32' } }), e, bench1);
+    expect(asked).toEqual(['a WROVER-E', 'b auto', 'a WROOM-32']);
+    expect(made).toEqual({ a: 2, b: 1 });
+    expect(bench2.carriedBoard('a')).toBe(false);
+    expect(bench2.carriedBoard('b')).toBe(true);
+  });
 });

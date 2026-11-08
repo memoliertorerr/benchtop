@@ -1,5 +1,5 @@
 import { type FirmwareRef, isMicroPythonFqbn } from '@benchtop/core';
-import { CATALOG } from '@benchtop/parts';
+import { BOARD_MODULES, CATALOG } from '@benchtop/parts';
 import { useRef } from 'preact/hooks';
 import { editor, editorMessage } from '../editor/app-store.ts';
 import { attachFirmwareFile } from '../editor/firmware-actions.ts';
@@ -132,6 +132,23 @@ export function Inspector() {
         if (OWN_SECTION[part.type]?.includes(key)) return null;
         const value = part.props[key] ?? fallback;
         const label = <span class="field-label">{key}</span>;
+        // BT135: a board's module, from its list; PSRAM still needs a PSRAM build.
+        const modules = key === 'module' ? BOARD_MODULES[part.type] : undefined;
+        if (modules !== undefined) {
+          return (
+            <label key={key} class="field">
+              {label}
+              <select class="tool-select" value={String(value)} onChange={(event) => editor.setProp(part.id, key, (event.target as HTMLSelectElement).value)}>
+                {modules.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+              <span class="muted panel-note">A sketch that uses PSRAM also needs a line <code>// benchtop: psram</code> to be built with it.</span>
+            </label>
+          );
+        }
         if (typeof fallback === 'boolean') {
           return (
             <label key={key} class="field field-check">

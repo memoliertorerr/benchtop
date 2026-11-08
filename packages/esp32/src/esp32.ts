@@ -37,7 +37,7 @@
  *   (24:0A:C4 and three bytes of a hash), so two boards on one LAN differ.
  */
 
-import { type BoardSpec, type Debuggable, type FirmwareImage, type I2cController, type I2cDevice, type Level, type Mcu, type McuDebug, type McuPin, type NetState, type McuSleep, type NonVolatile, type NvMemory, type PinMode, type Problem, type RunResult, SectorMemory, type Sleeper, type SpiController, type SpiDevice, type SymbolTable, type UartPort, type WifiRadio, type WifiStation } from '@benchtop/core';
+import { type BoardSpec, type PartProps, type Debuggable, type FirmwareImage, type I2cController, type I2cDevice, type Level, type Mcu, type McuDebug, type McuPin, type NetState, type McuSleep, type NonVolatile, type NvMemory, type PinMode, type Problem, type RunResult, SectorMemory, type Sleeper, type SpiController, type SpiDevice, type SymbolTable, type UartPort, type WifiRadio, type WifiStation } from '@benchtop/core';
 import { macFromName } from '@benchtop/core';
 import { Esp32Debug } from './debug/debug.ts';
 import { describeFirmwareFormat } from '@benchtop/core';
@@ -68,7 +68,16 @@ export interface Esp32McuOptions {
   rom?: Uint8Array;
   /** BT98: the eFuse's factory MAC (24:0A:C4:00:00:01 by default). */
   mac?: readonly number[];
+  /** BT135: the module has PSRAM (a WROVER's; true by default — a PSRAM build finds it). */
+  psram?: boolean;
 }
+
+/**
+ * BT135: the modules an ESP32 board can carry (its `module` prop): `auto` — the build decides, as
+ * a WROVER-E answers any PSRAM build (BT133) —, `WROOM-32` (no PSRAM), `WROVER-E` (8 MB PSRAM).
+ */
+export const ESP32_MODULES = ['auto', 'WROOM-32', 'WROVER-E'] as const;
+export const CODE_ESP32_MODULE = 'esp32-module';
 
 /** Parsed ROMs by byte array (a bench rebuild creates new Mcus with the same bytes). */
 const parsedRoms = new WeakMap<Uint8Array, RomImage | string>();
@@ -286,6 +295,8 @@ export class Esp32Mcu implements Mcu, Debuggable, WifiStation, NonVolatile, Slee
   /** BT98: the bench's radio (joinWifi). */
   private radio: WifiRadio | null = null;
   private readonly mac: readonly number[] | undefined;
+  /** BT135: the module has PSRAM. */
+  private readonly psram: boolean;
   private radioReported = false;
   /** BT118: the board's SPI flash, kept across resets (null until an image boots), and the view hosts get of it. */
   private flashBytes: Uint8Array | null = null;
@@ -296,6 +307,7 @@ export class Esp32Mcu implements Mcu, Debuggable, WifiStation, NonVolatile, Slee
   constructor(options: Esp32McuOptions = {}) {
     this.rom = romFrom(options.rom);
     this.mac = options.mac;
+    this.psram = options.psram !== false;
     const pins = new Map<string, McuPin>();
     for (const g of GPIO_NUMBERS) {
       const pin = new Esp32Pin(this, g);
@@ -447,7 +459,7 @@ export class Esp32Mcu implements Mcu, Debuggable, WifiStation, NonVolatile, Slee
   }
 
   private buildSoc(): Esp32Soc {
-    const soc = new Esp32Soc(this.mac === undefined ? {} : { mac: this.mac });
+    const soc = new Esp32Soc({ ...(this.mac === undefined ? {} : { mac: this.mac }), psram: this.psram });
     // The field initializers run before the constructor's buildSoc: the set exists here.
     soc.cores[0].breakpoints = this.breakpoints;
     soc.cores[1].breakpoints = this.breakpoints;
@@ -534,13 +546,19 @@ export class Esp32Mcu implements Mcu, Debuggable, WifiStation, NonVolatile, Slee
 /**
  * The bench's MCU factory for ESP32 boards (`BenchEnv.createMcu`), as avrMcuFactory is for the
  * Uno: `rom` is the ROM ELF the environment loaded (or undefined: the board then reports
- * `esp32-rom-missing`). Problems go to `report`, one per code, newest messages first-come.
+ * `esp32-rom-missing`). Problems go to `report`, one per code, newest messages first-come. BT135:
+ * the board's `module` prop (ESP32_MODULES) says whether it has PSRAM; an unknown one is `auto`,
+ * with a warning.
  */
-export function esp32McuFactory(rom: Uint8Array | undefined): (board: BoardSpec, partId: string, report?: (problem: Problem) => void) => Mcu | undefined {
-  return (board, partId, report) => {
+export function esp32McuFactory(rom: Uint8Array | undefined): (board: BoardSpec, partId: string, report?: (problem: Problem) => void, props?: PartProps) => Mcu | undefined {
+  return (board, partId, report, props) => {
     if (board.mcu !== 'esp32') return undefined;
     const mac = macFromName(partId, [0x24, 0x0a, 0xc4]);
-    const mcu = createEsp32Mcu(rom === undefined ? { mac } : { rom, mac });
+    const module = props?.module ?? 'auto';
+    const known = (ESP32_MODULES as readonly unknown[]).includes(module);
+    if (!known) report?.({ severity: 'warning', code: CODE_ESP32_MODULE, message: `Unknown ESP32 module ${JSON.stringify(module)}: one of ${ESP32_MODULES.join(', ')}. Running as auto.`, parts: [partId] });
+    const psram = !known || module !== 'WROOM-32';
+    const mcu = createEsp32Mcu(rom === undefined ? { mac, psram } : { rom, mac, psram });
     if (report !== undefined) {
       const seen = new Map<string, { messages: string[]; count: number }>();
       let soc = mcu.soc;

@@ -1,0 +1,23 @@
+{
+  "name": "example: esp32s3-usb-rgb",
+  "project": "../../projects/esp32s3-usb-rgb.json",
+  "firmware": {
+    "s3": "../../firmware/esp32s3/usb-rgb.bin"
+  },
+  "steps": [
+    {
+      "at": "300ms",
+      "serial": "red\n"
+    },
+    {
+      "at": "600ms",
+      "serial": "blue\n"
+    }
+  ],
+  "expect": [
+    "serial contains \"usb serial ready\" by 300ms",
+    "pixel s3[0] is #ff0000 at 500ms",
+    "pixel s3[0] is #0000ff at 800ms",
+    "serial contains \"led blue\" by 800ms"
+  ]
+}

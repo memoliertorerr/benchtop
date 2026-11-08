@@ -61,6 +61,7 @@ import { IO_MUX_BASE, IoMux } from './iomux.ts';
 import { Ledc, LEDC_BASE, LEDC_SIGNAL_BASE } from './ledc.ts';
 import { DEFAULT_FLASH_SIZE, EspMemory, ROM0, ROM1, ROM1_I_START, RTC_FAST, RTC_FAST_I_START, RTC_SLOW, SRAM0, SRAM1, SRAM1_I_START } from './memory.ts';
 import { APP_TABLE, FlashMmu, MMU_INVALID, PRO_TABLE } from './mmu.ts';
+import { ESP32_PSRAM_BYTES, ESP32_PSRAM_ID, QuadPsram } from './psram.ts';
 import { IDLE_HIGH_SIGNALS, Pads } from './pads.ts';
 import { PeripheralMap, ProblemLog } from './periph.ts';
 import { RAPID_LIMIT, RAPID_REBOOT, RESET_REASON, RESET_SETTLE, type ResetSink, resetName } from './reset.ts';
@@ -80,6 +81,8 @@ export interface Esp32SocOptions {
   flashSize?: number;
   /** BT98: the eFuse's factory MAC (EFUSE_MAC by default); a bench gives each board its own. */
   mac?: readonly number[];
+  /** BT135: the module has PSRAM on CS1 (true by default: a PSRAM build finds it, as on a WROVER). */
+  psram?: boolean;
 }
 
 export class Esp32Soc implements SocParts, SocContext, ResetSink, SleepSink {
@@ -117,6 +120,8 @@ export class Esp32Soc implements SocParts, SocContext, ResetSink, SleepSink {
   /** What each pin is doing (BT34): mode and level per GPIO, with a change callback. */
   readonly pads: Pads;
   readonly flash: FlashChip;
+  /** BT133: the PSRAM on SPI1's CS1, as on a WROVER-E (8 MB; untouched by a build without PSRAM). */
+  readonly psram = new QuadPsram(ESP32_PSRAM_BYTES, ESP32_PSRAM_ID);
   readonly spi1: SpiFlashController;
   readonly spi0 = new SpiCacheController();
   /** Each UART byte as its stop bit ends. */
@@ -211,6 +216,8 @@ export class Esp32Soc implements SocParts, SocContext, ResetSink, SleepSink {
     };
     this.memory.codeWritten = (offset) => this.codeWritten(offset);
     this.spi1 = new SpiFlashController(this.flash);
+    this.spi1.cs1 = this.psram;
+    this.psram.present = options.psram !== false;
     this.rebootSlot = this.events.add(() => this.reboot());
     // BT121: sleep — the timer's wake, pins checked as the bench changes them, RTC fast memory for the CRC unit.
     this.wakeSlot = this.events.add(() => this.wake(WAKE.TIMER));
@@ -425,9 +432,12 @@ export class Esp32Soc implements SocParts, SocContext, ResetSink, SleepSink {
     this.sleeping = null;
     this.rtc.woke(cause);
     this.rtc.sleepWatchdog(false);
-    // Deep: the digital domain powered up again — a reset whose boot sees DEEPSLEEP_RESET.
-    if (sleep.deep) this.systemReset(RESET_REASON.DEEPSLEEP);
-    else for (const timg of this.timg) timg.ungate();
+    // Deep: the digital domain powered up again — a reset whose boot sees DEEPSLEEP_RESET. BT133:
+    // VDD_SDIO, which feeds a WROVER's PSRAM, was off: its contents are gone.
+    if (sleep.deep) {
+      this.psram.powerOff();
+      this.systemReset(RESET_REASON.DEEPSLEEP);
+    } else for (const timg of this.timg) timg.ungate();
   }
 
   /** May core `cpu` execute now? */

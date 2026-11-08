@@ -152,6 +152,13 @@ export const ESP32_CHECKS: Record<string, (r: ExampleRun) => void> = {
     expect(r.serial('esp')).toContain('drawn');
     expect(tftPixels(r, 'tft', [[15, 15], [140, 30], [20, 80], [10, 130], [5, 300]])).toEqual([0xf800, 0x07e0, 0x001f, 0xffff, 0]);
   },
+  // BT135: a WROVER-E (the board's module prop) keeps a 150 KB frame buffer in PSRAM.
+  'esp32-psram-frame'(r) {
+    r.runTo(2000);
+    expect(r.serial('esp')).toContain('frame buffer 153600 in psram 1');
+    expect(r.serial('esp')).toContain('frame 2');
+    expect(tftPixels(r, 'tft', [[20, 50], [200, 120], [20, 250], [20, 310]])).toEqual([0xf800, 0x07e0, 0x001f, 0]);
+  },
   'esp32-dac-sine'(r) {
     r.runTo(2000);
     expect(audioSamples(r, 'spk1')).toBeGreaterThanOrEqual(20 * 1024);

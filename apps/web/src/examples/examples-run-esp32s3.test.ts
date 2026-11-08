@@ -64,12 +64,26 @@ export const ESP32S3_CHECKS: Record<string, (r: ExampleRun) => void> = {
     expect(r.serial('s3')).toContain('frame 3');
     expect(tftPixels(r, 'tft', [[20, 50], [200, 120], [20, 250], [20, 310]])).toEqual([0xf800, 0x07e0, 0x001f, 0]);
   },
+  // BT135: Serial over USB-OTG — the bench's USB host opens the port; typed colors set the RGB LED.
+  'esp32s3-usb-rgb'(r) {
+    const pixel = (): number => ((r.visual('s3')?.pixels as number[] | undefined) ?? [0])[0];
+    r.runTo(300);
+    expect(r.serial('s3')).toContain('usb serial ready');
+    r.send('s3', 'green\n');
+    r.runTo(500);
+    expect(pixel()).toBe(0x00ff00);
+    r.send('s3', 'purple\n');
+    r.send('s3', 'blue\n');
+    r.runTo(700);
+    expect(pixel()).toBe(0x0000ff);
+    expect(r.serial('s3')).toContain('led green\nunknown purple\nled blue\n');
+  },
 };
 
 describe('every ESP32-S3 example runs as described (BT126)', () => {
   const withS3 = EXAMPLES.filter((e) => Object.values(e.boards).some((b) => 'firmware' in b && b.firmware.startsWith('esp32s3/')));
   it('has a check for each', () => {
-    expect(withS3.length).toBe(7);
+    expect(withS3.length).toBe(8);
     expect(withS3.map((e) => e.id).filter((id) => ESP32S3_CHECKS[id] === undefined)).toEqual([]);
   });
   for (const example of withS3) {

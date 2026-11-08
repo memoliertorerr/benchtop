@@ -1,6 +1,7 @@
 import { SPI1_BASE } from '@benchtop/esp32c3';
 import { describe, expect, it } from 'vitest';
-import { createEsp32s3Mcu } from '../esp32s3-mcu.ts';
+import type { BoardSpec, Problem } from '@benchtop/core';
+import { CODE_S3_MODULE, createEsp32s3Mcu, type Esp32s3Mcu, esp32s3McuFactory } from '../esp32s3-mcu.ts';
 import { bootS3Fixture, s3FixtureImage } from '../test-support/boot.test-helper.ts';
 import { loadCachedS3Rom } from '../test-support/rom.test-helper.ts';
 import { CODE_S3_PSRAM } from './bus.ts';
@@ -170,5 +171,43 @@ describe('builds with PSRAM (BT130)', () => {
     expect(mcu.soc.psram.data.some((b) => b !== 0)).toBe(true);
     mcu.reset();
     expect(mcu.soc.psram.allocated).toBe(false);
+  });
+});
+
+describe('the board\u2019s module (BT135)', () => {
+  const rom = loadCachedS3Rom();
+
+  function run(psram: 'none' | 'quad' | 'octal', fixture: string): string {
+    const mcu = createEsp32s3Mcu({ rom, psram });
+    let out = '';
+    mcu.uart(0)!.onTransmit((b) => (out += String.fromCharCode(b)));
+    mcu.load({ format: 'esp32-bin', ...s3FixtureImage(fixture) });
+    const end = mcu.cycles + REF_HZ * 1.5;
+    while (mcu.cycles < end && !out.includes('done')) mcu.runUntil(Math.min(end, mcu.cycles + REF_HZ / 1000));
+    return out;
+  }
+
+  it('N8 (no PSRAM), N8R2 (quad only), N8R8 (octal only): each build finds what that board gives it', () => {
+    expect(run('none', 'psram-quad')).toContain('psram found 0 size 0 free 0');
+    expect(run('quad', 'psram-quad')).toContain('check ok sum 0c9e0000');
+    // Arduino's OPI build says "found" once its boot-time init ran, PSRAM or not: 0 bytes.
+    expect(run('quad', 'psram-octal')).toContain('psram found 1 size 0 free 0');
+    expect(run('octal', 'psram-octal')).toContain('check ok sum 0c9e0000');
+    expect(run('octal', 'psram-quad')).toContain('psram found 0 size 0 free 0');
+  });
+
+  it('the factory reads the board\u2019s module prop; an unknown one runs as auto with a warning', () => {
+    const factory = esp32s3McuFactory(rom);
+    const board = { mcu: 'esp32s3', pinMap: {} } as BoardSpec;
+    const problems: Problem[] = [];
+    const make = (module: string | undefined) => factory(board, 's3', (p) => problems.push(p), module === undefined ? undefined : { module }) as Esp32s3Mcu;
+    expect(make('N8').soc.psram.present).toBe(false);
+    expect(make('N8R2').soc.psram.protocols).toBe('quad');
+    expect(make('N8R8').soc.psram.protocols).toBe('octal');
+    expect(make('auto').soc.psram.protocols).toBe('both');
+    expect(make(undefined).soc.psram.protocols).toBe('both');
+    expect(problems).toEqual([]);
+    expect(make('N16R8').soc.psram.protocols).toBe('both');
+    expect(problems.map((p) => p.code)).toEqual([CODE_S3_MODULE]);
   });
 });

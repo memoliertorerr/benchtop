@@ -34,6 +34,7 @@ import { registerDefault, S3PeripheralMap } from './periph.ts';
 import { EFUSE_BASE, REF_HZ, RTC_CNTL_BASE, S3_RESET_REASON, S3_WAKE, S3Efuse, S3RtcCntl } from './rtc-cntl.ts';
 import { S3Psram } from './psram.ts';
 import { S3_ADC_FULL_SCALE, S3Sens } from './sens.ts';
+import { S3_USB_OTG_BASE, S3_USB_OTG_BLOCKS, S3_USB_WRAP_BASE, S3UsbOtg } from './usb-otg.ts';
 import { EXTMEM_BASE, S3Extmem, S3SystemRegs, SYSTEM_BASE, XTAL_HZ } from './system.ts';
 
 /** Reference cycles per interleave slice (≈ 1.07 µs, as the ESP32's). */
@@ -59,6 +60,11 @@ export interface Esp32s3SocOptions {
   mac?: readonly number[];
   /** Reference time to start at (a reset builds a fresh chip at the time the old one stopped). */
   time?: number;
+  /**
+   * BT135: the module's PSRAM — 'auto' (the default: the chip answers either protocol, the build
+   * decides), 'none' (an N8), 'quad' (an N8R2's 2 MB), 'octal' (an N8R8's 8 MB).
+   */
+  psram?: 'auto' | 'none' | 'quad' | 'octal';
 }
 
 /** The MMU table (0x600C_5000): 512 entries — the flash page (13:0), INVALID (14), SPIRAM (15). */
@@ -112,6 +118,10 @@ export class Esp32s3Soc implements SocContext, S3BusParts {
   /** The volts the bench puts on a pad (the ADC reads them). */
   padVolts: (gpio: number) => number = () => 0;
   readonly usb: UsbSerialJtag;
+  /** BT134: USB-OTG (TinyUSB's controller), with the bench's host on its cable. */
+  readonly usbOtg: S3UsbOtg;
+  /** BT134: USB_WRAP — the OTG side's PHY and pads (storage the OTG model reads). */
+  readonly usbWrap = new RegisterFile(S3_USB_WRAP_BASE, registerDefault);
   readonly ledc: Ledc;
   readonly i2c: readonly [I2c, I2c];
   /** SPI2 (FSPI); SPI3 isn't modeled. */
@@ -173,10 +183,14 @@ export class Esp32s3Soc implements SocContext, S3BusParts {
     this.uarts = [0, 1, 2].map((i) => new Uart(this, i, uartSources[i], UART_BASES_S3[i], S3_UART_FIELDS)) as [Uart, Uart, Uart];
     this.spi1 = new SpiMem(SPI1_BASE, this.flash, registerDefault);
     this.spi1.cs1 = this.psram;
+    const psram = options.psram ?? 'auto';
+    this.psram.present = psram !== 'none';
+    this.psram.protocols = psram === 'quad' || psram === 'octal' ? psram : 'both';
     this.sens = new S3Sens(this);
     this.sens.sample = (adc, channel, attenuation) => this.adcSample(adc, channel, attenuation);
     this.rtc.sens = this.sens;
     this.usb = new UsbSerialJtag(this, S3_USB_SERIAL_JTAG_BASE, S3_SRC.USB_SERIAL_JTAG);
+    this.usbOtg = new S3UsbOtg(this, S3_SRC.USB, () => this.rtc.usbConf(), () => this.usbWrap.regs[0]);
     this.ledc = new Ledc(this, S3_LEDC_CHANNELS);
     this.i2c = [new I2c(this, S3_I2C_BASES[0], S3_SRC.I2C0), new I2c(this, S3_I2C_BASES[1], S3_SRC.I2C1)];
     this.spi2 = new Spi(this);
@@ -220,6 +234,8 @@ export class Esp32s3Soc implements SocContext, S3BusParts {
     periph.register(ANA_I2C_BASE, new S3AnalogI2c());
     periph.register(S3_GPIO_BASE, this.gpio);
     periph.register(S3_USB_SERIAL_JTAG_BASE, this.usb);
+    periph.register(S3_USB_WRAP_BASE, this.usbWrap);
+    for (let i = 0; i < S3_USB_OTG_BLOCKS; i++) periph.register(S3_USB_OTG_BASE + i * 0x1000, this.usbOtg.blocks[i]);
     periph.register(LEDC_BASE, this.ledc);
     S3_I2C_BASES.forEach((base, i) => periph.register(base, this.i2c[i]));
     periph.register(SPI2_BASE, this.spi2);

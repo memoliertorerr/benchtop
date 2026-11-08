@@ -25,6 +25,8 @@ export interface ExampleRun {
   /** Runs to `ms` of simulated time, collecting frames every 5 ms. */
   runTo(ms: number): void;
   input(part: string, event: PartInput): void;
+  /** BT135: text typed into a board's serial monitor. */
+  send(board: string, text: string): void;
   /** Serial text a board sent so far. */
   serial(board: string): string;
   /** A part's latest visual state. */
@@ -109,6 +111,7 @@ export function runExample(example: Example): ExampleRun {
     bench,
     runTo,
     input: (part, event) => bench.input(part, event),
+    send: (board, typed) => bench.sendSerial(board, new TextEncoder().encode(typed)),
     serial: (board) => text[board] ?? '',
     visual: (part) => latest.get(part),
     history: (part) => past.get(part) ?? [],

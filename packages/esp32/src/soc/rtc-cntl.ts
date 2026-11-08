@@ -56,6 +56,8 @@ export const RTC = {
   EXT_WAKEUP1_STATUS: 0xd0,
   MEM_CONF: 0x100,
   MEM_CRC_RES: 0x104,
+  /** BT133: SDIO_CONF — VDD_SDIO's regulator, which rtc_vddsdio_get_config reads for the PSRAM (storage). */
+  SDIO_CONF: 0x74,
   TIME_UPDATE: 0x0c,
   TIME0: 0x10,
   TIME1: 0x14,
@@ -154,6 +156,7 @@ export class RtcCntl extends RegisterFile {
       offset === RTC.STATE0 ||
       offset === RTC.MEM_CONF ||
       offset === RTC.MEM_CRC_RES ||
+      offset === RTC.SDIO_CONF ||
       RTC_DOMAIN.includes(offset as (typeof RTC_DOMAIN)[number])
     );
   }

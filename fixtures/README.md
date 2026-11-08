@@ -19,6 +19,8 @@ fixtures/firmware/esp32/<name>.bin|.partitions.bin  ESP32 app image and partitio
 fixtures/firmware/esp32/<name>.syms.tsv       `nm -S -n --defined-only` of the full ELF
                                               ("addr\tsize\ttype\tname"); the ELF itself (6 MB,
                                               mostly DWARF), .map and bootloader are never committed
+                                              (psram and psram-frame built with PSRAM=enabled,
+                                              the board menu's option for a WROVER's PSRAM)
 fixtures/firmware/esp32c3/<name>.bin|.partitions.bin|.syms.tsv  the same for the ESP32-C3
                                               (serial-hello, blink, gpio-interrupt, adc-read,
                                               ledc-fade, i2c-scan, spi-loopback, rgb-blink,
@@ -44,7 +46,9 @@ fixtures/firmware/esp32s3/<name>.bin|.partitions.bin|.syms.tsv  the same for the
                                               deep-sleep-counter — the ESP32's; psram-quad
                                               (PSRAM=enabled), psram-octal and psram-frame
                                               (PSRAM=opi): per-sketch board options in
-                                              scripts/fixture-boards.ts)
+                                              scripts/fixture-boards.ts; usb-cdc and usb-rgb,
+                                              USBMode=default,CDCOnBoot=cdc — Serial on
+                                              TinyUSB's CDC port over USB-OTG)
 fixtures/firmware/pico*/debug-demo.syms.tsv   the same for the Pico and Pico 2 debug-demos only (the
                                               debugger's tests; `SYMBOL_SKETCHES` in fixture-boards.ts)
 fixtures/firmware/pico/<name>.uf2             Raspberry Pi Pico firmware (arduino-pico 6.2.0; the

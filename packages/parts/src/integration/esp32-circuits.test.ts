@@ -169,4 +169,13 @@ describe('ESP32 DevKit V1 on the bench (BT34)', () => {
     for (const [key, ns] of [['t0hMin', 400], ['t0hMax', 400], ['t1hMin', 800], ['t1hMax', 800]] as const) expect(Math.abs(Number(stats[key]) - ns)).toBeLessThanOrEqual(50);
     expect(bench.problems().filter((p) => p.code === 'neopixel-timing' || p.severity === 'error')).toEqual([]);
   }, 60_000);
+
+  it('psram (BT133): a PSRAM build finds 4 MB of the WROVER’s PSRAM and uses it; GPIO16/17 carry its chip select (idle high) and clock', () => {
+    const { bench, text } = load('esp32-serial', 'psram');
+    runTo(bench, 2000, () => text().includes('done'));
+    expect(text()).toBe('psram found 1 size 4192123 free 4192123\ncheck ok sum 0c9e0000\nbig 1\ndone\r\n');
+    expect(bench.pinState('esp', 'RX2')?.level).toBe(1);
+    expect(bench.pinState('esp', 'TX2')?.level).toBe(0);
+    expect(bench.problems().filter((p) => p.severity === 'error')).toEqual([]);
+  }, 60_000);
 });

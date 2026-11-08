@@ -104,6 +104,14 @@ describe('request guards', () => {
     expect(sketchFqbn('esp32:esp32:esp32s3', 'void setup() {}\n')).toBe('esp32:esp32:esp32s3');
     expect(sketchFqbn('esp32:esp32:esp32s3', 'int x; // benchtop: psram\n')).toBe('esp32:esp32:esp32s3'); // a line of its own
     expect(sketchFqbn('esp32:esp32:esp32s3', '// benchtop: psramfoo --build-property x=y\n')).toBe('esp32:esp32:esp32s3');
-    expect(sketchFqbn('esp32:esp32:esp32', '// benchtop: psram\n')).toBe('esp32:esp32:esp32'); // the S3 only
+    // BT135: the ESP32's PSRAM, the S3's USB-OTG, both on one line or two; other boards none.
+    expect(sketchFqbn('esp32:esp32:esp32', '// benchtop: psram\n')).toBe('esp32:esp32:esp32:PSRAM=enabled');
+    expect(sketchFqbn('esp32:esp32:esp32', '// benchtop: usb-otg\n')).toBe('esp32:esp32:esp32');
+    expect(sketchFqbn('esp32:esp32:esp32s3', '// benchtop: usb-otg\n')).toBe('esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=cdc');
+    expect(sketchFqbn('esp32:esp32:esp32s3', '// benchtop: usb-otg, psram\n')).toBe('esp32:esp32:esp32s3:PSRAM=opi,USBMode=default,CDCOnBoot=cdc');
+    expect(sketchFqbn('esp32:esp32:esp32s3', '// benchtop: usb-otg\n// benchtop: psram\n')).toBe('esp32:esp32:esp32s3:PSRAM=opi,USBMode=default,CDCOnBoot=cdc');
+    expect(sketchFqbn('esp32:esp32:esp32s3', '// benchtop: usb-otg=1 PSRAM=opi;x\n')).toBe('esp32:esp32:esp32s3');
+    expect(sketchFqbn('esp32:esp32:esp32c3', '// benchtop: psram\n')).toBe('esp32:esp32:esp32c3');
+    expect(sketchFqbn('arduino:avr:uno', '// benchtop: psram\n')).toBe('arduino:avr:uno');
   });
 });

@@ -42,6 +42,8 @@ export const DPORT = {
   PERI_CLK_EN: 0x01c,
   PERI_RST_EN: 0x020,
   RSA_PD_CTRL: 0x490,
+  /** BT133: HOST_INF_SEL — the psram driver sets bit 14 around its SPI1 commands (storage). */
+  HOST_INF_SEL: 0x0bc,
 } as const;
 
 /** BT102: PERI_CLK_EN / PERI_RST_EN bits of the crypto accelerators. */
@@ -97,6 +99,7 @@ export class Dport extends DportRegisters {
     if (offset >= DPORT.APPCPU_CTRL_A && offset <= DPORT.CPU_PER_CONF) return true;
     if (offset === DPORT.PERIP_CLK_EN || offset === DPORT.PERIP_RST_EN || offset === DPORT.WIFI_CLK_EN || offset === DPORT.CORE_RST_EN) return true;
     if (offset === DPORT.PERI_CLK_EN || offset === DPORT.PERI_RST_EN || offset === DPORT.RSA_PD_CTRL) return true;
+    if (offset === DPORT.HOST_INF_SEL) return true;
     if (offset === DPORT.PRO_DCACHE_DBUG0 || offset === DPORT.APP_DCACHE_DBUG0) return true;
     return offset >= DPORT.CPU_INTR_FROM_CPU_0 && offset < DPORT.APP_INTR_MAP + SOURCE_COUNT * 4;
   }

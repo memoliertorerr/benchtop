@@ -13,9 +13,11 @@
  *   (boot/direct-boot.ts); `reset` builds a fresh SoC and boots again. The board's flash outlives
  *   resets (`nonVolatile()`), as on the ESP32 and the C3.
  * - Serial: `uart(0)` is what the serial monitor shows — UART0 (TX GPIO43 / RX GPIO44, the
- *   DevKitC-1's USB-UART port) and the USB-Serial-JTAG port (its USB port: a `CDCOnBoot=cdc`
- *   build's `Serial`) together; typed bytes go to the USB port once the firmware has sent on it,
- *   else to UART0. `uart(1)`, `uart(2)` are UART1 and UART2. `i2c(0)`, `i2c(1)` the two I2C
+ *   DevKitC-1's USB-UART port), the USB-Serial-JTAG port (its USB port: a `CDCOnBoot=cdc`
+ *   build's `Serial`) and, BT134, the USB-OTG controller's CDC-ACM port the bench's host opened
+ *   (a "USB-OTG (TinyUSB)" build's `Serial`) together; typed bytes go to the OTG port while it is
+ *   open, else to the USB-Serial-JTAG port once the firmware has sent on it, else to UART0. What
+ *   the host can't drive (a HID, MSC or MIDI interface) is named once (`esp32s3-usb-device`, info). `uart(1)`, `uart(2)` are UART1 and UART2. `i2c(0)`, `i2c(1)` the two I2C
  *   controllers, `spi(2)` SPI2 (FSPI). A bus's `pins()` follow the firmware's routing, and before
  *   that the Arduino variant's defaults (SDA 8, SCL 9; SCK 12, MOSI 11, MISO 13).
  * - The ROM: `createEsp32s3Mcu({ rom })` checks the bytes against rom-manifest's SHA-256 and parses
@@ -38,10 +40,10 @@
  * - Sleep (BT128): deep and light sleep run as IDF drives RTC_CNTL (soc.ts); a deep sleep's wake
  *   boots a fresh chip like a system reset, keeping the RTC domain, and doesn't count toward the
  *   reboot-loop guard. `sleepState()` (the bench's `Sleeper`) says how the chip sleeps and what wakes it.
- * - Not on the S3 yet: PSRAM, USB-OTG.
+ * - PSRAM (BT130) is the build's: soc.ts's `psram` answers the quad or octal driver.
  */
 
-import type { BoardSpec, Debuggable, FirmwareImage, I2cController, I2cDevice, Level, Mcu, McuDebug, McuPin, McuSleep, NetState, NonVolatile, NvMemory, PinMode, Problem, RunResult, Sleeper, SpiController, SpiDevice, SymbolTable, UartPort, WifiRadio, WifiStation } from '@benchtop/core';
+import type { BoardSpec, PartProps, Debuggable, FirmwareImage, I2cController, I2cDevice, Level, Mcu, McuDebug, McuPin, McuSleep, NetState, NonVolatile, NvMemory, PinMode, Problem, RunResult, Sleeper, SpiController, SpiDevice, SymbolTable, UartPort, WifiRadio, WifiStation } from '@benchtop/core';
 import { describeFirmwareFormat, macFromName, SectorMemory } from '@benchtop/core';
 import { Hle, sha256Hex, type SocProblem, WifiDriver } from '@benchtop/esp32';
 import type { SpiAttachment } from '@benchtop/esp32c3';
@@ -58,6 +60,8 @@ export const CODE_S3_FLOATING_INPUT = 'esp32s3-floating-input';
 /** A system reset the firmware asked for (ESP.restart(), a panic's restart) or a watchdog's. */
 export const CODE_S3_REBOOT = 'esp32s3-reboot';
 export const CODE_S3_WIFI_NO_SYMBOLS = 'esp32s3-wifi-no-symbols';
+/** BT134: the bench's USB host on the OTG port — an interface it doesn't drive, a failed enumeration. */
+export const CODE_S3_USB_DEVICE = 'esp32s3-usb-device';
 export const CODE_S3_WIFI_UNSUPPORTED = 'esp32s3-wifi-unsupported';
 
 /**
@@ -87,7 +91,16 @@ export interface Esp32s3McuOptions {
   rom?: Uint8Array;
   /** The eFuse's factory MAC (34:85:18:00:53:01 by default). */
   mac?: readonly number[];
+  /** BT135: the module's PSRAM (soc.ts's Esp32s3SocOptions.psram; 'auto' by default). */
+  psram?: 'auto' | 'none' | 'quad' | 'octal';
 }
+
+/**
+ * BT135: the modules an ESP32-S3 board can carry (its `module` prop): `auto` — the build decides
+ * (BT130) —, `N8` (no PSRAM), `N8R2` (2 MB quad), `N8R8` (8 MB octal), and the PSRAM each has.
+ */
+export const S3_MODULES = { auto: 'auto', N8: 'none', N8R2: 'quad', N8R8: 'octal' } as const;
+export const CODE_S3_MODULE = 'esp32s3-module';
 
 const parsedRoms = new WeakMap<Uint8Array, S3Rom | string>();
 
@@ -233,10 +246,11 @@ class S3Uart implements UartPort {
     this.listeners.push(listener);
   }
 
-  /** Bytes for the firmware: port 0 feeds the USB-Serial-JTAG port once the firmware has sent on it, else UART0. */
+  /** Bytes for the firmware: port 0 feeds the open USB-OTG CDC port, else the USB-Serial-JTAG port once the firmware has sent on it, else UART0. */
   receive(bytes: Uint8Array): void {
     const soc = this.mcu.soc;
-    if (this.index === 0 && this.mcu.usbTalked) soc.usb.receive(bytes);
+    if (this.index === 0 && soc.usbOtg.host.ports.length > 0) soc.usbOtg.send(bytes);
+    else if (this.index === 0 && this.mcu.usbTalked) soc.usb.receive(bytes);
     else soc.uarts[this.index].receive(bytes);
   }
 
@@ -291,6 +305,8 @@ export class Esp32s3Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sl
   private radio: WifiRadio | null = null;
   private radioReported = false;
   private readonly mac: readonly number[] | undefined;
+  /** BT135: the module's PSRAM. */
+  private readonly psram: 'auto' | 'none' | 'quad' | 'octal';
   /** The board's SPI flash, kept across resets (null until an image boots), and the view hosts get of it. */
   private flashBytes: Uint8Array | null = null;
   private nvm: SectorMemory | null = null;
@@ -304,6 +320,7 @@ export class Esp32s3Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sl
   constructor(options: Esp32s3McuOptions = {}) {
     this.rom = romFrom(options.rom);
     this.mac = options.mac;
+    this.psram = options.psram ?? 'auto';
     const pins = new Map<string, McuPin>();
     for (let g = 0; g < S3_PADS; g++) this.byGpio.push(undefined);
     for (const g of S3_MCU_GPIOS) {
@@ -492,7 +509,7 @@ export class Esp32s3Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sl
   }
 
   private buildSoc(time?: number): Esp32s3Soc {
-    const soc = new Esp32s3Soc({ ...(this.mac === undefined ? {} : { mac: this.mac }), ...(time === undefined ? {} : { time }) });
+    const soc = new Esp32s3Soc({ ...(this.mac === undefined ? {} : { mac: this.mac }), ...(time === undefined ? {} : { time }), psram: this.psram });
     soc.cores[0].breakpoints = this.breakpoints;
     soc.cores[1].breakpoints = this.breakpoints;
     soc.uarts[0].onTx = (byte) => this.uarts[0].emit(byte);
@@ -503,6 +520,10 @@ export class Esp32s3Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sl
       this.usbTalked = true;
       this.uarts[0].emit(byte);
     };
+    soc.usbOtg.host.onData = (bytes, length) => {
+      for (let i = 0; i < length; i++) this.uarts[0].emit(bytes[i]);
+    };
+    soc.usbOtg.host.onNote = (message) => this.report('info', CODE_S3_USB_DEVICE, 0, message);
     soc.problems.listener = (problem) => this.problemListener?.(problem);
     soc.pads.onPin = (g) => this.pinChanged(g);
     soc.gpio.onFloatingRead = (g) => this.floatingRead(g);
@@ -576,11 +597,14 @@ export class Esp32s3Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sl
 }
 
 /** The bench's MCU factory for ESP32-S3 boards (`BenchEnv.createMcu`), as esp32c3McuFactory is for the C3. */
-export function esp32s3McuFactory(rom: Uint8Array | undefined): (board: BoardSpec, partId: string, report?: (problem: Problem) => void) => Mcu | undefined {
-  return (board, partId, report) => {
+export function esp32s3McuFactory(rom: Uint8Array | undefined): (board: BoardSpec, partId: string, report?: (problem: Problem) => void, props?: PartProps) => Mcu | undefined {
+  return (board, partId, report, props) => {
     if (board.mcu !== 'esp32s3') return undefined;
     const mac = macFromName(partId, [0x34, 0x85, 0x18]);
-    const mcu = createEsp32s3Mcu(rom === undefined ? { mac } : { rom, mac });
+    const module = props?.module ?? 'auto';
+    const psram = typeof module === 'string' && Object.hasOwn(S3_MODULES, module) ? S3_MODULES[module as keyof typeof S3_MODULES] : undefined;
+    if (psram === undefined) report?.({ severity: 'warning', code: CODE_S3_MODULE, message: `Unknown ESP32-S3 module ${JSON.stringify(module)}: one of ${Object.keys(S3_MODULES).join(', ')}. Running as auto.`, parts: [partId] });
+    const mcu = createEsp32s3Mcu(rom === undefined ? { mac, psram: psram ?? 'auto' } : { rom, mac, psram: psram ?? 'auto' });
     if (report !== undefined) {
       const seen = new Map<string, { messages: string[]; count: number }>();
       let soc = mcu.soc;

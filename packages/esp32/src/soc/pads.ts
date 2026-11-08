@@ -56,9 +56,11 @@ const DIRECT_IN: ReadonlyMap<number, number> = new Map([
 ]);
 /**
  * Peripheral output signals that idle high (gpio_sig_map.h): UART TXD (U0TXD 14, U1TXD 17, U2TXD
- * 198) and the I2C lines (I2CEXT0 SCL/SDA 29/30, I2CEXT1 95/96 — open drain, so a released line).
+ * 198), the I2C lines (I2CEXT0 SCL/SDA 29/30, I2CEXT1 95/96 — open drain, so a released line) and
+ * BT133's SPICS1 (6), the PSRAM's chip select, which a PSRAM build routes to GPIO16 (its clock,
+ * SPICLK, to GPIO17), as a WROVER module wires them.
  */
-export const IDLE_HIGH_SIGNALS: ReadonlySet<number> = new Set([14, 17, 198, 29, 30, 95, 96]);
+export const IDLE_HIGH_SIGNALS: ReadonlySet<number> = new Set([14, 17, 198, 29, 30, 95, 96, 6]);
 
 export class Pads {
   readonly mode = new Uint8Array(40);

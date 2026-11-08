@@ -11,6 +11,9 @@
  * Header pins map to GPIOs: IO<n> → GPIO<n>, TX/RX → GPIO43/GPIO44 (UART0, which the board's
  * USB-UART bridge carries to the serial monitor). 3V3 is the 3.3 V supply; 5V is USB's 5 V while
  * prop `usbPowered` is true (the default), else an input; the GNDs and the 3V3s are each one bus.
+ * BT135: prop `module` — `auto` (the default), `N8`, `N8R2` or `N8R8` (boards/modules.ts) — tells
+ * the MCU factory which PSRAM the board's module has (on an R8 module the octal PSRAM also takes
+ * GPIO33–37; IO35–37 are still on the header).
  * RST (CHIP_PU) isn't modeled and maps to no GPIO.
  *
  * Model: the board's RGB LED is a WS2812 on GPIO48 (v1.0; v1.1 moved it to GPIO38 — Arduino-ESP32
@@ -61,9 +64,9 @@ export const esp32S3DevkitC1 = definePart({
   size: { w: WIDTH, h: HEIGHT },
   pins,
   buses: [pins.filter((p) => p.name.startsWith('GND')).map((p) => p.name), ['3V3.1', '3V3.2']],
-  defaults: { usbPowered: true },
+  defaults: { usbPowered: true, module: 'auto' },
   board: { mcu: 'esp32s3', pinMap },
-  createModel(ctx: PartContext, props: { usbPowered: boolean }) {
+  createModel(ctx: PartContext, props: { usbPowered: boolean; module: string }) {
     if (props.usbPowered !== false) ctx.pin('5V').driveVolts(5, Strength.supply);
     // The RGB LED: a WS2812 whose DIN is GPIO48 (the board's IO48 header pin is the same net).
     const din = ctx.pin(`IO${S3_DEVKITC1_RGB_GPIO}`);

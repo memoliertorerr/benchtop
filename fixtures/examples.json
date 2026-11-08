@@ -911,6 +911,19 @@
     "description": "An ESP32-S3 with 8 MB of octal PSRAM keeps a whole 240×320 frame (150 KB) in PSRAM, redraws it — color bands and a sliding square — and pushes it to an ILI9341 in one go. Its `// benchtop: psram` line builds it with PSRAM."
   },
   {
+    "id": "esp32s3-usb-rgb",
+    "title": "ESP32-S3 USB serial RGB LED",
+    "category": "ESP32-S3",
+    "project": "esp32s3-usb-rgb",
+    "boards": {
+      "s3": {
+        "firmware": "esp32s3/usb-rgb.bin",
+        "sketch": "esp32s3/usb-rgb"
+      }
+    },
+    "description": "Serial over the S3's own USB (USB-OTG and TinyUSB, opened by the bench's USB host): type red, green, blue, white or off in the serial monitor and the DevKitC-1's RGB LED follows. Its `// benchtop: usb-otg` line builds it in that USB mode."
+  },
+  {
     "id": "esp32-wifi-webserver",
     "title": "ESP32 WiFi web server",
     "category": "WiFi",
@@ -1347,5 +1360,18 @@
       }
     },
     "description": "The Uno pings ten times a second; the ESP32 copies what its Serial2 hears to its own serial monitor."
+  },
+  {
+    "id": "esp32-psram-frame",
+    "title": "ESP32 WROVER PSRAM frame buffer",
+    "category": "ESP32",
+    "project": "esp32-psram-frame",
+    "boards": {
+      "esp": {
+        "firmware": "esp32/psram-frame.bin",
+        "sketch": "esp32/psram-frame"
+      }
+    },
+    "description": "An ESP32 on a WROVER-E module (the board's module prop) keeps a whole 240×320 frame (150 KB) in its PSRAM, redraws it — color bands and a sliding square — and pushes it to an ILI9341 in one go. Its `// benchtop: psram` line builds it with PSRAM."
   }
 ]

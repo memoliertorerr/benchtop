@@ -14,6 +14,11 @@
  * IRAM0/IRAM1/IROM0 and DROM0). The cache's contents aren't modeled — a mapped access reads
  * flash — but its timing is (BT33: tags and miss stalls in bus.ts).
  *
+ * BT133: external RAM (PSRAM) has its own entries (IDF's cache_sram_mmu_set): VAddr
+ * 0x3F800000–0x3FBFFFFF through entries 1152–1279, one per 32 KB (DPORT_x_CMMU_SRAM_PAGE_MODE 0,
+ * the only page size IDF uses), each a 32 KB page number of the PSRAM chip, bit 8 invalid; the
+ * region's mask bit is DRAM1 (bit 3 of DPORT_x_CACHE_CTRL1), which psram_cache_init clears.
+ *
  * The DPORT registers that matter here (boot remap, cache control and mux) live in
  * DportRegisters, which tells the buses when they change; the buses cache translations per
  * 64 KB page and drop them on any table or control write.
@@ -44,6 +49,10 @@ export const CACHE_MASK = { IRAM0: 1 << 0, IRAM1: 1 << 1, IROM0: 1 << 2, DRAM1: 
 
 /** Why a flash access can't be served (translate's negative results). */
 export const MMU_FAULT = { DISABLED: -1, MASKED: -2, INVALID: -3, BEYOND_FLASH: -4, UNMAPPED: -5 } as const;
+/** BT133: the PSRAM window and its first MMU entry (32 KB each). */
+export const PSRAM_VADDR = 0x3f800000;
+export const PSRAM_VADDR_END = 0x3fc00000;
+export const PSRAM_FIRST_ENTRY = 1152;
 
 /** DPORT's register file, telling listeners when a cache, MMU-related or remap register changes. */
 export class DportRegisters extends RegisterFile {
@@ -136,6 +145,37 @@ export class FlashMmu {
     if ((value & MMU_INVALID) !== 0) return MMU_FAULT.INVALID;
     const offset = (value & 0xff) * 0x10000;
     return offset + 0x10000 <= flashSize ? offset : MMU_FAULT.BEYOND_FLASH;
+  }
+
+  /**
+   * BT133: the PSRAM byte offset of the 32 KB page holding `v` (0x3F800000–0x3FBFFFFF) for CPU
+   * `cpu`, or an MMU_FAULT value. `psramSize` bounds the page (0: no PSRAM — BEYOND_FLASH).
+   */
+  translatePsram(cpu: number, v: number, psramSize: number): number {
+    if (v < PSRAM_VADDR || v >= PSRAM_VADDR_END) return MMU_FAULT.UNMAPPED;
+    if (!this.dport.cacheEnabled(cpu)) return MMU_FAULT.DISABLED;
+    if ((this.dport.cacheMask(cpu) & CACHE_MASK.DRAM1) !== 0) return MMU_FAULT.MASKED;
+    const value = this.table[PSRAM_FIRST_ENTRY + ((v - PSRAM_VADDR) >>> 15) + (cpu === 0 ? 0 : APP_ENTRY_OFFSET)];
+    if ((value & MMU_INVALID) !== 0) return MMU_FAULT.INVALID;
+    const offset = (value & 0xff) * 0x8000;
+    return offset + 0x8000 <= psramSize ? offset : MMU_FAULT.BEYOND_FLASH;
+  }
+
+  /** BT133: a sentence naming why `translatePsram` failed. */
+  describePsram(cpu: number, v: number, fault: number): string {
+    const who = cpu === 0 ? 'PRO' : 'APP';
+    const at = `0x${(v >>> 0).toString(16).padStart(8, '0')}`;
+    const entry = PSRAM_FIRST_ENTRY + ((v - PSRAM_VADDR) >>> 15);
+    switch (fault) {
+      case MMU_FAULT.DISABLED:
+        return `PSRAM access to ${at} with the ${who} cache disabled (DPORT_${who}_CACHE_CTRL bit 3 clear)`;
+      case MMU_FAULT.MASKED:
+        return `PSRAM access to ${at}: external RAM masked in DPORT_${who}_CACHE_CTRL1 (DRAM1, bit 3) — the PSRAM isn't started (a build without the board menu's PSRAM option?)`;
+      case MMU_FAULT.INVALID:
+        return `PSRAM access to ${at}: ${who} MMU entry ${entry} is invalid (0x${this.table[entry + (cpu === 0 ? 0 : APP_ENTRY_OFFSET)].toString(16)})`;
+      default:
+        return `PSRAM access to ${at}: ${who} MMU entry ${entry} maps past the end of the PSRAM`;
+    }
   }
 
   /** A sentence naming why `translate` failed (for the fault message). */

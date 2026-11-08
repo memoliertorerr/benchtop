@@ -12,10 +12,15 @@
  * address is ADDR >> 8 — spi_flash_ll_set_usr_address — and for a 32-bit phase the low byte is
  * the read-mode byte), dummy cycles (ignored), MOSI (USER bit 27, MOSI_DLEN + 1 bits from W0…,
  * low byte first) and MISO (USER bit 28, MISO_DLEN + 1 bits into W0…).
+ *
+ * BT133: a USR transaction goes to the second chip — the PSRAM, `cs1` — while SPI_PIN (0x34) has
+ * CS0_DIS (bit 0) set and CS1_DIS (bit 1) clear, as the psram driver's psram_cmd_recv_start sets
+ * them around each command (and restores after).
  */
 
 import type { FlashChip } from './flash.ts';
 import { RegisterFile } from './periph.ts';
+import type { QuadPsram } from './psram.ts';
 
 export const SPI1_BASE = 0x3ff42000;
 export const SPI0_BASE = 0x3ff43000;
@@ -27,6 +32,7 @@ const USER1 = 0x20;
 const USER2 = 0x24;
 const MOSI_DLEN = 0x28;
 const MISO_DLEN = 0x2c;
+const PIN = 0x34;
 const W0 = 0x80;
 const EXT2 = 0xf8;
 const BIT = {
@@ -49,6 +55,8 @@ export class SpiFlashController extends RegisterFile {
   private readonly out = new Uint8Array(64);
   /** Commands run (for reports). */
   commands = 0;
+  /** BT133: the chip on CS1 (a WROVER's PSRAM), or null. */
+  cs1: QuadPsram | null = null;
 
   constructor(flash: FlashChip) {
     super(SPI1_BASE);
@@ -103,6 +111,12 @@ export class SpiFlashController extends RegisterFile {
     const mosiLength = (user & (1 << 27)) !== 0 ? Math.min(((this.regs[MOSI_DLEN >>> 2] & 0xffffff) + 8) >>> 3, 64) : 0;
     const misoLength = (user & (1 << 28)) !== 0 ? Math.min(((this.regs[MISO_DLEN >>> 2] & 0xffffff) + 8) >>> 3, 64) : 0;
     this.loadWords(this.buffer, mosiLength);
+    if (this.cs1 !== null && (this.regs[PIN >>> 2] & 3) === 1) {
+      this.out.fill(0, 0, misoLength);
+      if (command >= 0) this.cs1.command(command, address, this.buffer.subarray(0, mosiLength), this.out.subarray(0, misoLength));
+      if (misoLength > 0) this.storeWords(this.out, misoLength);
+      return;
+    }
     if (command >= 0) this.flash.transaction(command, address, this.buffer, mosiLength, this.out, misoLength);
     else this.out.fill(0xff, 0, misoLength);
     if (misoLength > 0) this.storeWords(this.out, misoLength);
