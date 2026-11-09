@@ -22,7 +22,7 @@ export interface DiodeSpec {
 /**
  * BT166: a capacitor between two pins. BT172: optionally in series with `seriesOhms` and shunted by
  * `parallelOhms` (a leak) — a DC motor is its winding in series with the back-EMF's capacitor and
- * the friction's leak.
+ * the friction's leak. BT176: and an inductance in series (`henries`).
  */
 export interface CapacitorSpec {
   a: string;
@@ -31,6 +31,11 @@ export interface CapacitorSpec {
   farads: number;
   seriesOhms?: number;
   parallelOhms?: number;
+  /**
+   * BT176: an inductance in the same series chain (a motor's winding, a relay's coil); with
+   * `farads` 0 and no `parallelOhms` the branch is a plain R–L.
+   */
+  henries?: number;
 }
 
 /**

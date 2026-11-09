@@ -9,8 +9,10 @@
  * low (the L298's typical saturation drops at 1 A) — so IN1 ≠ IN2 turns a motor one way or the
  * other and IN1 = IN2 brakes it (both terminals together); disabled or unpowered, the outputs are
  * released and a motor coasts. The 5 V regulator (`regulator` jumper, true as shipped) drives +5V
- * while VS is at least 7 V. Inputs read TTL levels: high at 2.3 V or more over GND. The module's
- * flyback diodes and current sensing aren't modeled. Our own drawing (apps/web views/motors.ts).
+ * while VS is at least 7 V. Inputs read TTL levels: high at 2.3 V or more over GND. BT177: the
+ * module's eight flyback diodes are the analog layer's (`analogSpecFor`: each OUT to +12V, GND to
+ * each OUT), so a disabled bridge returns an inductive load's current to the supply. Current sensing
+ * isn't modeled. Our own drawing (apps/web views/motors.ts).
  */
 
 import { type PartProps, Strength } from '@benchtop/core';

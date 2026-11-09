@@ -202,6 +202,75 @@ describe('a capacitor with series and parallel resistance (BT172)', () => {
   });
 });
 
+describe('inductance in the element chain (BT176)', () => {
+  /** Net 1 driven through 25 Ω; one element from net 1 to GND; an optional diode GND → net 1 (a flyback). */
+  function rig(element: { farads: number; seriesOhms: number; henries: number }, flyback: boolean) {
+    const links: { a: number; b: number; kind: 'resistive' }[] = [];
+    const capacitors = [{ a: 1, b: 0, ...element }];
+    const diodes = flyback ? [{ anode: 0, cathode: 1, vf: 0.65, rs: 0.3 }] : [];
+    const { islands, netIsland } = buildIslands({ netCount: 2, links, diodes: diodes.map((d) => ({ a: d.anode, b: d.cathode })), capacitors, fixed: (net) => net === 0 });
+    const layer = new AnalogLayer(2, islands, netIsland, links, diodes, capacitors);
+    const { h, drivers, published } = host(new Map([[0, 0]]));
+    let now = 0;
+    let planned = Number.POSITIVE_INFINITY;
+    layer.clock = () => now;
+    layer.plan = (_i, at) => (planned = at);
+    return {
+      layer,
+      published,
+      drive(t: number, volts: number | null): void {
+        now = t;
+        if (volts === null) drivers.delete(1);
+        else drivers.set(1, [1 / 25, volts / 25]);
+        layer.markDirty(0);
+        layer.solveDirty(h);
+      },
+      runTo(t: number, check: (t: number) => void): void {
+        while (planned <= t) {
+          now = planned;
+          planned = Number.POSITIVE_INFINITY;
+          layer.step(0, h);
+          check(now);
+        }
+        now = t;
+      },
+    };
+  }
+
+  it('an R–L branch’s current rises as (V/R)(1 − e^(−tR/L)), and freewheels down through a flyback diode when the source lets go', () => {
+    const r = rig({ farads: 0, seriesOhms: 75, henries: 10e-3 }, true);
+    r.drive(0, 5);
+    expect(r.layer.inductorAmps(0)).toBeCloseTo(0, 6); // an inductor's current can't jump
+    const final = 5 / 100;
+    const tau = (10e-3 / 100) * 1e9;
+    r.runTo(10 * tau, (t) => expect(Math.abs(r.layer.inductorAmps(0) - final * (1 - Math.exp(-t / tau)))).toBeLessThanOrEqual(0.005 * final));
+    // The source lets go: the current keeps flowing, now round the diode, and dies away.
+    const start = 10 * tau;
+    r.drive(start, null);
+    expect(r.layer.inductorAmps(0)).toBeCloseTo(final, 3);
+    expect(r.published.get(1)?.volts).toBeLessThan(-0.6); // the diode's drop, not a kick
+    expect(r.published.get(1)?.volts).toBeGreaterThan(-1);
+    r.runTo(start + 10 * tau, () => {});
+    expect(Math.abs(r.layer.inductorAmps(0))).toBeLessThan(0.002 * final);
+  });
+
+  it('an RLC branch rings at its damped frequency: V[1 − e^(−αt)(cos ωt + (α/ω) sin ωt)] on the capacitor', () => {
+    // 25 Ω source + 5 Ω series, 10 mH, 1 µF: ω0 = 10,000 rad/s, α = R/2L = 1,500/s.
+    const r = rig({ farads: 1e-6, seriesOhms: 5, henries: 10e-3 }, false);
+    const alpha = 30 / (2 * 10e-3);
+    const w = Math.sqrt(1e8 - alpha * alpha);
+    const expected = (t: number): number => 5 * (1 - Math.exp(-alpha * t) * (Math.cos(w * t) + (alpha / w) * Math.sin(w * t)));
+    r.drive(0, 5);
+    let overshoot = 0;
+    r.runTo(3e6, (t) => {
+      const v = r.layer.capacitorVolts(0);
+      expect(Math.abs(v - expected(t / 1e9))).toBeLessThanOrEqual(0.05); // 1 % of the step
+      overshoot = Math.max(overshoot, v);
+    });
+    expect(overshoot).toBeGreaterThan(5 * (1 + 0.9 * Math.exp((-alpha * Math.PI) / w))); // ≈ 62 % over
+  });
+});
+
 describe('capacitors on a bench (BT166)', () => {
   const BOARD_PINS = ['D1', 'D2'];
   const board = fakeBoard('fake-board', BOARD_PINS);

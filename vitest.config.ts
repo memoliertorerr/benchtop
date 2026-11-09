@@ -18,6 +18,7 @@ const QUIET = [
   'packages/core/src/signals/resolver.test.ts', // 1,000,000 toggles in under 2 s (2026-11-04: flaked under load)
   'packages/core/src/netlist/contacts.test.ts', // a 2,000-part bench's contacts in under 100 ms (2026-11-04: flaked under load)
   'packages/parts/src/integration/rc-speed.test.ts', // BT170 a moving capacitor's CPU cost
+  'packages/parts/src/integration/inductive-speed.test.ts', // BT179 a motor's inductance under PWM
   'packages/parts/src/integration/sleep.test.ts', // BT121/BT128 an hour asleep in under 5 s (BT128: the S3's flaked under load)
 ];
 

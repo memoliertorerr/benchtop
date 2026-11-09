@@ -93,13 +93,17 @@ export interface TransistorInstance {
   iMax?: number;
 }
 
-/** BT166: a capacitor between nets `a` and `b`; BT172: in series with `seriesOhms`, shunted by `parallelOhms`. */
+/**
+ * BT166: a capacitor between nets `a` and `b`; BT172: in series with `seriesOhms`, shunted by
+ * `parallelOhms`; BT176: with `henries` in the same series chain (`farads` 0 and no leak: an R–L).
+ */
 export interface CapacitorInstance {
   a: number;
   b: number;
   farads: number;
   seriesOhms?: number;
   parallelOhms?: number;
+  henries?: number;
 }
 
 export const STRONG_OHMS = 25;
@@ -119,6 +123,8 @@ const LOW_FRACTION = 0.3;
 
 /** BT166: the instant after an input change, as a backward-Euler step (seconds). */
 export const INSTANT_STEP_S = 1e-9;
+/** BT176: the shortest time constant the step size follows, seconds. */
+export const MIN_TAU_S = 1e-6;
 /** BT166: the first step after a change is the island's shortest time constant over this. */
 export const STEP_FRACTION = 5;
 /** BT166: the longest step, seconds. */
@@ -199,6 +205,17 @@ export class AnalogLayer {
   /** BT172: the series conductance (Infinity: none) and the leak's (0: none). */
   private readonly capGs: Float64Array;
   private readonly capGp: Float64Array;
+  /** BT176: the series inductance (0: none), its current (the branch's, a → b) and voltage. */
+  private readonly capL: Float64Array;
+  private readonly capIL: Float64Array;
+  private readonly capVL: Float64Array;
+  /** BT176: the chain the last `chain()` call worked out: its resistance and Thevenin pieces. */
+  private chainR = 0;
+  private chainRl = 0;
+  private chainEl = 0;
+  private chainRc = 0;
+  private chainEc = 0;
+  private chainKc = 0;
   private readonly isMoving: Uint8Array;
   private readonly isFast: Uint8Array;
   /** The time (ns) an island's capacitor state holds for. */
@@ -214,6 +231,9 @@ export class AnalogLayer {
   private readonly inGV: Float64Array;
   private readonly inClosed: Uint8Array;
   private readonly inOhms: Float64Array;
+  /** BT177: and whether each of its nets was fixed by a supply, at what volts. */
+  private readonly inFixed: Uint8Array;
+  private readonly inFixedV: Float64Array;
   // BT168: transistors — their nets, models and states (BJT: 0 off, 1 active, 2 saturated;
   // MOSFET: 0 off, 1 on with conductance tG).
   private readonly tKind: Uint8Array;
@@ -279,6 +299,9 @@ export class AnalogLayer {
     this.capI = new Float64Array(capacitors.length);
     this.capGs = Float64Array.from(capacitors.map((c) => (c.seriesOhms !== undefined && c.seriesOhms > 0 ? 1 / c.seriesOhms : Number.POSITIVE_INFINITY)));
     this.capGp = Float64Array.from(capacitors.map((c) => (c.parallelOhms !== undefined && c.parallelOhms > 0 ? 1 / c.parallelOhms : 0)));
+    this.capL = Float64Array.from(capacitors.map((c) => (c.henries !== undefined && c.henries > 0 ? c.henries : 0)));
+    this.capIL = new Float64Array(capacitors.length);
+    this.capVL = new Float64Array(capacitors.length);
     this.isMoving = new Uint8Array(islands.length);
     this.isFast = new Uint8Array(islands.length);
     this.tAt = new Float64Array(islands.length);
@@ -288,6 +311,8 @@ export class AnalogLayer {
     this.inG = new Float64Array(netCount);
     this.inGV = new Float64Array(netCount);
     this.inClosed = new Uint8Array(links.length);
+    this.inFixed = new Uint8Array(netCount);
+    this.inFixedV = new Float64Array(netCount);
     this.inOhms = new Float64Array(links.length);
     this.tKind = Uint8Array.from(transistors.map((t) => t.kind));
     this.tX = Int32Array.from(transistors.map((t) => t.x));
@@ -370,6 +395,8 @@ export class AnalogLayer {
     this.tOver.fill(0);
     this.capV.fill(0);
     this.capI.fill(0);
+    this.capIL.fill(0);
+    this.capVL.fill(0);
     this.isMoving.fill(0);
     this.moving = 0;
     this.isFast.fill(0);
@@ -386,6 +413,11 @@ export class AnalogLayer {
   /** BT166: capacitor `k`'s voltage (a − b). */
   capacitorVolts(k: number): number {
     return this.capV[k];
+  }
+
+  /** BT176: element `k`'s inductor current (a → b; 0 without inductance). */
+  inductorAmps(k: number): number {
+    return this.capIL[k];
   }
 
   /**
@@ -477,7 +509,7 @@ export class AnalogLayer {
 
   /** An element end as a local node index, or −1 for a fixed net. */
   private node(net: number, host: AnalogHost): number {
-    return host.isFixed(net) ? -1 : this.local[net];
+    return this.isFixed(net, host) ? -1 : this.local[net];
   }
 
   private solveIsland(index: number, host: AnalogHost): void {
@@ -582,6 +614,8 @@ export class AnalogLayer {
       const net = island.nets[i];
       this.inG[net] = host.driverG(net);
       this.inGV[net] = host.driverGV(net);
+      this.inFixed[net] = host.isFixed(net) ? 1 : 0;
+      this.inFixedV[net] = host.fixedVolts(net);
     }
     for (let k = 0; k < island.resistors.length; k++) {
       const link = island.resistors[k];
@@ -591,6 +625,19 @@ export class AnalogLayer {
       const link = island.switches[k];
       this.inClosed[link] = host.isLinkClosed(link) ? 1 : 0;
     }
+  }
+
+  /**
+   * BT177: whether a net is fixed, and at what — for an island's own nets, as the kept inputs say
+   * while catching up (a bridge that just released its outputs was still driving them then); the
+   * nets around an island are supplies and read live.
+   */
+  private isFixed(net: number, host: AnalogHost): boolean {
+    return this.kept && this.netIsland[net] >= 0 ? this.inFixed[net] === 1 : host.isFixed(net);
+  }
+
+  private fixedVolts(net: number, host: AnalogHost): number {
+    return this.kept && this.netIsland[net] >= 0 ? this.inFixedV[net] : host.fixedVolts(net);
   }
 
   private driverG(net: number, host: AnalogHost): number {
@@ -626,12 +673,12 @@ export class AnalogLayer {
       for (let i = 0; i < n; i++) if (this.reached[i] === 0) solver.conductance(i, -1, GMIN);
       for (let i = 0; i < n; i++) {
         const net = island.nets[i];
-        if (host.isFixed(net)) {
+        if (this.isFixed(net, host)) {
           // A supply a part model drives (a battery, BT83): fixed at run time, after the islands
           // were built. Its row pins it to its volts; its neighbours already see it as fixed.
           const li = this.local[net];
           solver.conductance(li, -1, 1);
-          solver.current(li, host.fixedVolts(net));
+          solver.current(li, this.fixedVolts(net, host));
           continue;
         }
         const g = this.driverG(net, host);
@@ -666,7 +713,11 @@ export class AnalogLayer {
       }
       if (island.transistors.length > 0) this.stampTransistors(island, host);
       if (island.capacitors.length > 0) {
-        if (round === 0 && this.hS === INSTANT_STEP_S) this.estimateTau(index, host);
+        // Every round, so the converged one's states (a flyback diode turning on) set τ (BT176) —
+        // and on every step, not only after a change (BT177): a diode that stops conducting mid-way
+        // leaves a coil on its leaks alone, τ far below h, and the next step must be backward Euler
+        // or the trapezoidal rule rings.
+        this.estimateTau(index, host);
         this.stampCapacitors(island, host);
       }
       if (!solver.solve()) return false;
@@ -715,11 +766,19 @@ export class AnalogLayer {
       // BT172: through its series resistance, plus its own leak.
       const gs = this.capGs[c];
       const g = (gs === Number.POSITIVE_INFINITY ? outside : outside === Number.POSITIVE_INFINITY ? gs : (outside * gs) / (outside + gs)) + this.capGp[c];
-      if (!(g > 1e-6)) continue; // nothing (but leaks) charges it
+      if (this.capL[c] > 0) {
+        // BT176: the inductor's L over the loop's resistance (its series one and the outside's).
+        const loop = (gs === Number.POSITIVE_INFINITY ? 0 : 1 / gs) + (outside === Number.POSITIVE_INFINITY ? 0 : 1 / outside);
+        const tl = this.capL[c] / (loop > 1e-3 ? loop : 1e-3);
+        if (tl < tau) tau = tl;
+      }
+      if (!(this.capF[c] > 0) || !(g > 1e-6)) continue; // nothing (but leaks) charges it
       const t = this.capF[c] / g;
       if (t < tau) tau = t;
     }
-    this.tauS[index] = tau;
+    // BT176: no shorter than MIN_TAU_S — a coil with nothing but leaks to carry its current would
+    // otherwise ask for picosecond steps; backward Euler takes anything faster in its stride.
+    this.tauS[index] = tau < MIN_TAU_S ? MIN_TAU_S : tau;
   }
 
   /**
@@ -781,7 +840,7 @@ export class AnalogLayer {
       solver.entry(la, lp, gm);
       solver.entry(lb, lp, -gm);
     } else {
-      const vp = host.fixedVolts(p);
+      const vp = this.fixedVolts(p, host);
       solver.current(la, -gm * vp);
       solver.current(lb, gm * vp);
     }
@@ -789,7 +848,7 @@ export class AnalogLayer {
       solver.entry(la, ln, -gm);
       solver.entry(lb, ln, gm);
     } else {
-      const vn = host.fixedVolts(n);
+      const vn = this.fixedVolts(n, host);
       solver.current(la, gm * vn);
       solver.current(lb, -gm * vn);
     }
@@ -855,6 +914,16 @@ export class AnalogLayer {
     const tr = this.mode === MODE_TR;
     for (let k = 0; k < island.capacitors.length; k++) {
       const c = island.capacitors[k];
+      if (this.capL[c] > 0) {
+        // BT176: the whole chain as one conductance and one current.
+        this.chain(c, tr);
+        const g = 1 / this.chainR;
+        const amps = g * (this.chainEl + this.chainEc);
+        this.stamp(this.capA[c], this.capB[c], g, host);
+        solver.current(this.node(this.capA[c], host), amps);
+        solver.current(this.node(this.capB[c], host), -amps);
+        continue;
+      }
       const kc = (tr ? 2 : 1) * (this.capF[c] / this.hS);
       const gc = kc + this.capGp[c];
       const hist = kc * this.capV[c] + (tr ? this.capI[c] : 0);
@@ -877,6 +946,29 @@ export class AnalogLayer {
     for (let k = 0; k < island.capacitors.length; k++) {
       const c = island.capacitors[k];
       const vab = this.volts(this.capA[c], host) - this.volts(this.capB[c], host);
+      if (this.capL[c] > 0) {
+        // BT176: the branch current from the terminals, then each piece's state from it.
+        this.chain(c, tr);
+        const i = (vab - this.chainEl - this.chainEc) / this.chainR;
+        const di = i - this.capIL[c];
+        const vl = this.chainRl * i + this.chainEl;
+        const dvl = vl - this.capVL[c];
+        this.capIL[c] = i;
+        this.capVL[c] = vl;
+        let m = (di < 0 ? -di : di) * (this.capGs[c] === Number.POSITIVE_INFINITY ? 1 : 1 / this.capGs[c]);
+        const mv = dvl < 0 ? -dvl : dvl;
+        if (mv > m) m = mv;
+        if (this.chainRc > 0) {
+          const v = this.chainRc * i + this.chainEc;
+          const dv = v - this.capV[c];
+          this.capI[c] = this.chainKc * dv - (tr ? this.capI[c] : 0);
+          this.capV[c] = v;
+          const mc = dv < 0 ? -dv : dv;
+          if (mc > m) m = mc;
+        }
+        if (m > moved) moved = m;
+        continue;
+      }
       const kc = (tr ? 2 : 1) * (this.capF[c] / this.hS);
       const gs = this.capGs[c];
       // BT172: behind a series resistance, the capacitor's own voltage from the terminals'.
@@ -890,6 +982,24 @@ export class AnalogLayer {
     }
     this.lastMove = moved;
     return moved;
+  }
+
+  /**
+   * BT176: element `c`'s series chain this step — Rs, the inductor (L/h or 2L/h with its history
+   * −R·i − vL), the capacitor stage (1/Gc with hist/Gc; none when it has neither C nor a leak) — as
+   * a total resistance and the Thevenin voltages it adds (`chainR`, `chainEl`, `chainEc`).
+   */
+  private chain(c: number, tr: boolean): void {
+    const rl = (tr ? 2 : 1) * (this.capL[c] / this.hS);
+    this.chainRl = rl;
+    this.chainEl = -rl * this.capIL[c] - (tr ? this.capVL[c] : 0);
+    const kc = (tr ? 2 : 1) * (this.capF[c] / this.hS);
+    const gc = kc + this.capGp[c];
+    this.chainKc = kc;
+    this.chainRc = gc > 0 ? 1 / gc : 0;
+    this.chainEc = gc > 0 ? (kc * this.capV[c] + (tr ? this.capI[c] : 0)) / gc : 0;
+    const gs = this.capGs[c];
+    this.chainR = (gs === Number.POSITIVE_INFINITY ? 0 : 1 / gs) + rl + this.chainRc;
   }
 
   /** BT171: transistor `t`'s collector/drain current (magnitude) from the solution in its present state. */
@@ -957,7 +1067,7 @@ export class AnalogLayer {
 
   /** Solved voltage of a net: its fixed value or the last solution. */
   private volts(net: number, host: AnalogHost): number {
-    return host.isFixed(net) ? host.fixedVolts(net) : this.solver.x[this.local[net]];
+    return this.isFixed(net, host) ? this.fixedVolts(net, host) : this.solver.x[this.local[net]];
   }
 
   /** A conductance between two nets, either of which may be fixed. */
@@ -965,8 +1075,8 @@ export class AnalogLayer {
     const la = this.node(a, host);
     const lb = this.node(b, host);
     if (la >= 0 && lb >= 0) this.solver.conductance(la, lb, g);
-    else if (la >= 0) this.solver.toFixed(la, g, host.fixedVolts(b));
-    else if (lb >= 0) this.solver.toFixed(lb, g, host.fixedVolts(a));
+    else if (la >= 0) this.solver.toFixed(la, g, this.fixedVolts(b, host));
+    else if (lb >= 0) this.solver.toFixed(lb, g, this.fixedVolts(a, host));
   }
 
   /** Marks the island's nets with a conductive path (resistors, closed switches, conducting diodes, capacitors) to a source. */

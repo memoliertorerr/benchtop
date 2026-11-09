@@ -696,7 +696,9 @@ export class Bench {
         for (const capacitor of spec.capacitors ?? []) {
           const a = netlist.netOf(part.id, capacitor.a);
           const b = netlist.netOf(part.id, capacitor.b);
-          if (a >= 0 && b >= 0 && capacitor.farads > 0) capacitors.push({ a, b, farads: capacitor.farads, seriesOhms: capacitor.seriesOhms ?? 0, parallelOhms: capacitor.parallelOhms ?? 0 });
+          if (a >= 0 && b >= 0 && (capacitor.farads > 0 || (capacitor.henries ?? 0) > 0)) {
+            capacitors.push({ a, b, farads: capacitor.farads, seriesOhms: capacitor.seriesOhms ?? 0, parallelOhms: capacitor.parallelOhms ?? 0, henries: capacitor.henries ?? 0 });
+          }
         }
         // BT168: transistors — collector/drain, base/gate, emitter/source.
         for (const t of spec.transistors ?? []) {

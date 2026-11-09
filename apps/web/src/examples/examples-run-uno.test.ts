@@ -350,6 +350,17 @@ export const UNO_CHECKS: Record<string, (r: ExampleRun) => void> = {
     expect(rpm()).toBeLessThan(-80);
     expect(r.visual('drv')?.powered).toBe(true);
   },
+  // BT179: two relays on D13, one with a flyback diode and one without.
+  'uno-relay-flyback'(r) {
+    r.runTo(300);
+    expect(r.visual('relay-a')?.contactsNO).toBe(true);
+    expect(r.visual('relay-b')?.contactsNO).toBe(true);
+    r.runTo(1200);
+    const kicked = r.bench.problems().filter((p) => p.code === 'transistor-avalanche');
+    expect(kicked.map((p) => p.parts)).toEqual([['q-b']]); // only the one without its diode
+    expect(flips(r, 'led-a')).toBeGreaterThanOrEqual(2);
+    expect(flips(r, 'led-b')).toBeGreaterThanOrEqual(2);
+  },
   buzzer(r) {
     r.runTo(2000);
     expect(r.history('bz1').some(({ visual }) => visual.frequency === 440)).toBe(true);

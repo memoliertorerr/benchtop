@@ -48,14 +48,24 @@ describe('a DC motor (BT172)', () => {
   /** The spin-up's time constant on a stiff 6 V: C·(Rw ∥ Rm). */
   const tau = p.c * ((p.rw * p.rm) / (p.rw + p.rm));
 
-  it('on a 6 V pack: stall current V/Rw at the start, spins up with its time constant to its rated 200 rpm and 10 % current', () => {
+  it('on a 6 V pack: stall current V/Rw after the winding’s τ = L/Rw, spins up with its time constant to its rated 200 rpm and 10 % current', () => {
     const doc = circuit([{ id: 'bat', type: 'battery-4aa', props: {} }, { id: 'm1', type: 'dc-motor', props: {} }], [
       ['bat:+', 'm1:+'],
       ['bat:-', 'm1:-'],
     ]);
     const b = bench(doc);
+    // BT178: the winding's 1 mH holds the current back at first (τ = L/Rw = 0.25 ms), then it is the
+    // stall current 6 V / 4 Ω, less the back-EMF the motor has started to make.
     b.runUntil(1000); // 1 µs
-    expect(visual(b, 'm1').milliamps as number).toBeCloseTo(1500, -1); // 6 V / 4 Ω
+    expect(visual(b, 'm1').milliamps as number).toBeCloseTo(1500 * (1 - Math.exp(-1e-6 / 0.25e-3)), 1);
+    // The layer's winding current 5 τ in (the part's frames come every 20 ms on a steady supply).
+    const layer = (b as unknown as { analog: { inductorAmps(k: number): number } }).analog;
+    b.runUntil(1.25 * NS_PER_MS);
+    expect(layer.inductorAmps(0) * 1000).toBeGreaterThan(1400);
+    expect(layer.inductorAmps(0) * 1000).toBeLessThan(1500);
+    // The part integrates the same equations from its terminal volts: at its first frame it agrees.
+    b.runUntil(20 * NS_PER_MS);
+    expect(Math.abs((visual(b, 'm1').milliamps as number) - layer.inductorAmps(0) * 1000)).toBeLessThan(0.01 * layer.inductorAmps(0) * 1000);
     b.runUntil(tau * 1e9);
     expect(Math.abs((visual(b, 'm1').rpm as number) - 200 * (1 - Math.exp(-1))) / 200).toBeLessThan(0.02);
     b.runUntil(1000 * NS_PER_MS);

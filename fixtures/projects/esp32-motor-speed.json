@@ -1,0 +1,235 @@
+{
+  "format": 1,
+  "name": "esp32-motor-speed",
+  "parts": [
+    {
+      "id": "esp",
+      "type": "esp32-devkit-v1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "pot",
+      "type": "potentiometer",
+      "x": -36,
+      "y": 8,
+      "rotation": 0,
+      "props": {
+        "value": 1
+      }
+    },
+    {
+      "id": "q1",
+      "type": "n-mosfet",
+      "x": 42,
+      "y": 8,
+      "rotation": 0,
+      "props": {
+        "model": "IRLZ44N"
+      }
+    },
+    {
+      "id": "rg",
+      "type": "resistor",
+      "x": 36,
+      "y": 36,
+      "rotation": 0,
+      "props": {
+        "ohms": 10000
+      }
+    },
+    {
+      "id": "m1",
+      "type": "dc-motor",
+      "x": 58,
+      "y": -30,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "d1",
+      "type": "diode",
+      "x": 62,
+      "y": -42,
+      "rotation": 0,
+      "props": {
+        "model": "1N4007"
+      }
+    },
+    {
+      "id": "bat",
+      "type": "battery-4aa",
+      "x": 96,
+      "y": -6,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "pot",
+        "pin": "SIG"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "D34"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "pot",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "3V3"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "pot",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "esp",
+        "pin": "D25"
+      },
+      "to": {
+        "part": "q1",
+        "pin": "G"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "q1",
+        "pin": "G"
+      },
+      "to": {
+        "part": "rg",
+        "pin": "1"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "rg",
+        "pin": "2"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "q1",
+        "pin": "S"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w8",
+      "from": {
+        "part": "bat",
+        "pin": "-"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w9",
+      "from": {
+        "part": "bat",
+        "pin": "+"
+      },
+      "to": {
+        "part": "m1",
+        "pin": "+"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w10",
+      "from": {
+        "part": "m1",
+        "pin": "-"
+      },
+      "to": {
+        "part": "q1",
+        "pin": "D"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w11",
+      "from": {
+        "part": "d1",
+        "pin": "A"
+      },
+      "to": {
+        "part": "q1",
+        "pin": "D"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w12",
+      "from": {
+        "part": "d1",
+        "pin": "C"
+      },
+      "to": {
+        "part": "m1",
+        "pin": "+"
+      },
+      "waypoints": [],
+      "color": "red"
+    }
+  ],
+  "firmware": {
+    "esp": {
+      "kind": "file",
+      "name": "mosfet-dimmer.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

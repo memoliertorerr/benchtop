@@ -394,6 +394,74 @@ a 6 V pack 1.5 A at the start, 63 % of 200 rpm at τ, 200 ±2 % and 150 mA at sp
 when turned round; through an IRLZ44N from blink's D13 with a 1N4007 across it, 200 rpm while on
 and the coast's e^(−t/C·Rm) while off (±5 %).
 
+**Inductance.** `CapacitorSpec.henries` puts an inductor in the same series chain:
+Rs + L + (C ∥ Rp). In companion form each piece is a resistance and a Thevenin voltage — the
+inductor L/h (2L/h trapezoidal) with −(L/h)·i (−(2L/h)·i − vL), the capacitor stage 1/Gc with
+hist/Gc — so the chain is one conductance 1/ΣR carrying ΣE/ΣR, still two terminals; after the
+solve the branch current comes back from the terminals' volts and gives the inductor's current and
+voltage and the capacitor's voltage. `farads` 0 with no leak leaves the capacitor stage out: a
+plain R–L (a coil). Elements without inductance keep their own path exactly. A jump keeps
+the inductor's current (the 1 ns instant makes it a stiff current source), so a coil switched off
+pushes its current wherever it can: through a flyback diode it freewheels at the diode's drop; with
+nothing but leaks it would reach any voltage — the clamps below are what stop it. τ counts L over
+the loop's resistance (Rs and what the rest of the island puts at its ends), and is now estimated
+in every diode round, so the converged round's states set it (a flyback diode that turns on in the
+second round made τ picoseconds before); never under 1 µs (`MIN_TAU_S`). Settling counts the
+current's change times Rs and the inductor's voltage change. Tested (`analog/transient.test.ts`):
+an R–L's current within 0.5 % of (V/R)(1 − e^(−tR/L)), freewheeling through a diode at −0.665 V
+when the source lets go and dying away; an RLC ringing as V[1 − e^(−αt)(cos ωt + (α/ω) sin ωt)]
+within 1 % of the step (62 % overshoot).
+
+**Clamps and kicks.** A coil switched off with nowhere for its current to go would reach any
+voltage, so the switches carry the breakdowns real ones have, as their parts' AnalogSpec diodes: a
+BJT's Vceo collector to emitter (a PNP's emitter to collector: 2N2222A and 2N3906 40 V, BC547 and
+BC557 45 V), a MOSFET's body diode source to drain (0.8 V, 0.05 Ω) and its avalanche drain to source
+at Vdss (IRLZ44N 55 V, IRF540N and IRF9540N 100 V; mirrored on the P-channel), each conducting
+through 0.5 Ω. The transistor parts' model (`avalancheModel` in `basic/transistors.ts`) reports
+`transistor-avalanche` (warning) while the switch side is within 90 % of that rating — "An inductive
+load kicked its collector to about 40 V, into breakdown (40 V): put a flyback diode across the load"
+— held 2 s past the last kick so it can be read. The L298N's eight flyback diodes (each OUT to +12V,
+GND to each OUT; 1N4007's) are its AnalogSpec too, so a disabled bridge returns a coil's current
+to the supply (fast decay: the outputs at −0.67 and VS + 0.67 V until it's gone). Two layer fixes
+came with them. A catch-up now replays an island's own nets as fixed or not as they were when it
+was last solved (`inFixed`, `inFixedV` with the other kept inputs): a bridge that just released its
+outputs was still driving them during the interval being caught up, and reading that live let the
+coil's current die before the release happened. And τ is re-estimated on every solve, steps
+included: a diode that stops conducting mid-way leaves a coil on its leaks alone, τ far below h, and
+the trapezoidal rule then rang (±2 nA, the outputs swapping by 1.8 V each step) where backward Euler
+settles. Tested (`integration/clamps.test.ts`, a test coil of 100 Ω and 100 mH on blink's D13): a
+2N2222A switching it off peaks at 40–42 V and warns, with a 1N4007 across the coil it stays under
+5.75 V and doesn't; an IRLZ44N avalanches at 55–56 V; the body diode conducts; the L298N's diodes
+carry the coil's current back and then let the outputs float.
+
+**Inductive parts.** `dc-motor` gains `mH` (1 by default: the TT motor's τ = L/Rw ≈ 0.25 ms)
+as its element's `henries`, and its model now integrates the winding's current with the back-EMF —
+L·di/dt = V − Rw·i − E, C·dE/dt = i − E/Rm — exactly between terminal-voltage changes with the 2 × 2
+matrix exponential (Sylvester's formula; the complex pair if it rings), since the element's state
+still depends on its terminal voltage alone; its `milliamps` is that current, and it agrees with
+the layer's within 1 %. The relay's coil is an R–L branch (125 Ω, 150 mH, ≈ 1.2 ms) in place of its
+resistive link (`analogSpecFor`). Measured (`integration/inductive.test.ts`): esp32/mosfet-dimmer's
+1 kHz PWM through an IRLZ44N with a 1N4007 across the motor turns it at 200 rpm full, 81 % of that at
+half duty and 60 % at a quarter — the winding's current freewheels through the diode between
+pulses; unloaded, it runs out before the next one (discontinuous conduction), so half the duty
+isn't half the speed, but without inductance it was 90 % — and without the diode the IRLZ44N
+avalanches on every pulse (warned, and only 130 rpm). Blink's D13 switching the relay through a
+2N2222A: without a diode the kick avalanches it and the contacts open ≈ 4.5 ms after D13 falls (4 ms
+`operateMs` plus the step that sees the kick end); a 1N4007 across the coil holds them ≈ 2.5 ms
+longer, while its current decays through the diode. Cost: an inductive motor island under PWM is a
+fast island (τ = L/R < 5 ms) and steps through every pulse — ≈ 2.4 × the CPU of the same circuit
+without inductance in that run, budgeted below.
+
+**Inductance end to end:** the gallery's ESP32 motor speed (`esp32-motor-speed`:
+esp32/mosfet-dimmer's pot-set PWM through an IRLZ44N, a 1N4007 across the geared motor) and relay
+flyback diode (`uno-relay-flyback`: blink's D13 driving two relays through 2N2222As, one with a
+1N4007 across its coil and one without — only the second's transistor reports
+`transistor-avalanche`) — specs and checks in `examples-run-esp32.test.ts` and
+`examples-run-uno.test.ts`. Speed: `integration/inductive-speed.test.ts` (QUIET) holds uno/rc-filter's
+490 Hz PWM driving the motor through an IRLZ44N with its 1 mH to 1.5× the CPU time of the same
+circuit without it, best of three alternating runs; measured ≈ 1.03× on the Uno (an earlier 2.4× on the
+ESP32 came from a first, cold run).
+
 **An L298N H-bridge.** `l298n` (`actuators/l298n.ts`), the common red module: OUT1–OUT4,
 +12V, GND, +5V, ENA, IN1–IN4, ENB; props `enaJumper`, `enbJumper`, `regulator` (all on, as shipped).
 A channel is enabled by its jumper or its EN pin reading high (TTL, 2.3 V over GND); enabled and

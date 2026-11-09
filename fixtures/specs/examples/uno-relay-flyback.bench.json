@@ -1,0 +1,14 @@
+{
+  "name": "example: uno-relay-flyback",
+  "project": "../../projects/uno-relay-flyback.json",
+  "firmware": {
+    "uno": "../../firmware/uno/blink.hex"
+  },
+  "expect": [
+    "led led-a is lit at 300ms",
+    "led led-b is lit at 300ms",
+    "led led-a is dark at 800ms",
+    "led led-b is dark at 800ms",
+    "pin q-a:C volts is 0.2 ±0.05 at 300ms"
+  ]
+}

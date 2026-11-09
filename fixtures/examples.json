@@ -508,6 +508,19 @@
     "description": "Turn the pot to set the motor's speed and press the button to reverse it. The sketch PWMs the L298N's IN1 (or IN2) with ENA on, so the bridge brakes the motor between pulses and its speed follows the duty; reversing brakes it for 200 ms first, and a pot near zero lets it coast. Watch the board's status line and the motor's rpm."
   },
   {
+    "id": "uno-relay-flyback",
+    "title": "Relay flyback diode",
+    "category": "Motors",
+    "project": "uno-relay-flyback",
+    "boards": {
+      "uno": {
+        "firmware": "uno/blink.hex",
+        "sketch": "uno/blink"
+      }
+    },
+    "description": "Blink's D13 drives two relays through 2N2222As. Relay A has a 1N4007 across its coil; relay B doesn't, so each time D13 turns its transistor off, the coil's kick drives the 2N2222A into breakdown — see the transistor-avalanche warning in the Problems panel. Both still click: the diode is what keeps a real transistor alive."
+  },
+  {
     "id": "gas-fan",
     "title": "Gas alarm with a fan",
     "category": "Environment",
@@ -831,6 +844,19 @@
       }
     },
     "description": "Hold the button (GPIO4): GPIO2 — the DevKit's blue LED — turns an IRLZ44N on and the geared motor spins up from a 6 V pack; let go and it coasts down. The 1N4007 across the motor is the flyback diode a real motor needs."
+  },
+  {
+    "id": "esp32-motor-speed",
+    "title": "ESP32 motor speed",
+    "category": "ESP32",
+    "project": "esp32-motor-speed",
+    "boards": {
+      "esp": {
+        "firmware": "esp32/mosfet-dimmer.bin",
+        "sketch": "esp32/mosfet-dimmer"
+      }
+    },
+    "description": "Turn the pot (GPIO34) to set the motor's speed: a 1 kHz PWM on GPIO25 switches it through an IRLZ44N, and between pulses its winding's current keeps flowing through the 1N4007 across it. Unloaded, half the duty runs it at about 80 % speed (the current runs out before the next pulse). Take the diode out and the MOSFET avalanches on every pulse — the Problems panel says so."
   },
   {
     "id": "esp32-mic-level",

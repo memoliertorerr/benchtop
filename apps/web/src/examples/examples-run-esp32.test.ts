@@ -235,6 +235,17 @@ export const ESP32_CHECKS: Record<string, (r: ExampleRun) => void> = {
     // Coasting for 200 ms with τ = C·Rm ≈ 0.54 s: 200 · e^(−0.2/0.54) ≈ 138.
     expect(Math.abs(rpm() - 200 * Math.exp(-0.2 / 0.54))).toBeLessThanOrEqual(8);
   },
+  // BT179: the pot's PWM through an IRLZ44N, a flyback diode across the motor.
+  'esp32-motor-speed'(r) {
+    const rpm = (): number => (r.visual('m1')?.rpm as number | undefined) ?? 0;
+    r.runTo(1200);
+    expect(Math.abs(rpm() - 200)).toBeLessThanOrEqual(5);
+    r.input('pot', { kind: 'value', value: 0.5 });
+    r.runTo(2000);
+    expect(rpm()).toBeGreaterThan(150);
+    expect(rpm()).toBeLessThan(175);
+    expect(r.bench.problems().some((p) => p.code === 'transistor-avalanche')).toBe(false);
+  },
   'esp32-mic-level'(r) {
     r.listen('mic1', 440, 2000);
     const readings = r.serial('esp').split('\r\n').filter(Boolean).map(Number);
