@@ -1,0 +1,14 @@
+{
+  "name": "example: esp32-oled-spi",
+  "project": "../../projects/esp32-oled-spi.json",
+  "firmware": {
+    "esp": "../../firmware/esp32/oled-spi.bin"
+  },
+  "expect": [
+    "serial contains \"FB:\" by 2s",
+    "oled oled pixel 0,0 is on at 2500ms",
+    "oled oled pixel 127,63 is on at 2500ms",
+    "oled oled pixel 64,40 is off at 2500ms",
+    "serial contains \"tick 2\" by 3s"
+  ]
+}

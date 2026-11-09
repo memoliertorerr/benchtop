@@ -571,14 +571,63 @@ brightness (the element shows a segment lit above 0.05). `led-bar-graph` is ten 
 `ssd1306` is a 128×64 OLED as an I2C target (0x3C/0x3D; reads NACKed): control bytes
 (Co, D/C), a command parser driven by an argument-count table whose state survives STOP/START
 (Adafruit sends arguments in their own transmissions), horizontal/vertical/page addressing
-with 0x21/0x22 windows, and the decided display mapping (A1 + C8 is the identity; A0/C0 mirror;
-start line and offset rotate rows; rows past the multiplex ratio are dark; lit only when on
-and the charge pump is enabled). Scrolling commands are parsed but not performed. Its visual
+with 0x21/0x22 windows, and the decided display mapping (A1 + C8 is the identity; A0 mirrors X;
+lit only when on and the charge pump is enabled).
+
+**Rows and scrolling** (from the SSD1306 datasheet rev 1.1). Each glass row is wired to a
+COM pad; the COM pins configuration (DAh: sequential or alternative, left/right remap), the scan
+direction (C0h/C8h), the display offset and the MUX ratio decide which scan slot that pad shows
+(Tables 10-1–10-3: `scanIndex`, `scanSlot`), and the slot shows RAM row (slot + start line) mod 64.
+The 0.96″ 128×64 glass is wired for the alternative configuration, the 0.91″ 128×32 for the
+sequential one, so Adafruit's inits are the identity on their own glass and the other module's
+init draws every other row, as on a board; a smaller MUX darkens the rows whose pads aren't
+scanned (with C8h on the 128×64, the top half). The model keeps `rowMap` (glass row → RAM row,
+−1 dark), rebuilt when any of that changes. The hardware scroll runs: 26h/27h move pages B–D one
+column right or left a step by rotating the RAM itself (so a stopped scroll stays where it
+stopped; RAM column order, so Adafruit's A1 module scrolls right on 26h), 29h/2Ah also move a
+vertical offset E rows a step inside the A3h area (2Eh clears it); a step comes every 2–256
+frames, a frame being D·K·N oscillator clocks from D5h, D9h and the MUX (Fosc 370 kHz at the
+default setting, assumed linear across the settings) — Adafruit's 128×64 init steps every 57 ms.
+Steps are timers on the bench clock, so nothing runs while nothing scrolls.
+`integration/oled-circuits.test.ts` runs `uno/oled-scroll` (Adafruit's startscrollright/left/
+diagright). Its visual
 `fb` packs the displayed image into 256 numbers (4 page-major bytes each) and is repacked only
 when a written byte actually changed, so an identical `display()` costs no frame; `on`,
 `invert`, `allOn` and `contrast` travel separately and the view (`views/ssd1306.ts`) applies
 them while unpacking into one preallocated ImageData (contrast as canvas opacity
 0.35 + 0.65 × contrast/255).
+
+**More modules** (`displays/oled-modules.ts`). `ssd1306-128x32` is the 0.91″ module (GND, VCC,
+SCL, SDA down its left end) on its 32-row glass, so its `fb` is 128 numbers. `ssd1306-spi` is the
+0.96″ 7-pin module (GND, VCC, D0 = SCLK, D1 = SDIN, RES, DC, CS) driving the same controller through
+`commandByte`/`dataByte` by its D/C pin: hardware SPI through `attachSpi` (it has no MISO and names
+D1 for it, which the bench takes as write-only — `attachSpiDevice`), and bit-banged SPI from its own
+pins (`shared/soft-spi.ts`: D1 shifted on every D0 rising edge while CS is low, a byte on the
+eighth, the datasheet's §8.1.3; no allocation per edge). A hardware controller toggles no pin, so
+no byte arrives twice; wired to non-SPI pins it reports `spi-unattached` (info) and still works.
+RES low resets the controller and holds it. Our own views (`apps/web` `views/oled.ts`: SVG modules,
+the pixels on a canvas in a foreignObject over the active area; `paintOled` is shared with the
+element's view). `integration/oled-modules.test.ts` runs uno/oled-128x32, uno/oled-spi (software
+SPI on Adafruit's example pins 9–13) and esp32/oled-spi (VSPI): each panel shows exactly the
+buffer the library printed.
+
+**The SH1106** (`displays/sh1106.ts`, Sino Wealth's datasheet V2.2). The 1.3″ module's
+controller behind the same I2C framing: a 132×64 RAM whose columns 2–129 reach the 128-wide glass
+(Adafruit_SH110X's offset of 2), page addressing only (the column counts up to 131 and stays), the
+DC-DC converter (ADh 8Ah/8Bh, on at reset) as the panel's supply, read-modify-write (E0h … EEh),
+no scroll; the same COM pads, scan, offset and MUX as the SSD1306 (`scanIndex`, `scanSlot`). A byte
+the command table doesn't list is ignored on its own, so an SSD1306 command's argument runs as a
+command — an SSD1306 sketch on it shows garbage, as on a board. `sh1106` (VCC, GND, SCL, SDA)
+shares the module views and `oledModel` (any `OledController`). `integration/sh1106-circuits.test.ts`
+runs uno/sh1106 (Adafruit_SH110X): the panel shows its buffer.
+
+**OLEDs end to end.** `displays/oled-text.ts` reads an OLED's visual state as shown
+(`oledPixel`: dark while off, `allOn`, `invert`) and as text (`oledScreenText`: braille, 2 × 4 pixels
+a character — 16 lines of 64 for 128×64, 8 for 128×32). The runner's `oled <part> pixel <x>,<y> is
+<on|off> at <t>` checks a pixel; MCP's sim_state adds `screen` (those lines) to any OLED's state, so
+an agent reads the panel instead of a packed framebuffer. Gallery: a 128×32 scroller on an Uno
+(`uno-oled-128x32`), the 1.3″ SH1106 (`uno-sh1106`), an ESP32 with the 7-pin module on VSPI
+(`esp32-oled-spi`), each with a spec in fixtures/specs/examples and a run check.
 
 Inputs (`packages/parts/src/inputs/`, `sensors/`): slide pot, analog joystick, KY-040,
 4×4 membrane keypad, 8-way DIP switch, tilt switch, PIR, and the LDR, NTC and sound modules.
@@ -3950,6 +3999,7 @@ nothing from `apps/web`.
   | `lcd <p> row <n> is "<text>" at <t>` | row n (from 0) equals the text, trailing spaces ignored; display off = blank | `row 1 is "t=1"` |
   | `pixel <p>[<i>] is #rrggbb at <t>` | the pixel's 0xRRGGBB | `#38b748`, or the pixel count |
   | `digits <p> show "<text>" at <t>` | the digits (`sevenSegmentText` from @benchtop/parts: 0–9, '-', ' ' dark, '?' other) | `shows "1234"` |
+  | `oled <p> pixel <x>,<y> is on\|off at <t>` | an OLED's pixel as shown (`oledPixel`: off while the display is; `invert`, `allOn`); never reported = dark | `pixel 64,32 is on` |
   | `env <gas\|temperature\|humidity\|light\|sound> at <p> is <v> ±<tol> at <t>` (or `>`, `<`, `>=`, `<=` `<v>`) | the room's value at a part placed in it (`bench.envSample`); a usage error without an environment part or on a part with no place in it | `gas 812.40 ppm` |
   | `bus i2c <p> wrote\|read <hex bytes> by <t>`, `bus spi <p> sent <hex bytes> by <t>` | some transaction with that part in the bus log — an I2C write or read, an SPI frame's MOSI — carried those bytes in a row by then (when the transaction ended); read every 50 ms so the log's ring can't wrap; a transaction still open at the end counts | `seen at 31.402 ms` |
   | `file <p> <path> contains "<text>" by <t>` | the part's file (a microSD card's, through `bench.storage` — or an ESP32-S3 board's USB drive; the path matched without case) held the text by then — read at every stop and every 50 ms while the card's version moved; failures say whether the file was missing or what it held | `seen at 50 ms` |

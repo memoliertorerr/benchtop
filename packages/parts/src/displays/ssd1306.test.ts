@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Ssd1306 } from './ssd1306.ts';
+import { oscillatorHz, scanIndex, scanSlot, Ssd1306 } from './ssd1306.ts';
 
 /** One I2C write transaction: START, bytes, STOP. */
 function tx(oled: Ssd1306, bytes: number[]): void {
@@ -152,8 +152,157 @@ describe('SSD1306 display mapping', () => {
   it('start line and offset rotate rows; rows past the multiplex ratio are dark', () => {
     expect(pixel(withPixels([0xa1, 0xc8, 0x41]), 0, 63)).toBe(1); // start line 1: RAM row 0 on row 63
     expect(pixel(withPixels([0xa1, 0xc8, 0xd3, 0x02]), 0, 62)).toBe(1);
+    // BT180: a remapped scan (C8h) runs COM[N−1] → COM0, and this glass's top row is on the pad
+    // COM63 reaches: with MUX 32 the top half is the dark one, RAM row 0 on glass row 32.
     const fb = withPixels([0xa1, 0xc8, 0xa8, 0x1f]);
-    expect(pixel(fb, 0, 0)).toBe(1);
-    expect(pixel(fb, 127, 63)).toBe(0);
+    expect(pixel(fb, 0, 0)).toBe(0);
+    expect(pixel(fb, 0, 32)).toBe(1);
+    expect(fb.slice(0, 128).every((n) => n === 0)).toBe(true);
+    // The MUX picks the scanned pads, not the direction: a normal scan (C0h) lights the same bottom
+    // half, upside down — glass row 63 shows RAM row 0.
+    const normal = withPixels([0xa1, 0xc0, 0xa8, 0x1f]);
+    expect(pixel(normal, 0, 63)).toBe(1);
+    expect(normal.slice(0, 128).every((n) => n === 0)).toBe(true);
+  });
+});
+
+describe('SSD1306 rows (BT180)', () => {
+  it('COM pins: the datasheet’s Table 10-3', () => {
+    // Sequential, no remap: ROW r on COM r; with remap the halves swap.
+    expect([0, 31, 32, 63].map((p) => scanIndex(p, false, false))).toEqual([0, 31, 32, 63]);
+    expect([32, 63, 0, 31].map((p) => scanIndex(p, false, true))).toEqual([0, 31, 32, 63]);
+    // Alternative (case 5): ROW0 COM0, ROW1 COM32, ROW2 COM1, ROW62 COM31, ROW63 COM63.
+    expect([0, 32, 1, 31, 63].map((p) => scanIndex(p, true, false))).toEqual([0, 1, 2, 62, 63]);
+    // Alternative with remap (case 6): ROW0 COM32, ROW1 COM0.
+    expect([32, 0].map((p) => scanIndex(p, true, true))).toEqual([0, 1]);
+  });
+
+  it('scan direction, offset and MUX: the datasheet’s Tables 10-1 and 10-2', () => {
+    // Table 10-1 (e): MUX 56, offset 8, normal.
+    expect([0, 47, 48, 55, 56, 63].map((k) => scanSlot(k, false, 8, 56))).toEqual([8, 55, -1, -1, 0, 7]);
+    // Table 10-1 (d): MUX 56, offset 0.
+    expect([0, 55, 56].map((k) => scanSlot(k, false, 0, 56))).toEqual([0, 55, -1]);
+    // Table 10-2 (a), (b): MUX 64 remapped, offset 0 and 8.
+    expect([0, 63].map((k) => scanSlot(k, true, 0, 64))).toEqual([63, 0]);
+    expect([0, 7, 8, 63].map((k) => scanSlot(k, true, 8, 64))).toEqual([7, 0, 63, 8]);
+    // Table 10-2 (d), (e): MUX 48 remapped, offset 0 and 8.
+    expect([0, 47, 48].map((k) => scanSlot(k, true, 0, 48))).toEqual([47, 0, -1]);
+    expect([0, 7, 8, 55, 56].map((k) => scanSlot(k, true, 8, 48))).toEqual([-1, -1, 47, 0, -1]);
+  });
+
+  /** The row map after Adafruit_SSD1306's init for `height` (MUX, DAh) on `glass`. */
+  function adafruitRows(glass: 64 | 32, height: 64 | 32): number[] {
+    const oled = new Ssd1306(0x3c, () => {}, { glass });
+    tx(oled, [0x00, 0xa8, height - 1, 0xd3, 0x00, 0x40, 0xa1, 0xc8, 0xda, height === 64 ? 0x12 : 0x02]);
+    return Array.from(oled.rowMap.slice(0, glass));
+  }
+
+  it('Adafruit’s 128×64 and 128×32 inits are the identity on their own glass', () => {
+    expect(adafruitRows(64, 64)).toEqual(Array.from({ length: 64 }, (_, y) => y));
+    expect(adafruitRows(32, 32)).toEqual(Array.from({ length: 32 }, (_, y) => y));
+  });
+
+  it('the other module’s init draws every other row: 128×32 on the 128×64 glass, 128×64 on the 128×32', () => {
+    // MUX 32, sequential, on glass wired for the alternative pins: RAM rows 0–31 on the odd rows.
+    expect(adafruitRows(64, 32)).toEqual(Array.from({ length: 64 }, (_, y) => ((y & 1) === 1 ? (y - 1) / 2 : -1)));
+    // MUX 64, alternative, on glass wired to pads 0–31: every other RAM row.
+    expect(adafruitRows(32, 64)).toEqual(Array.from({ length: 32 }, (_, y) => 2 * y + 1));
+  });
+});
+
+describe('SSD1306 scrolling (BT180)', () => {
+  /** An SSD1306 on a fake clock: `run(ns)` fires the steps due. */
+  function scrolling() {
+    let now = 0;
+    const timers = new Map<number, { at: number; callback: () => void }>();
+    let next = 1;
+    const clock = {
+      schedule(delay: number, callback: () => void): number {
+        timers.set(next, { at: now + delay, callback });
+        return next++;
+      },
+      cancel(id: number): void {
+        timers.delete(id);
+      },
+    };
+    const oled = new Ssd1306(0x3c, () => {}, { clock });
+    // Adafruit's init: D5h 80h, D9h F1h, MUX 64, A1h, C8h, DAh 12h, charge pump, on.
+    tx(oled, [0x00, 0xd5, 0x80, 0xa8, 0x3f, 0x8d, 0x14, 0x20, 0x00, 0xa1, 0xc8, 0xda, 0x12, 0xd9, 0xf1, 0xaf]);
+    const run = (ns: number): void => {
+      const until = now + ns;
+      for (;;) {
+        let due: [number, { at: number; callback: () => void }] | undefined;
+        for (const entry of timers) if (entry[1].at <= until && (due === undefined || entry[1].at < due[1].at)) due = entry;
+        if (due === undefined) break;
+        timers.delete(due[0]);
+        now = due[1].at;
+        due[1].callback();
+      }
+      now = until;
+    };
+    return { oled, run, pending: () => timers.size };
+  }
+
+  const FRAME_NS = (66 * 64 * 1e9) / 370_000; // D = 1, K = 1 + 15 + 50, 64 MUX, 370 kHz
+
+  it('frames: Fosc 370 kHz at the default setting; Adafruit’s init steps every 5 frames (≈ 57 ms)', () => {
+    expect(oscillatorHz(8)).toBeCloseTo(369_667, -3);
+    const { oled } = scrolling();
+    tx(oled, [0x00, 0x26, 0x00, 0x00, 0x00, 0x07, 0x00, 0xff]);
+    expect(oled.stepNs()).toBe(Math.round(5 * FRAME_NS * (370_000 / oscillatorHz(8))));
+    expect(oled.stepNs() / 1e6).toBeCloseTo(57.1, 0);
+  });
+
+  it('26h moves pages B–D one column right a step (column 127 wraps to 0); 2Eh leaves it there', () => {
+    const { oled, run, pending } = scrolling();
+    oled.ram[0 * 128 + 126] = 0x01; // page 0, column 126
+    oled.ram[4 * 128 + 10] = 0x10; // page 4: outside pages 0–3
+    tx(oled, [0x00, 0x26, 0x00, 0x00, 0x00, 0x03, 0x00, 0xff, 0x2f]);
+    const step = oled.stepNs();
+    run(step - 1);
+    expect(oled.ram[126]).toBe(0x01);
+    run(1);
+    expect(oled.ram[127]).toBe(0x01);
+    run(step);
+    expect(oled.ram[0]).toBe(0x01); // wrapped
+    expect(oled.ram[4 * 128 + 10]).toBe(0x10);
+    tx(oled, [0x00, 0x2e]);
+    expect(pending()).toBe(0);
+    run(10 * step);
+    expect(oled.ram[0]).toBe(0x01); // stopped where it was
+  });
+
+  it('27h moves left; C[2:0] = 7 steps every 2 frames', () => {
+    const { oled, run } = scrolling();
+    oled.ram[7 * 128 + 0] = 0x80;
+    tx(oled, [0x00, 0x27, 0x00, 0x07, 0x07, 0x07, 0x00, 0xff, 0x2f]);
+    expect(oled.stepNs()).toBe(Math.round(2 * FRAME_NS * (370_000 / oscillatorHz(8))));
+    run(oled.stepNs());
+    expect(oled.ram[7 * 128 + 127]).toBe(0x80);
+  });
+
+  it('29h (Adafruit’s diagonal): one column right and one row up a step inside the A3h area; 2Eh clears the vertical offset', () => {
+    const { oled, run } = scrolling();
+    oled.ram[1 * 128 + 5] = 0x01; // RAM row 8, column 5
+    tx(oled, [0x00, 0xa3, 0x00, 64, 0x29, 0x00, 0x00, 0x00, 0x07, 0x01, 0x2f]);
+    const fb = new Array<number>(256).fill(0);
+    run(oled.stepNs());
+    oled.packImage(fb);
+    expect(pixel(fb, 6, 7)).toBe(1); // right one, up one
+    run(oled.stepNs() * 3);
+    oled.packImage(fb);
+    expect(pixel(fb, 9, 4)).toBe(1);
+    tx(oled, [0x00, 0x2e]);
+    oled.packImage(fb);
+    expect(pixel(fb, 9, 8)).toBe(1); // the vertical offset is gone; the columns stay moved
+  });
+
+  it('reset stops a scroll', () => {
+    const { oled, pending } = scrolling();
+    tx(oled, [0x00, 0x26, 0x00, 0x00, 0x00, 0x07, 0x00, 0xff, 0x2f]);
+    expect(pending()).toBe(1);
+    oled.reset();
+    expect(pending()).toBe(0);
+    expect(oled.scrolling).toBe(false);
   });
 });

@@ -1,3 +1,4 @@
+import { oledPixel } from '@benchtop/parts';
 import { describe, expect, it } from 'vitest';
 import { EXAMPLES } from './manifest.ts';
 import { type ExampleRun, runExample, tftPixels } from './run.test-helper.ts';
@@ -141,6 +142,13 @@ export const ESP32_CHECKS: Record<string, (r: ExampleRun) => void> = {
     const later = (r.visual('ring')?.pixels ?? []) as number[];
     expect(first.filter((p) => p !== 0).length).toBe(16);
     expect(later).not.toEqual(first); // the rainbow turned
+  },
+  'esp32-oled-spi'(r) {
+    // BT183: the 7-pin module on VSPI — the frame, the uptime ticking.
+    r.runTo(2000);
+    expect(r.serial('esp')).toContain('tick 1');
+    const v = r.visual('oled');
+    expect(v !== undefined && oledPixel(v, 0, 0) && oledPixel(v, 127, 63) && !oledPixel(v, 64, 40)).toBe(true);
   },
   'esp32-oled-clock'(r) {
     r.runTo(2000);

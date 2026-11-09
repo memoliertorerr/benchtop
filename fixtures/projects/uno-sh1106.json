@@ -1,0 +1,85 @@
+{
+  "format": 1,
+  "name": "uno-sh1106",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "oled",
+      "type": "sh1106",
+      "x": 10,
+      "y": -40,
+      "rotation": 0,
+      "props": {
+        "address": "0x3C"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "oled",
+        "pin": "SDA"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "A4.2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "oled",
+        "pin": "SCL"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "A5.2"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "oled",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "oled",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "sh1106.hex",
+      "format": "hex"
+    }
+  }
+}

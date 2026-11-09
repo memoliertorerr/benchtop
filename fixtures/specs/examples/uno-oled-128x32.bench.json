@@ -1,0 +1,14 @@
+{
+  "name": "example: uno-oled-128x32",
+  "project": "../../projects/uno-oled-128x32.json",
+  "firmware": {
+    "uno": "../../firmware/uno/oled-128x32.hex"
+  },
+  "expect": [
+    "serial contains \"FB:\" by 2s",
+    "oled oled pixel 0,0 is on at 1s",
+    "oled oled pixel 64,1 is off at 1s",
+    "oled oled pixel 127,31 is on at 1s",
+    "serial contains \"scroll\" by 3s"
+  ]
+}

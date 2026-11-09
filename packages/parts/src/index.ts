@@ -36,3 +36,4 @@ export { POWER_REGULATORS, REGULATORS } from './power/regulators.ts';
 export { crc7, crc16, SD_BLOCKS, SdCard } from './storage/sd-card.ts';
 export { cardFilesProp, parseCardFiles, SD_FILES_MAX } from './storage/microsd-card.ts';
 export { base64Decode, base64Encode, utf8Encode, utf8Text } from './storage/text.ts';
+export { isOledVisual, oledPixel, oledRows, oledScreenText } from './displays/oled-text.ts';

@@ -207,3 +207,45 @@ describe('SSD1306 with raw Wire, and the I2C bus', () => {
     expect(bench.problems()).toEqual([expect.objectContaining({ code: 'i2c-address-conflict', parts: ['oled', 'oled2'] })]);
   });
 });
+
+describe('SSD1306 hardware scroll (BT180)', () => {
+  /** `image` moved `right` columns (wrapping) and `up` rows (wrapping) — 1024 page-major bytes. */
+  function moved(image: number[], right: number, up: number): number[] {
+    const out = new Array<number>(1024).fill(0);
+    for (let y = 0; y < 64; y++) for (let x = 0; x < 128; x++) if (pixel(image, (x - right + 128) % 128, (y + up) % 64) === 1) out[(y >> 3) * 128 + x] |= 1 << (y & 7);
+    return out;
+  }
+
+  it('uno/oled-scroll: Adafruit’s scroll calls move the image one column (and a row) every 57 ms; stopscroll leaves it there', () => {
+    const { bench, latest, lines, runTo } = load(project('ssd1306-adafruit'), 'oled-scroll');
+    const when = (text: string, after = 0): number => lines.find((l) => l.text === text && l.ms >= after)?.ms ?? Number.NaN;
+    while (!lines.some((l) => l.text === 'right') && bench.now() < 2000 * NS_PER_MS) runTo(bench.now() / NS_PER_MS + 1);
+    const drawn = unpack(latest.get('oled')); // the scroll's first step is 57 ms away
+    expect(lines.map((l) => l.text)).toEqual(['drawn', 'right']);
+    expect(pixel(drawn, 16, 24)).toBe(1); // "Benchtop"'s B at (16, 24)
+    expect(pixel(drawn, 100, 0)).toBe(1); // the bar along the top
+    // 2 s of right scroll at one column per 5 frames of 87.6 Hz: 35 steps, then 1 s standing still.
+    const right = when('right');
+    runTo(right + 2900);
+    expect(unpack(latest.get('oled'))).toEqual(moved(drawn, 35, 0));
+    runTo(right + 3100);
+    expect(when('left')).toBeGreaterThan(right + 2900);
+    // The left scroll brings it back.
+    runTo(when('left') + 2900);
+    expect(unpack(latest.get('oled'))).toEqual(drawn);
+    // The diagonal: right and up one row a step; 1 s in, 17 steps.
+    runTo(when('left') + 3100);
+    const diag = when('diag');
+    expect(diag).toBeGreaterThan(0);
+    runTo(diag + 1000);
+    expect(unpack(latest.get('oled'))).toEqual(moved(drawn, 17, 17));
+    // stopscroll: the vertical offset goes, the columns stay moved.
+    runTo(diag + 2500);
+    expect(unpack(latest.get('oled'))).toEqual(moved(drawn, 35, 0));
+    // The redraw puts it back (looked at as "again" comes, before the next right scroll's first step).
+    while (Number.isNaN(when('again', diag)) && bench.now() < (diag + 4000) * NS_PER_MS) runTo(bench.now() / NS_PER_MS + 1);
+    expect(when('again', diag)).toBeGreaterThan(diag + 3000);
+    expect(unpack(latest.get('oled'))).toEqual(drawn);
+    expect(bench.problems().filter((p) => p.severity !== 'info')).toEqual([]);
+  }, 60_000);
+});

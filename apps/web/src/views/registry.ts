@@ -14,6 +14,7 @@ import { esp32S3DevkitC1View } from './esp32-s3-devkitc-1.ts';
 import { fallbackView } from './fallback.ts';
 import { httpClientView, httpServerView, networkView } from './network.ts';
 import { l298nView, MOTOR_VIEW_TYPES, motorView } from './motors.ts';
+import { OLED_VIEW_TYPES, oledView } from './oled.ts';
 import { PASSIVE_VIEW_TYPES, passiveView } from './passives.ts';
 import { POWER_VIEW_TYPES, powerView } from './power.ts';
 import { raspberryPiPicoView } from './raspberry-pi-pico.ts';
@@ -60,6 +61,7 @@ export function viewFor(type: string): ViewFactory {
   if (PASSIVE_VIEW_TYPES.has(type)) return passiveView;
   if (MOTOR_VIEW_TYPES.has(type)) return motorView;
   if (type === 'l298n') return l298nView;
+  if (OLED_VIEW_TYPES.has(type)) return oledView;
   if (hasWokwiView(type)) return wokwiView;
   return fallbackView;
 }

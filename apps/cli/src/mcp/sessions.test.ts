@@ -351,6 +351,19 @@ describe('live sessions', () => {
     expect(state.parts.pad.contact).toBe(0);
   }, 60_000);
 
+  it('BT183: sim_state reads an OLED as braille lines (uno-sh1106: the circle, a corner pixel)', async () => {
+    const server = testServer();
+    const { session } = (await tool(server, 'open_example', { id: 'uno-sh1106' })).value as { session: string };
+    await tool(server, 'sim_run', { session, untilSerial: 'count 1', duration: '3s' });
+    const state = (await tool(server, 'sim_state', { session, parts: ['oled'] })).value as { parts: { oled: { screen: string[]; fb: { length: number } } } };
+    const { screen, fb } = state.parts.oled;
+    expect(fb.length).toBe(256); // still summarized
+    expect(screen).toHaveLength(16);
+    expect(screen.every((line) => line.length === 64 && /^[\u2800-\u28ff]+$/.test(line))).toBe(true);
+    expect(screen[0].codePointAt(0)! & 0x01).toBe(0x01); // pixel (0, 0)
+    expect(screen[8].codePointAt(32)! - 0x2800).toBeGreaterThan(0); // the circle's top at (64, 32)
+  }, 60_000);
+
   it('BT161: sim_state shows an ESP32 asleep until its touch pad is touched; sim_input wakes it', async () => {
     const server = testServer({ maxWallMs: 60_000 });
     const { session } = (await tool(server, 'open_example', { id: 'esp32-touch-wake' })).value as { session: string };

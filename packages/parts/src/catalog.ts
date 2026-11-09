@@ -40,6 +40,7 @@ import { hx711 } from './sensors/hx711.ts';
 import { flameSensor, gasSensor } from './sensors/flame-gas.ts';
 import { a4988 } from './actuators/a4988.ts';
 import { ssd1306 } from './displays/ssd1306.ts';
+import { sh1106, ssd1306128x32, ssd1306Spi } from './displays/oled-modules.ts';
 import { analogJoystick } from './inputs/analog-joystick.ts';
 import { dipSwitch8 } from './inputs/dip-switch-8.ts';
 import { ky040 } from './inputs/ky-040.ts';
@@ -99,6 +100,9 @@ const ALL: readonly PartDefinition[] = [
   sevenSegment4,
   ledBarGraph,
   ssd1306,
+  ssd1306128x32,
+  ssd1306Spi,
+  sh1106,
   ili9341,
   irReceiver,
   irRemote,

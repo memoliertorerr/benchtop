@@ -1,0 +1,14 @@
+{
+  "name": "example: uno-sh1106",
+  "project": "../../projects/uno-sh1106.json",
+  "firmware": {
+    "uno": "../../firmware/uno/sh1106.hex"
+  },
+  "expect": [
+    "serial contains \"FB:\" by 2s",
+    "oled oled pixel 0,0 is on at 1500ms",
+    "oled oled pixel 127,63 is on at 1500ms",
+    "oled oled pixel 64,32 is on at 1500ms",
+    "serial contains \"count 1\" by 3s"
+  ]
+}

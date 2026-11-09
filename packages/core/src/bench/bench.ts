@@ -1667,9 +1667,9 @@ export class Bench {
         if (controller === undefined) continue;
         const { sck, mosi, miso } = controller.pins();
         const nets = slot.netOfPin;
-        // A write-only device (a TFT, a shift register) may leave its MISO unwired (BT51): then
-        // SCK and MOSI decide.
-        const misoUnwired = this.netlist.pinsOfNet(attachment.miso).length <= 1;
+        // A write-only device (a TFT, a shift register) may leave its MISO unwired (BT51), or have
+        // none and name its MOSI pin for it (BT181: the SPI OLED): then SCK and MOSI decide.
+        const misoUnwired = attachment.miso === attachment.mosi || this.netlist.pinsOfNet(attachment.miso).length <= 1;
         if (nets.get(sck) === attachment.sck && nets.get(mosi) === attachment.mosi && (misoUnwired || nets.get(miso) === attachment.miso)) {
           const cs = this.resolver.state(attachment.cs);
           controller.attach(attachment.proxy, () => cs.level === 0);

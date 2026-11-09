@@ -1,3 +1,4 @@
+import { oledPixel } from '@benchtop/parts';
 import { describe, expect, it } from 'vitest';
 import { EXAMPLES } from './manifest.ts';
 import { type ExampleRun, runExample, sevenSegmentText, tftPixels } from './run.test-helper.ts';
@@ -155,6 +156,21 @@ export const UNO_CHECKS: Record<string, (r: ExampleRun) => void> = {
   oled(r) {
     r.runTo(2000);
     expect(((r.visual('oled')?.fb ?? []) as number[]).some((v) => v !== 0)).toBe(true);
+  },
+  'uno-oled-128x32'(r) {
+    // BT183: the frame and "Benchtop" on the 0.91″ module (32 rows), before its scroll at 2 s.
+    r.runTo(1500);
+    expect(r.serial('uno')).toContain('FB:');
+    const v = r.visual('oled');
+    expect(v !== undefined && oledPixel(v, 0, 0) && oledPixel(v, 127, 31) && !oledPixel(v, 64, 1)).toBe(true);
+    expect(((v?.fb ?? []) as number[]).length).toBe(128);
+  },
+  'uno-sh1106'(r) {
+    // BT183: the SH1106's circle and corners under Adafruit_SH110X, the counter going.
+    r.runTo(2000);
+    expect(r.serial('uno')).toContain('count 1');
+    const v = r.visual('oled');
+    expect(v !== undefined && oledPixel(v, 0, 0) && oledPixel(v, 127, 63) && oledPixel(v, 64, 32)).toBe(true);
   },
   'oled-clock'(r) {
     r.runTo(2000);

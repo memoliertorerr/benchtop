@@ -1,0 +1,122 @@
+{
+  "format": 1,
+  "name": "esp32-oled-spi",
+  "parts": [
+    {
+      "id": "esp",
+      "type": "esp32-devkit-v1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "oled",
+      "type": "ssd1306-spi",
+      "x": 45,
+      "y": -10,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "oled",
+        "pin": "D0"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "D18"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "oled",
+        "pin": "D1"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "D23"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "oled",
+        "pin": "DC"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "RX2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "oled",
+        "pin": "CS"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "D5"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "oled",
+        "pin": "RES"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "TX2"
+      },
+      "waypoints": [],
+      "color": "purple"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "oled",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "3V3"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "oled",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "esp": {
+      "kind": "file",
+      "name": "oled-spi.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

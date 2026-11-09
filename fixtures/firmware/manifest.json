@@ -990,6 +990,57 @@
     },
     {
       "board": "esp32",
+      "name": "oled-spi",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/oled-spi.bin",
+      "sha256": "41e0880c6c2fcb27e6de3686ba1c57acfb1683ce0b866aa60a8a8cc7e9349397",
+      "bytes": 292592,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "2.0.0",
+        "Wire": "2.0.0"
+      },
+      "source": "7f909ba6b9e4014634795705ccc36dbf4472f62b5cfb0e65691427b96e6cacb9"
+    },
+    {
+      "board": "esp32",
+      "name": "oled-spi",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/oled-spi.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "2.0.0",
+        "Wire": "2.0.0"
+      },
+      "source": "7f909ba6b9e4014634795705ccc36dbf4472f62b5cfb0e65691427b96e6cacb9"
+    },
+    {
+      "board": "esp32",
+      "name": "oled-spi",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/oled-spi.syms.tsv",
+      "sha256": "df2734bb7f6759ae110c5fa2046f2db1eeae7755fcff86fc79daacbae30f8eb3",
+      "bytes": 126305,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "2.0.0",
+        "Wire": "2.0.0"
+      },
+      "source": "7f909ba6b9e4014634795705ccc36dbf4472f62b5cfb0e65691427b96e6cacb9"
+    },
+    {
+      "board": "esp32",
       "name": "prefs-counter",
       "fqbn": "esp32:esp32:esp32",
       "file": "esp32/prefs-counter.bin",
@@ -7306,6 +7357,40 @@
     },
     {
       "board": "uno",
+      "name": "oled-128x32",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/oled-128x32.elf",
+      "sha256": "fda0c898f63cf6d2ea74af5f115ec5041568828da7df9f91811513f0c624551b",
+      "bytes": 98948,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "1.0",
+        "Wire": "1.0"
+      },
+      "source": "5db2ddf90f744182761e75ffef945e6be55160403e380f847952e070497dfc9b"
+    },
+    {
+      "board": "uno",
+      "name": "oled-128x32",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/oled-128x32.hex",
+      "sha256": "5a8cdfdc565e5d8e98af0890980b3eeec8e6392d603443c66880787e41c2d688",
+      "bytes": 41107,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "1.0",
+        "Wire": "1.0"
+      },
+      "source": "5db2ddf90f744182761e75ffef945e6be55160403e380f847952e070497dfc9b"
+    },
+    {
+      "board": "uno",
       "name": "oled-clock",
       "fqbn": "arduino:avr:uno",
       "file": "uno/oled-clock.elf",
@@ -7337,6 +7422,74 @@
         "Wire": "1.0"
       },
       "source": "145588adbf5a81114262a453d731473dbc6694b362ddcb0095a9cc41015cce26"
+    },
+    {
+      "board": "uno",
+      "name": "oled-scroll",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/oled-scroll.elf",
+      "sha256": "a8481940734a88d178ba47f1ad3ed7dbf5774d4223a5daa20acb745449509cdb",
+      "bytes": 99940,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "1.0",
+        "Wire": "1.0"
+      },
+      "source": "972cd0872ad6010a5c059742dace380fb765ed88288caff65e4be58013a107b2"
+    },
+    {
+      "board": "uno",
+      "name": "oled-scroll",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/oled-scroll.hex",
+      "sha256": "755a2ad4cd45f4a6e7267ae831f921c8d18eeacd3cd7c6bbb023a1141872663f",
+      "bytes": 41986,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "1.0",
+        "Wire": "1.0"
+      },
+      "source": "972cd0872ad6010a5c059742dace380fb765ed88288caff65e4be58013a107b2"
+    },
+    {
+      "board": "uno",
+      "name": "oled-spi",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/oled-spi.elf",
+      "sha256": "864fce999486a6f187578f64bee3a6978e621203c266bb655ba5d2ce1fbae8f1",
+      "bytes": 100380,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "1.0",
+        "Wire": "1.0"
+      },
+      "source": "1cd6a51e820ec119bf4663ba8b37b392fbf70b710b366e685031da96b69590e5"
+    },
+    {
+      "board": "uno",
+      "name": "oled-spi",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/oled-spi.hex",
+      "sha256": "3455cf623d4be7e176f00fc07032ccee04229816f010f7cb244923fd77c33023",
+      "bytes": 41291,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "1.0",
+        "Wire": "1.0"
+      },
+      "source": "1cd6a51e820ec119bf4663ba8b37b392fbf70b710b366e685031da96b69590e5"
     },
     {
       "board": "uno",
@@ -7687,6 +7840,40 @@
       "core": "arduino:avr@1.8.7",
       "libraries": {},
       "source": "d49a853e3a166e44a0f040da0fd5facd6b3431ae1cd4d004b46ec47c6fcd76e7"
+    },
+    {
+      "board": "uno",
+      "name": "sh1106",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/sh1106.elf",
+      "sha256": "82015a47c63a75429f8c0e66e27a826d7fb9baecc05370b4dc0a53978e6126ee",
+      "bytes": 97248,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SH110X": "2.1.14",
+        "SPI": "1.0",
+        "Wire": "1.0"
+      },
+      "source": "f3c5d9ce8dc16d1f3ef4fd4392b9820de5d34c338f1dc69172d8e16352d1cf82"
+    },
+    {
+      "board": "uno",
+      "name": "sh1106",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/sh1106.hex",
+      "sha256": "24632d1cd206eafe5ba7c766387ef83c23f627a3921c60623fe3acae2fbcc063",
+      "bytes": 38583,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SH110X": "2.1.14",
+        "SPI": "1.0",
+        "Wire": "1.0"
+      },
+      "source": "f3c5d9ce8dc16d1f3ef4fd4392b9820de5d34c338f1dc69172d8e16352d1cf82"
     },
     {
       "board": "uno",
