@@ -1,0 +1,57 @@
+{
+  "format": 1,
+  "name": "esp32s2-dac-sine",
+  "parts": [
+    {
+      "id": "s2",
+      "type": "esp32-s2-devkitm-1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "spk1",
+      "type": "speaker",
+      "x": -33.02,
+      "y": 20.32,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "s2",
+        "pin": "IO17"
+      },
+      "to": {
+        "part": "spk1",
+        "pin": "1"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "spk1",
+        "pin": "2"
+      },
+      "to": {
+        "part": "s2",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "s2": {
+      "kind": "file",
+      "name": "dac-sine.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

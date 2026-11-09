@@ -3,7 +3,8 @@ import { Strength } from '@benchtop/core';
 import type { SocProblem } from '@benchtop/esp32';
 import { describe, expect, it } from 'vitest';
 import { CODE_S2_REBOOT, CODE_S2_ROM_MISSING, CODE_S2_WIFI_NO_SYMBOLS, createEsp32s2Mcu, type Esp32s2Mcu, S2_MCU_GPIOS } from './esp32s2-mcu.ts';
-import { REF_HZ } from './soc/rtc-cntl.ts';
+import { S3RtcCntl } from '@benchtop/esp32s3';
+import { REF_HZ, S2RtcCntl } from './soc/rtc-cntl.ts';
 import { s2FixtureImage } from './test-support/boot.test-helper.ts';
 import { loadCachedS2Rom } from './test-support/rom.test-helper.ts';
 
@@ -190,5 +191,58 @@ describe('the ESP32-S2 Mcu (BT150)', () => {
     expect(problems[0].message).toMatch(/npm run fetch:esp32-rom/);
     expect(mcu.runUntil(1000).reason).toBe('halted');
     expect(() => createEsp32s2Mcu({ rom: ROM }).load({ format: 'intel-hex', data: new Uint8Array(0) } as never)).toThrow(/runs app images/);
+  });
+});
+
+describe('the S2’s DAC (BT164)', () => {
+  const PAD_DAC1 = 0x4c8; // RTC_IO + 0xC8 in RTC_CNTL's page
+  const MUX_SEL = 1 << 19;
+  const XPD_DAC = 1 << 11;
+  const lsb = 3.3 / 255;
+
+  it('PAD_DAC1/2 drive GPIO17/18 with code / 255 · 3.3 V while powered and routed to the RTC, nothing otherwise; the S3’s same registers drive nothing', () => {
+    const rtc = new S2RtcCntl(() => 0);
+    let reports = 0;
+    rtc.onRtcPads = () => reports++;
+    rtc.write32(PAD_DAC1, 200 << 3);
+    expect(rtc.dacVolts(17)).toBeNaN(); // not powered, not routed
+    rtc.write32(PAD_DAC1, (200 << 3) | XPD_DAC);
+    expect(rtc.dacVolts(17)).toBeNaN(); // not routed
+    rtc.write32(PAD_DAC1, (200 << 3) | XPD_DAC | MUX_SEL);
+    expect(rtc.dacVolts(17)).toBeCloseTo(200 * lsb, 9);
+    const before = reports;
+    rtc.write32(PAD_DAC1, (201 << 3) | XPD_DAC | MUX_SEL);
+    expect(reports).toBe(before + 1); // a new code reports the pads
+    expect(rtc.dacVolts(18)).toBeNaN();
+    rtc.write32(PAD_DAC1 + 4, (255 << 3) | XPD_DAC | MUX_SEL);
+    expect(rtc.dacVolts(18)).toBeCloseTo(3.3, 9);
+    expect(rtc.dacVolts(16)).toBeNaN();
+    rtc.write32(PAD_DAC1, (201 << 3) | MUX_SEL); // powered down
+    expect(rtc.dacVolts(17)).toBeNaN();
+    const s3 = new S3RtcCntl(() => 0);
+    s3.write32(PAD_DAC1, (200 << 3) | XPD_DAC | MUX_SEL);
+    expect(s3.dacVolts(17)).toBeNaN();
+  });
+
+  it('dac-sine: GPIO17 is analog and its volts step through the sine table’s codes (±1 LSB); GPIO18 drives nothing', () => {
+    const { mcu, serial } = boot('dac-sine');
+    run(mcu, 1, () => serial().includes('dac'));
+    expect(serial()).toContain('dac');
+    const pin = mcu.pins.get('GPIO17') as McuPin;
+    let changes = 0;
+    pin.onOutputChange(() => changes++);
+    const table = Array.from({ length: 32 }, (_, i) => Math.round(127.5 + 127.5 * Math.sin((2 * Math.PI * i) / 32)));
+    const seen = new Set<number>();
+    for (let k = 0; k < 120; k++) {
+      run(mcu, 37e-6 + (k % 7) * 3e-6);
+      const volts = pin.outputVolts?.() ?? Number.NaN;
+      const code = table.reduce((best, c) => (Math.abs(c * lsb - volts) < Math.abs(best * lsb - volts) ? c : best), table[0]);
+      expect(Math.abs(code * lsb - volts)).toBeLessThanOrEqual(lsb);
+      seen.add(code);
+    }
+    expect(seen.size).toBeGreaterThanOrEqual(12);
+    expect(changes).toBeGreaterThan(50);
+    expect(pin.mode()).toBe('analog');
+    expect(mcu.pins.get('GPIO18')?.outputVolts?.()).toBeUndefined();
   });
 });

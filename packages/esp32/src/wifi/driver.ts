@@ -83,6 +83,13 @@ export interface WifiHle {
 
 /** Firmware functions (and the WIFI_EVENT base) the driver calls back. */
 export const WIFI_NEEDS = ['esp_event_post', 'vTaskDelay', 'xTaskCreatePinnedToCore', 'malloc', 'free', 'WIFI_EVENT'] as const;
+/**
+ * BT163: firmware functions the driver calls when the build has them — ESP-IDF's ADC2 lock, which
+ * the real driver's wifi_start_process takes (and esp_wifi_stop gives back): while WiFi holds it,
+ * adc2_get_raw fails with ESP_ERR_TIMEOUT, as on a board. A build without the ADC driver has only
+ * IDF's weak no-ops, or neither.
+ */
+export const WIFI_OPTIONAL = ['adc2_wifi_acquire', 'adc2_wifi_release'] as const;
 
 /** wifi_auth_mode_t for a radio's security. */
 const AUTH_OF: Readonly<Record<WifiSecurity, number>> = {
@@ -262,6 +269,7 @@ export class WifiDriver {
     const missing = WIFI_NEEDS.filter((name) => lookup(name) === undefined);
     if (missing.length > 0) return { installed: false, missing };
     for (const name of WIFI_NEEDS) this.fn.set(name, lookup(name) ?? 0);
+    for (const name of WIFI_OPTIONAL) this.fn.set(name, lookup(name) ?? 0);
     for (const [name, handler] of Object.entries(this.handlers())) {
       const address = lookup(name);
       if (address !== undefined) hle.replace(address, name, handler);
@@ -270,7 +278,7 @@ export class WifiDriver {
     return { installed: true, missing: [] };
   }
 
-  private address(name: (typeof WIFI_NEEDS)[number]): number {
+  private address(name: (typeof WIFI_NEEDS)[number] | (typeof WIFI_OPTIONAL)[number]): number {
     return this.fn.get(name) ?? 0;
   }
 
@@ -460,6 +468,9 @@ export class WifiDriver {
     if (!this.inited) return T.ESP_ERR_WIFI_NOT_INIT;
     if (this.started) return T.ESP_OK;
     this.started = true;
+    // BT163: WiFi takes ADC2, as wifi_start_process does on a board.
+    const acquire = this.address('adc2_wifi_acquire');
+    if (acquire !== 0) yield call.call(acquire);
     yield* this.modeEvents(call, T.WIFI_MODE.NULL, this.mode);
     return T.ESP_OK;
   }
@@ -471,6 +482,8 @@ export class WifiDriver {
     this.started = false;
     this.pending.length = 0;
     this.scanning = false;
+    const release = this.address('adc2_wifi_release');
+    if (release !== 0) yield call.call(release);
     return T.ESP_OK;
   }
 

@@ -23,7 +23,10 @@ fixtures/firmware/esp32/<name>.syms.tsv       `nm -S -n --defined-only` of the f
                                               the board menu's option for a WROVER's PSRAM;
                                               touch-read (T0, T3), touch-interrupt (T0, 40),
                                               touch-wake (T3, 40) — also on the S2 and S3 (T3,
-                                              5000) — and touch-led, the gallery's)
+                                              5000) — and touch-led, the gallery's;
+                                              adc2-read, ADC2's ten channels; adc2-wifi — ADC2
+                                              before, with and after WiFi; joystick, the
+                                              gallery's — ADC2 on GPIO25/26)
 fixtures/firmware/esp32c3/<name>.bin|.partitions.bin|.syms.tsv  the same for the ESP32-C3
                                               (serial-hello, blink, gpio-interrupt, adc-read,
                                               ledc-fade, i2c-scan, spi-loopback, rgb-blink,
@@ -60,7 +63,8 @@ fixtures/firmware/esp32s3/<name>.bin|.partitions.bin|.syms.tsv  the same for the
                                               host played on IO5), the same options;
                                               flash-info, FlashSize=16M — also
                                               esp32/flash-info; touch-read, touch-interrupt —
-                                              the S2's — and touch-lamp, the S2's gallery sketch)
+                                              the S2's — and touch-lamp, the S2's gallery sketch;
+                                              adc2-wifi, the ESP32's on GPIO11)
 fixtures/firmware/esp32s2/<name>.bin|.partitions.bin|.syms.tsv  the same for the ESP32-S2
                                               (serial-hello, blink — its Dev Module defaults,
                                               `esp32:esp32:esp32s2` —, gpio-interrupt,
@@ -80,7 +84,8 @@ fixtures/firmware/esp32s2/<name>.bin|.partitions.bin|.syms.tsv  the same for the
                                               touch-read (touchRead on T1, T5) and
                                               touch-interrupt (touchAttachInterrupt on T5);
                                               touch-lamp and psram-frame (PSRAM=enabled), the
-                                              gallery's)
+                                              gallery's; dac-sine, the ESP32's on GPIO17 — DAC
+                                              1, also the gallery's)
 fixtures/firmware/pico*/debug-demo.syms.tsv   the same for the Pico and Pico 2 debug-demos only (the
                                               debugger's tests; `SYMBOL_SKETCHES` in fixture-boards.ts)
 fixtures/firmware/pico/<name>.uf2             Raspberry Pi Pico firmware (arduino-pico 6.2.0; the

@@ -1,0 +1,96 @@
+{
+  "format": 1,
+  "name": "esp32-joystick",
+  "parts": [
+    {
+      "id": "esp",
+      "type": "esp32-devkit-v1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "joy",
+      "type": "analog-joystick",
+      "x": -45.72,
+      "y": 5.08,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "joy",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "3V3"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "joy",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "joy",
+        "pin": "HORZ"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "D25"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "joy",
+        "pin": "VERT"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "D26"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "joy",
+        "pin": "SEL"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "D27"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    }
+  ],
+  "firmware": {
+    "esp": {
+      "kind": "file",
+      "name": "joystick.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "example: esp32s2-dac-sine",
+  "project": "../../projects/esp32s2-dac-sine.json",
+  "firmware": {
+    "s2": "../../firmware/esp32s2/dac-sine.bin"
+  },
+  "expect": [
+    "pin s2:IO17 frequency is 500 Hz ±2% between 1s and 2s"
+  ]
+}

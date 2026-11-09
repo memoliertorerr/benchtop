@@ -755,6 +755,19 @@
     "description": "dacWrite on GPIO25 steps a 500 Hz sine into a speaker (unmute to hear it)."
   },
   {
+    "id": "esp32-joystick",
+    "title": "ESP32 joystick on ADC2",
+    "category": "ESP32",
+    "project": "esp32-joystick",
+    "boards": {
+      "esp": {
+        "firmware": "esp32/joystick.bin",
+        "sketch": "esp32/joystick"
+      }
+    },
+    "description": "Move the stick (Inspector: x and y) and open the Serial Plotter: analogRead on GPIO25 and GPIO26 — ADC2's channels 8 and 9 — draws both axes, 0–4095; press the stick (GPIO27) and the DevKit's blue LED lights. ADC2 reads work while WiFi is off; a sketch that starts WiFi reads 0 there, as on a board."
+  },
+  {
     "id": "esp32-mic-level",
     "title": "ESP32 microphone pitch",
     "category": "ESP32",
@@ -1143,6 +1156,19 @@
       }
     },
     "description": "An ESP32-S2 on an N4R2 module (the board's module prop: 2 MB of PSRAM in the package) keeps a whole 240×320 frame (150 KB) in its PSRAM, redraws it — color bands and a sliding square — and pushes it to an ILI9341 in one go. Its `// benchtop: psram` line builds it with PSRAM."
+  },
+  {
+    "id": "esp32s2-dac-sine",
+    "title": "ESP32-S2 DAC sine",
+    "category": "ESP32-S2",
+    "project": "esp32s2-dac-sine",
+    "boards": {
+      "s2": {
+        "firmware": "esp32s2/dac-sine.bin",
+        "sketch": "esp32s2/dac-sine"
+      }
+    },
+    "description": "dacWrite on GPIO17 — the S2's DAC channel 1 — steps a 500 Hz sine into a speaker (unmute to hear it)."
   },
   {
     "id": "picow-wifi-webserver",

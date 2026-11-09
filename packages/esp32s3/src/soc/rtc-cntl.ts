@@ -28,6 +28,13 @@
  * SLP_WAKEUP_CAUSE 0x12C, STORE4–7 0xBC–0xC8), its base and reset values, and its slow clocks; its
  * RTC_IO is the S3's exactly.
  *
+ * BT164: the S2's DAC (`RtcChip.dac`; esp32s2 dac_ll.h, rtc_io_reg.h) — RTC_IO PAD_DAC1/PAD_DAC2
+ * (GPIO17/18's own RTC pad registers, +0xC8/+0xCC) output DAC (10:3) as code / 255 · 3.3 V while
+ * XPD_DAC (11) powers it and the pad is routed to the RTC (MUX_SEL) — `dacVolts`, what IDF's
+ * dac_output_enable + dac_output_voltage (Arduino's dacWrite) leave; a change to either reports the
+ * pads (`onRtcPads`). The S3's RTC_IO has the same registers and no DAC behind them. The cosine
+ * generator and DAC DMA aren't modeled (nor on the ESP32).
+ *
  * EFUSE: rev 0 (WAFER_VERSION 0 — the S3 ROM in the pinned release is rev 0) with Espressif's MAC
  * 34:85:18:00:53:01 (or the one the SoC is built with) in BLK1; CMD's READ/PGM bits complete at
  * once.
@@ -61,6 +68,8 @@ export interface RtcChip {
   intEnaW1ts?: number;
   /** BT160: TOUCH_SLP_THRES (the sleep pad and its threshold) — in the RTC domain: the woken app reads its pad. */
   touchSlpThres: number;
+  /** BT164: GPIO17/18's PAD_DAC1/2 drive a DAC (the S2; the S3 has none). */
+  dac?: boolean;
 }
 
 export const S3_RTC_CHIP: RtcChip = {
@@ -105,6 +114,11 @@ const RTC_PADS = 22;
 const PAD_MUX_SEL = 1 << 19;
 const PAD_RUE = 1 << 27;
 const PAD_RDE = 1 << 28;
+/** BT164: the S2's DAC pads (DAC channels 1 and 2), their PAD_DACn fields, and its full scale (VDD3P3_RTC). */
+const DAC_GPIO1 = 17;
+const PAD_XPD_DAC = 1 << 11;
+const PAD_DAC_CODE = 0xff << 3;
+export const S2_DAC_VDD = 3.3;
 /** BT128: wake sources (WAKEUP_STATE ENA, SLP_WAKEUP_CAUSE; esp32s3 rtc.h). */
 export const S3_WAKE = { EXT0: 1 << 0, EXT1: 1 << 1, GPIO: 1 << 2, TIMER: 1 << 3, TOUCH: 1 << 8 } as const;
 
@@ -269,6 +283,14 @@ export class S3RtcCntl implements Peripheral {
     return (pad & PAD_RUE) !== 0 ? 1 : (pad & PAD_RDE) !== 0 ? 2 : 0;
   }
 
+  /** BT164: the DAC's volts on GPIO17/18 while it drives the pad (powered, routed to the RTC), else NaN. */
+  dacVolts(g: number): number {
+    if (this.chip.dac !== true || (g !== DAC_GPIO1 && g !== DAC_GPIO1 + 1)) return Number.NaN;
+    const pad = this.regs[(RTC_PAD0 >>> 2) + g];
+    if ((pad & PAD_MUX_SEL) === 0 || (pad & PAD_XPD_DAC) === 0) return Number.NaN;
+    return (((pad >>> 3) & 0xff) / 255) * S2_DAC_VDD;
+  }
+
   /** What the RTC domain keeps through a system reset (a deep sleep's wake). */
   rtcDomain(): Uint32Array {
     const domain = this.RTC_DOMAIN;
@@ -300,6 +322,13 @@ export class S3RtcCntl implements Peripheral {
         return (this.regs[INT_RAW >>> 2] & this.regs[INT_ENA >>> 2]) >>> 0;
     }
     return this.regs[offset >>> 2];
+  }
+
+  /** The RTC pad register bits whose change the pads see: routing and pulls, and on the DAC pads its power and code. */
+  private padMask(offset: number): number {
+    const g = (offset - RTC_PAD0) >>> 2;
+    const dac = this.chip.dac === true && (g === DAC_GPIO1 || g === DAC_GPIO1 + 1);
+    return dac ? PAD_MUX_SEL | PAD_RUE | PAD_RDE | PAD_XPD_DAC | PAD_DAC_CODE : PAD_MUX_SEL | PAD_RUE | PAD_RDE;
   }
 
   write32(offset: number, value: number): void {
@@ -334,7 +363,7 @@ export class S3RtcCntl implements Peripheral {
     const before = this.regs[offset >>> 2];
     this.regs[offset >>> 2] = value;
     if (offset === STATE0 && (value & SLEEP_EN) !== 0 && (before & SLEEP_EN) === 0) this.onSleep?.((this.regs[this.DIG_PWC >>> 2] & (1 << 31)) !== 0);
-    if (offset >= RTC_PAD0 && offset < RTC_PAD0 + RTC_PADS * 4 && ((before ^ value) & (PAD_MUX_SEL | PAD_RUE | PAD_RDE)) !== 0) this.onRtcPads?.();
+    if (offset >= RTC_PAD0 && offset < RTC_PAD0 + RTC_PADS * 4 && ((before ^ value) & this.padMask(offset)) !== 0) this.onRtcPads?.();
     if (offset === INT_ENA) this.updateLine();
     this.onWrite?.(offset, value, before);
   }

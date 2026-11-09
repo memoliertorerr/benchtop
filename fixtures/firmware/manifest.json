@@ -57,6 +57,78 @@
     },
     {
       "board": "esp32",
+      "name": "adc2-read",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/adc2-read.bin",
+      "sha256": "e9224ae9061bbee4f7ab0867d92bf2492684dc49c852a5a4c959bef774e584cb",
+      "bytes": 269088,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "b949c1947825a54e4502376436b30fb4c15f663049325a552606023d5f7e6e4e"
+    },
+    {
+      "board": "esp32",
+      "name": "adc2-read",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/adc2-read.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "b949c1947825a54e4502376436b30fb4c15f663049325a552606023d5f7e6e4e"
+    },
+    {
+      "board": "esp32",
+      "name": "adc2-read",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/adc2-read.syms.tsv",
+      "sha256": "3b6c2db46e815ee460335c221816dfa7bc60af6a39c6d91483ed0c5bf8667619",
+      "bytes": 119202,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "b949c1947825a54e4502376436b30fb4c15f663049325a552606023d5f7e6e4e"
+    },
+    {
+      "board": "esp32",
+      "name": "adc2-wifi",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/adc2-wifi.bin",
+      "sha256": "3f38faa5fab68498d0f259a9b10e9299d26978865d3d6727a4dd5b7b96661ae9",
+      "bytes": 726336,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "WiFi": "2.0.0"
+      },
+      "source": "8e000613f7c8fb09a394c4c97705e2c7949a24a6d874d3eb73c772f02b26d161"
+    },
+    {
+      "board": "esp32",
+      "name": "adc2-wifi",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/adc2-wifi.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "WiFi": "2.0.0"
+      },
+      "source": "8e000613f7c8fb09a394c4c97705e2c7949a24a6d874d3eb73c772f02b26d161"
+    },
+    {
+      "board": "esp32",
+      "name": "adc2-wifi",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/adc2-wifi.syms.tsv",
+      "sha256": "236b07f137f8001ea99ba6a63fe5b1458f20e42e0e4aadfd05003692c274be62",
+      "bytes": 258642,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "WiFi": "2.0.0"
+      },
+      "source": "8e000613f7c8fb09a394c4c97705e2c7949a24a6d874d3eb73c772f02b26d161"
+    },
+    {
+      "board": "esp32",
       "name": "blink",
       "fqbn": "esp32:esp32:esp32",
       "file": "esp32/blink.bin",
@@ -579,6 +651,39 @@
         "Wire": "2.0.0"
       },
       "source": "026179d1078a7314b8cba6a2b0160d10b0729e620b198e2302095716607ba8eb"
+    },
+    {
+      "board": "esp32",
+      "name": "joystick",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/joystick.bin",
+      "sha256": "6cc912cfadc4fd65b61ba1925ffda7b16d9199c45a73d4d0010855ba28dc8de9",
+      "bytes": 269056,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "aff33e3fbf186c1b4f0e34d6f39fe4fa81a41df48b8fea34fb703a79c2c17c6a"
+    },
+    {
+      "board": "esp32",
+      "name": "joystick",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/joystick.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "aff33e3fbf186c1b4f0e34d6f39fe4fa81a41df48b8fea34fb703a79c2c17c6a"
+    },
+    {
+      "board": "esp32",
+      "name": "joystick",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/joystick.syms.tsv",
+      "sha256": "d06384f37eb1641403e18df8014a897a181677537b6a8494556c2a1b7ee28477",
+      "bytes": 119178,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "aff33e3fbf186c1b4f0e34d6f39fe4fa81a41df48b8fea34fb703a79c2c17c6a"
     },
     {
       "board": "esp32",
@@ -2928,6 +3033,39 @@
     },
     {
       "board": "esp32s2",
+      "name": "dac-sine",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/dac-sine.bin",
+      "sha256": "8ba51d237183bd5b036b42121563ea7b8754b1f5f8731b8c38c52d3546fef759",
+      "bytes": 225760,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "0057e090b83788513a040b2afe288ccb96a92a8ef01580e2fccd3d4735e26f34"
+    },
+    {
+      "board": "esp32s2",
+      "name": "dac-sine",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/dac-sine.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "0057e090b83788513a040b2afe288ccb96a92a8ef01580e2fccd3d4735e26f34"
+    },
+    {
+      "board": "esp32s2",
+      "name": "dac-sine",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/dac-sine.syms.tsv",
+      "sha256": "bc25b19ef6eae1ad2735671b3873dc5afd72fb767ffe05986dd35d91e64663a0",
+      "bytes": 101385,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "0057e090b83788513a040b2afe288ccb96a92a8ef01580e2fccd3d4735e26f34"
+    },
+    {
+      "board": "esp32s2",
       "name": "debug-demo",
       "fqbn": "esp32:esp32:esp32s2",
       "file": "esp32s2/debug-demo.bin",
@@ -3906,6 +4044,45 @@
       "core": "esp32:esp32@2.0.17",
       "libraries": {},
       "source": "cdc9363a0d78a35c2079958ebe1c4ab6ee75ca26633e15fb8ac2e19742b62c09"
+    },
+    {
+      "board": "esp32s3",
+      "name": "adc2-wifi",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/adc2-wifi.bin",
+      "sha256": "f464e5e09790aeba66b3c4fe79d7d5420b257bd7743549c4f4687031abea864f",
+      "bytes": 674720,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "WiFi": "2.0.0"
+      },
+      "source": "5ad272c10cfac75cf21f6424685cd5b8ce16534bf4251eadf6a6cd5df6f2f612"
+    },
+    {
+      "board": "esp32s3",
+      "name": "adc2-wifi",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/adc2-wifi.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "WiFi": "2.0.0"
+      },
+      "source": "5ad272c10cfac75cf21f6424685cd5b8ce16534bf4251eadf6a6cd5df6f2f612"
+    },
+    {
+      "board": "esp32s3",
+      "name": "adc2-wifi",
+      "fqbn": "esp32:esp32:esp32s3",
+      "file": "esp32s3/adc2-wifi.syms.tsv",
+      "sha256": "8c9ac7cd091d9c1f0f8d5c2be1db757c33d198a8877f028bc40810c55f2a6db6",
+      "bytes": 307736,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "WiFi": "2.0.0"
+      },
+      "source": "5ad272c10cfac75cf21f6424685cd5b8ce16534bf4251eadf6a6cd5df6f2f612"
     },
     {
       "board": "esp32s3",

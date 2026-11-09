@@ -1,0 +1,48 @@
+{
+  "name": "example: esp32-joystick",
+  "project": "../../projects/esp32-joystick.json",
+  "firmware": {
+    "esp": "../../firmware/esp32/joystick.bin"
+  },
+  "steps": [
+    {
+      "at": "1s",
+      "part": "joy",
+      "input": {
+        "kind": "key",
+        "key": "set:x=1",
+        "down": true
+      }
+    },
+    {
+      "at": "1200ms",
+      "part": "joy",
+      "input": {
+        "kind": "key",
+        "key": "set:y=-1",
+        "down": true
+      }
+    },
+    {
+      "at": "1400ms",
+      "part": "joy",
+      "input": {
+        "kind": "press"
+      }
+    },
+    {
+      "at": "1600ms",
+      "part": "joy",
+      "input": {
+        "kind": "release"
+      }
+    }
+  ],
+  "expect": [
+    "serial matches /x:204[78],y:204[78]\\n/ by 1s",
+    "serial matches /x:4095,y:204[78]\\n/ by 1200ms",
+    "serial matches /x:4095,y:0\\n/ by 1400ms",
+    "pin esp:D2 is 1 at 1550ms",
+    "pin esp:D2 is 0 at 1800ms"
+  ]
+}

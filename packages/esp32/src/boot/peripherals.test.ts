@@ -174,6 +174,26 @@ describe('ADC1 on real firmware (BT35)', () => {
     set.forEach(([, v], i) => expect(Math.abs(c[i] - ideal(v, 3.3, 4095)), `GPIO${set[i][0]}`).toBeLessThanOrEqual(3));
     expect(pin(34).mode()).toBe('analog');
   }, 60_000);
+
+  it('BT162 adc2-read: ADC2 reads its ten channels (GPIO4, 0, 2, 15, 13, 12, 14, 27, 25, 26) as ADC1 does, at 11 dB and 0 dB', () => {
+    const { mcu, out, run } = boot('adc2-read');
+    const problems: { code: string }[] = [];
+    mcu.onProblem = (p) => problems.push(p);
+    const pin = (g: number) => mcu.pins.get(`GPIO${g}`)!;
+    const order = [4, 0, 2, 15, 13, 12, 14, 27, 25, 26];
+    order.forEach((g, i) => pin(g).setInput(volts(0.3 * (i + 1))));
+    for (let i = 0; i < 60 && !out[0].includes('\n'); i++) run(10);
+    run(60);
+    const lines = out[0].slice(0, out[0].lastIndexOf('\n')).split('\n');
+    const m = /^adc2((?: \d+){10}) z=(\d+)\r?$/.exec(lines[lines.length - 1]);
+    if (m === null) throw new Error(`no reading in ${JSON.stringify(lines[lines.length - 1])}`);
+    const got = m[1].trim().split(' ').map(Number);
+    // 0.3–3.0 V at 11 dB (3.3 V full scale, 12 bits); GPIO4's 0.3 V at 0 dB (1.1 V full scale).
+    order.forEach((g, i) => expect(Math.abs(got[i] - Math.round(((0.3 * (i + 1)) / 3.3) * 4095)), `GPIO${g}`).toBeLessThanOrEqual(3));
+    expect(Math.abs(Number(m[2]) - Math.round((0.3 / 1.1) * 4095))).toBeLessThanOrEqual(3);
+    expect(problems.map((p) => p.code)).not.toContain('esp32-adc2-unsupported');
+    expect(pin(25).mode()).toBe('analog');
+  }, 60_000);
 });
 
 describe('SPI masters on real firmware (BT36)', () => {

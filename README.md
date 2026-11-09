@@ -93,7 +93,7 @@ On an N8R8, a wire on IO35–37 (its octal PSRAM's pins) gets a warning. Capacit
 **ESP32-S2-DevKitM-1** (Xtensa LX7, single-core): the same Xtensa emulator with the S2's
 instruction set runs Espressif's USB-native ESP32-S2 on its real mask ROM, booting the `.bin`
 Arduino-ESP32 2.0.17 builds for `esp32:esp32:esp32s2` — GPIO on the board's 37 header pins and pin
-interrupts, the 13-bit ADC (both units; `analogRead` gives 0–8191), LEDC PWM, UART0 and UART1, both
+interrupts, the 13-bit ADC (both units; `analogRead` gives 0–8191), the DAC on GPIO17/18 (`dacWrite`), LEDC PWM, UART0 and UART1, both
 I2C controllers, SPI, the board's RGB LED (a WS2812 on GPIO18 through the RMT), and its own USB: a
 "USB CDC On Boot" build's `Serial` (or a sketch with a `// benchtop: usb-otg` line) is enumerated by
 the bench's USB host, as on the S3, with the same USB section in the Inspector. The debugger
@@ -117,7 +117,8 @@ running the real `.bin` image Arduino-ESP32 2.0.17 builds, on Espressif's real m
 - timer groups, `esp_timer`, `millis()`/`micros()`, hardware timers, watchdogs, reboots and
   panics (`ESP.restart()`, the interrupt watchdog's Guru Meditation);
 - UART0–2 in both directions (the serial monitor), CPU clock changes (`setCpuFrequencyMhz`);
-- LEDC PWM (`analogWrite`, `ledcWrite`), ADC1 (`analogRead`, attenuation and resolution);
+- LEDC PWM (`analogWrite`, `ledcWrite`), both ADCs (`analogRead`, attenuation and resolution; ADC2 on
+  GPIO4, 0, 2, 15, 13, 12, 14, 27, 25, 26 — and, as on a board, ADC2 reads 0 while WiFi runs);
 - I2C (`Wire`, remappable pins) and the SPI2/SPI3 masters, talking to the same parts the Uno
   uses;
 - the RMT transmitter, so `neopixelWrite` and `rmtWrite` drive NeoPixels with exact bit timing;
@@ -136,7 +137,7 @@ running the real `.bin` image Arduino-ESP32 2.0.17 builds, on Espressif's real m
   M1 — a blinking sketch runs ~14× faster than real time) and idle skip-ahead, so cores
   waiting in `WAITI` cost almost nothing.
 
-Not on the ESP32 yet: ADC2, the DAC's cosine generator and DMA, I2S, PCNT, CAN and the ULP
+Not on the ESP32 yet: the DAC's cosine generator and DMA, I2S, PCNT, CAN and the ULP
 coprocessor; Bluetooth is out of scope.
 
 **WiFi on the ESP32, the ESP32-C3, the ESP32-S3, the ESP32-S2 and the Pico W** — a network inside the bench, no radio and, unless you allow hosts (see
@@ -233,10 +234,10 @@ servo knob, a keypad lock, a stepper, an A4988 stepper driver, a relay; Sound: b
 a microphone pitch meter, a VU meter; Power: a regulator meter (turn the bench supply and watch a
 7805 drop out); Storage: an SD card datalogger; Environment: a gas alarm with an extractor fan, a PIR
 hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, an LED Preferences remember, a deep sleep wake counter, a touch LED, a touch wake from deep sleep, a PWM fader, NeoPixel, a
-rainbow ring, an OLED clock, a color TFT, a WROVER's frame buffer in PSRAM, the DAC, the microphone, an I2C scan; ESP32-C3: the RGB LED,
+rainbow ring, an OLED clock, a color TFT, a WROVER's frame buffer in PSRAM, the DAC, a joystick on ADC2, the microphone, an I2C scan; ESP32-C3: the RGB LED,
 serial, a potentiometer dimmer, an OLED clock; ESP32-S3: the RGB LED, serial, a potentiometer dimmer, an OLED clock, a deep sleep wake counter, a
 frame buffer in PSRAM on a color TFT, an RGB LED set over USB serial, a USB macro keypad, a USB MIDI controller, a USB MIDI synth, a USB flash drive, a touch lamp; ESP32-S2: the RGB
-LED, serial, a potentiometer dimmer, an OLED clock, a deep sleep wake counter, a touch lamp, a frame buffer in PSRAM on a color TFT; WiFi: an ESP32 web server switched by HTTP client
+LED, serial, a potentiometer dimmer, an OLED clock, a deep sleep wake counter, a touch lamp, a frame buffer in PSRAM on a color TFT, the DAC; WiFi: an ESP32 web server switched by HTTP client
 parts, an ESP32 hosting its own access point and web server, an ESP32-C3, an ESP32-S3 and an ESP32-S2 web server that set their RGB LED, a Pico W and a Pico 2 W web server switching their onboard LEDs, a Pico W and an ESP32 HTTP client talking to a server part, two ESP32s over TCP, an NTP clock on an OLED;
 Raspberry Pi Pico:
 blink, a potentiometer, PWM steps, an OLED, a color TFT, both cores at once; Raspberry Pi Pico 2: the same, NeoPixels

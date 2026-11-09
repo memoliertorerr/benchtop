@@ -587,6 +587,10 @@ export class S3Pads {
   rtcPad: (g: number) => number = () => -1;
   /** BT155: an RTC pad an analog function holds besides the ADC (the S2's touch channels): it reads as analog. */
   analogPad: (g: number) => boolean = () => false;
+  /** BT164: the volts an RTC pad's DAC drives (the S2's GPIO17/18), NaN when none. */
+  padDac: (g: number) => number = () => Number.NaN;
+  /** BT164: the analog volts each pad outputs (`padDac` while it's routed to the RTC), NaN when none. */
+  readonly dacVolts: Float64Array;
 
   constructor(gpio: S3Gpio, iomux: S3IoMux) {
     this.gpio = gpio;
@@ -596,6 +600,7 @@ export class S3Pads {
     this.mode = new Uint8Array(n);
     this.level = new Uint8Array(n);
     this.adcUsed = new Uint8Array(n);
+    this.dacVolts = new Float64Array(n).fill(Number.NaN);
     const idle = this.pads.idleHigh;
     this.signalLevel = (signal) => (idle.has(signal) ? 1 : 0);
     for (let g = 0; g < n; g++) this.resolve(g);
@@ -636,8 +641,10 @@ export class S3Pads {
       if (!this.pads.isPad(g)) continue;
       const mode = this.mode[g];
       const level = this.level[g];
+      const volts = this.dacVolts[g];
       this.resolve(g);
-      if (this.mode[g] !== mode || this.level[g] !== level) this.onPin?.(g);
+      const dac = this.dacVolts[g];
+      if (this.mode[g] !== mode || this.level[g] !== level || (dac !== volts && !(Number.isNaN(dac) && Number.isNaN(volts)))) this.onPin?.(g);
     }
   }
 
@@ -646,10 +653,14 @@ export class S3Pads {
     if (rtc >= 0) {
       // BT128: an RTC pad (rtc_gpio_init — a deep sleep's ext0/ext1 pin, or an ADC pad, which IDF's
       // adc_gpio_init routes there with no pulls): an input with the RTC's pulls, or analog.
+      // BT164: or the S2's DAC, driving the pad.
+      const dac = this.padDac(g);
+      this.dacVolts[g] = dac;
       this.level[g] = 0;
-      this.mode[g] = rtc === 1 ? S3_PAD_MODE.PULLUP : rtc === 2 ? S3_PAD_MODE.PULLDOWN : this.adcUsed[g] !== 0 || this.analogPad(g) ? S3_PAD_MODE.ANALOG : S3_PAD_MODE.INPUT;
+      this.mode[g] = rtc === 1 ? S3_PAD_MODE.PULLUP : rtc === 2 ? S3_PAD_MODE.PULLDOWN : this.adcUsed[g] !== 0 || this.analogPad(g) || !Number.isNaN(dac) ? S3_PAD_MODE.ANALOG : S3_PAD_MODE.INPUT;
       return;
     }
+    this.dacVolts[g] = Number.NaN;
     let enabled = false;
     let level = 0;
     let gpioOut = false;

@@ -1366,8 +1366,19 @@ sequence, files matched by basename or trailing path.
   of the 8 MHz RTC clock later (5.75 µs at reset values — a model choice) and returns
   round(V / FS · (2^bits − 1)) with FS 1.1 / 1.5 / 2.2 / 3.3 V for 0 / 2.5 / 6 / 11 dB: an
   idealized linear ADC, so a pot across 3V3 sweeps 0–4095 (the real 11 dB curve saturates near
-  3.1 V). The hardware output is inverted unless SAR1_DATA_INV is set; IDF sets it. ADC2 isn't
-  modeled: its conversions read 0 with an `esp32-adc2-unsupported` Problem.
+  3.1 V). The hardware output is inverted unless SAR1_DATA_INV is set; IDF sets it. ADC2 is
+  the same model on its own registers — SAR_MEAS_START2 (0x94), SAR_ATTEN2 (0x38), SAR_READ_CTRL2
+  (0x90; SAR2_DATA_INV is bit 29) — over its ten channels: GPIO4, 0, 2, 15, 13, 12, 14, 27, 25, 26
+  (`ADC2_GPIO`); each unit has its own conversion event. Fixture `adc2-read` (all ten, and 0 dB):
+  `boot/peripherals.test.ts`. On a board WiFi takes ADC2: the simulated driver takes IDF's lock as
+  the real one does, so an ADC2 read returns 0 while WiFi runs (fixture `adc2-wifi`).
+
+  **Analog end to end:** the gallery's ESP32 joystick on ADC2 (`esp32-joystick`: an analog
+  joystick's HORZ and VERT on GPIO25/26 — ADC2's channels 8 and 9 — printed as `x:…,y:…` for the
+  Serial Plotter, its SEL on GPIO27 lighting the DevKit's LED) and the S2's DAC sine
+  (`esp32s2-dac-sine`: the S2's `dac-sine` into a speaker on IO17) — specs in
+  fixtures/specs/examples and checks in `examples-run-esp32.test.ts` and
+  `examples-run-esp32s2.test.ts`.
 
   **I2C and SPI masters.** Both are transaction level, like the Uno's TWI: devices get
   `start/write/read/stop` or `transfer(mosi)` calls, never SDA/SCL/SCK edges. *I2C*
@@ -1519,7 +1530,13 @@ sequence, files matched by basename or trailing path.
   IDF's 120/360 ms defaults when 0) over 13 channels or the one asked, and lists results
   strongest first; a connect finds its SSID with a full scan at 120 ms a channel (NO_AP_FOUND
   when it isn't there, reason 15 after 4 s of 4-way handshake with a wrong WPA2 key, STA_CONNECTED
-  30 ms after the scan otherwise). Struct layouts (`wifi/types.ts`) were measured with the
+  30 ms after the scan otherwise). `esp_wifi_start` also calls the firmware's
+  `adc2_wifi_acquire` and `esp_wifi_stop` its `adc2_wifi_release` (`WIFI_OPTIONAL`: when the build
+  links them) — what the closed `wifi_start_process` does on a board (measured in a built ELF) —, so
+  on the ESP32 IDF's `adc2_get_raw` fails with ESP_ERR_TIMEOUT while WiFi runs and Arduino's
+  `analogRead` on an ADC2 pin returns 0, as on a board; on the S2/S3/C3 IDF 4.4's lock is a no-op
+  (their hardware arbiter, driven by WiFi's power detection, isn't modeled), so ADC2 reads go on
+  working there (`packages/parts/src/integration/adc2-wifi.test.ts`). Struct layouts (`wifi/types.ts`) were measured with the
   toolchain (offsetof/sizeof built with the sketch's flags). Symbols come from the hosts:
   `Esp32Mcu.useSymbols(table)` takes the table they build for the debugger (the web: the
   compiled sketch's ELF; the CLI and MCP server: an `.elf` or `.syms.tsv` beside the `.bin`) and
@@ -3004,7 +3021,14 @@ sequence, files matched by basename or trailing path.
   ranges (`S2_ADC_FULL_SCALE`: 0.75, 1.05, 1.3, 2.5 V), so Arduino's analogRead gives 0–8191 by
   default (core 2.0.17 maps an ADC2 read to the resolution twice — `__analogReadRaw`, then
   `__analogRead` — so below 13 bits ADC2 drops twice the bits ADC1 does, as on real boards);
-  APB_SARADC (the digital controller, where IDF only sets the arbiter) is storage. USB-OTG is the S3's DWC2 model and the bench's host (`S3UsbOtg` at 0x3F48_0000, which
+  APB_SARADC (the digital controller, where IDF only sets the arbiter) is storage. The DAC (esp32s2
+  dac_ll.h): RTC_IO's PAD_DAC1/PAD_DAC2 (GPIO17/18's own RTC pad registers, RTC_IO + 0xC8/0xCC) drive
+  the pad with DAC (bits 10:3) / 255 · 3.3 V while XPD_DAC (11) powers it and the pad is routed to
+  the RTC (MUX_SEL 19) — what IDF 4.4's dac_output_enable + dac_output_voltage (Arduino's `dacWrite`)
+  leave. The S3's `S3RtcCntl` computes it for a chip whose `RtcChip.dac` is set (`dacVolts`; the
+  S3's RTC_IO has the same registers and no DAC), the shared `S3Pads` carries it (`padDac`,
+  `dacVolts` — analog mode), and the S2's pin reports it as `outputVolts`, as the ESP32's DAC does;
+  the cosine generator and DAC DMA aren't modeled. USB-OTG is the S3's DWC2 model and the bench's host (`S3UsbOtg` at 0x3F48_0000, which
   PeriBus2 reaches as 0x6008_0000; its USB_WRAP at 0x3F43_9000): the S2 has no other USB, so the
   OTG side always owns the PHY. `CDCOnBoot=cdc` builds put `Serial` on TinyUSB's CDC-ACM port, which
   the host enumerates ("ESP32S2_DEV") and opens. `Esp32s2Debug` (`debug.ts`) is the S3's view on

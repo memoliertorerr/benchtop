@@ -251,6 +251,7 @@ export class Esp32s2Soc implements SocContext, Esp32SocContext, S2BusParts {
     this.pads.signalLevel = (signal) => this.signalLevel(signal);
     this.gpio.onConfig = () => this.pads.update();
     this.pads.rtcPad = (g) => this.rtc.rtcPad(g);
+    this.pads.padDac = (g) => this.rtc.dacVolts(g); // BT164: the DAC on GPIO17/18
     this.pads.analogPad = (g) => (this.touch as S2Touch | undefined)?.uses(g) === true; // BT155 (built below)
     this.rtc.onRtcPads = () => this.pads.update();
     this.gpio.onInputs = () => {

@@ -188,6 +188,27 @@ export const ESP32_CHECKS: Record<string, (r: ExampleRun) => void> = {
     r.runTo(2000);
     expect(audioSamples(r, 'spk1')).toBeGreaterThanOrEqual(20 * 1024);
   },
+  // BT165: ADC2 — a joystick on GPIO25/26, its button on GPIO27.
+  'esp32-joystick'(r) {
+    const last = (): { x: number; y: number } => {
+      const m = [...r.serial('esp').matchAll(/x:(\d+),y:(\d+)\n/g)].at(-1);
+      return { x: Number(m?.[1]), y: Number(m?.[2]) };
+    };
+    r.runTo(800);
+    expect(Math.abs(last().x - 2048)).toBeLessThanOrEqual(2);
+    expect(Math.abs(last().y - 2048)).toBeLessThanOrEqual(2);
+    r.input('joy', { kind: 'key', key: 'set:x=1', down: true });
+    r.input('joy', { kind: 'key', key: 'set:y=-0.5', down: true });
+    r.runTo(1100);
+    expect(last()).toEqual({ x: 4095, y: 1024 });
+    expect(r.visual('esp')?.led1 as number).toBeLessThan(0.3);
+    r.input('joy', { kind: 'press' });
+    r.runTo(1300);
+    expect(r.visual('esp')?.led1 as number).toBeGreaterThan(0.5);
+    r.input('joy', { kind: 'release' });
+    r.runTo(1500);
+    expect(r.visual('esp')?.led1 as number).toBeLessThan(0.3);
+  },
   'esp32-mic-level'(r) {
     r.listen('mic1', 440, 2000);
     const readings = r.serial('esp').split('\r\n').filter(Boolean).map(Number);

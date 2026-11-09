@@ -168,8 +168,10 @@ class S2Pin implements McuPin {
     return this.mcu.soc.pads.level[this.gpio] === 1 ? 1 : 0;
   }
 
+  /** BT164: the DAC's volts on GPIO17/18 while it drives the pad. */
   outputVolts(): number | undefined {
-    return undefined;
+    const volts = this.mcu.soc.pads.dacVolts[this.gpio];
+    return Number.isNaN(volts) ? undefined : volts;
   }
 
   setInput(state: NetState): void {
@@ -313,6 +315,8 @@ export class Esp32s2Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sl
   private readonly spi2 = new S2Spi(this);
   private readonly seenMode = new Uint8Array(S2_PADS);
   private readonly seenLevel = new Uint8Array(S2_PADS);
+  /** BT164: the DAC's volts last reported (GPIO17/18), NaN when none. */
+  private readonly seenVolts = new Float64Array(S2_PADS).fill(Number.NaN);
   private readonly floatingReported = new Uint8Array(S2_PADS);
   /** Breakpoints, handed to the core of every SoC built (they outlive resets). */
   private readonly breakpoints = new Set<number>();
@@ -357,6 +361,7 @@ export class Esp32s2Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sl
     for (let g = 0; g < S2_PADS; g++) {
       this.seenMode[g] = this.soc.pads.mode[g];
       this.seenLevel[g] = this.soc.pads.level[g];
+      this.seenVolts[g] = this.soc.pads.dacVolts[g];
     }
   }
 
@@ -667,9 +672,12 @@ export class Esp32s2Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sl
     if (pin === undefined) return;
     const mode = this.soc.pads.mode[g];
     const level = this.soc.pads.level[g];
-    if (mode === this.seenMode[g] && level === this.seenLevel[g]) return;
+    const volts = this.soc.pads.dacVolts[g];
+    const seen = this.seenVolts[g];
+    if (mode === this.seenMode[g] && level === this.seenLevel[g] && (volts === seen || (Number.isNaN(volts) && Number.isNaN(seen)))) return;
     this.seenMode[g] = mode;
     this.seenLevel[g] = level;
+    this.seenVolts[g] = volts;
     for (let i = 0; i < pin.listeners.length; i++) pin.listeners[i]();
   }
 

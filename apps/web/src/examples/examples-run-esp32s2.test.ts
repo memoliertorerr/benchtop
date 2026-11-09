@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { EXAMPLES } from './manifest.ts';
 import { type ExampleRun, runExample, tftPixels } from './run.test-helper.ts';
 
-// BT150 (BT153: WiFi and sleep; BT157: touch and PSRAM): every ESP32-S2 example runs 2 s of simulated time in Node (the S2's real ROM, a direct
+// BT150 (BT153: WiFi and sleep; BT157: touch and PSRAM; BT165: the DAC): every ESP32-S2 example runs 2 s of simulated time in Node (the S2's real ROM, a direct
 // boot) and does what its card says.
 
 const brightness = (r: ExampleRun, part: string): number => (r.visual(part)?.brightness as number | undefined) ?? 0;
+const audioSamples = (r: ExampleRun, part: string): number => r.history(part).reduce((n, { visual }) => n + ((visual.audio as number[] | undefined)?.length ?? 0), 0);
 
 export const ESP32S2_CHECKS: Record<string, (r: ExampleRun) => void> = {
   'esp32s2-rgb-blink'(r) {
@@ -84,12 +85,17 @@ export const ESP32S2_CHECKS: Record<string, (r: ExampleRun) => void> = {
     expect(r.serial('s2')).toContain('frame 2');
     expect(tftPixels(r, 'tft', [[20, 50], [200, 120], [20, 250], [20, 310]])).toEqual([0xf800, 0x07e0, 0x001f, 0]);
   },
+  'esp32s2-dac-sine'(r) {
+    r.runTo(2000);
+    expect(r.serial('s2')).toContain('dac');
+    expect(audioSamples(r, 'spk1')).toBeGreaterThanOrEqual(20 * 1024);
+  },
 };
 
 describe('every ESP32-S2 example runs as described (BT150)', () => {
   const withS2 = EXAMPLES.filter((e) => Object.values(e.boards).some((b) => 'firmware' in b && b.firmware.startsWith('esp32s2/')));
   it('has a check for each', () => {
-    expect(withS2.length).toBe(8);
+    expect(withS2.length).toBe(9);
     expect(withS2.map((e) => e.id).filter((id) => ESP32S2_CHECKS[id] === undefined)).toEqual([]);
   });
   for (const example of withS2) {

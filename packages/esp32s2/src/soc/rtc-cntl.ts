@@ -42,6 +42,7 @@ export const S2_RTC_CHIP: RtcChip = {
   slpWakeupCause: 0x12c,
   stores: [0x50, 0x54, 0x58, 0x5c, 0xbc, 0xc0, 0xc4, 0xc8],
   touchSlpThres: 0x110,
+  dac: true,
 };
 
 export class S2RtcCntl extends S3RtcCntl {

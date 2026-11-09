@@ -71,7 +71,7 @@ function testClock(): LanClock & { time: number } {
 }
 
 /** A driver installed on fake firmware, its radio the runtime's radio for board "esp". */
-function rig() {
+function rig(options: { adcLock?: boolean } = {}) {
   const clock = testClock();
   const net = NetRuntime.build([], () => undefined, clock);
   const mem = new Uint8Array(MEM);
@@ -85,14 +85,19 @@ function rig() {
   for (const name of WIFI_NEEDS) address(name);
   new FakeCall(mem, []).write32(address('WIFI_EVENT'), WIFI_EVENT_BASE);
   const driver = new WifiDriver({ now: () => clock.time, refHz: REF_HZ, mac: [0x24, 0x0a, 0xc4, 0x12, 0x34, 0x56], radio: () => net.radioFor('esp') });
-  driver.install({ replace: (_at, name, handler) => handlers.set(name, handler) }, (name) => address(name));
+  // BT163: the ADC2 lock is optional — only a build with the ADC driver (or IDF's weak stubs) has it.
+  const lookup = (name: string): number | undefined => (options.adcLock === false && name.startsWith('adc2_wifi_') ? undefined : address(name));
+  driver.install({ replace: (_at, name, handler) => handlers.set(name, handler) }, lookup);
   const posted: { id: number; data: number[] }[] = [];
+  /** Every firmware function the driver called, in order. */
+  const calls: number[] = [];
   /** Runs `fn`'s handler to its end, answering its calls into the firmware. */
   const run = (task: number | HleTask): number => {
     if (typeof task === 'number') return task;
     for (let step = task.next(0); ; ) {
       if (step.done === true) return step.value;
       const { fn, args } = step.value;
+      calls.push(fn);
       if (fn === address('esp_event_post')) posted.push({ id: args[1], data: [...mem.slice(args[2], args[2] + args[3])] });
       step = task.next(fn === address('xTaskCreatePinnedToCore') ? 1 : 0);
     }
@@ -131,7 +136,7 @@ function rig() {
     return { link, lost: () => lost };
   };
   const events = (id: number): number[][] => posted.filter((p) => p.id === id).map((p) => p.data);
-  return { net, mem, driver, invoke, pump, setAp, station, posted, events };
+  return { net, mem, driver, invoke, pump, setAp, station, posted, events, calls, address };
 }
 
 const A = [2, 0, 0, 0, 0, 0xa];
@@ -247,5 +252,35 @@ describe('the ESP32 WiFi driver’s soft-AP (BT116)', () => {
     // A reset of the board itself: the driver is disposed, its AP gone.
     r.driver.dispose();
     expect(r.net.softAccessPoints).toEqual([]);
+  });
+});
+
+describe('ADC2 and WiFi (BT163)', () => {
+  it('esp_wifi_start calls the firmware’s adc2_wifi_acquire and esp_wifi_stop its adc2_wifi_release, once each', () => {
+    const r = rig();
+    expect(r.invoke('esp_wifi_init', CONFIG)).toBe(T.ESP_OK);
+    expect(r.invoke('esp_wifi_set_mode', T.WIFI_MODE.STA)).toBe(T.ESP_OK);
+    const acquire = r.address('adc2_wifi_acquire');
+    const release = r.address('adc2_wifi_release');
+    r.invoke('esp_wifi_start');
+    r.invoke('esp_wifi_start'); // already started: nothing more
+    expect(r.calls.filter((fn) => fn === acquire)).toHaveLength(1);
+    expect(r.calls).not.toContain(release);
+    r.invoke('esp_wifi_stop');
+    r.invoke('esp_wifi_stop');
+    expect(r.calls.filter((fn) => fn === release)).toHaveLength(1);
+    // The lock is taken before the start's events go out, and given back after the stop's.
+    const start = r.calls.indexOf(acquire);
+    expect(start).toBeLessThan(r.calls.indexOf(r.address('esp_event_post')));
+  });
+
+  it('a build without the lock functions starts and stops WiFi as before', () => {
+    const r = rig({ adcLock: false });
+    r.invoke('esp_wifi_init', CONFIG);
+    r.invoke('esp_wifi_set_mode', T.WIFI_MODE.STA);
+    expect(r.invoke('esp_wifi_start')).toBe(T.ESP_OK);
+    expect(r.invoke('esp_wifi_stop')).toBe(T.ESP_OK);
+    const needs = new Set(WIFI_NEEDS.map((name) => r.address(name)));
+    expect(r.calls.filter((fn) => !needs.has(fn))).toEqual([]); // nothing but the functions it always needs
   });
 });
