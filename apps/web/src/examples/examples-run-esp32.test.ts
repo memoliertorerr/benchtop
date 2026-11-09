@@ -209,6 +209,19 @@ export const ESP32_CHECKS: Record<string, (r: ExampleRun) => void> = {
     r.runTo(1500);
     expect(r.visual('esp')?.led1 as number).toBeLessThan(0.3);
   },
+  // BT170: an IRLZ44N switching LEDs on a 9 V battery, its gate PWM'd by a pot's reading.
+  'esp32-mosfet-dimmer'(r) {
+    r.runTo(900);
+    expect(r.serial('esp')).toContain('duty 128\n');
+    const half = brightness(r, 'led1');
+    r.input('pot', { kind: 'value', value: 0.1 });
+    r.runTo(1800);
+    expect(r.serial('esp')).toMatch(/duty 2[56]\n/);
+    const dim = brightness(r, 'led1');
+    expect(half).toBeGreaterThan(0.3);
+    expect(dim).toBeLessThan(half * 0.7);
+    expect(dim).toBeGreaterThan(0);
+  },
   'esp32-mic-level'(r) {
     r.listen('mic1', 440, 2000);
     const readings = r.serial('esp').split('\r\n').filter(Boolean).map(Number);

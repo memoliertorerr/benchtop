@@ -249,6 +249,40 @@ export class SignalResolver implements AnalogHost {
     if (!this.busy) this.process();
   }
 
+  /**
+   * BT166: a planned step of a capacitor island (the bench's timer): the layer advances it and
+   * publishes, and the nets that changed reach their listeners, as a resolution's do.
+   */
+  stepAnalog(island: number): void {
+    const analog = this.analog;
+    if (analog === null) return;
+    if (this.busy) {
+      analog.markDirty(island);
+      return;
+    }
+    this.busy = true;
+    try {
+      this.changedLen = 0;
+      analog.step(island, this);
+      const onChange = this.onChange;
+      if (onChange !== null) for (let i = 0; i < this.changedLen; i++) onChange(this.changed[i]);
+    } finally {
+      this.busy = false;
+    }
+    if (this.qLen > 0) this.process();
+  }
+
+  /** BT166: re-solves these islands now (a bench reset: their capacitors start empty). */
+  touchIslands(islands: Int32Array): void {
+    const analog = this.analog;
+    if (analog === null) return;
+    for (let k = 0; k < islands.length; k++) {
+      const nets = analog.islands[islands[k]].nets;
+      for (let i = 0; i < nets.length; i++) this.enqueue(nets[i]);
+    }
+    if (!this.busy) this.process();
+  }
+
   // ── AnalogHost ───────────────────────────────────────────────────────────────────────────
 
   driverG(net: number): number {

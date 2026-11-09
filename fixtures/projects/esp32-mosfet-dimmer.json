@@ -1,0 +1,283 @@
+{
+  "format": 1,
+  "name": "esp32-mosfet-dimmer",
+  "parts": [
+    {
+      "id": "esp",
+      "type": "esp32-devkit-v1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "pot",
+      "type": "potentiometer",
+      "x": -36,
+      "y": 8,
+      "rotation": 0,
+      "props": {
+        "value": 0.5
+      }
+    },
+    {
+      "id": "q1",
+      "type": "n-mosfet",
+      "x": 44,
+      "y": -6,
+      "rotation": 0,
+      "props": {
+        "model": "IRLZ44N"
+      }
+    },
+    {
+      "id": "rg",
+      "type": "resistor",
+      "x": 34,
+      "y": 24,
+      "rotation": 0,
+      "props": {
+        "ohms": 10000
+      }
+    },
+    {
+      "id": "bat",
+      "type": "battery-9v",
+      "x": 74,
+      "y": 10,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "r1",
+      "type": "resistor",
+      "x": 62,
+      "y": -30,
+      "rotation": 0,
+      "props": {
+        "ohms": 470
+      }
+    },
+    {
+      "id": "led1",
+      "type": "led",
+      "x": 86,
+      "y": -44,
+      "rotation": 0,
+      "props": {
+        "color": "white"
+      }
+    },
+    {
+      "id": "r2",
+      "type": "resistor",
+      "x": 62,
+      "y": -48,
+      "rotation": 0,
+      "props": {
+        "ohms": 470
+      }
+    },
+    {
+      "id": "led2",
+      "type": "led",
+      "x": 100,
+      "y": -44,
+      "rotation": 0,
+      "props": {
+        "color": "white"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "pot",
+        "pin": "SIG"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "D34"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "pot",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "3V3"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "pot",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "esp",
+        "pin": "D25"
+      },
+      "to": {
+        "part": "q1",
+        "pin": "G"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "q1",
+        "pin": "G"
+      },
+      "to": {
+        "part": "rg",
+        "pin": "1"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "rg",
+        "pin": "2"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "q1",
+        "pin": "S"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w8",
+      "from": {
+        "part": "bat",
+        "pin": "-"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w9",
+      "from": {
+        "part": "bat",
+        "pin": "+"
+      },
+      "to": {
+        "part": "r1",
+        "pin": "1"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w10",
+      "from": {
+        "part": "r1",
+        "pin": "2"
+      },
+      "to": {
+        "part": "led1",
+        "pin": "A"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w11",
+      "from": {
+        "part": "led1",
+        "pin": "C"
+      },
+      "to": {
+        "part": "q1",
+        "pin": "D"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w12",
+      "from": {
+        "part": "bat",
+        "pin": "+"
+      },
+      "to": {
+        "part": "r2",
+        "pin": "1"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w13",
+      "from": {
+        "part": "r2",
+        "pin": "2"
+      },
+      "to": {
+        "part": "led2",
+        "pin": "A"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w14",
+      "from": {
+        "part": "led2",
+        "pin": "C"
+      },
+      "to": {
+        "part": "q1",
+        "pin": "D"
+      },
+      "waypoints": [],
+      "color": "blue"
+    }
+  ],
+  "firmware": {
+    "esp": {
+      "kind": "file",
+      "name": "mosfet-dimmer.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "example: uno-transistor-relay",
+  "project": "../../projects/uno-transistor-relay.json",
+  "firmware": {
+    "uno": "../../firmware/uno/blink.hex"
+  },
+  "expect": [
+    "pin q1:C volts is 0.22 ±0.03 at 250ms",
+    "led led1 is lit at 300ms",
+    "pin q1:C volts is 5 ±0.05 at 750ms",
+    "led led1 is dark at 800ms"
+  ]
+}

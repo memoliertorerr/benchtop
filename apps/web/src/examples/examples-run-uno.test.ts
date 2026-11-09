@@ -317,6 +317,23 @@ export const UNO_CHECKS: Record<string, (r: ExampleRun) => void> = {
     expect(r.history('relay').some(({ visual }) => visual.contactsNO === true)).toBe(true);
     expect(flips(r, 'led1')).toBeGreaterThanOrEqual(2);
   },
+  // BT170: capacitors and transistors.
+  'uno-rc-filter'(r) {
+    r.runTo(2000);
+    const lines = [...r.serial('uno').matchAll(/pwm:(\d+),a0:(\d+)\r\n/g)].map((m) => ({ pwm: Number(m[1]), a0: Number(m[2]) }));
+    expect(lines.length).toBeGreaterThanOrEqual(30);
+    // Settled at the end of each second: the capacitor holds the PWM's average.
+    for (const at of [18, 38]) expect(Math.abs(lines[at].a0 - lines[at].pwm)).toBeLessThanOrEqual(15);
+    expect(lines[20].pwm).toBe(513);
+    expect(lines[20].a0).toBeLessThan(450); // a step later it is still climbing
+  },
+  'uno-transistor-relay'(r) {
+    r.runTo(2000);
+    const contacts = r.history('relay').map(({ visual }) => visual.contactsNO);
+    expect(contacts).toContain(true);
+    expect(contacts).toContain(false);
+    expect(flips(r, 'led1')).toBeGreaterThanOrEqual(2);
+  },
   buzzer(r) {
     r.runTo(2000);
     expect(r.history('bz1').some(({ visual }) => visual.frequency === 440)).toBe(true);

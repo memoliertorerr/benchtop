@@ -174,6 +174,28 @@ const STANDARD: Readonly<Record<string, () => Footprint>> = {
     const silk: SilkShape[] = [...rectSilk(-3.15, -1.25, 3.15, 1.25), { kind: 'line', x1: -4.04, y1: 0, x2: -3.15, y2: 0 }, { kind: 'line', x1: 3.15, y1: 0, x2: 4.04, y2: 0 }];
     return { name: 'R_Axial_P10.16mm', pads, silk, courtyard: { x0: -6.15, y0: -1.5, x1: 6.15, y1: 1.5 } };
   },
+  // BT167: C_Disc_D5.0mm_W2.5mm_P2.50mm.
+  capacitor: () => {
+    const pads = [pad('1', '1', -1.25, 0, 'circle', 1.6, 0.8), pad('2', '2', 1.25, 0, 'circle', 1.6, 0.8)];
+    return { name: 'C_Disc_D5.0mm_W2.5mm_P2.50mm', pads, silk: rectSilk(-2.5, -1.25, 2.5, 1.25), courtyard: { x0: -2.75, y0: -1.5, x1: 2.75, y1: 1.5 } };
+  },
+  // BT167: CP_Radial_D5.0mm_P2.00mm: pad 1 (square) is the plus lead.
+  'capacitor-electrolytic': () => {
+    const pads = [pad('1', '+', -1.0, 0, 'rect', 1.6, 0.8), pad('2', '-', 1.0, 0, 'circle', 1.6, 0.8)];
+    return { name: 'CP_Radial_D5.0mm_P2.00mm', pads, silk: [{ kind: 'circle', x: 0, y: 0, r: 2.5 }], courtyard: { x0: -2.75, y0: -2.75, x1: 2.75, y1: 2.75 } };
+  },
+  // BT167: D_DO-41_SOD81_P10.16mm_Horizontal: pad 1 (square) is the cathode, the band beside it.
+  diode: () => {
+    const pads = [pad('1', 'C', -5.08, 0, 'rect', 2.2, 1.1), pad('2', 'A', 5.08, 0, 'circle', 2.2, 1.1)];
+    const silk: SilkShape[] = [...rectSilk(-2.6, -1.35, 2.6, 1.35), { kind: 'line', x1: -1.9, y1: -1.35, x2: -1.9, y2: 1.35 }];
+    return { name: 'D_DO-41_SOD81_P10.16mm_Horizontal', pads, silk, courtyard: { x0: -6.35, y0: -1.6, x1: 6.35, y1: 1.6 } };
+  },
+  // BT169: TO-92_Inline, legs E-B-C (as the part draws them), 1.27 mm apart.
+  'npn-transistor': () => to92(['E', 'B', 'C']),
+  'pnp-transistor': () => to92(['E', 'B', 'C']),
+  // BT169: TO-220-3_Vertical, legs G-D-S, 2.54 mm apart.
+  'n-mosfet': () => to220(['G', 'D', 'S']),
+  'p-mosfet': () => to220(['G', 'D', 'S']),
   // LED_D5.0mm: pad 1 is the cathode.
   led: () => {
     const pads = [pad('1', 'C', -1.27, 0, 'rect', 1.8, 0.9), pad('2', 'A', 1.27, 0, 'circle', 1.8, 0.9)];
@@ -190,6 +212,18 @@ const STANDARD: Readonly<Record<string, () => Footprint>> = {
     return { name: 'SW_PUSH_6mm', pads, silk: rectSilk(-3, -3, 3, 3), courtyard: { x0: -4.5, y0: -3.5, x1: 4.5, y1: 3.5 } };
   },
 };
+
+/** BT169: TO-92_Inline: three pads 1.27 mm apart, pad 1 square. */
+function to92(pins: readonly string[]): Footprint {
+  const pads = pins.map((pin, i) => pad(String(i + 1), pin, -1.27 + i * 1.27, 0, i === 0 ? 'rect' : 'circle', 1.05, 0.75));
+  return { name: 'TO-92_Inline', pads, silk: [...rectSilk(-2.4, -1.6, 2.4, 1.0)], courtyard: { x0: -2.65, y0: -1.85, x1: 2.65, y1: 1.25 } };
+}
+
+/** BT169: TO-220-3_Vertical: three pads 2.54 mm apart, pad 1 square. */
+function to220(pins: readonly string[]): Footprint {
+  const pads = pins.map((pin, i) => pad(String(i + 1), pin, -2.54 + i * 2.54, 0, i === 0 ? 'rect' : 'oval', 1.9, 1.1));
+  return { name: 'TO-220-3_Vertical', pads, silk: rectSilk(-5.2, -3.2, 5.2, 1.6), courtyard: { x0: -5.45, y0: -3.45, x1: 5.45, y1: 1.85 } };
+}
 
 const cache = new Map<string, Footprint | null>();
 
@@ -210,6 +244,13 @@ const PREFIX: Readonly<Record<string, string>> = {
   'battery-lipo': 'BT',
   'battery-cr2032': 'BT',
   resistor: 'R',
+  capacitor: 'C',
+  'capacitor-electrolytic': 'C',
+  diode: 'D',
+  'npn-transistor': 'Q',
+  'pnp-transistor': 'Q',
+  'n-mosfet': 'Q',
+  'p-mosfet': 'Q',
   led: 'D',
   'rgb-led': 'D',
   pushbutton: 'SW',
@@ -238,12 +279,21 @@ export function refPrefix(def: PartDefinition): string {
   return PREFIX[def.type] ?? 'U';
 }
 
-/** The BOM's value column: a resistor's ohms, an LED's colour, else the part's title. */
+/** The BOM's value column: a resistor's ohms, a capacitor's farads, a diode's model, an LED's colour, else the part's title. */
 export function valueOf(def: PartDefinition, props: PartProps): string {
   const merged = { ...def.defaults, ...props };
   if (def.type === 'resistor') return formatOhms(Number(merged.ohms));
+  if (def.type === 'capacitor' || def.type === 'capacitor-electrolytic') return formatFarads(Number(merged.farads));
+  if (def.type === 'diode' || def.type.endsWith('-transistor') || def.type.endsWith('-mosfet')) return String(merged.model);
   if (def.type === 'led') return `LED ${String(merged.color)}`;
   return def.title;
+}
+
+/** BT167: 1e-7 → "100n", 4.7e-6 → "4.7u", 2.2e-11 → "22p" (the value code on a schematic). */
+export function formatFarads(farads: number): string {
+  if (!(farads > 0) || !Number.isFinite(farads)) return '?';
+  const [div, unit] = farads >= 1e-3 ? [1e-3, 'm'] : farads >= 1e-6 ? [1e-6, 'u'] : farads >= 1e-9 ? [1e-9, 'n'] : [1e-12, 'p'];
+  return `${Number((farads / div).toPrecision(3))}${unit}`;
 }
 
 /** 220 → "220", 4700 → "4.7k", 1000000 → "1M" (the value code on a schematic). */

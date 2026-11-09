@@ -105,6 +105,19 @@
     "description": "analogRead(A0) of a potentiometer printed ten times a second — turn the knob."
   },
   {
+    "id": "uno-rc-filter",
+    "title": "RC filter",
+    "category": "Basics",
+    "project": "uno-rc-filter",
+    "boards": {
+      "uno": {
+        "firmware": "uno/rc-filter.hex",
+        "sketch": "uno/rc-filter"
+      }
+    },
+    "description": "analogWrite on pin 9 through 10 kΩ into a 10 µF capacitor turns PWM into a steady voltage: open the Serial Plotter to see the target (pwm) and the capacitor's voltage on A0 climbing to it each second (RC = 0.1 s), with a little ripple."
+  },
+  {
     "id": "nano-analog",
     "title": "Nano on a breadboard",
     "category": "Basics",
@@ -469,6 +482,19 @@
     "description": "D7 switches a relay coil every 500 ms; its contact lights an LED."
   },
   {
+    "id": "uno-transistor-relay",
+    "title": "Transistor relay",
+    "category": "Motors",
+    "project": "uno-transistor-relay",
+    "boards": {
+      "uno": {
+        "firmware": "uno/blink.hex",
+        "sketch": "uno/blink"
+      }
+    },
+    "description": "Blink's D13 drives a 2N2222A through 1 kΩ; the transistor switches the relay's coil and the relay's contact lights the LED, twice a second. The 1N4007 across the coil is the flyback diode a real coil needs (the bench doesn't model the coil's kick)."
+  },
+  {
     "id": "gas-fan",
     "title": "Gas alarm with a fan",
     "category": "Environment",
@@ -766,6 +792,19 @@
       }
     },
     "description": "Move the stick (Inspector: x and y) and open the Serial Plotter: analogRead on GPIO25 and GPIO26 — ADC2's channels 8 and 9 — draws both axes, 0–4095; press the stick (GPIO27) and the DevKit's blue LED lights. ADC2 reads work while WiFi is off; a sketch that starts WiFi reads 0 there, as on a board."
+  },
+  {
+    "id": "esp32-mosfet-dimmer",
+    "title": "ESP32 MOSFET dimmer",
+    "category": "ESP32",
+    "project": "esp32-mosfet-dimmer",
+    "boards": {
+      "esp": {
+        "firmware": "esp32/mosfet-dimmer.bin",
+        "sketch": "esp32/mosfet-dimmer"
+      }
+    },
+    "description": "Turn the pot (GPIO34): the ESP32's 1 kHz PWM on GPIO25 drives an IRLZ44N's gate, and the MOSFET switches two LEDs on a 9 V battery — dimmer or brighter with the pot. An IRLZ44N is fully on from a 3.3 V pin; set its model to IRF540N in the Inspector and it barely conducts."
   },
   {
     "id": "esp32-mic-level",

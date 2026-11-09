@@ -267,6 +267,98 @@ their `led-overcurrent` reports. Measured: 3-node islands ~450k solves/s, 16-nod
 64-node ~39k, 256-node ladder ~2.5k, the 101-node star ~10k; Blink's simulated MHz is unchanged
 (−0.3 %).
 
+**Capacitors.** `AnalogSpec.capacitors` (`{ a, b, farads }`) join their nets into an
+island as resistors do (one across two fixed nets is nothing). An island with capacitors keeps
+transient state — each capacitor's voltage and current and the time they hold for — and steps in
+time: the trapezoidal rule (companion G = 2C/h, I = G·v + i), with backward Euler (G = C/h) for the
+first step after an input change (the trapezoidal rule rings on a jump; that step is h/10, since
+backward Euler's error grows with h²) and for any step longer than the island's shortest time
+constant τ (L-stable). τ is estimated per capacitor as C over the conductance the rest of the
+island puts at its ends (the assembled matrix's diagonal, before the capacitors). An input change
+at time t first advances the island to t on the inputs it was last solved with (the layer keeps
+them: drivers per net, link states and ohms), then solves the instant after it on the new ones (a
+1 ns backward-Euler step: capacitor voltages are continuous) and plans the next step: h = τ/5,
+doubling after a step that moves no capacitor by more than 2 mV (up to 10 ms); a step that moves
+none by more than 50 µV settles the island — no steps until its inputs change. The layer reads the
+time from the bench (`clock`) and plans through it (`plan`): one owner-0 timer per island, a
+preallocated callback, replaced on re-plan; the resolver runs a step (`stepAnalog`) so the nets
+that change reach their listeners as a resolution's do. While the circuit has an island whose
+shortest time constant is under 5 ms (`fast`) the bench runs
+100 µs quanta, so a step planned inside an MCU run (after a pin edge) is at most 100 µs late; a
+slower island's steps come after the quantum's end anyway, so it keeps the 1 ms quanta; between steps a
+reader sees the last published volts. A capacitor conducts for the "reached" rule: a net a charged
+capacitor holds after its driver lets go publishes the capacitor's volts and a level from the
+reader's thresholds. Capacitors start empty: at build, and at reset, which re-solves their islands
+(`touchIslands`); a rebuild (an edit) empties them too. Islands without capacitors take the old
+path unchanged. Measured (`analog/transient.test.ts`): an RC within 0.5 % of V·(1 − e^(−t/RC)) at
+every step (≈ 0.1 % at τ), a 500 Hz square wave into 10 kΩ/1 µF averaging V/2 with the ripple
+V·tanh(T/4τ) in about three solves an edge, and settling after about 30τ.
+
+**Threshold crossings.** The bench gives the layer each read net's input thresholds — the
+MCU's own, as its adapter applies them (`MCU_INPUT_THRESHOLDS`: the ATmega's 3.0/1.5 V, the ESP32
+family's 2.475/0.825 V, the RP2040/RP2350's 2.0/0.8 V) — and after each step the layer shortens the
+next one to land just past the next crossing (VIH rising, VIL falling) at the last step's slope
+(×1.02: a charging curve is concave, so it crosses later; never shorter than h/64). So an input on
+an RC changes level within a few percent of RC·ln(V/(V − Vth)): `uno/rc-delay` reads 0.92 ms rising
+and 1.21 ms falling for 10 kΩ/100 nF, within 5 %.
+
+**Transistors.** `AnalogSpec.transistors`: BJTs (`npn`/`pnp`: c, b, e, β, the junction's
+knee and resistance, Vce(sat) and its resistance) and MOSFETs (`nmos`/`pmos`: d, g, s, Vth, Rds(on)
+and the Vgs it is rated at). All three terminals join one island (so a change at a gate re-solves
+the drain's side). A BJT's base–emitter junction is a piecewise-linear diode (b → e, or e → b for a
+PNP); off while that is off (C–E a 1 GΩ leak); active, Ice = gm·(Vb − Ve) − s·gm·Vbe with gm = β/rb
+(s = +1 NPN, −1 PNP): a voltage-controlled current, the solver's first nonsymmetric entries
+(`DenseSolver.entry`; elimination pivots on rows, so that is fine); saturated when the active
+solution would put Vce below Vce(sat): C–E is then Vce(sat) behind rsat, active again when that
+would carry more than β·Ib. A MOSFET's gate takes no current (a 1 GΩ leak to its source); off below
+Vth; on, its drain–source is a conductance rising linearly from 0 at Vth to 1/Rds(on) at the
+datasheet's Vgs, flat above — a switch with a gate-dependent resistance (current saturation isn't
+modeled). P-channel: voltages negated. States are picked from the last solution and iterated with
+the diodes (20 rounds, `analog-no-convergence`); a conducting transistor's collector/drain (and a
+BJT's base) count as reached through it. Tested on hand-built islands
+(`analog/transistor.test.ts`): an NPN cut off, saturated at 0.2 V + rsat·Ic and active at
+Ic = β·Ib; a PNP high-side switch; MOSFET on-resistance against Vgs, the gate's net untouched; an
+NPN with an LED on its collector and a capacitor on its base settling as the base charges.
+
+**Capacitor and diode parts.** `capacitor` (ceramic, `farads` 100 nF, legs 1 and 2),
+`capacitor-electrolytic` (10 µF, `+` and `-`; its model reports `capacitor-reversed` while more than
+1 V sits across it backwards, and its visual `reversed` glows red) and `diode` (A to C, `model`
+1N4148 or 1N4007 — `DIODE_MODELS`: knee 0.62 V with 3 Ω, 0.65 V with 0.3 Ω) reach the layer through
+`analogSpecFor`; without the analog layer they connect nothing. Our own drawings
+(`apps/web/src/views/passives.ts`: an orange disc with its EIA code, a blue can with its minus
+stripe, an axial body with its band); standard PCB footprints (C_Disc, CP_Radial, DO-41) with
+reference C and D and BOM values ("100n", the model). The Inspector shows `ohms` and `farads` with
+SI prefixes and takes 4.7k, 4k7, 100n, 10 µF (`ui/si.ts`), and a `model` prop as a list
+(`PART_MODELS`). On an Uno (`packages/parts/src/integration/rc-circuits.test.ts`): `uno/rc-filter`
+— PWM on pin 9 through 10 kΩ into 10 µF — reads the duty on A0 within 2 % with a few counts of
+ripple; the capacitor costs about 9 % of the run's CPU time (the island never settles: it steps
+on every PWM edge).
+
+**Transistor parts.** `npn-transistor` (2N2222A, BC547) and `pnp-transistor` (2N3906,
+BC557) as TO-92 parts with legs E-B-C, `n-mosfet` (IRLZ44N, IRF540N) and `p-mosfet` (IRF9540N) as
+TO-220 parts with legs G-D-S — `BJT_MODELS` and `MOSFET_MODELS` in `basic/transistors.ts` hold the
+datasheet typicals (β, Vce(sat); Vth, Rds(on) and the Vgs it's rated at), every BJT's junction
+knees at 0.65 V with 25 Ω above. The drawings put the legs in that order and label them (a BC547's
+own legs run C-B-E: wire it by the labels; the model list says so). Our own TO-92 and TO-220
+drawings in `views/passives.ts`; PCB footprints TO-92_Inline and TO-220-3_Vertical, reference Q.
+The relay's coil is now a 125 Ω resistive link between COIL1 and COIL2 (a typical 5 V signal
+relay's 40 mA coil): a transistor that's off leaves no coil voltage, and an Uno pin driving the
+coil directly still energizes it (4.2 V, 33 mA — under the pin's 40 mA). Bench tests
+(`integration/transistor-circuits.test.ts`): blink's D13 through 1 kΩ into a 2N2222A switching the
+relay with a 1N4007 across its coil (Vce 0.22 V, 38 mA in the coil; its contact lights an LED), a
+2N3906 high-side switch, and an ESP32's GPIO2 on an IRLZ44N's gate switching a 9 V LED load
+(≈ 0.05 Ω at 3.3 V) where an IRF540N, its threshold 3 V, conducts at about 1 Ω.
+
+**Transients end to end:** the gallery's RC filter (`uno-rc-filter`: PWM through 10 kΩ into
+10 µF on A0, the target and the reading on the Serial Plotter), transistor relay
+(`uno-transistor-relay`: blink's D13 through a 2N2222A switching the relay, a 1N4007 across its
+coil) and ESP32 MOSFET dimmer (`esp32-mosfet-dimmer`: a pot sets GPIO25's PWM on an IRLZ44N's gate,
+LEDs on a 9 V battery) — specs with the runner's new `pin … volts is …` and checks in
+`examples-run-uno.test.ts` and `examples-run-esp32.test.ts`. Speed: `integration/rc-speed.test.ts`
+(QUIET) holds the RC filter with its capacitor to 1.3× the CPU time of the same circuit without it,
+the best of three alternating runs; the 100 µs quanta every moving island got before cost about
+half of a 30 % overhead there, so only islands with a time constant under 5 ms get them now.
+
 ### Parts
 
 The contract is `packages/core/src/contracts/part.ts`; the catalog that fills it lives in
@@ -3724,6 +3816,7 @@ nothing from `apps/web`.
   | `serial matches /<re>/<imsu> by <t>` | the first match in the kept serial text (1 MB) ends by `t` (the time its last chunk arrived); ≤ 1024-character pattern, no `g`/`y` | `no match by …`, or the match and when |
   | `pin <p>:<pin> frequency is <hz> [Hz] ±<pct>% between <t1> and <t2>` | (rising edges − 1) / (last − first rise) within ±pct % | `measured 489.80 Hz`, or how few rising edges |
   | `pin <p>:<pin> duty is <pct>% ±<points> between <t1> and <t2>` | time high / window within ±points | `measured 53.13 %` |
+  | `pin <p>:<pin> volts is <v> [V] ±<v> [V] at <t>` | the net's volts then within the tolerance — an analog net's solved volts (a capacitor's charge, a transistor's drop) | `0.221 V`, or `no net` |
   | `led <p> is lit\|dark at <t>` | brightness ≥ 0.3 (lit) / ≤ 0.05 (dark); never reported = dark; also a Pico, Pico 2 or Pico W part by its onboard LED (its visual's `led`) | `brightness 0.91` |
   | `servo <p> angle is <deg> ±<deg> at <t>` | the horn's angle within the tolerance | `angle 45.2°` |
   | `lcd <p> row <n> is "<text>" at <t>` | row n (from 0) equals the text, trailing spaces ignored; display off = blank | `row 1 is "t=1"` |

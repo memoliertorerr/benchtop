@@ -61,7 +61,7 @@ import { BUS, BusLog, type BusSource } from '../bus-log/log.ts';
 import { type CheckedBoardPin, type CheckedPart, DynamicChecks } from '../check/dynamic.ts';
 import { isBreadboard, staticProblems } from '../check/static.ts';
 import { LEVEL_X, LEVEL_Z, MAX_PROBES, ProbeRing } from '../probe/ring.ts';
-import { AnalogLayer, type DiodeInstance } from '../analog/layer.ts';
+import { AnalogLayer, type CapacitorInstance, type DiodeInstance, TRANSISTOR, type TransistorInstance } from '../analog/layer.ts';
 import { MAX_NODES } from '../analog/solve.ts';
 import { ANALOG_PROP, type AnalogSpecFor } from '../analog/spec.ts';
 import type { I2cController, I2cDevice, SpiController, SpiDevice } from '../contracts/bus.ts';
@@ -215,6 +215,21 @@ export const MCU_LOGIC_VOLTS: Readonly<Record<BoardSpec['mcu'], number>> = { atm
  * ESP32-S3's 45 kΩ like the ESP32's (DC characteristics, R_PU/R_PD).
  */
 export const MCU_PULL_OHMS: Readonly<Record<BoardSpec['mcu'], number>> = { atmega328p: 35_000, atmega2560: 35_000, esp32: 45_000, rp2040: 50_000, rp2350: 50_000, esp32c3: 45_000, esp32s3: 45_000, esp32s2: 45_000 };
+/**
+ * BT167: each MCU's input thresholds (VIH, VIL), volts, as its adapter applies them — the analog
+ * layer times its steps to land on them: the ATmega328P/2560 0.6/0.3 VCC at 5 V, the ESP32 family
+ * 0.75/0.25 VDD at 3.3 V, the RP2040/RP2350 2.0/0.8 V.
+ */
+export const MCU_INPUT_THRESHOLDS: Readonly<Record<BoardSpec['mcu'], readonly [number, number]>> = {
+  atmega328p: [3.0, 1.5],
+  atmega2560: [3.0, 1.5],
+  esp32: [2.475, 0.825],
+  esp32c3: [2.475, 0.825],
+  esp32s3: [2.475, 0.825],
+  esp32s2: [2.475, 0.825],
+  rp2040: [2.0, 0.8],
+  rp2350: [2.0, 0.8],
+};
 /** Logic supply assumed for a part whose power pin isn't on a powered net. */
 export const DEFAULT_PART_VOLTS = 5;
 /** I2C/SPI controller indexes probed per MCU when attaching devices. */
@@ -226,6 +241,11 @@ const MAX_REPORTED = 1000;
 const NO_CLAIMS: readonly PinClaim[] = Object.freeze([]);
 /** Simulated time between dynamic circuit checks. */
 const CHECK_INTERVAL_NS = 10 * NS_PER_MS;
+/**
+ * BT166: the quantum while an analog island's capacitors move with steps shorter than the quantum
+ * (BT170: `fast`; a step planned inside an MCU run waits at most this).
+ */
+const MOVING_QUANTUM_NS = 100 * NS_PER_US;
 
 interface PartSlot {
   readonly id: string;
@@ -565,6 +585,8 @@ export class Bench {
   private readonly probes: (ProbeSlot | null)[] = [];
   /** The analog layer, or null when off (or when the circuit has no resistive island). */
   private readonly analog: AnalogLayer | null = null;
+  /** BT166: each island's planned step (a scheduler id), or −1. */
+  private analogStepIds: Int32Array | null = null;
   /** Parts with an AnalogSpec while the analog layer is on (they get the runtime analog prop). */
   private readonly analogParts = new Set<string>();
   /** Parts on a network too large to solve: their pins read switch-level volts. */
@@ -648,9 +670,11 @@ export class Bench {
       }
     }
 
-    // Analog islands: resistive and switch links plus the parts' diodes; supply nets are fixed.
+    // Analog islands: resistive and switch links plus the parts' diodes, capacitors and transistors; supply nets are fixed.
     if (options.analog !== false) {
       const diodes: DiodeInstance[] = [];
+      const capacitors: CapacitorInstance[] = [];
+      const transistors: TransistorInstance[] = [];
       for (const part of doc.parts) {
         const def = defOf(part.type);
         if (def === undefined) continue;
@@ -662,16 +686,53 @@ export class Bench {
           const cathode = netlist.netOf(part.id, diode.cathode);
           if (anode >= 0 && cathode >= 0) diodes.push({ anode, cathode, vf: diode.vf, rs: diode.rs });
         }
+        for (const capacitor of spec.capacitors ?? []) {
+          const a = netlist.netOf(part.id, capacitor.a);
+          const b = netlist.netOf(part.id, capacitor.b);
+          if (a >= 0 && b >= 0 && capacitor.farads > 0) capacitors.push({ a, b, farads: capacitor.farads });
+        }
+        // BT168: transistors — collector/drain, base/gate, emitter/source.
+        for (const t of spec.transistors ?? []) {
+          if (!('d' in t)) {
+            const x = netlist.netOf(part.id, t.c);
+            const ctl = netlist.netOf(part.id, t.b);
+            const ref = netlist.netOf(part.id, t.e);
+            if (x < 0 || ctl < 0 || ref < 0) continue;
+            const kind = t.kind === 'npn' ? TRANSISTOR.NPN : TRANSISTOR.PNP;
+            transistors.push({ kind, x, ctl, ref, beta: t.beta, vbe: t.vbe, rb: t.rb, vceSat: t.vceSat, rsat: t.rsat, vth: 0, rdsOn: 0, vgsOn: 0 });
+          } else {
+            const x = netlist.netOf(part.id, t.d);
+            const ctl = netlist.netOf(part.id, t.g);
+            const ref = netlist.netOf(part.id, t.s);
+            if (x < 0 || ctl < 0 || ref < 0) continue;
+            const kind = t.kind === 'nmos' ? TRANSISTOR.NMOS : TRANSISTOR.PMOS;
+            transistors.push({ kind, x, ctl, ref, beta: 0, vbe: 0, rb: 1, vceSat: 0, rsat: 1, vth: t.vth, rdsOn: t.rdsOn, vgsOn: t.vgsOn });
+          }
+        }
       }
       const resolver = this.resolver;
       const { islands, netIsland } = buildIslands({
         netCount: netlist.netCount,
         links,
         diodes: diodes.map((d) => ({ a: d.anode, b: d.cathode })),
+        capacitors,
+        transistors: transistors.map((t) => ({ a: t.x, b: t.ctl, c: t.ref })),
         fixed: (net) => resolver.isFixed(net),
       });
       if (islands.length > 0) {
-        const layer = new AnalogLayer(netlist.netCount, islands, netIsland, links, diodes);
+        const layer = new AnalogLayer(netlist.netCount, islands, netIsland, links, diodes, capacitors, transistors);
+        // BT166: capacitor islands step on owner-0 timers, one preallocated callback each.
+        layer.clock = () => this.now();
+        const stepIds = new Int32Array(islands.length).fill(-1);
+        const steps = islands.map((_, i) => () => {
+          stepIds[i] = -1;
+          resolver.stepAnalog(i);
+        });
+        layer.plan = (island, at) => {
+          if (stepIds[island] >= 0) this.scheduler.cancel(stepIds[island]);
+          stepIds[island] = this.scheduler.schedule(at, steps[island]);
+        };
+        this.analogStepIds = stepIds;
         linkOhms.forEach((ohms, i) => (layer.linkOhms[i] = ohms));
         layer.tooLarge.forEach((large, i) => {
           if (large === 0) return;
@@ -920,7 +981,9 @@ export class Bench {
   private runLoop(t: Nanos): BenchRunResult {
     let stalled = 0;
     while (this.time < t) {
-      const quantumEnd = (Math.floor(this.time / this.quantum) + 1) * this.quantum;
+      const analog = this.analog;
+      const quantum = analog !== null && analog.fast > 0 && this.quantum > MOVING_QUANTUM_NS ? MOVING_QUANTUM_NS : this.quantum;
+      const quantumEnd = (Math.floor(this.time / quantum) + 1) * quantum;
       let tNext = Math.min(this.scheduler.nextTime(), quantumEnd, t);
       if (tNext <= this.time) {
         // A timer is due now (scheduled from inside an MCU run that passed its time, or with
@@ -1067,6 +1130,7 @@ export class Bench {
     this.resolver.clearOscillations();
     this.reported.clear();
     this.analog?.reset();
+    this.analogStepIds?.fill(-1);
     this.checks.reset();
     this.dynamicProblems = [];
     for (const slot of this.mcus) {
@@ -1081,6 +1145,8 @@ export class Bench {
     }
     for (const slot of this.mcus) for (const entry of slot.pinEntries) entry.apply();
     this.syncAll();
+    // BT166: capacitors start empty: their islands solve again from time 0.
+    if (this.analog !== null && this.analog.capacitorIslands.length > 0) this.resolver.touchIslands(this.analog.capacitorIslands);
     this.scheduler.schedule(CHECK_INTERVAL_NS, this.checkTick);
     if (this.env !== null) {
       this.env.reset();
@@ -1368,6 +1434,9 @@ export class Bench {
       if (this.analog !== null) {
         this.analog.netVcc[net] = logicVolts;
         this.analog.netReader[net] = 1;
+        const [vih, vil] = MCU_INPUT_THRESHOLDS[board.mcu];
+        this.analog.netHigh[net] = vih;
+        this.analog.netLow[net] = vil;
       }
     }
     if (!port.hooked) {

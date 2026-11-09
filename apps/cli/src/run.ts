@@ -9,6 +9,8 @@
  *   the first match at or before that time. Escapes: \" \\ \n.
  * - `pin <part>:<pin> is <0|1|z|x> at <time>`: the pin's net then (z floating, x conflict). On
  *   boards a numeric pin also matches with or without a leading D (13 ↔ D13).
+ * - BT170: `pin <part>:<pin> volts is <v> [V] ±<v> [V] at <time>`: the net's volts then (an
+ *   analog-layer net's solved volts — a capacitor's charge, a divider, a transistor's drop).
  * - BT49: `serial matches /<regex>/<imsu> by <time>` (the first match in the kept serial text,
  *   timed by when its last character arrived); `pin … frequency is <hz> [Hz] ±<pct>% between
  *   <t1> and <t2>` (rising edges in the window) and `pin … duty is <pct>% ±<points> between …`
@@ -156,6 +158,7 @@ export type Assertion =
   | { kind: 'serial'; text: string; board: string | null; needle: string; by: number }
   | { kind: 'match'; text: string; board: string | null; regex: RegExp; by: number }
   | { kind: 'pin'; text: string; part: string; pin: string; level: Level; at: number }
+  | { kind: 'volts'; text: string; part: string; pin: string; volts: number; tolerance: number; at: number }
   | { kind: 'led'; text: string; part: string; lit: boolean; at: number }
   | { kind: 'servo'; text: string; part: string; angle: number; tolerance: number; at: number }
   | { kind: 'lcd'; text: string; part: string; row: number; expected: string; at: number }
@@ -201,6 +204,7 @@ const FORMS = [
   'serial contains "<text>" by <time>',
   'serial matches /<regex>/ by <time>',
   'pin <part>:<pin> is <0|1|z|x> at <time>',
+  'pin <part>:<pin> volts is <v> ±<v> at <time>',
   'pin <part>:<pin> frequency is <hz> ±<pct>% between <time> and <time>',
   'pin <part>:<pin> duty is <pct>% ±<pct>% between <time> and <time>',
   'led <part> is <lit|dark> at <time>',
@@ -226,6 +230,7 @@ const GRAMMAR = {
   serial: re(String.raw`serial(?:\[([^\]]+)\])?\s+contains\s+${QUOTED}\s+by\s+(\S+)`),
   match: re(String.raw`serial(?:\[([^\]]+)\])?\s+matches\s+\/(.+)\/([a-z]*)\s+by\s+(\S+)`),
   pin: re(String.raw`pin\s+([^\s:]+):(\S+)\s+is\s+([01zx])\s+at\s+(\S+)`),
+  volts: re(String.raw`pin\s+([^\s:]+):(\S+)\s+volts\s+is\s+(-?\d+(?:\.\d+)?)\s*V?${PM}${NUM}\s*V?\s+at\s+(\S+)`),
   frequency: re(String.raw`pin\s+([^\s:]+):(\S+)\s+frequency\s+is\s+${NUM}\s*(?:Hz)?${PM}${NUM}\s*%\s+between\s+(\S+)\s+and\s+(\S+)`),
   duty: re(String.raw`pin\s+([^\s:]+):(\S+)\s+duty\s+is\s+${NUM}\s*%${PM}${NUM}\s*%?\s+between\s+(\S+)\s+and\s+(\S+)`),
   led: re(String.raw`led\s+(\S+)\s+is\s+(lit|dark)\s+at\s+(\S+)`),
@@ -263,6 +268,9 @@ export function parseAssertion(text: string): Assertion {
   if ((m = GRAMMAR.pin.exec(t)) !== null) {
     const level: Level = m[3] === '0' ? 0 : m[3] === '1' ? 1 : (m[3] as 'z' | 'x');
     return { kind: 'pin', text: t, part: m[1], pin: m[2], level, at: parseTime(m[4]) };
+  }
+  if ((m = GRAMMAR.volts.exec(t)) !== null) {
+    return { kind: 'volts', text: t, part: m[1], pin: m[2], volts: Number(m[3]), tolerance: Number(m[4]), at: parseTime(m[5]) };
   }
   if ((m = GRAMMAR.frequency.exec(t)) !== null) {
     const a = { kind: 'frequency' as const, text: t, part: m[1], pin: m[2], hz: Number(m[3]), percent: Number(m[4]), from: parseTime(m[5]), to: parseTime(m[6]) };
@@ -595,7 +603,7 @@ function checkAgainstProject(a: Assertion, doc: ProjectDoc, boards: readonly str
     if (!keepsFiles(part.type)) throw new UsageError(`${a.text}: "${a.part}" is a ${part.type}, not a part that keeps files (a microSD card, or an ESP32-S3 or ESP32-S2 board's USB drive)`);
     return;
   }
-  if (a.kind === 'pin' || a.kind === 'frequency' || a.kind === 'duty') {
+  if (a.kind === 'pin' || a.kind === 'volts' || a.kind === 'frequency' || a.kind === 'duty') {
     const name = resolvePin(doc, a.part, a.pin);
     if (name === undefined) throw new UsageError(`${a.text}: "${a.part}" has no pin "${a.pin}"`);
     a.pin = name;
@@ -979,6 +987,9 @@ export function runHeadless(options: RunOptions, io: RunIo): RunReport {
           const state = bench.pinState(a.part, a.pin);
           const level = state === undefined ? 'z' : levelOf(state);
           results.set(a, { text: a.text, ok: level === a.level, atNs: t, detail: `level ${level}` });
+        } else if (a.kind === 'volts') {
+          const volts = bench.pinState(a.part, a.pin)?.volts ?? Number.NaN;
+          results.set(a, { text: a.text, ok: Math.abs(volts - a.volts) <= a.tolerance, atNs: t, detail: `${Number.isNaN(volts) ? 'no net' : `${volts.toFixed(3)} V`}` });
         } else if (a.kind === 'env') {
           results.set(a, { text: a.text, atNs: t, ...checkEnv(a, bench.envSample(a.part, a.field)) });
         } else {

@@ -1,0 +1,23 @@
+{
+  "name": "example: esp32-mosfet-dimmer",
+  "project": "../../projects/esp32-mosfet-dimmer.json",
+  "firmware": {
+    "esp": "../../firmware/esp32/mosfet-dimmer.bin"
+  },
+  "steps": [
+    {
+      "at": "1s",
+      "part": "pot",
+      "input": {
+        "kind": "value",
+        "value": 0.1
+      }
+    }
+  ],
+  "expect": [
+    "serial contains \"duty 128\\n\" by 1s",
+    "pin esp:D25 duty is 50% ±1 between 600ms and 1s",
+    "serial matches /duty 2[56]\\n/ by 1500ms",
+    "pin esp:D25 duty is 10% ±1 between 1600ms and 2s"
+  ]
+}

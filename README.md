@@ -177,14 +177,18 @@ I2C), SSD1306 OLED, an ILI9341 color TFT (SPI), 7-segment displays, LED bar grap
 switches, an IR remote and receiver, PIR/LDR/NTC/sound sensors, DHT22, HC-SR04, DS1307,
 MPU-6050, a microSD card module, a load cell with an HX711, flame and MQ-2 gas modules, servo, steppers and an A4988
 driver (microstepping),
-NeoPixel strips/rings/matrices, buzzers, a speaker and a microphone, a relay, and power parts —
+NeoPixel strips/rings/matrices, buzzers, a speaker and a microphone, a relay, capacitors (ceramic and
+electrolytic), diodes, transistors (2N2222A/BC547 NPN, 2N3906/BC557 PNP, IRLZ44N/IRF540N and IRF9540N
+MOSFETs), and power parts —
 9 V, AA, LiPo and coin-cell batteries, a bench supply you turn while it runs, a ground symbol and
 7805, AMS1117 and MCP1700 regulators that drop out like the real ones.
 Sound goes
 both ways through your computer: a speaker plays the waveform its pin really makes — tone(),
 PWM-DAC samples, the ESP32's DAC — and a microphone part can listen to your microphone (only
 after you click **Use microphone**; nothing is recorded or stored). A nodal solver gives resistive
-networks real voltages (dimmer LEDs through bigger resistors, true ADC readings).
+networks real voltages (dimmer LEDs through bigger resistors, true ADC readings), and capacitors
+charge and discharge in simulated time (an RC filter smooths PWM into a steady ADC reading, an RC
+delays an input by RC·ln(V/(V − Vth))). The Inspector takes values as you'd write them: 4.7k, 100n.
 
 **Environment** — a room around the bench, set up with parts rather than new screens: an
 Environment part holds the ambient temperature, humidity, light, sound and gas, and you place
@@ -226,15 +230,15 @@ npm run dev          # the editor at http://localhost:5173
 
 **Examples…** opens 96 ready-to-run circuits, each with its sketch, which you can change and
 run again (Basics: blink, button, fade, traffic light, a Simon game, serial echo, an EEPROM boot
-counter, a Nano on a breadboard; Displays: LCDs,
+counter, a Nano on a breadboard, an RC filter turning PWM into a steady voltage; Displays: LCDs,
 an LCD thermometer, OLED and an OLED clock, a color TFT, 7-segment, bar graph, NeoPixels; Sensors: DHT22,
 HC-SR04 and a distance meter, DS1307, MPU-6050, an IR remote, a kitchen scale, a flame alarm, a
 gas meter, keypad, rotary encoder; Motors: servo sweep, a
-servo knob, a keypad lock, a stepper, an A4988 stepper driver, a relay; Sound: buzzers, a speaker melody, PCM through PWM,
+servo knob, a keypad lock, a stepper, an A4988 stepper driver, a relay, a relay switched by a transistor; Sound: buzzers, a speaker melody, PCM through PWM,
 a microphone pitch meter, a VU meter; Power: a regulator meter (turn the bench supply and watch a
 7805 drop out); Storage: an SD card datalogger; Environment: a gas alarm with an extractor fan, a PIR
 hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, an LED Preferences remember, a deep sleep wake counter, a touch LED, a touch wake from deep sleep, a PWM fader, NeoPixel, a
-rainbow ring, an OLED clock, a color TFT, a WROVER's frame buffer in PSRAM, the DAC, a joystick on ADC2, the microphone, an I2C scan; ESP32-C3: the RGB LED,
+rainbow ring, an OLED clock, a color TFT, a WROVER's frame buffer in PSRAM, the DAC, a joystick on ADC2, a MOSFET dimmer, the microphone, an I2C scan; ESP32-C3: the RGB LED,
 serial, a potentiometer dimmer, an OLED clock; ESP32-S3: the RGB LED, serial, a potentiometer dimmer, an OLED clock, a deep sleep wake counter, a
 frame buffer in PSRAM on a color TFT, an RGB LED set over USB serial, a USB macro keypad, a USB MIDI controller, a USB MIDI synth, a USB flash drive, a touch lamp; ESP32-S2: the RGB
 LED, serial, a potentiometer dimmer, an OLED clock, a deep sleep wake counter, a touch lamp, a frame buffer in PSRAM on a color TFT, the DAC; WiFi: an ESP32 web server switched by HTTP client
@@ -442,7 +446,8 @@ the spec:
 Expectations can also read what parts show and how pins move: `led led1 is lit at 1s`,
 `servo servo angle is 90 ±3 at 2s`, `lcd lcd1 row 0 is "Hello" at 1s`, `pixel ring[0] is
 #ff0000 at 1s`, `digits disp show "1234" at 2s`, `pin uno:9 frequency is 490 ±1% between 100ms
-and 1s`, `pin uno:9 duty is 25% ±1 between 100ms and 1s`, `serial matches /T=\d+/ by 3s`.
+and 1s`, `pin uno:9 duty is 25% ±1 between 100ms and 1s`, `pin c1:+ volts is 2.5 ±0.05 at 2s`,
+`serial matches /T=\d+/ by 3s`.
 With an environment part, a step can switch or tune a source — `{ "at": "1s", "part": "leak",
 "set": { "rate": 5, "on": true } }` — and `env gas at mq2 > 300 at 4s` (or `is 22 ±0.5`; gas,
 temperature, humidity, light, sound) reads the room at a part. On a WiFi bench, `wifi esp
@@ -545,7 +550,8 @@ Benchtop aims for behavior you can trust while debugging, not cycle accuracy eve
 Uno is cycle-accurate through avr8js. The ESP32 counts one cycle per instruction plus flash
 cache stalls, interleaves its two cores in ~1 µs slices, and models only the peripherals listed
 above; registers without a model read their documented reset values and are reported. Analog
-behavior comes from a resistive-network solver with piecewise-linear diodes (networks of up to
+behavior comes from a resistive-network solver with piecewise-linear diodes and capacitors stepped
+in time (trapezoidal rule; networks of up to
 256 nets — 100 LEDs with their resistors on one pin solve, and the pin sags under them as a real
 one would); a larger network keeps digital values instead, and the Problems panel says so. Timing claims are
 backed by tests (for example, ESP32 blink toggles every 500.000 ms of simulated time).

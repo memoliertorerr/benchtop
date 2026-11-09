@@ -7,6 +7,9 @@ import type { PartDefinition } from '@benchtop/core';
 import { led } from './basic/led.ts';
 import { potentiometer } from './basic/potentiometer.ts';
 import { pushbutton } from './basic/pushbutton.ts';
+import { capacitor, capacitorElectrolytic } from './basic/capacitor.ts';
+import { diode } from './basic/diode.ts';
+import { nMosfet, npnTransistor, pMosfet, pnpTransistor } from './basic/transistors.ts';
 import { resistor } from './basic/resistor.ts';
 import { rgbLed } from './basic/rgb-led.ts';
 import { slideSwitch } from './basic/slide-switch.ts';
@@ -71,6 +74,13 @@ const ALL: readonly PartDefinition[] = [
   raspberryPiPico2W,
   ...breadboards,
   resistor,
+  capacitor,
+  capacitorElectrolytic,
+  diode,
+  npnTransistor,
+  pnpTransistor,
+  nMosfet,
+  pMosfet,
   led,
   rgbLed,
   pushbutton,

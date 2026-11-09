@@ -1,0 +1,12 @@
+{
+  "name": "example: uno-rc-filter",
+  "project": "../../projects/uno-rc-filter.json",
+  "firmware": {
+    "uno": "../../firmware/uno/rc-filter.hex"
+  },
+  "expect": [
+    "serial matches /pwm:256,a0:2[45]\\d\\r\\n/ by 1s",
+    "pin c1:+ volts is 2.51 ±0.05 at 1950ms",
+    "pin c1:+ volts is 3.76 ±0.05 at 2900ms"
+  ]
+}

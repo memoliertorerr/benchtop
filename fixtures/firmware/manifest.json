@@ -819,6 +819,39 @@
     },
     {
       "board": "esp32",
+      "name": "mosfet-dimmer",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/mosfet-dimmer.bin",
+      "sha256": "1edf8082858d62b912f0a031134bf19133131a2d01fb22723b049974bb1361a7",
+      "bytes": 274736,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "e5445356205907e2364f9dadadf4295459c0f3091790275e5427a90f6fd1f851"
+    },
+    {
+      "board": "esp32",
+      "name": "mosfet-dimmer",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/mosfet-dimmer.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "e5445356205907e2364f9dadadf4295459c0f3091790275e5427a90f6fd1f851"
+    },
+    {
+      "board": "esp32",
+      "name": "mosfet-dimmer",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/mosfet-dimmer.syms.tsv",
+      "sha256": "ce5623e48426ff56153a003e5f52f06af1ccff8d5ed7f53949c8bfc9c46d16bb",
+      "bytes": 121332,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "e5445356205907e2364f9dadadf4295459c0f3091790275e5427a90f6fd1f851"
+    },
+    {
+      "board": "esp32",
       "name": "neopixel",
       "fqbn": "esp32:esp32:esp32",
       "file": "esp32/neopixel.bin",
@@ -7344,6 +7377,50 @@
       "core": "arduino:avr@1.8.7",
       "libraries": {},
       "source": "2aa92be5a0fed7dd6edbfd2a4100108d0a8beacbec0129e74900f90680d66bbc"
+    },
+    {
+      "board": "uno",
+      "name": "rc-delay",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/rc-delay.elf",
+      "sha256": "832c5c3356bb08ef40bdbf31a19237500bdbe953c8d94696b467c34ebdfc80f5",
+      "bytes": 29944,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "08e2d9dc2981fb74941cb8e67f1642d227ba27dfd517935e009aa53ad0db2170"
+    },
+    {
+      "board": "uno",
+      "name": "rc-delay",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/rc-delay.hex",
+      "sha256": "bd12eccffba20aa0468f343f943f38e721c95b24c2891f4165cca5efd58ead67",
+      "bytes": 6981,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "08e2d9dc2981fb74941cb8e67f1642d227ba27dfd517935e009aa53ad0db2170"
+    },
+    {
+      "board": "uno",
+      "name": "rc-filter",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/rc-filter.elf",
+      "sha256": "a996aaddc3500821bd4f752b3b3dc30a7e884201d77f6cac0edc0f07c8b901aa",
+      "bytes": 29884,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "b27aa704dbb3dffaa66935d5a6353e326216333f20489a2e2f82bf04de3927e9"
+    },
+    {
+      "board": "uno",
+      "name": "rc-filter",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/rc-filter.hex",
+      "sha256": "aa8cce6997c01f8b3ff84511770ea750340e28163b234011e015b756ed64f90b",
+      "bytes": 7091,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "b27aa704dbb3dffaa66935d5a6353e326216333f20489a2e2f82bf04de3927e9"
     },
     {
       "board": "uno",

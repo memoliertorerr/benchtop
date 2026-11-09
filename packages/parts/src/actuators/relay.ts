@@ -1,5 +1,7 @@
 /**
- * KS2E-M-DC5 relay (5 V coil, two changeover poles). Coil voltage = |V(COIL1) − V(COIL2)| from
+ * KS2E-M-DC5 relay (5 V coil, two changeover poles). BT169: the coil is a 125 Ω load between
+ * COIL1 and COIL2 (a typical 5 V signal relay's: 40 mA — an Uno pin drives it at 4.2 V, 33 mA; a
+ * transistor drives it properly). Coil voltage = |V(COIL1) − V(COIL2)| from
  * the nets' volts: it energizes at ≥ 3.75 V (75 % must-operate) and releases at ≤ 0.5 V, with
  * hysteresis between. The contacts move `operateMs` (4) after the coil changes, through one
  * scheduled callback. Each pole Pn (common) is a switch link to NCn (closed at rest) and to NOn.
@@ -11,6 +13,8 @@ import { NS_PER_MS } from '@benchtop/core';
 import { definePart } from '../define.ts';
 
 const OPERATE_V = 3.75;
+/** BT169: the coil's resistance, ohms. */
+export const COIL_OHMS = 125;
 const RELEASE_V = 0.5;
 
 export const relayKs2e = definePart({
@@ -29,6 +33,7 @@ export const relayKs2e = definePart({
     { name: 'COIL1', x: 19.579, y: 8.652, role: 'passive' },
   ],
   links: [
+    { id: 'coil', a: 'COIL1', b: 'COIL2', kind: 'resistive', ohms: COIL_OHMS },
     { id: 'nc1', a: 'P1', b: 'NC1', kind: 'switch', closed: true },
     { id: 'no1', a: 'P1', b: 'NO1', kind: 'switch', closed: false },
     { id: 'nc2', a: 'P2', b: 'NC2', kind: 'switch', closed: true },

@@ -1,5 +1,5 @@
 import { type FirmwareRef, isMicroPythonFqbn } from '@benchtop/core';
-import { BOARD_MODULES, CATALOG } from '@benchtop/parts';
+import { BOARD_MODULES, CATALOG, PART_MODELS } from '@benchtop/parts';
 import { useRef } from 'preact/hooks';
 import { editor, editorMessage } from '../editor/app-store.ts';
 import { attachFirmwareFile } from '../editor/firmware-actions.ts';
@@ -9,6 +9,7 @@ import { templateRef } from '../editor/inline-compile.ts';
 import { compileNow, fqbnOf, recentFolders, type SketchStatus, setSketchFolder, setWatching, statusOf } from '../editor/sketch-actions.ts';
 import { WIRE_COLORS, WIRE_SHADES } from '../editor/wiring.ts';
 import { PartControls } from './PartControls.tsx';
+import { formatSi, parseSi, SI_UNITS } from './si.ts';
 
 /** Edits the selected part's props, by the type of each default value. */
 import { viewMode } from '../pcb/mode.ts';
@@ -156,6 +157,42 @@ export function Inspector() {
                 ))}
               </select>
               <span class="muted panel-note">Sketches build for it: its PSRAM (no comment line needed) and its flash size. On auto, a line <code>// benchtop: psram</code> in the sketch asks for PSRAM, and the flash is what the build says.</span>
+            </label>
+          );
+        }
+        // BT167: a part's datasheet model (a diode, a transistor), from its list.
+        const models = key === 'model' ? PART_MODELS[part.type] : undefined;
+        if (models !== undefined) {
+          return (
+            <label key={key} class="field">
+              {label}
+              <select class="tool-select" value={String(value)} onChange={(event) => editor.setProp(part.id, key, (event.target as HTMLSelectElement).value)}>
+                {models.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          );
+        }
+        // BT167: ohms and farads with SI prefixes (4.7 kΩ, 100 nF); typed as 4.7k, 4k7, 100n.
+        const unit = typeof fallback === 'number' ? SI_UNITS[key] : undefined;
+        if (unit !== undefined) {
+          const shown = formatSi(Number(value), unit);
+          return (
+            <label key={key} class="field">
+              {label}
+              <input
+                type="text"
+                value={shown}
+                onChange={(event) => {
+                  const input = event.target as HTMLInputElement;
+                  const n = parseSi(input.value, unit);
+                  if (Number.isFinite(n) && n > 0) editor.setProp(part.id, key, n);
+                  else input.value = shown;
+                }}
+              />
             </label>
           );
         }

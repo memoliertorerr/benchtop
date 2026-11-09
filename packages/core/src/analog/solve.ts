@@ -48,6 +48,19 @@ export class DenseSolver {
     this.rhs[a] += g * volts;
   }
 
+  /**
+   * BT168: one matrix entry (row `row`, column `col`; −1 ignored) — a controlled source's, which
+   * makes the matrix nonsymmetric. Elimination pivots on rows, so that is fine.
+   */
+  entry(row: number, col: number, value: number): void {
+    if (row >= 0 && col >= 0) this.g[row * this.n + col] += value;
+  }
+
+  /** BT166: the diagonal entry of unknown node `a` as assembled so far (before `solve`). */
+  diag(a: number): number {
+    return this.g[a * this.n + a];
+  }
+
   /** A current `amps` injected into node `a` (−1 ignored). */
   current(a: number, amps: number): void {
     if (a >= 0) this.rhs[a] += amps;

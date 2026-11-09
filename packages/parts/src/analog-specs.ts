@@ -2,10 +2,13 @@
  * Diodes of the LED-type parts, for the bench's analog layer (BT21): `analogSpecFor(type, props)`
  * goes into `BenchOptions.analogSpecFor`. Piecewise-linear LEDs: knee voltage by color (decided:
  * red 1.8, orange 1.9, yellow 1.9, green 2.0, blue 2.8, white 2.8, purple 2.8 V; anything else
- * 2.0 V) and 10 Ω above it.
+ * 2.0 V) and 10 Ω above it. BT167: capacitors (their `farads`) and the diode part (its model's
+ * knee and resistance). BT169: transistors (their models).
  */
 
 import type { AnalogSpec, DiodeSpec, PartProps } from '@benchtop/core';
+import { DIODE_MODELS } from './basic/diode.ts';
+import { BJT_MODELS, BJT_RB, BJT_VBE, MOSFET_MODELS } from './basic/transistors.ts';
 
 export const LED_RS_OHMS = 10;
 
@@ -59,6 +62,28 @@ export function analogSpecFor(type: string, props: PartProps): AnalogSpec | unde
       const diodes = (DIGIT_COMMONS[type] ?? []).flatMap((common) => SEGMENTS.map((seg) => (anode ? diode(common, seg, props.color) : diode(seg, common, props.color))));
       if (type === 'seven-segment-4') diodes.push(anode ? diode('COM', 'CLN', props.color) : diode('CLN', 'COM', props.color));
       return { diodes };
+    }
+    case 'capacitor':
+    case 'capacitor-electrolytic': {
+      const farads = Number(props.farads);
+      const [a, b] = type === 'capacitor' ? ['1', '2'] : ['+', '-'];
+      return { diodes: [], capacitors: Number.isFinite(farads) && farads > 0 ? [{ a, b, farads }] : [] };
+    }
+    case 'diode': {
+      const model = DIODE_MODELS[String(props.model)] ?? DIODE_MODELS['1N4148'];
+      return { diodes: [{ anode: 'A', cathode: 'C', vf: model.vf, rs: model.rs }] };
+    }
+    case 'npn-transistor':
+    case 'pnp-transistor': {
+      const npn = type === 'npn-transistor';
+      const m = BJT_MODELS[String(props.model)] ?? BJT_MODELS[npn ? '2N2222A' : '2N3906'];
+      return { diodes: [], transistors: [{ kind: npn ? 'npn' : 'pnp', c: 'C', b: 'B', e: 'E', beta: m.beta, vbe: BJT_VBE, rb: BJT_RB, vceSat: m.vceSat, rsat: m.rsat }] };
+    }
+    case 'n-mosfet':
+    case 'p-mosfet': {
+      const n = type === 'n-mosfet';
+      const m = MOSFET_MODELS[String(props.model)] ?? MOSFET_MODELS[n ? 'IRLZ44N' : 'IRF9540N'];
+      return { diodes: [], transistors: [{ kind: n ? 'nmos' : 'pmos', d: 'D', g: 'G', s: 'S', vth: m.vth, rdsOn: m.rdsOn, vgsOn: m.vgsOn }] };
     }
     default:
       return undefined;

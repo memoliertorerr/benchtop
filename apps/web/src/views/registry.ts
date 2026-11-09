@@ -13,6 +13,7 @@ import { esp32S2DevkitM1View } from './esp32-s2-devkitm-1.ts';
 import { esp32S3DevkitC1View } from './esp32-s3-devkitc-1.ts';
 import { fallbackView } from './fallback.ts';
 import { httpClientView, httpServerView, networkView } from './network.ts';
+import { PASSIVE_VIEW_TYPES, passiveView } from './passives.ts';
 import { POWER_VIEW_TYPES, powerView } from './power.ts';
 import { raspberryPiPicoView } from './raspberry-pi-pico.ts';
 import { stepper28byj48View } from './stepper-28byj48.ts';
@@ -55,6 +56,7 @@ export function viewFor(type: string): ViewFactory {
   if (type === 'http-server') return httpServerView;
   if (type === 'http-client') return httpClientView;
   if (TOUCH_PAD_VIEW_TYPES.has(type)) return touchPadView;
+  if (PASSIVE_VIEW_TYPES.has(type)) return passiveView;
   if (hasWokwiView(type)) return wokwiView;
   return fallbackView;
 }

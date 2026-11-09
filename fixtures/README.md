@@ -26,7 +26,8 @@ fixtures/firmware/esp32/<name>.syms.tsv       `nm -S -n --defined-only` of the f
                                               5000) — and touch-led, the gallery's;
                                               adc2-read, ADC2's ten channels; adc2-wifi — ADC2
                                               before, with and after WiFi; joystick, the
-                                              gallery's — ADC2 on GPIO25/26)
+                                              gallery's — ADC2 on GPIO25/26; mosfet-dimmer, the
+                                              gallery's — a pot's PWM on an IRLZ44N's gate)
 fixtures/firmware/esp32c3/<name>.bin|.partitions.bin|.syms.tsv  the same for the ESP32-C3
                                               (serial-hello, blink, gpio-interrupt, adc-read,
                                               ledc-fade, i2c-scan, spi-loopback, rgb-blink,
