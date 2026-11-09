@@ -60,6 +60,28 @@ describe('fixture firmware manifest', () => {
     expect(manifest.outputs.map((o) => o.file).sort()).toEqual(expected.sort());
   });
 
+  it('every library a published fixture links has a THIRD_PARTY_NOTICES.md row naming its sketch', () => {
+    // Libraries inside a core come under the core's row (the notices list them there).
+    const IN_CORE: Readonly<Record<string, ReadonlySet<string>>> = {
+      'arduino:avr': new Set(['Wire', 'SPI', 'EEPROM', 'SoftwareSerial']),
+      'esp32:esp32': new Set(['WiFi', 'FS', 'SD', 'HTTPClient', 'WebServer', 'Preferences', 'WiFiClientSecure', 'USB', 'Wire', 'SPI']),
+      'rp2040:rp2040': new Set(['Wire', 'SPI', 'EEPROM', 'SD', 'SDFS']),
+    };
+    const rows = readFileSync(join(ROOT, 'THIRD_PARTY_NOTICES.md'), 'utf8').split('\n').filter((line) => line.startsWith('| '));
+    const gaps = new Set<string>();
+    for (const output of manifest.outputs) {
+      if (output.redistributable === false) continue; // not published
+      const platform = output.core.split('@')[0];
+      for (const [name, version] of Object.entries(output.libraries)) {
+        if (IN_CORE[platform]?.has(name)) continue;
+        const row = rows.find((line) => line.split('|')[1]?.includes(`${name} ${version}`));
+        if (row === undefined) gaps.add(`${name} ${version}: no row`);
+        else if (!row.split('|')[2]?.includes(`\`${output.name}\``)) gaps.add(`${name} ${version}: ${output.board}/${output.name} not named`);
+      }
+    }
+    expect([...gaps]).toEqual([]);
+  });
+
   it('records the libraries a sketch used', () => {
     const scan = manifest.outputs.find((o) => o.file === 'uno/i2c-scan.hex');
     expect(scan?.libraries).toHaveProperty('Wire');

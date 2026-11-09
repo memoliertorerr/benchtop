@@ -90,23 +90,33 @@ in `fixtures/firmware/manifest.json`. Linked into them, under their own licenses
 |---|---|---|---|
 | Arduino AVR core 1.8.7 (incl. Wire, SPI, EEPROM, SoftwareSerial) | Uno fixtures | LGPL-2.1-or-later | <https://github.com/arduino/ArduinoCore-avr> |
 | avr-libc | Uno fixtures | BSD-3-Clause | <https://github.com/avrdudes/avr-libc> |
-| LiquidCrystal 1.0.7, Servo 1.3.0, Stepper 1.1.3 | some Uno fixtures | LGPL-2.1-or-later | <https://github.com/arduino-libraries> |
-| Adafruit GFX 1.12.4, Adafruit SSD1306 2.5.16 | `ssd1306-adafruit`, the `oled-clock`, `i2c-oled` and `ntp-clock` sketches | BSD | <https://github.com/adafruit> |
-| Adafruit BusIO 1.17.4 | `ssd1306-adafruit`, the `oled-clock`, `i2c-oled` and `ntp-clock` sketches | MIT | <https://github.com/adafruit/Adafruit_BusIO> |
-| DHT sensor library 1.4.6 | `dht22-adafruit` | MIT | <https://github.com/adafruit/DHT-sensor-library> |
-| Adafruit Unified Sensor 1.1.15 | `dht22-adafruit` | Apache-2.0 | <https://github.com/adafruit/Adafruit_Sensor> |
+| LiquidCrystal 1.0.7, Servo 1.3.0, Stepper 1.1.3 | Uno `lcd-4bit` and `lcd-8bit-2004` (LiquidCrystal); `servo-sweep`, `servo-knob` and `keypad-lock` (Servo); `stepper-28byj48`, `stepper-bipolar` and `l298n-stepper` (Stepper) | LGPL-2.1-or-later | <https://github.com/arduino-libraries> |
+| SD 1.3.0 (Arduino, SparkFun; after Bill Greiman's sdfatlib) | Uno `sd-log` and `sd-datalogger` | GPL-3.0-or-later | <https://github.com/arduino-libraries/SD> |
+| Adafruit GFX Library 1.12.4 | Uno `ssd1306-adafruit`, `oled-clock`, `oled-scroll`, `oled-128x32`, `oled-spi` and `sh1106`; ESP32 `oled-clock`, `ntp-clock` and `oled-spi`; ESP32-C3, ESP32-S3 and ESP32-S2 `oled-clock`; Pico and Pico 2 `i2c-oled` | BSD | <https://github.com/adafruit/Adafruit-GFX-Library> |
+| Adafruit SSD1306 2.5.16 | Uno `ssd1306-adafruit`, `oled-clock`, `oled-scroll`, `oled-128x32` and `oled-spi`; ESP32 `oled-clock`, `ntp-clock` and `oled-spi`; ESP32-C3, ESP32-S3 and ESP32-S2 `oled-clock`; Pico and Pico 2 `i2c-oled` | BSD | <https://github.com/adafruit/Adafruit_SSD1306> |
+| Adafruit SH110X 2.1.14 | Uno `sh1106` | BSD | <https://github.com/adafruit/Adafruit_SH110X> |
+| Adafruit BusIO 1.17.4 | Uno `ssd1306-adafruit`, `oled-clock`, `oled-scroll`, `oled-128x32`, `oled-spi` and `sh1106`; ESP32 `oled-clock`, `ntp-clock` and `oled-spi`; ESP32-C3, ESP32-S3 and ESP32-S2 `oled-clock`; Pico and Pico 2 `i2c-oled` | MIT | <https://github.com/adafruit/Adafruit_BusIO> |
+| DHT sensor library 1.4.6 | Uno `dht22-adafruit` and `lcd-thermometer` | MIT | <https://github.com/adafruit/DHT-sensor-library> |
+| Adafruit Unified Sensor 1.1.15 | Uno `dht22-adafruit` and `lcd-thermometer` | Apache-2.0 | <https://github.com/adafruit/Adafruit_Sensor> |
 | DHTlib 0.1.37 | `dht22-dhtlib` | MIT | <https://github.com/RobTillaart/DHTlib> |
 | Arduino-ESP32 core 2.0.17 | ESP32, ESP32-C3, ESP32-S3 and ESP32-S2 fixtures | LGPL-2.1-or-later | <https://github.com/espressif/arduino-esp32/tree/2.0.17> |
 | ESP-IDF v4.4.7 libraries (incl. FreeRTOS, MIT; newlib, BSD-style) | ESP32, ESP32-C3, ESP32-S3 and ESP32-S2 fixtures | Apache-2.0 and others | <https://github.com/espressif/esp-idf/tree/v4.4.7> |
 | Arduino-Pico core 6.2.0 (Earle F. Philhower III) | Pico fixtures | LGPL-2.1-or-later | <https://github.com/earlephilhower/arduino-pico> |
 | Raspberry Pi Pico SDK (in the Arduino-Pico core), TinyUSB | Pico fixtures | BSD-3-Clause, MIT | <https://github.com/raspberrypi/pico-sdk> |
+| SdFat 2.3.1 (Bill Greiman; in the Arduino-Pico core) | Pico `sd-log` | MIT | <https://github.com/greiman/SdFat> |
 | TinyUSB (in the Arduino-ESP32 core's libraries) | the ESP32-S3 `usb-cdc`, `usb-rgb`, `usb-keys`, `usb-midi`, `usb-drive`, `usb-locks` and `usb-synth` fixtures, the ESP32-S2 `usb-cdc` fixture | MIT | <https://github.com/hathach/tinyusb> |
 | GCC runtime (libgcc) | all fixtures | GPL-3.0 with the GCC Runtime Library Exception | <https://gcc.gnu.org/> |
 
 The fixtures exist to test the emulator. The complete source of the parts written for this
 project (the sketches) is in `fixtures/sketches/`, the exact core and library versions are in
 the manifest, and `npm run fixtures` rebuilds and relinks every image with them; the sources of
-the LGPL components are available from the links above.
+the LGPL and GPL components are available from the links above. Together they are the complete
+corresponding source of the two Uno images that link the GPL-3.0 SD library (`sd-log`,
+`sd-datalogger`). Libraries that ship inside a core (Wire, SPI, EEPROM, SoftwareSerial in the AVR
+core; WiFi, FS, SD, HTTPClient, WebServer, Preferences, WiFiClientSecure, USB, Wire, SPI in the
+Arduino-ESP32 core; Wire, SPI, EEPROM, SD, SDFS in the Arduino-Pico core) come under that core's row;
+`scripts/fixtures.test.ts` checks that every other library a published fixture links has a row
+here naming its sketch.
 
 ### Pico W and Pico 2 W test firmware: not redistributed
 
