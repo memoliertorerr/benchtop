@@ -91,6 +91,8 @@ export interface SimSessionDeps {
   esp32c3Rom?(): Uint8Array | undefined;
   /** BT126: the ESP32-S3 ROM the worker fetched. */
   esp32s3Rom?(): Uint8Array | undefined;
+  /** BT150: the ESP32-S2 ROM the worker fetched. */
+  esp32s2Rom?(): Uint8Array | undefined;
   /** The Pico 2's (RISC-V) MicroPython UF2 (BT67). */
   micropythonPico2?(): Uint8Array | undefined;
   /** BT101: the real network through the compile bridge, for access points whose `internet` is on. */
@@ -337,7 +339,7 @@ export class SimSession {
     this.latest.clear();
     this.serial.clear();
     this.cycleMarks.clear();
-    this.env = createBenchEnv({ esp32Rom: this.deps.esp32Rom?.(), micropython: this.deps.micropython?.(), rp2350Rom: this.deps.rp2350Rom?.(), micropythonPico2: this.deps.micropythonPico2?.(), esp32c3Rom: this.deps.esp32c3Rom?.(), esp32s3Rom: this.deps.esp32s3Rom?.() });
+    this.env = createBenchEnv({ esp32Rom: this.deps.esp32Rom?.(), micropython: this.deps.micropython?.(), rp2350Rom: this.deps.rp2350Rom?.(), micropythonPico2: this.deps.micropythonPico2?.(), esp32c3Rom: this.deps.esp32c3Rom?.(), esp32s3Rom: this.deps.esp32s3Rom?.(), esp32s2Rom: this.deps.esp32s2Rom?.() });
     // assembleBench resets the bench, which invalidates every part: the first frame carries
     // every view's state and nothing keeps showing what a previous bench left on screen.
     const project = validateProject(doc);

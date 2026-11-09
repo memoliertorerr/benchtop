@@ -57,6 +57,15 @@ fixtures/firmware/esp32s3/<name>.bin|.partitions.bin|.syms.tsv  the same for the
                                               host played on IO5), the same options;
                                               flash-info, FlashSize=16M — also
                                               esp32/flash-info)
+fixtures/firmware/esp32s2/<name>.bin|.partitions.bin|.syms.tsv  the same for the ESP32-S2
+                                              (serial-hello, blink — its Dev Module defaults,
+                                              `esp32:esp32:esp32s2` —, gpio-interrupt,
+                                              ledc-fade, adc-read (13-bit codes), i2c-scan,
+                                              spi-loopback (FSPI's 34–37), rgb-blink (the
+                                              DevKitM-1's WS2812 on GPIO18), debug-demo — the
+                                              S3's sketches on the S2's pins —, usb-cdc,
+                                              CDCOnBoot=cdc: Serial on TinyUSB's CDC port over
+                                              USB-OTG; pot-led and oled-clock, the gallery's)
 fixtures/firmware/pico*/debug-demo.syms.tsv   the same for the Pico and Pico 2 debug-demos only (the
                                               debugger's tests; `SYMBOL_SKETCHES` in fixture-boards.ts)
 fixtures/firmware/pico/<name>.uf2             Raspberry Pi Pico firmware (arduino-pico 6.2.0; the
@@ -132,7 +141,8 @@ Board folders map to FQBNs in `scripts/fixture-boards.ts` (`uno` → `arduino:av
 ATmega2560; `far-code`'s .hex is ~370 KB: its 130 KB of tables push code past 128 KiB), `esp32` → `esp32:esp32:esp32`, core 2.0.17; `esp32c3` → `esp32:esp32:esp32c3`, the same core's
 RISC-V chip with its defaults — Serial on UART0; a sketch can add board menu options —
 `options` in scripts/fixture-boards.ts, as `cdc-hello`: `esp32:esp32:esp32c3:CDCOnBoot=cdc`; `esp32s3` →
-`esp32:esp32:esp32s3`, the Xtensa LX7 chip with its Dev Module defaults — Serial on UART0, no PSRAM). An ESP32 sketch builds in ~35 s and its build folder takes
+`esp32:esp32:esp32s3`, the Xtensa LX7 chip with its Dev Module defaults — Serial on UART0, no PSRAM; `esp32s2` →
+`esp32:esp32:esp32s2`, the single-core LX7 chip, the same defaults). An ESP32 sketch builds in ~35 s and its build folder takes
 ~25 MB. The app image embeds the ELF's SHA-256 (app descriptor, 0xb0–0xcf), so the fixed build
 folders matter here too: `--check` proves the .bin is byte-identical across builds. `pico` →
 `rp2040:rp2040:rpipico` (the arduino-pico core 6.2.0, installed with
@@ -185,7 +195,8 @@ fit the 1.5 MB budget). Each is a `<name>.tsv.gz` ("address, bytes in memory ord
 operands") plus raw bytes; `manifest.json` says how the bytes are laid out. Words are decoded in
 labelled slots, because objdump restarts decoding at every symbol. `s3-serial-hello` is the
 same for the ESP32-S3 serial-hello's IRAM, from the S3 toolchain's own objdump (`s3-manifest.json`;
-written when fixtures/.build/esp32s3/serial-hello is built).
+written when fixtures/.build/esp32s3/serial-hello is built). `s2-serial-hello` is the same for the
+ESP32-S2 from its toolchain's objdump (`s2-manifest.json`).
 
 ## RISC-V test programs and disassembly corpora
 

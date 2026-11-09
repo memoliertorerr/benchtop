@@ -68,7 +68,7 @@ export function defaultFirmwarePaths(doc: ProjectDoc): Record<string, string> {
   const paths: Record<string, string> = {};
   for (const part of doc.parts) {
     const mcu = CATALOG.get(part.type)?.board?.mcu;
-    if (mcu !== undefined) paths[part.id] = `${part.id}.${mcu === 'esp32' || mcu === 'esp32c3' || mcu === 'esp32s3' ? 'bin' : 'hex'}`;
+    if (mcu !== undefined) paths[part.id] = `${part.id}.${mcu === 'esp32' || mcu === 'esp32c3' || mcu === 'esp32s3' || mcu === 'esp32s2' ? 'bin' : 'hex'}`;
   }
   return paths;
 }

@@ -30,17 +30,55 @@ export const SPI_BASES = { 2: 0x3ff64000, 3: 0x3ff65000 } as const;
 export const CODE_SPI_UNSUPPORTED = 'esp32-spi-unsupported-mode';
 const CMD = 0x00;
 const CTRL = 0x08;
-const CLOCK = 0x18;
-const USER = 0x1c;
-const USER1 = 0x20;
-const USER2 = 0x24;
-const MOSI_DLEN = 0x28;
-const MISO_DLEN = 0x2c;
-const SLAVE = 0x38;
-const W0 = 0x80;
-const USR = 1 << 18;
-/** Native (flash) command bits SPI1 has: on SPI2/3 they mean misuse. */
-const NATIVE = 0xffc00000 >>> 0;
+
+/**
+ * BT149: where a chip keeps the registers this model reads — the ESP32's SPI2/3, or the ESP32-S2's
+ * GPSPI2 (spi_reg.h: USR bit 24, CLOCK 0x14, USER 0x18, the lengths at 0x24/0x28, SLAVE 0x30,
+ * W0–W17 from 0x98, a 5-bit ADDR_BITLEN at 27, the DMA links' enables at 0x50/0x54 bit 31).
+ */
+export interface SpiLayout {
+  base: number;
+  usr: number;
+  clock: number;
+  user: number;
+  user1: number;
+  user2: number;
+  mosiDlen: number;
+  misoDlen: number;
+  slave: number;
+  w0: number;
+  /** USER1's ADDR_BITLEN: its shift and mask. */
+  addrShift: number;
+  addrMask: number;
+  /** CMD bits that mean a native (flash) command: misuse here. */
+  native: number;
+  /** Registers whose bit 31 enables DMA (none on the ESP32: DMA isn't checked there). */
+  dmaEnables: readonly number[];
+  /** The last register offset below W0 the block has. */
+  last: number;
+  name: string;
+  unsupportedCode: string;
+}
+
+const esp32Layout = (host: 2 | 3): SpiLayout => ({
+  base: SPI_BASES[host],
+  usr: 1 << 18,
+  clock: 0x18,
+  user: 0x1c,
+  user1: 0x20,
+  user2: 0x24,
+  mosiDlen: 0x28,
+  misoDlen: 0x2c,
+  slave: 0x38,
+  w0: 0x80,
+  addrShift: 26,
+  addrMask: 0x3f,
+  native: 0xffc00000 >>> 0,
+  dmaEnables: [],
+  last: 0x3c,
+  name: `SPI${host}`,
+  unsupportedCode: CODE_SPI_UNSUPPORTED,
+});
 
 /** An attached device and how to tell whether its CS is asserted. */
 export interface SpiAttachment {
@@ -72,15 +110,20 @@ export class Spi extends RegisterFile {
   private readonly slot: number;
   private readonly buffer = new Uint8Array(64);
 
-  constructor(context: SocContext, host: 2 | 3) {
-    super(SPI_BASES[host]);
+  private readonly L: SpiLayout;
+  private readonly W0: number;
+
+  constructor(context: SocContext, host: 2 | 3, layout: SpiLayout = esp32Layout(host), defaults?: (address: number) => number) {
+    super(layout.base, defaults);
     this.host = host;
+    this.L = layout;
+    this.W0 = layout.w0;
     this.context = context;
     this.slot = context.events.add(() => this.finish());
   }
 
   implements(offset: number): boolean {
-    return offset <= 0x3c || (offset >= W0 && offset < W0 + 64) || offset === 0xfc || offset === 0x100;
+    return offset <= this.L.last || (offset >= this.W0 && offset < this.W0 + 64) || offset === 0xfc || offset === 0x100;
   }
 
   override systemReset(_rtcDomain: boolean): void {
@@ -91,7 +134,7 @@ export class Spi extends RegisterFile {
 
   /** Data-phase SCK frequency in Hz. */
   sckHz(): number {
-    const clock = this.regs[CLOCK >>> 2];
+    const clock = this.regs[this.L.clock >>> 2];
     if ((clock >>> 31) !== 0) return this.context.apbHz;
     const pre = (clock >>> 18) & 0x1fff;
     const n = (clock >>> 12) & 0x3f;
@@ -103,8 +146,12 @@ export class Spi extends RegisterFile {
       super.write32(offset, value);
       return;
     }
-    if ((value & NATIVE) !== 0 || (this.regs[SLAVE >>> 2] & (1 << 30)) !== 0) {
-      this.context.problems.report('warning', CODE_SPI_UNSUPPORTED, SPI_BASES[this.host], `SPI${this.host}: slave mode, DMA and flash commands aren't emulated; the transaction did nothing.`);
+    const L = this.L;
+    const USR = L.usr;
+    let dma = false;
+    for (let i = 0; i < L.dmaEnables.length; i++) if ((this.regs[L.dmaEnables[i] >>> 2] >>> 31) !== 0) dma = true;
+    if ((value & L.native) !== 0 || (this.regs[L.slave >>> 2] & (1 << 30)) !== 0 || (dma && (value & USR) !== 0)) {
+      this.context.problems.report('warning', L.unsupportedCode, L.base, `${L.name}: slave mode, DMA and flash commands aren't emulated; the transaction did nothing.`);
       return;
     }
     if ((value & USR) === 0 || (this.regs[CMD >>> 2] & USR) !== 0) {
@@ -116,17 +163,19 @@ export class Spi extends RegisterFile {
   }
 
   private transfer(): void {
-    const user = this.regs[USER >>> 2];
+    const L = this.L;
+    const W0 = this.W0;
+    const user = this.regs[L.user >>> 2];
     const mosiOn = (user & (1 << 27)) !== 0;
     const misoOn = (user & (1 << 28)) !== 0;
     const doutdin = (user & 1) !== 0;
-    const mosiBits = mosiOn ? (this.regs[MOSI_DLEN >>> 2] & 0xffffff) + 1 : 0;
-    const misoBits = misoOn ? (this.regs[MISO_DLEN >>> 2] & 0xffffff) + 1 : 0;
+    const mosiBits = mosiOn ? (this.regs[L.mosiDlen >>> 2] & 0xffffff) + 1 : 0;
+    const misoBits = misoOn ? (this.regs[L.misoDlen >>> 2] & 0xffffff) + 1 : 0;
     const dataBits = doutdin ? Math.max(mosiBits, misoBits) : mosiBits + misoBits;
     let bits = dataBits;
-    if ((user >>> 31) !== 0) bits += ((this.regs[USER2 >>> 2] >>> 28) & 0xf) + 1;
-    if ((user & (1 << 30)) !== 0) bits += ((this.regs[USER1 >>> 2] >>> 26) & 0x3f) + 1;
-    if ((user & (1 << 29)) !== 0) bits += (this.regs[USER1 >>> 2] & 0xff) + 1;
+    if ((user >>> 31) !== 0) bits += ((this.regs[L.user2 >>> 2] >>> 28) & 0xf) + 1;
+    if ((user & (1 << 30)) !== 0) bits += ((this.regs[L.user1 >>> 2] >>> L.addrShift) & L.addrMask) + 1;
+    if ((user & (1 << 29)) !== 0) bits += (this.regs[L.user1 >>> 2] & 0xff) + 1;
     const ctrl = this.regs[CTRL >>> 2];
     const lsbOut = (ctrl & (1 << 26)) !== 0;
     const lsbIn = (ctrl & (1 << 25)) !== 0;
@@ -160,7 +209,7 @@ export class Spi extends RegisterFile {
   }
 
   private finish(): void {
-    this.regs[CMD >>> 2] &= ~USR;
+    this.regs[CMD >>> 2] &= ~this.L.usr;
     this.setCs(1);
     this.onTransaction?.(this.start, this.context.now(), this.bits);
   }

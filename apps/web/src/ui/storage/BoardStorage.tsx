@@ -1,6 +1,6 @@
 /**
  * The Inspector's Storage section for a board (BT120): what it keeps across resets — an Arduino
- * AVR board's EEPROM, an ESP32's, ESP32-C3's, ESP32-S3's or Pico's flash data — as the worker reads it
+ * AVR board's EEPROM, an ESP32's, ESP32-C3's, ESP32-S3's, ESP32-S2's or Pico's flash data — as the worker reads it
  * (`sim.memory`): how much is in use, the ESP32s' NVS entries (Preferences: namespace, key, value),
  * an EEPROM's written bytes; and Erase. Refreshed every 2 s while running. Without a loaded bench
  * it shows what is saved for the board (the memory store) and erases that.

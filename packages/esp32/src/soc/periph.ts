@@ -116,14 +116,17 @@ export function registerDefault(address: number): number {
 export class RegisterFile implements Peripheral {
   readonly regs = new Uint32Array(1024);
   readonly base: number;
+  /** BT149: where the reset values come from (the ESP32's headers unless a chip sharing a model says). */
+  private readonly defaults: (address: number) => number;
 
-  constructor(base: number) {
+  constructor(base: number, defaults: (address: number) => number = registerDefault) {
     this.base = base;
+    this.defaults = defaults;
     this.reset();
   }
 
   reset(): void {
-    for (let i = 0; i < 1024; i++) this.regs[i] = registerDefault(this.base + i * 4);
+    for (let i = 0; i < 1024; i++) this.regs[i] = this.defaults(this.base + i * 4);
   }
 
   /** A chip reset. Models with more state override this (never `reset`, which the constructor calls). */

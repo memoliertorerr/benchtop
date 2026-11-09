@@ -84,6 +84,7 @@ export class Sandbox {
     if (base.micropythonPico2 !== undefined) io.micropythonPico2 = () => base.micropythonPico2?.();
     if (base.esp32c3Rom !== undefined) io.esp32c3Rom = () => base.esp32c3Rom?.();
     if (base.esp32s3Rom !== undefined) io.esp32s3Rom = () => base.esp32s3Rom?.();
+    if (base.esp32s2Rom !== undefined) io.esp32s2Rom = () => base.esp32s2Rom?.();
     if (base.network !== undefined) io.network = base.network; // BT101: --network, the user's own list
     return io;
   }

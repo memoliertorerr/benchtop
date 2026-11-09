@@ -34,17 +34,30 @@ import { RegisterFile } from './periph.ts';
 export const RMT_BASE = 0x3ff56000;
 export const RMT_SIGNAL_BASE = 87;
 export const CODE_RMT_UNSUPPORTED = 'esp32-rmt-unsupported';
-const CHANNELS = 8;
-const CONF0 = 0x20;
-const STATUS = 0x60;
-const INT_RAW = 0xa0;
-const INT_ST = 0xa4;
-const INT_ENA = 0xa8;
-const INT_CLR = 0xac;
-const TX_LIM = 0xd0;
-const APB_CONF = 0xf0;
-const RAM = 0x800;
-const RAM_WORD = RAM >>> 2;
+
+/**
+ * BT149: where a chip keeps this RMT's registers. The ESP32-S2's is the same peripheral — the same
+ * CONF0/CONF1 fields, items and interrupts — with 4 channels at tighter offsets (CONF0 0x10 + 8n,
+ * STATUS 0x30, INT_RAW 0x50, TX_LIM 0x70, APB_CONF 0x80, its RAM at +0x400 — RMTMEM 0x3F41_6400),
+ * TX_THR at bit 12 + n, its own interrupt source and register defaults.
+ */
+export interface RmtLayout32 {
+  readonly base: number;
+  readonly channels: number;
+  readonly conf0: number;
+  readonly status: number;
+  readonly intRaw: number;
+  readonly txLim: number;
+  readonly apbConf: number;
+  readonly ram: number;
+  /** TX_THR's first INT_RAW bit. */
+  readonly thrBit: number;
+  readonly source: number;
+  readonly defaults?: (address: number) => number;
+  readonly unsupportedCode: string;
+}
+
+export const ESP32_RMT_LAYOUT: RmtLayout32 = { base: RMT_BASE, channels: 8, conf0: 0x20, status: 0x60, intRaw: 0xa0, txLim: 0xd0, apbConf: 0xf0, ram: 0x800, thrBit: 24, source: 47, unsupportedCode: CODE_RMT_UNSUPPORTED };
 const TX_START = 1 << 0;
 const RX_EN = 1 << 1;
 const MEM_RD_RST = 1 << 3;
@@ -55,47 +68,55 @@ const IDLE_OUT_EN = 1 << 19;
 const CARRIER_EN = 1 << 28;
 const FIFO_MASK = 1 << 0;
 const WRAP_EN = 1 << 1;
-const SOURCE = 47;
 const REF_TICK_HZ = 1_000_000;
 
 export class Rmt extends RegisterFile {
   /** Output signal per channel. */
-  readonly level = new Uint8Array(CHANNELS);
+  readonly level: Uint8Array;
   /** An output level changed. */
   onOutput: (() => void) | null = null;
   /** Items sent (reports, tests). */
   items = 0;
   private readonly context: SocContext;
+  private readonly L: RmtLayout32;
   private readonly slots: number[] = [];
-  private readonly active = new Uint8Array(CHANNELS);
+  private readonly active: Uint8Array;
   /** The read pointer (an item of the channel's memory) and the half of it going out (2: starting). */
-  private readonly pointer = new Uint16Array(CHANNELS);
-  private readonly half = new Uint8Array(CHANNELS);
+  private readonly pointer: Uint16Array;
+  private readonly half: Uint8Array;
   /** Items sent since TX_START (TX_THR counts them). */
-  private readonly sent = new Uint32Array(CHANNELS);
+  private readonly sent: Uint32Array;
   /** When the half going out ends (reference cycles). */
-  private readonly halfEnd = new Float64Array(CHANNELS);
+  private readonly halfEnd: Float64Array;
   private sourceHigh = false;
 
-  constructor(context: SocContext) {
-    super(RMT_BASE);
+  constructor(context: SocContext, layout: RmtLayout32 = ESP32_RMT_LAYOUT) {
+    super(layout.base, layout.defaults);
     this.context = context;
-    for (let c = 0; c < CHANNELS; c++) this.slots.push(context.events.add(() => this.halfDone(c)));
+    this.L = layout;
+    const n = layout.channels;
+    this.level = new Uint8Array(n);
+    this.active = new Uint8Array(n);
+    this.pointer = new Uint16Array(n);
+    this.half = new Uint8Array(n);
+    this.sent = new Uint32Array(n);
+    this.halfEnd = new Float64Array(n);
+    for (let c = 0; c < n; c++) this.slots.push(context.events.add(() => this.halfDone(c)));
   }
 
   implements(offset: number): boolean {
-    return offset <= 0xfc || offset >= RAM;
+    return offset <= 0xfc || offset >= this.L.ram;
   }
 
   override systemReset(_rtcDomain: boolean): void {
     this.reset();
-    for (let c = 0; c < CHANNELS; c++) this.context.events.cancel(this.slots[c]);
+    for (let c = 0; c < this.L.channels; c++) this.context.events.cancel(this.slots[c]);
     this.active.fill(0);
     this.pointer.fill(0);
     this.half.fill(0);
     this.sent.fill(0);
     let changed = false;
-    for (let c = 0; c < CHANNELS; c++) {
+    for (let c = 0; c < this.L.channels; c++) {
       const v = this.idleLevel(c);
       if (v !== this.level[c]) changed = true;
       this.level[c] = v;
@@ -105,11 +126,11 @@ export class Rmt extends RegisterFile {
   }
 
   private conf0(c: number): number {
-    return this.regs[(CONF0 >>> 2) + 2 * c];
+    return this.regs[(this.L.conf0 >>> 2) + 2 * c];
   }
 
   private conf1(c: number): number {
-    return this.regs[(CONF0 >>> 2) + 2 * c + 1];
+    return this.regs[(this.L.conf0 >>> 2) + 2 * c + 1];
   }
 
   private idleLevel(c: number): number {
@@ -130,25 +151,25 @@ export class Rmt extends RegisterFile {
   }
 
   override read32(offset: number): number {
-    if (offset >= STATUS && offset < STATUS + 4 * CHANNELS) {
-      const c = (offset - STATUS) >>> 2;
+    if (offset >= this.L.status && offset < this.L.status + 4 * this.L.channels) {
+      const c = (offset - this.L.status) >>> 2;
       return ((this.active[c] << 24) | (((c * 64 + this.pointer[c]) & 0x3ff) << 12)) >>> 0;
     }
-    if (offset === INT_ST) return (this.regs[INT_RAW >>> 2] & this.regs[INT_ENA >>> 2]) >>> 0;
+    if (offset === this.L.intRaw + 4) return (this.regs[this.L.intRaw >>> 2] & this.regs[(this.L.intRaw + 8) >>> 2]) >>> 0;
     return super.read32(offset);
   }
 
   override write32(offset: number, value: number): void {
-    if (offset >= RAM) {
+    if (offset >= this.L.ram) {
       super.write32(offset, value);
       return;
     }
-    if (offset < CONF0) {
+    if (offset < this.L.conf0) {
       this.unsupported('the APB FIFO access through CHnDATA (APB_CONF FIFO_MASK = 0) is not emulated; use direct RAM access');
       return;
     }
-    if (offset < STATUS) {
-      const c = (offset - CONF0) >>> 3;
+    if (offset < this.L.status) {
+      const c = (offset - this.L.conf0) >>> 3;
       super.write32(offset, value);
       if ((offset & 4) === 0) return; // CONF0
       if ((value & MEM_RD_RST) !== 0) {
@@ -160,27 +181,25 @@ export class Rmt extends RegisterFile {
       else if (this.active[c] === 0) this.setLevel(c, this.idleLevel(c));
       return;
     }
-    switch (offset) {
-      case INT_RAW:
-      case INT_ST:
-        return;
-      case INT_CLR:
-        this.regs[INT_RAW >>> 2] &= ~value;
-        this.updateInterrupt();
-        return;
-      case INT_ENA:
-        super.write32(offset, value);
-        this.updateInterrupt();
-        return;
-      default:
-        if (offset >= STATUS && offset < STATUS + 0x40) return; // STATUS, ADDR: read-only
-        super.write32(offset, value);
+    const intRaw = this.L.intRaw;
+    if (offset === intRaw || offset === intRaw + 4) return; // INT_RAW, INT_ST
+    if (offset === intRaw + 12) {
+      this.regs[intRaw >>> 2] &= ~value; // INT_CLR
+      this.updateInterrupt();
+      return;
     }
+    if (offset === intRaw + 8) {
+      super.write32(offset, value); // INT_ENA
+      this.updateInterrupt();
+      return;
+    }
+    if (offset >= this.L.status && offset < this.L.status + 8 * this.L.channels) return; // STATUS, ADDR: read-only
+    super.write32(offset, value);
   }
 
   private start(c: number): void {
     if ((this.conf0(c) & CARRIER_EN) !== 0) this.unsupported(`channel ${c}: carrier modulation is not emulated; the levels go out unmodulated`);
-    if ((this.regs[APB_CONF >>> 2] & FIFO_MASK) === 0) this.unsupported('the APB FIFO access mode (APB_CONF FIFO_MASK = 0) is not emulated; the channel sends its RAM as written directly');
+    if ((this.regs[this.L.apbConf >>> 2] & FIFO_MASK) === 0) this.unsupported('the APB FIFO access mode (APB_CONF FIFO_MASK = 0) is not emulated; the channel sends its RAM as written directly');
     this.active[c] = 1;
     this.sent[c] = 0;
     this.half[c] = 2;
@@ -191,7 +210,7 @@ export class Rmt extends RegisterFile {
 
   /** Puts out the half item at the read pointer from time `t`, or ends at an end marker. */
   private send(c: number, t: number): void {
-    const word = this.regs[RAM_WORD + ((c * 64 + this.pointer[c]) & 511)];
+    const word = this.regs[(this.L.ram >>> 2) + ((c * 64 + this.pointer[c]) & (this.L.channels * 64 - 1))];
     const h = this.half[c];
     const duration = h === 0 ? word & 0x7fff : (word >>> 16) & 0x7fff;
     if (duration === 0) {
@@ -223,10 +242,10 @@ export class Rmt extends RegisterFile {
     this.half[c] = 0;
     this.items++;
     this.sent[c]++;
-    const lim = this.regs[(TX_LIM >>> 2) + c] & 0x1ff;
-    if (lim !== 0 && this.sent[c] % lim === 0) this.raise(1 << (24 + c));
+    const lim = this.regs[(this.L.txLim >>> 2) + c] & 0x1ff;
+    if (lim !== 0 && this.sent[c] % lim === 0) this.raise(1 << (this.L.thrBit + c));
     if (++this.pointer[c] >= this.memItems(c)) {
-      if ((this.regs[APB_CONF >>> 2] & WRAP_EN) === 0) {
+      if ((this.regs[this.L.apbConf >>> 2] & WRAP_EN) === 0) {
         this.raise(1 << (3 * c + 2));
         this.stop(c);
         return;
@@ -238,7 +257,7 @@ export class Rmt extends RegisterFile {
 
   private stop(c: number): void {
     this.active[c] = 0;
-    this.regs[(CONF0 >>> 2) + 2 * c + 1] &= ~TX_START;
+    this.regs[(this.L.conf0 >>> 2) + 2 * c + 1] &= ~TX_START;
     this.context.events.cancel(this.slots[c]);
     this.setLevel(c, this.idleLevel(c));
   }
@@ -250,18 +269,18 @@ export class Rmt extends RegisterFile {
   }
 
   private raise(bits: number): void {
-    this.regs[INT_RAW >>> 2] |= bits;
+    this.regs[this.L.intRaw >>> 2] |= bits;
     this.updateInterrupt();
   }
 
   private updateInterrupt(): void {
-    const high = (this.regs[INT_RAW >>> 2] & this.regs[INT_ENA >>> 2]) !== 0;
+    const high = (this.regs[this.L.intRaw >>> 2] & this.regs[(this.L.intRaw + 8) >>> 2]) !== 0;
     if (high === this.sourceHigh) return;
     this.sourceHigh = high;
-    this.context.interrupts.setSource(SOURCE, high);
+    this.context.interrupts.setSource(this.L.source, high);
   }
 
   private unsupported(what: string): void {
-    this.context.problems.report('warning', CODE_RMT_UNSUPPORTED, RMT_BASE, `RMT: ${what}.`);
+    this.context.problems.report('warning', this.L.unsupportedCode, this.L.base, `RMT: ${what}.`);
   }
 }

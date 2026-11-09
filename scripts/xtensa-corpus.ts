@@ -380,40 +380,41 @@ export function writeCorpora(check: boolean): number {
   return mismatches;
 }
 
-// ── BT124: the ESP32-S3's corpus ───────────────────────────────────────────────────────────
+// ── BT124: the ESP32-S3's corpus; BT148: the ESP32-S2's ─────────────────────────────────────
 
-const S3_SERIAL_HELLO_ELF = join(ROOT, 'fixtures', '.build', 'esp32s3', 'serial-hello', 'serial-hello.ino.elf');
-const S3_SECTIONS = ['.iram0.vectors', '.iram0.text'];
+const CHIP_SECTIONS = ['.iram0.vectors', '.iram0.text'];
 
 /**
- * s3-serial-hello: what the S3 toolchain's objdump (xtensa-esp32s3-elf-objdump) says about the
- * IRAM sections of the S3 serial-hello's ELF — the vectors and FreeRTOS's port, where the PIE
- * coprocessor's state is saved and restored. Raw bytes per section, rows as for serial-hello, and
- * s3-manifest.json. Skipped (0) when the S3 fixture isn't built here.
+ * <prefix>-serial-hello: what a chip's own objdump (xtensa-<chip>-elf-objdump) says about the IRAM
+ * sections of its serial-hello's ELF — the vectors and FreeRTOS's port (BT124: the S3's, where the
+ * PIE coprocessor's state is saved and restored; BT148: the S2's, built without loops, MAC16, the
+ * FPU, booleans and S32C1I). Raw bytes per section, rows as for serial-hello, and
+ * <prefix>-manifest.json. Skipped (0) when the fixture isn't built here.
  */
-export function writeS3Corpus(check: boolean): number {
-  if (!existsSync(S3_SERIAL_HELLO_ELF)) {
-    console.info('s3-serial-hello: fixtures/.build/esp32s3/serial-hello is not built — skipped');
+function writeChipCorpus(check: boolean, chip: 'esp32s3' | 'esp32s2', prefix: 's3' | 's2'): number {
+  const elfPath = join(ROOT, 'fixtures', '.build', chip, 'serial-hello', 'serial-hello.ino.elf');
+  if (!existsSync(elfPath)) {
+    console.info(`${prefix}-serial-hello: fixtures/.build/${chip}/serial-hello is not built — skipped`);
     return 0;
   }
-  const elf = parseElf32(readFileSync(S3_SERIAL_HELLO_ELF));
+  const elf = parseElf32(readFileSync(elfPath));
   const files = new Map<string, Uint8Array>();
   const raw: CorpusEntry['raw'] = [];
   const rows: Row[] = [];
-  for (const name of S3_SECTIONS) {
+  for (const name of CHIP_SECTIONS) {
     const section = findSection(elf, name);
-    if (section === undefined) throw new Error(`${S3_SERIAL_HELLO_ELF} has no ${name}`);
-    rows.push(...decodeRaw(`s3${name.replace(/\W/g, '_')}`, section.addr, section.data, 'esp32s3'));
-    const file = `s3-serial-hello${name}.bin.gz`;
+    if (section === undefined) throw new Error(`${elfPath} has no ${name}`);
+    rows.push(...decodeRaw(`${prefix}${name.replace(/\W/g, '_')}`, section.addr, section.data, chip));
+    const file = `${prefix}-serial-hello${name}.bin.gz`;
     files.set(file, gzipSync(section.data, { level: 9 }));
     raw.push({ file, address: section.addr, bytes: section.data.length });
   }
-  files.set('s3-serial-hello.tsv.gz', gzipSync(tsv(rows), { level: 9 }));
+  files.set(`${prefix}-serial-hello.tsv.gz`, gzipSync(tsv(rows), { level: 9 }));
   const manifest = {
-    objdump: run('objdump', ['--version'], WORK, 'esp32s3').split('\n')[0] ?? '',
-    corpora: [{ name: 's3-serial-hello', rows: rows.length, raw, layout: 'each section at its load address' }],
+    objdump: run('objdump', ['--version'], WORK, chip).split('\n')[0] ?? '',
+    corpora: [{ name: `${prefix}-serial-hello`, rows: rows.length, raw, layout: 'each section at its load address' }],
   };
-  files.set('s3-manifest.json', Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`));
+  files.set(`${prefix}-manifest.json`, Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`));
   let mismatches = 0;
   for (const [file, bytes] of files) {
     const path = join(CORPUS_DIR, file);
@@ -426,7 +427,17 @@ export function writeS3Corpus(check: boolean): number {
   return mismatches;
 }
 
+/** BT124: the ESP32-S3's corpus (s3-serial-hello). */
+export function writeS3Corpus(check: boolean): number {
+  return writeChipCorpus(check, 'esp32s3', 's3');
+}
+
+/** BT148: the ESP32-S2's corpus (s2-serial-hello). */
+export function writeS2Corpus(check: boolean): number {
+  return writeChipCorpus(check, 'esp32s2', 's2');
+}
+
 if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const check = process.argv.includes('--check');
-  process.exitCode = writeCorpora(check) + writeS3Corpus(check) === 0 ? 0 : 1;
+  process.exitCode = writeCorpora(check) + writeS3Corpus(check) + writeS2Corpus(check) === 0 ? 0 : 1;
 }

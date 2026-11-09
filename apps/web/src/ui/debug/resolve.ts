@@ -63,7 +63,7 @@ export function flagsLine(kind: string, names: readonly { name: string }[], valu
     const exception = x & 0x3f;
     return `xPSR ${flags}${exception === 0 ? ' thread' : ` exception ${exception}`}`;
   }
-  if (kind === 'esp32' || kind === 'esp32s3') {
+  if (kind === 'esp32' || kind === 'esp32s3' || kind === 'esp32s2') {
     const ps = of('ps');
     if (ps === undefined) return '';
     const cpu = of('cpu');
@@ -82,5 +82,6 @@ export function memoryStart(kind: string): string {
   if (kind === 'esp32') return '0x3ffb0000';
   if (kind === 'esp32c3') return '0x3fc80000';
   if (kind === 'esp32s3') return '0x3fc88000';
+  if (kind === 'esp32s2') return '0x3ffb0000';
   return '0x100';
 }

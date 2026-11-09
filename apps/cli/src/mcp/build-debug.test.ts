@@ -114,6 +114,8 @@ describe('debugging every board through MCP (BT74)', () => {
     { board: 'esp', project: 'fixtures/projects/esp32-serial.json', firmware: 'fixtures/firmware/esp32/debug-demo.bin', arg: 'a2', stepFirst: true },
     // BT126: the ESP32-S3 (the APP_CPU, as the ESP32's).
     { board: 's3', project: 'fixtures/projects/esp32s3-serial.json', firmware: 'fixtures/firmware/esp32s3/debug-demo.bin', arg: 'a2', stepFirst: true },
+    // BT150: the ESP32-S2 (its one core).
+    { board: 's2', project: 'fixtures/projects/esp32s2-serial.json', firmware: 'fixtures/firmware/esp32s2/debug-demo.bin', arg: 'a2', stepFirst: true },
   ] as const;
   for (const c of cases) {
     it(`${c.firmware}: break on addSlow, ${c.arg} = 1234, counter by symbol, a step`, async () => {

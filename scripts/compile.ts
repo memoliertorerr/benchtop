@@ -18,7 +18,7 @@ import { runArduinoCli } from './arduino-cli.ts';
 export { arduinoCliCandidates, findArduinoCli } from './arduino-cli.ts';
 
 /** The Pico 2 builds for its RISC-V cores only (BT66: the simulator has no Arm cores). */
-export const FQBN_ALLOWLIST: readonly string[] = ['arduino:avr:uno', 'arduino:avr:nano', 'arduino:avr:mega', 'esp32:esp32:esp32', 'esp32:esp32:esp32c3', 'esp32:esp32:esp32s3', 'rp2040:rp2040:rpipico', 'rp2040:rp2040:rpipicow', 'rp2040:rp2040:rpipico2:arch=riscv', 'rp2040:rp2040:rpipico2w:arch=riscv'];
+export const FQBN_ALLOWLIST: readonly string[] = ['arduino:avr:uno', 'arduino:avr:nano', 'arduino:avr:mega', 'esp32:esp32:esp32', 'esp32:esp32:esp32c3', 'esp32:esp32:esp32s3', 'esp32:esp32:esp32s2', 'rp2040:rp2040:rpipico', 'rp2040:rp2040:rpipicow', 'rp2040:rp2040:rpipico2:arch=riscv', 'rp2040:rp2040:rpipico2w:arch=riscv'];
 export function isAllowedFqbn(fqbn: unknown): fqbn is string {
   return typeof fqbn === 'string' && FQBN_ALLOWLIST.includes(fqbn);
 }
@@ -27,11 +27,13 @@ export function isAllowedFqbn(fqbn: unknown): fqbn is string {
  * The fixed board options a sketch may ask for, per allowlisted FQBN (BT132, BT135): an ESP32
  * sketch's `psram` is the board menu's PSRAM "Enabled" (a WROVER's), an ESP32-S3 sketch's `psram`
  * OPI PSRAM (8 MB, the DevKitC-1 N8R8) and its `usb-otg` the USB Mode "USB-OTG (TinyUSB)" with USB
- * CDC On Boot (`Serial` on the S3's own USB).
+ * CDC On Boot (`Serial` on the S3's own USB); BT150: an ESP32-S2 sketch's `usb-otg` is USB CDC On
+ * Boot (the S2's only USB is the OTG controller, so there is no USB Mode menu).
  */
 const SKETCH_OPTIONS: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   'esp32:esp32:esp32': { psram: 'PSRAM=enabled' },
   'esp32:esp32:esp32s3': { psram: 'PSRAM=opi', 'usb-otg': 'USBMode=default,CDCOnBoot=cdc' },
+  'esp32:esp32:esp32s2': { 'usb-otg': 'CDCOnBoot=cdc' },
 };
 
 /**

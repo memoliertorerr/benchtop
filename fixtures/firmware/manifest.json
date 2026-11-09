@@ -2729,6 +2729,432 @@
       "source": "990e81bbc75841869a763f2129d8f0da30f8d0ada91190c41f1373e72f69187f"
     },
     {
+      "board": "esp32s2",
+      "name": "adc-read",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/adc-read.bin",
+      "sha256": "2566cf4a51e5c54f93de10c1c73003a9642e1c44f15f3c42ef18a8031c892d3a",
+      "bytes": 242016,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "047a1b2f2ef4b840a90cbb3af7d1fd084869fc7d4e4e7f535ebfc0615b037768"
+    },
+    {
+      "board": "esp32s2",
+      "name": "adc-read",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/adc-read.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "047a1b2f2ef4b840a90cbb3af7d1fd084869fc7d4e4e7f535ebfc0615b037768"
+    },
+    {
+      "board": "esp32s2",
+      "name": "adc-read",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/adc-read.syms.tsv",
+      "sha256": "a66296f16868e740a0800ad5913e78f8e640d609665d6f9b121e8a2ee1ec81ec",
+      "bytes": 104019,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "047a1b2f2ef4b840a90cbb3af7d1fd084869fc7d4e4e7f535ebfc0615b037768"
+    },
+    {
+      "board": "esp32s2",
+      "name": "blink",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/blink.bin",
+      "sha256": "0e4f54e32e717e8ccc31f332e58e45002f6ddd58cd712e74826ee993ae941167",
+      "bytes": 208896,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "88b7f1f221a580034d0946b7b15c5fada5ffbb9b650aa722f8b2aed30c374dd4"
+    },
+    {
+      "board": "esp32s2",
+      "name": "blink",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/blink.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "88b7f1f221a580034d0946b7b15c5fada5ffbb9b650aa722f8b2aed30c374dd4"
+    },
+    {
+      "board": "esp32s2",
+      "name": "blink",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/blink.syms.tsv",
+      "sha256": "5081f0d85a449315fc04e80b464c3a403ee1f266f5c4cf56d35a28251b4af42c",
+      "bytes": 95324,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "88b7f1f221a580034d0946b7b15c5fada5ffbb9b650aa722f8b2aed30c374dd4"
+    },
+    {
+      "board": "esp32s2",
+      "name": "debug-demo",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/debug-demo.bin",
+      "sha256": "47721b8ceae53abefa0a84a9666e1d7fbf800f44b57e8e4bb2c8ccf300ed4fc7",
+      "bytes": 218768,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "145cf444317c775ae53cdfce907f5f76ca7d5a55e8fe1aec5eb9184d6f4f6fac"
+    },
+    {
+      "board": "esp32s2",
+      "name": "debug-demo",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/debug-demo.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "145cf444317c775ae53cdfce907f5f76ca7d5a55e8fe1aec5eb9184d6f4f6fac"
+    },
+    {
+      "board": "esp32s2",
+      "name": "debug-demo",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/debug-demo.syms.tsv",
+      "sha256": "3e33963d796313211724eec833ee22ab6e3129335976ddc06e1a219967a96b3e",
+      "bytes": 100282,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "145cf444317c775ae53cdfce907f5f76ca7d5a55e8fe1aec5eb9184d6f4f6fac"
+    },
+    {
+      "board": "esp32s2",
+      "name": "gpio-interrupt",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/gpio-interrupt.bin",
+      "sha256": "4de12bde726fbc1e5e4156dbae92e32c802baa6cf79291e18d30ba95f5d9c64c",
+      "bytes": 244192,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "730afcb27b9910ae1e8cb0318b00230d9a4254849bdf14ad73720c3766f81c5f"
+    },
+    {
+      "board": "esp32s2",
+      "name": "gpio-interrupt",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/gpio-interrupt.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "730afcb27b9910ae1e8cb0318b00230d9a4254849bdf14ad73720c3766f81c5f"
+    },
+    {
+      "board": "esp32s2",
+      "name": "gpio-interrupt",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/gpio-interrupt.syms.tsv",
+      "sha256": "350d7cae06689c81deb4e98e7c2802b1c47191b4284e283d40f9f40490334a4c",
+      "bytes": 103447,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "730afcb27b9910ae1e8cb0318b00230d9a4254849bdf14ad73720c3766f81c5f"
+    },
+    {
+      "board": "esp32s2",
+      "name": "i2c-scan",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/i2c-scan.bin",
+      "sha256": "0b317cf847f97c3cd6c3f683d0b3a2dddce679c2296ef15002c737d4a986d008",
+      "bytes": 247664,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Wire": "2.0.0"
+      },
+      "source": "a94c87fa24bfa33532a90f196bb6f2a1f21cb7ce26c522f729d13e4ad592772c"
+    },
+    {
+      "board": "esp32s2",
+      "name": "i2c-scan",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/i2c-scan.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Wire": "2.0.0"
+      },
+      "source": "a94c87fa24bfa33532a90f196bb6f2a1f21cb7ce26c522f729d13e4ad592772c"
+    },
+    {
+      "board": "esp32s2",
+      "name": "i2c-scan",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/i2c-scan.syms.tsv",
+      "sha256": "b9c35929daec119c8b39d01c411c5d23184711b9b5db2caed34ee6650cf00c7b",
+      "bytes": 105819,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Wire": "2.0.0"
+      },
+      "source": "a94c87fa24bfa33532a90f196bb6f2a1f21cb7ce26c522f729d13e4ad592772c"
+    },
+    {
+      "board": "esp32s2",
+      "name": "ledc-fade",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/ledc-fade.bin",
+      "sha256": "d578c6e38f057618adf0a78acf04323934e66b8aa05a493f9ec2c989aa4650b4",
+      "bytes": 223712,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "fc6c70c00793bad7fd650e44db33464da30eb03fb24d5cd7500b0a49a87ae894"
+    },
+    {
+      "board": "esp32s2",
+      "name": "ledc-fade",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/ledc-fade.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "fc6c70c00793bad7fd650e44db33464da30eb03fb24d5cd7500b0a49a87ae894"
+    },
+    {
+      "board": "esp32s2",
+      "name": "ledc-fade",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/ledc-fade.syms.tsv",
+      "sha256": "d10a5f898e58fcab95c183eaf1d987ac58d2fac6da86f011eda6f0ee01f0821d",
+      "bytes": 102553,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "fc6c70c00793bad7fd650e44db33464da30eb03fb24d5cd7500b0a49a87ae894"
+    },
+    {
+      "board": "esp32s2",
+      "name": "oled-clock",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/oled-clock.bin",
+      "sha256": "04a08de94308b9a0cedddecaeca2633061db92ffb0355c5b07eee1c345665ef0",
+      "bytes": 270688,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "2.0.0",
+        "Wire": "2.0.0"
+      },
+      "source": "30e9f79528ce060e0d6e454b6cb5469303335608c963d9c262ec50567880790b"
+    },
+    {
+      "board": "esp32s2",
+      "name": "oled-clock",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/oled-clock.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "2.0.0",
+        "Wire": "2.0.0"
+      },
+      "source": "30e9f79528ce060e0d6e454b6cb5469303335608c963d9c262ec50567880790b"
+    },
+    {
+      "board": "esp32s2",
+      "name": "oled-clock",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/oled-clock.syms.tsv",
+      "sha256": "d48789af5df739fa4c94bed4fdee372502394dbb4a17443363a04099ee429880",
+      "bytes": 112284,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit GFX Library": "1.12.4",
+        "Adafruit SSD1306": "2.5.16",
+        "SPI": "2.0.0",
+        "Wire": "2.0.0"
+      },
+      "source": "30e9f79528ce060e0d6e454b6cb5469303335608c963d9c262ec50567880790b"
+    },
+    {
+      "board": "esp32s2",
+      "name": "pot-led",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/pot-led.bin",
+      "sha256": "9256bf6b63001cb85d80ac92c151c93324085d36382711d6b71794fbef4edc2f",
+      "bytes": 247072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "bfe1aac47364191e89fce66f6d4ba77d3a006d77be44746346d812b909ecdcd1"
+    },
+    {
+      "board": "esp32s2",
+      "name": "pot-led",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/pot-led.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "bfe1aac47364191e89fce66f6d4ba77d3a006d77be44746346d812b909ecdcd1"
+    },
+    {
+      "board": "esp32s2",
+      "name": "pot-led",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/pot-led.syms.tsv",
+      "sha256": "b6b72c90931ac174512ca8975809476b5fc5acef3e5f77e5b59385de90a0806b",
+      "bytes": 106338,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "bfe1aac47364191e89fce66f6d4ba77d3a006d77be44746346d812b909ecdcd1"
+    },
+    {
+      "board": "esp32s2",
+      "name": "rgb-blink",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/rgb-blink.bin",
+      "sha256": "3bd634e2fb727fc8dab5d548b9f39e7e631810f67c224f1afefe1138a03edee6",
+      "bytes": 240960,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "4bf4ecdefad5c0ce1abf1db7ad586cbadb9c785d3425f4a9d36375f75a568aef"
+    },
+    {
+      "board": "esp32s2",
+      "name": "rgb-blink",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/rgb-blink.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "4bf4ecdefad5c0ce1abf1db7ad586cbadb9c785d3425f4a9d36375f75a568aef"
+    },
+    {
+      "board": "esp32s2",
+      "name": "rgb-blink",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/rgb-blink.syms.tsv",
+      "sha256": "2bb5f725ad15d4b65a8aa5a63be9f0190e892586d521f466d732cc48d7228554",
+      "bytes": 101773,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "4bf4ecdefad5c0ce1abf1db7ad586cbadb9c785d3425f4a9d36375f75a568aef"
+    },
+    {
+      "board": "esp32s2",
+      "name": "serial-hello",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/serial-hello.bin",
+      "sha256": "a34ef690d44643bfa0204952f85448adf633f988c31679a62a168999cf18fc56",
+      "bytes": 233008,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "3f5844f20ec461f1cf3f871b29e1c4b1cc009734d1986b522fce51f44b5be231"
+    },
+    {
+      "board": "esp32s2",
+      "name": "serial-hello",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/serial-hello.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "3f5844f20ec461f1cf3f871b29e1c4b1cc009734d1986b522fce51f44b5be231"
+    },
+    {
+      "board": "esp32s2",
+      "name": "serial-hello",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/serial-hello.syms.tsv",
+      "sha256": "59181cc161b6138fe9f70c32fa6de51811a58470821aac9242fefac9c97bab34",
+      "bytes": 100216,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "3f5844f20ec461f1cf3f871b29e1c4b1cc009734d1986b522fce51f44b5be231"
+    },
+    {
+      "board": "esp32s2",
+      "name": "spi-loopback",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/spi-loopback.bin",
+      "sha256": "65deb3b55da0a8991d0023d2029ff6bb97964c65fd66d457bf1183dcb07b1a28",
+      "bytes": 246720,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "SPI": "2.0.0"
+      },
+      "source": "312ab490b9494dba603db84d68c11a1b57e0cd3ab5535016762f98f9eb4a4af6"
+    },
+    {
+      "board": "esp32s2",
+      "name": "spi-loopback",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/spi-loopback.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "SPI": "2.0.0"
+      },
+      "source": "312ab490b9494dba603db84d68c11a1b57e0cd3ab5535016762f98f9eb4a4af6"
+    },
+    {
+      "board": "esp32s2",
+      "name": "spi-loopback",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/spi-loopback.syms.tsv",
+      "sha256": "b5ed0e38c0cf1ac7dd8b38be35ab235caab5aba682ef5fd86f1a4ceeca303439",
+      "bytes": 104252,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "SPI": "2.0.0"
+      },
+      "source": "312ab490b9494dba603db84d68c11a1b57e0cd3ab5535016762f98f9eb4a4af6"
+    },
+    {
+      "board": "esp32s2",
+      "name": "usb-cdc",
+      "fqbn": "esp32:esp32:esp32s2:CDCOnBoot=cdc",
+      "file": "esp32s2/usb-cdc.bin",
+      "sha256": "233156c2ffe74c23d2e717631b8cccd35510195cda264e0d455963ba195c900c",
+      "bytes": 266032,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "5ed4d1a91813180c335bf7c3b2dbe31512468145c6c0d0d909ab06bc9da12daa"
+    },
+    {
+      "board": "esp32s2",
+      "name": "usb-cdc",
+      "fqbn": "esp32:esp32:esp32s2:CDCOnBoot=cdc",
+      "file": "esp32s2/usb-cdc.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "5ed4d1a91813180c335bf7c3b2dbe31512468145c6c0d0d909ab06bc9da12daa"
+    },
+    {
+      "board": "esp32s2",
+      "name": "usb-cdc",
+      "fqbn": "esp32:esp32:esp32s2:CDCOnBoot=cdc",
+      "file": "esp32s2/usb-cdc.syms.tsv",
+      "sha256": "f69d96bdc14af5e87a043b0054c3d15d07f213785232a742cd37f68562e96c39",
+      "bytes": 112521,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "5ed4d1a91813180c335bf7c3b2dbe31512468145c6c0d0d909ab06bc9da12daa"
+    },
+    {
       "board": "esp32s3",
       "name": "adc-read",
       "fqbn": "esp32:esp32:esp32s3",

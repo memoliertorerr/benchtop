@@ -219,6 +219,8 @@ export interface XtensaCoreOptions {
   icacheFlashFrom?: number;
   /** BT124: the ESP32-S3's LX7: its own decode rows (the PIE coprocessor's state moves, isa-table.ts). */
   s3?: boolean;
+  /** BT148: the ESP32-S2's LX7: no loops, MAC16, FPU, booleans or S32C1I (their ops are illegal). */
+  s2?: boolean;
 }
 
 /** No breakpoints (shared, never written). */
@@ -256,6 +258,8 @@ export class XtensaCore {
   readonly q = new Uint32Array(32);
   /** BT124: an ESP32-S3 core (`XtensaCoreOptions.s3`). */
   readonly s3: boolean;
+  /** BT148: an ESP32-S2 core (`XtensaCoreOptions.s2`). */
+  readonly s2: boolean;
   readonly fv = new Float32Array(this.f.buffer);
   readonly fx = new Int16Array(16);
   /**
@@ -330,6 +334,7 @@ export class XtensaCore {
     this.prid = options.prid ?? 0xcdcd;
     this.icache = new ICache(options.icachePages, options.icacheFlashFrom);
     this.s3 = options.s3 ?? false;
+    this.s2 = options.s2 ?? false;
     // Code changed under a running loop: end it there, so it re-reads the cache (no stale page).
     this.icache.onChange = () => {
       this.stopAt = this.cycles;
@@ -511,7 +516,7 @@ export class XtensaCore {
       page[e] = W0_FALLBACK;
       return W0_FALLBACK;
     }
-    decode(b0, bus.codeByte(pc + 1), len === 3 ? bus.codeByte(pc + 2) : 0, this.d, this.s3);
+    decode(b0, bus.codeByte(pc + 1), len === 3 ? bus.codeByte(pc + 2) : 0, this.d, this.s3, this.s2);
     return this.pack(page, e, pc);
   }
 
@@ -565,7 +570,7 @@ export class XtensaCore {
 
   /** One instruction from its fetched word: decoded, packed into the scratch entry, run (no cache). */
   private stepWord(pc: number, word: number): void {
-    decode(word & 0xff, (word >>> 8) & 0xff, (word >>> 16) & 0xff, this.d, this.s3);
+    decode(word & 0xff, (word >>> 8) & 0xff, (word >>> 16) & 0xff, this.d, this.s3, this.s2);
     this.pack(this.scratch, 0, pc);
     this.interpret(null);
   }

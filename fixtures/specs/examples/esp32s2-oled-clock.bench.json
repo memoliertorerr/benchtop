@@ -1,0 +1,10 @@
+{
+  "name": "example: esp32s2-oled-clock",
+  "project": "../../projects/esp32s2-oled-clock.json",
+  "firmware": {
+    "s2": "../../firmware/esp32s2/oled-clock.bin"
+  },
+  "expect": [
+    "serial contains \"2026-01-01 00:00:01\" by 2s"
+  ]
+}

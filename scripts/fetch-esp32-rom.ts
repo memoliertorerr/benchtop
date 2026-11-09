@@ -10,8 +10,9 @@
  * ROM_TARBALL_SHA256; only ROM_ELF_NAME is extracted (gunzip + a ustar reader that validates
  * headers) and checked against ROM_ELF_SHA256. Everything is written under ROM_CACHE_DIR
  * (git-ignored) — nothing ROM-derived is ever committed. BT92: the same tarball also yields the
- * ESP32-C3's ROM (packages/esp32c3/src/rom-manifest.ts) into C3_ROM_CACHE_DIR, and (BT124) the
- * ESP32-S3's (packages/esp32s3/src/rom-manifest.ts) into S3_ROM_CACHE_DIR — from the cached
+ * ESP32-C3's ROM (packages/esp32c3/src/rom-manifest.ts) into C3_ROM_CACHE_DIR, (BT124) the
+ * ESP32-S3's (packages/esp32s3/src/rom-manifest.ts) into S3_ROM_CACHE_DIR and (BT148) the ESP32-S2's
+ * (packages/esp32s2/src/rom-manifest.ts) into S2_ROM_CACHE_DIR — from the cached
  * tarball when there is one (no download), else from the download. With the Xtensa toolchain present it
  * also writes rom-corpus.tsv.gz there (the decode-corpus format of scripts/xtensa-corpus.ts).
  */
@@ -34,6 +35,7 @@ import {
 } from '../packages/esp32/src/boot/rom-manifest.ts';
 import { readTar } from '../packages/esp32/src/util/ustar.ts';
 import { C3_ROM_CACHE_DIR, C3_ROM_ELF_NAME, C3_ROM_ELF_SHA256 } from '../packages/esp32c3/src/rom-manifest.ts';
+import { S2_ROM_CACHE_DIR, S2_ROM_ELF_NAME, S2_ROM_ELF_SHA256 } from '../packages/esp32s2/src/rom-manifest.ts';
 import { S3_ROM_CACHE_DIR, S3_ROM_ELF_NAME, S3_ROM_ELF_SHA256 } from '../packages/esp32s3/src/rom-manifest.ts';
 import { findXtensaTool } from './arduino-cli.ts';
 import { decodeElfSections } from './xtensa-corpus.ts';
@@ -44,10 +46,11 @@ const ELF_PATH = join(CACHE, ROM_ELF_NAME);
 const TARBALL_PATH = join(CACHE, ROM_TARBALL_NAME);
 const MAX_TARBALL = 32 * 1024 * 1024;
 
-/** The other chips' ROMs the same tarball holds (BT92: the C3's; BT124: the S3's), each pinned. */
+/** The other chips' ROMs the same tarball holds (BT92: the C3's; BT124: the S3's; BT148: the S2's), each pinned. */
 const CHIP_ROMS = [
   { name: C3_ROM_ELF_NAME, sha256: C3_ROM_ELF_SHA256, dir: C3_ROM_CACHE_DIR },
   { name: S3_ROM_ELF_NAME, sha256: S3_ROM_ELF_SHA256, dir: S3_ROM_CACHE_DIR },
+  { name: S2_ROM_ELF_NAME, sha256: S2_ROM_ELF_SHA256, dir: S2_ROM_CACHE_DIR },
 ] as const;
 type ChipRom = (typeof CHIP_ROMS)[number];
 

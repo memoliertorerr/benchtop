@@ -84,15 +84,25 @@ export class I2c extends RegisterFile {
   private lastAck = 0;
   private sourceHigh = false;
 
-  constructor(context: SocContext, index: number) {
-    super(I2C_BASES[index]);
+  private readonly source: number;
+  private readonly last: number;
+
+  /**
+   * BT149: `chip` places a controller with these registers on another chip — the ESP32-S2's are
+   * the same (i2c_reg.h's offsets, opcodes and bits) at its own address, source and defaults, with
+   * storage registers after COMD15 up to `last` (the S2's timeouts, bus clear and clock stretch).
+   */
+  constructor(context: SocContext, index: number, chip?: { base: number; source: number; defaults: (address: number) => number; last?: number }) {
+    super(chip?.base ?? I2C_BASES[index], chip?.defaults);
     this.index = index;
     this.context = context;
+    this.source = chip?.source ?? SOURCES[index];
+    this.last = chip?.last ?? COMD0 + 15 * 4;
     this.slot = context.events.add(() => this.commandDone());
   }
 
   implements(offset: number): boolean {
-    return offset <= COMD0 + 15 * 4 || offset === 0xf8;
+    return offset <= this.last || offset === 0xf8;
   }
 
   override systemReset(_rtcDomain: boolean): void {
@@ -286,6 +296,6 @@ export class I2c extends RegisterFile {
     const high = (this.regs[INT_RAW >>> 2] & this.regs[INT_ENA >>> 2]) !== 0;
     if (high === this.sourceHigh) return;
     this.sourceHigh = high;
-    this.context.interrupts.setSource(SOURCES[this.index], high);
+    this.context.interrupts.setSource(this.source, high);
   }
 }

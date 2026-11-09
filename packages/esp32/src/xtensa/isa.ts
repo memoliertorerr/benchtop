@@ -34,7 +34,16 @@ export interface OpInfo {
   readonly s3: boolean;
   /** BT124: on the ESP32's core only (its own TIE). */
   readonly esp32: boolean;
+  /**
+   * BT148: not on the ESP32-S2's LX7 — its core-isa.h has no zero-overhead loops, MAC16, FPU,
+   * booleans or S32C1I (and neither the ESP32's TIE nor the S3's PIE; LX7's SALT/SALTU it has).
+   */
+  readonly notS2: boolean;
 }
+
+/** BT148: the ops of the options the ESP32-S2's core lacks, and their special and user registers. */
+const S2_LACKS =
+  /^(loop|loopgtz|loopnez|mul\.[ad][ad]\.|mula\.|muls\.|umul\.|ldinc|lddec|all[48]|any[48]|andbc?|orbc?|xorb|bf|bt|movf|movt|s32c1i|rfr|wfr|lsi|lsip|lsx|lsxp|ssi|ssip|ssx|ssxp)$|^(mul|mula|muls|umul)\.|\.s$|^[rwx]sr\.(lbeg|lend|lcount|acclo|acchi|m[0-3]|br|scompare1)$|^[rw]ur\.(fcr|fsr)$/;
 
 export const OPS: readonly OpInfo[] = OP_TABLE.map(([name, length, mask, match, imm, operands, config]) => {
   const immKind = (IMM as Record<string, number>)[imm];
@@ -44,7 +53,9 @@ export const OPS: readonly OpInfo[] = OP_TABLE.map(([name, length, mask, match, 
     if (k === undefined) throw new Error(`isa-table: ${name} has unknown operand kind ${o}`);
     return k;
   });
-  return { name, length, mask, match, imm: immKind, operands: kinds, s3: config === 'S3', esp32: config === 'ESP32' };
+  // SALT/SALTU are LX7's (rows flagged 'S3'), so the S2 has them too.
+  const lx7 = name === 'salt' || name === 'saltu';
+  return { name, length, mask, match, imm: immKind, operands: kinds, s3: config === 'S3', esp32: config === 'ESP32', notS2: (config !== undefined && !lx7) || S2_LACKS.test(name) };
 });
 
 /** B4CONST and B4CONSTU (ISA RM): the immediates of BEQI/BNEI/BLTI/BGEI and BLTUI/BGEUI by r. */

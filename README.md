@@ -90,6 +90,16 @@ a test spec sends MIDI to a USB MIDI device (`{ "at": "1s", "midi": "90 3C 64" }
 On an N8R8, a wire on IO35–37 (its octal PSRAM's pins) gets a warning. Its ROM comes from the same download as
 the ESP32's.
 
+**ESP32-S2-DevKitM-1** (Xtensa LX7, single-core): the same Xtensa emulator with the S2's
+instruction set runs Espressif's USB-native ESP32-S2 on its real mask ROM, booting the `.bin`
+Arduino-ESP32 2.0.17 builds for `esp32:esp32:esp32s2` — GPIO on the board's 37 header pins and pin
+interrupts, the 13-bit ADC (both units; `analogRead` gives 0–8191), LEDC PWM, UART0 and UART1, both
+I2C controllers, SPI, the board's RGB LED (a WS2812 on GPIO18 through the RMT), and its own USB: a
+"USB CDC On Boot" build's `Serial` (or a sketch with a `// benchtop: usb-otg` line) is enumerated by
+the bench's USB host, as on the S3, with the same USB section in the Inspector. The debugger
+shows its core. WiFi and sleep aren't modeled on the S2 yet: a sketch that uses them gets a
+Problem saying so. Its ROM comes from the same download as the ESP32's.
+
 **ESP32 DevKit V1** — an Xtensa LX6 dual-core emulator written in TypeScript for this project,
 running the real `.bin` image Arduino-ESP32 2.0.17 builds, on Espressif's real mask ROM:
 
@@ -216,7 +226,8 @@ a microphone pitch meter, a VU meter; Power: a regulator meter (turn the bench s
 hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, an LED Preferences remember, a deep sleep wake counter, a PWM fader, NeoPixel, a
 rainbow ring, an OLED clock, a color TFT, a WROVER's frame buffer in PSRAM, the DAC, the microphone, an I2C scan; ESP32-C3: the RGB LED,
 serial, a potentiometer dimmer, an OLED clock; ESP32-S3: the RGB LED, serial, a potentiometer dimmer, an OLED clock, a deep sleep wake counter, a
-frame buffer in PSRAM on a color TFT, an RGB LED set over USB serial, a USB macro keypad, a USB MIDI controller, a USB MIDI synth, a USB flash drive; WiFi: an ESP32 web server switched by HTTP client
+frame buffer in PSRAM on a color TFT, an RGB LED set over USB serial, a USB macro keypad, a USB MIDI controller, a USB MIDI synth, a USB flash drive; ESP32-S2: the RGB
+LED, serial, a potentiometer dimmer, an OLED clock; WiFi: an ESP32 web server switched by HTTP client
 parts, an ESP32 hosting its own access point and web server, an ESP32-C3 and an ESP32-S3 web server that set their RGB LED, a Pico W and a Pico 2 W web server switching their onboard LEDs, a Pico W and an ESP32 HTTP client talking to a server part, two ESP32s over TCP, an NTP clock on an OLED;
 Raspberry Pi Pico:
 blink, a potentiometer, PWM steps, an OLED, a color TFT, both cores at once; Raspberry Pi Pico 2: the same, NeoPixels
@@ -231,7 +242,7 @@ the local compile bridge (`npm run bridge`, below) and runs it; errors show on t
 sketch is saved in the project. Edit the circuit while it runs: add a part, rewire, change a
 value — the boards keep running and the other parts keep their state. **Examples…** opens a gallery of ready-to-run circuits (Uno, Nano, Mega and ESP32), and
 **Open…** also imports a [Wokwi](https://wokwi.com) `diagram.json` — the circuit comes over
-(the ESP32-C3 and ESP32-S3 boards included), anything it can't map is listed in the Problems tab,
+(the ESP32-C3, ESP32-S3 and ESP32-S2 boards included), anything it can't map is listed in the Problems tab,
 and you drop the firmware on the board.
 **Export ▾** saves the project as `.json`, the bench as it looks right now as a PNG (2×) or
 an SVG, or copies a **share link** — the whole circuit (and its in-app sketches) packed into the
@@ -278,9 +289,9 @@ npm run fetch:esp32-rom
 
 It downloads `esp-rom-elfs` 20241011 from Espressif's GitHub releases (≈ 3.4 MB), checks it
 against two pinned SHA-256 hashes and keeps it in `.cache/esp32-rom`, which git ignores. The
-same release holds the ESP32-C3's and ESP32-S3's ROMs: the script extracts them into
-`.cache/esp32c3-rom` and `.cache/esp32s3-rom`, each checked against its own pinned hash (with the
-release already cached, nothing is downloaded).
+same release holds the ESP32-C3's, ESP32-S3's and ESP32-S2's ROMs: the script extracts them into
+`.cache/esp32c3-rom`, `.cache/esp32s3-rom` and `.cache/esp32s2-rom`, each checked against its own
+pinned hash (with the release already cached, nothing is downloaded).
 Without it, ESP32 boards report "ESP32 ROM not installed" in the Problems panel. The development
 server serves the cached ROM to the simulation worker; it is never bundled into a build.
 
@@ -322,7 +333,7 @@ with **Arduino IDE 2** (with the `arduino:avr` and `esp32:esp32` 2.0.17 cores in
 editor can then open a sketch folder, show compile errors on the board and reload the firmware
 when you save. `npm start` builds the app and serves it from the bridge on one origin, with
 the ROMs and MicroPython firmware you fetched (`npm run fetch:esp32-rom` and the others), so
-ESP32, ESP32-C3, ESP32-S3, Pico 2 and MicroPython boards run there too.
+ESP32, ESP32-C3, ESP32-S3, ESP32-S2, Pico 2 and MicroPython boards run there too.
 
 ### The real network (optional)
 
@@ -381,9 +392,9 @@ Other clients take the same command in their JSON configuration:
 
 The tools: the part catalog (`list_parts`, `describe_part`), `validate_project`,
 `run_simulation`, `run_tests`, live sessions (`sim_open`, `sim_run`, `sim_input`, `sim_serial`,
-`sim_usb` — MIDI notes and lock keys from an ESP32-S3's USB host to its device,
-`sim_state` — what parts show, boards asleep, and what an ESP32-S3's USB host received,
-`sim_bus` — the decoded I2C/SPI/UART traffic, `sim_files` — a microSD card's or an ESP32-S3's
+`sim_usb` — MIDI notes and lock keys from an ESP32-S3's or ESP32-S2's USB host to its device,
+`sim_state` — what parts show, boards asleep, and what an ESP32-S3's or ESP32-S2's USB host received,
+`sim_bus` — the decoded I2C/SPI/UART traffic, `sim_files` — a microSD card's or an ESP32-S3's or ESP32-S2's
 USB drive's files, `sim_storage` — a board's EEPROM, or an ESP32's Preferences, as the sketch left them,
 `sim_wifi` — the access points and who joined them, `sim_http` — a request to a board's
 web server, `sim_update` — edit the circuit while
@@ -428,7 +439,7 @@ temperature, humidity, light, sound) reads the room at a part. On a WiFi bench, 
 connected by 3s`, `http api served GET /api/hello by 3s` (an HTTP server part answered it) and
 `http on got 200 with "led on" by 3s` (an HTTP client part's response) read the network. A step
 `{ "at": "2s", "reset": "uno" }` resets one board as a power cycle would: its EEPROM or flash
-keeps what the sketch stored (a run starts with them erased). On a microSD card or an ESP32-S3
+keeps what the sketch stored (a run starts with them erased). On a microSD card or an ESP32-S3 or ESP32-S2
 board's USB drive, `{ "at": "1s", "part": "sd", "write": "CONFIG.TXT", "text": "rate=5\n" }`
 (or `"base64"` for bytes) puts a file there and `{ "at": "2s", "part": "sd", "remove": "LOG.TXT" }`
 deletes one, as a computer would.
@@ -536,7 +547,7 @@ backed by tests (for example, ESP32 blink toggles every 500.000 ms of simulated 
 - [@wokwi/elements](https://github.com/wokwi/wokwi-elements) (MIT) — the part drawings, and
   the pin positions the part catalog copies from them.
 - [esp-rom-elfs](https://github.com/espressif/esp-rom-elfs) (Apache-2.0) — Espressif's ESP32,
-  ESP32-C3 and ESP32-S3 ROMs, which you download yourself (above).
+  ESP32-C3, ESP32-S3 and ESP32-S2 ROMs, which you download yourself (above).
 - [pico-bootrom-rp2350](https://github.com/raspberrypi/pico-bootrom-rp2350) (BSD-3-Clause) —
   the RP2350's bootrom the Pico 2 boots through, which you download yourself (above).
 - [MicroPython](https://micropython.org) (MIT) — the stock Pico firmware MicroPython sketches
@@ -551,7 +562,7 @@ backed by tests (for example, ESP32 blink toggles every 500.000 ms of simulated 
   simulators. Hardware behavior comes from datasheets, Espressif's Technical Reference Manual,
   ESP-IDF headers and compiled firmware. Open-source code and data are used under their
   licenses — see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-- **The ESP32, ESP32-C3 and ESP32-S3 ROMs** are Espressif's (Apache-2.0). You download them yourself; this
+- **The ESP32, ESP32-C3, ESP32-S3 and ESP32-S2 ROMs** are Espressif's (Apache-2.0). You download them yourself; this
   repository doesn't redistribute them.
 - **Test firmware** in `fixtures/firmware/` is compiled from the sketches in
   `fixtures/sketches/` and contains code from the Arduino cores, ESP-IDF and Arduino libraries

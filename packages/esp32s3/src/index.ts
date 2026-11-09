@@ -9,6 +9,7 @@ export * from './boot/rom.ts';
 export * from './debug.ts';
 export * from './esp32s3-mcu.ts';
 export * from './rom-manifest.ts';
+export * from './soc/analog.ts';
 export * from './soc/bus.ts';
 export * from './soc/gpio.ts';
 export * from './soc/intmatrix.ts';

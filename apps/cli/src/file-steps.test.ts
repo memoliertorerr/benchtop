@@ -6,7 +6,7 @@ import { nodeIo } from './node-io.ts';
 import { MAX_FILE_STEP, type RunIo, type RunReport, runHeadless } from './run.ts';
 
 // BT144: script and spec steps that write and remove files on a part's storage — a microSD card,
-// an ESP32-S3 board's USB drive — at exactly their time, and the errors when one can't apply.
+// an ESP32-S3 (or S2) board's USB drive — at exactly their time, and the errors when one can't apply.
 
 const io: RunIo = { readFile: (path) => readFileSync(resolve(REPO_ROOT, path)), now: () => performance.now() };
 const s3io: RunIo = { ...io, esp32s3Rom: () => nodeIo.esp32s3Rom?.() };
@@ -64,7 +64,7 @@ describe('file steps on a microSD card (BT144)', () => {
 
   it('usage errors: the part, the path, text or base64, the size', () => {
     const errorOf = (step: Record<string, unknown>): string | null => card([{ at: '0ms', ...step }]).error;
-    expect(errorOf({ part: 'uno', write: 'A.TXT', text: 'x' })).toBe('script step 1: "uno" is a arduino-uno, not a part that keeps files (a microSD card, or an ESP32-S3 board\'s USB drive)');
+    expect(errorOf({ part: 'uno', write: 'A.TXT', text: 'x' })).toBe('script step 1: "uno" is a arduino-uno, not a part that keeps files (a microSD card, or an ESP32-S3 or ESP32-S2 board\'s USB drive)');
     expect(errorOf({ part: 'sd', write: 'A.TXT' })).toBe('script step 1: a "write" step needs "text" or "base64" (one of them)');
     expect(errorOf({ part: 'sd', write: 'A.TXT', text: 'x', base64: 'eA==' })).toBe('script step 1: a "write" step needs "text" or "base64" (one of them)');
     expect(errorOf({ part: 'sd', write: 'A.TXT', base64: 'not base64!' })).toBe('script step 1: "base64" is not base64');

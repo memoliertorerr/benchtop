@@ -38,7 +38,7 @@ import { arduinoCliCandidates, findArduinoCli, findArmTool, findAvrTool, findRis
 import { ADDR2LINE_ORACLES, FIXTURE_BOARDS, fixtureFqbn, type Manifest, type ManifestOutput, sketchSourceSha256, symbolsTool } from './fixture-boards.ts';
 import { writeRiscvCorpora } from './riscv-corpus.ts';
 import { buildRiscvPrograms } from './riscv-programs.ts';
-import { writeCorpora, writeS3Corpus } from './xtensa-corpus.ts';
+import { writeCorpora, writeS2Corpus, writeS3Corpus } from './xtensa-corpus.ts';
 import { buildPrograms } from './xtensa-programs.ts';
 import { buildRp2040Programs } from './rp2040-programs.ts';
 
@@ -69,7 +69,7 @@ async function main(): Promise<number> {
   // Xtensa test programs and decode corpora (BT27): no arduino-cli involved.
   if (only?.startsWith('xtensa/')) {
     const target = only.slice('xtensa/'.length);
-    const mismatches = target === 'corpus' ? writeCorpora(check) + writeS3Corpus(check) : buildPrograms(check, target);
+    const mismatches = target === 'corpus' ? writeCorpora(check) + writeS3Corpus(check) + writeS2Corpus(check) : buildPrograms(check, target);
     return mismatches === 0 ? 0 : 1;
   }
   // RP2040 test programs (BT60): the arduino-pico core's Arm toolchain only.
@@ -209,7 +209,7 @@ async function main(): Promise<number> {
       if (!same) mismatches++;
       console.info(`${same ? 'same   ' : 'CHANGED'} ${output.sha256}  ${output.file}`);
     }
-    if (only === undefined) mismatches += buildPrograms(true) + writeCorpora(true) + writeS3Corpus(true) + buildRp2040Programs(true) + buildRiscvPrograms(true) + writeRiscvCorpora(true);
+    if (only === undefined) mismatches += buildPrograms(true) + writeCorpora(true) + writeS3Corpus(true) + writeS2Corpus(true) + buildRp2040Programs(true) + buildRiscvPrograms(true) + writeRiscvCorpora(true);
     console.info(mismatches === 0 ? 'check: every output is byte-identical to the manifest' : `check: ${mismatches} output(s) differ`);
     return mismatches === 0 ? 0 : 1;
   }
@@ -225,6 +225,7 @@ async function main(): Promise<number> {
     buildPrograms(false);
     writeCorpora(false);
     writeS3Corpus(false);
+    writeS2Corpus(false);
     buildRp2040Programs(false);
     buildRiscvPrograms(false);
     writeRiscvCorpora(false);

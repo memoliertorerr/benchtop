@@ -11,7 +11,7 @@ import { type ClientHost, type DebugTables, type FirmwareImage, type HttpResult,
 import { decodeNvs, nvsPartitions } from '@benchtop/esp32';
 import { base64Decode, base64Encode, CATALOG, utf8Text } from '@benchtop/parts';
 import { cachedRoms, loadFirmware, loadTables, projectFromJson } from '../../load.ts';
-import { parseScript, parseTime } from '../../run.ts';
+import { hostsUsb, parseScript, parseTime } from '../../run.ts';
 import { levelText, type Session, Sessions } from '../sessions.ts';
 import type { JsonSchema } from '../schema.ts';
 import { type Tool, ToolError } from '../server.ts';
@@ -195,14 +195,14 @@ export const simSerial: Tool<SimContext> = {
   },
 };
 
-/** BT146: the board whose USB port the bench hosts (an ESP32-S3), named or the only one. */
+/** BT146: the board whose USB port the bench hosts (an ESP32-S3; BT150: or S2), named or the only one. */
 function usbBoard(session: Session, board: unknown): string {
-  const hosted = session.boards.filter((b) => CATALOG.get(session.doc.parts.find((p) => p.id === b)?.type ?? '')?.board?.mcu === 'esp32s3');
+  const hosted = session.boards.filter((b) => hostsUsb(CATALOG.get(session.doc.parts.find((p) => p.id === b)?.type ?? '')?.board?.mcu));
   if (board === undefined) {
     if (hosted.length !== 1) throw new ToolError(`say which board ("board"): the session's boards with a USB host are ${hosted.length === 0 ? 'none' : hosted.join(', ')}`);
     return hosted[0];
   }
-  if (typeof board !== 'string' || !hosted.includes(board)) throw new ToolError(typeof board === 'string' && session.boards.includes(board) ? `"${board}" has no USB port the bench hosts (an ESP32-S3 board has)` : `no board "${String(board)}" in the session`);
+  if (typeof board !== 'string' || !hosted.includes(board)) throw new ToolError(typeof board === 'string' && session.boards.includes(board) ? `"${board}" has no USB port the bench hosts (an ESP32-S3 or ESP32-S2 board has)` : `no board "${String(board)}" in the session`);
   return board;
 }
 
@@ -220,12 +220,12 @@ export const simUsb: Tool<SimContext> = {
   name: 'sim_usb',
   title: 'Send to a board\'s USB device',
   description:
-    'For an ESP32-S3 whose sketch uses its own USB (USB-OTG): the bench\'s USB host — the computer on that port — sends the device MIDI or sets its lock keys, as a computer does. Give one of: "note" — a note by name or number ("C4" is middle C, 60; "F#3", "Bb2") ("60" works too) with "velocity" (1–127, default 100), "channel" (1–16, default 1) and "off": true for its note off; "midi" — whole MIDI 1.0 messages as hex bytes ("90 3C 64 80 3C 00", SysEx "F0 … F7"); "locks" — the lock keys to have on, any of "num", "caps", "scroll" ([] for none), which each keyboard on the port gets as its LEDs (a keyboard\'s own lock keys toggle them too). sim_run then shows what the sketch did; sim_state\'s "usb" says whether the device takes MIDI and the locks.',
+    'For an ESP32-S3 or ESP32-S2 whose sketch uses its own USB (USB-OTG): the bench\'s USB host — the computer on that port — sends the device MIDI or sets its lock keys, as a computer does. Give one of: "note" — a note by name or number ("C4" is middle C, 60; "F#3", "Bb2") ("60" works too) with "velocity" (1–127, default 100), "channel" (1–16, default 1) and "off": true for its note off; "midi" — whole MIDI 1.0 messages as hex bytes ("90 3C 64 80 3C 00", SysEx "F0 … F7"); "locks" — the lock keys to have on, any of "num", "caps", "scroll" ([] for none), which each keyboard on the port gets as its LEDs (a keyboard\'s own lock keys toggle them too). sim_run then shows what the sketch did; sim_state\'s "usb" says whether the device takes MIDI and the locks.',
   inputSchema: {
     type: 'object',
     properties: {
       session: SESSION,
-      board: { type: 'string', maxLength: 64, description: 'Needed with several ESP32-S3 boards.' },
+      board: { type: 'string', maxLength: 64, description: 'Needed with several ESP32-S3 or ESP32-S2 boards.' },
       note: { type: 'string', maxLength: 4, description: 'A note: "C4", "F#3", "Bb2", or its number ("60").' },
       velocity: { type: 'integer', minimum: 1, maximum: 127 },
       channel: { type: 'integer', minimum: 1, maximum: 16 },
@@ -270,7 +270,7 @@ export const simState: Tool<SimContext> = {
   name: 'sim_state',
   title: 'Read a live simulation\'s state',
   description:
-    'What an open session shows now: each part\'s visual state (an LED\'s brightness, a servo\'s angle, an LCD\'s text, a NeoPixel\'s colors, a display\'s framebuffer summarized unless "full"), the level and volts of the pins asked for ("part:pin"), and the boards asleep (an ESP32\'s or ESP32-C3\'s light or deep sleep: "sleeping", with what wakes it — the timer\'s time, the wake pins), and for an ESP32-S3 whose sketch uses its own USB (USB-OTG) what the bench\'s USB host received ("usb": the device, what it uses, the text a keyboard typed, the last 50 events — mouse, media keys, MIDI messages). Filter parts with "parts".',
+    'What an open session shows now: each part\'s visual state (an LED\'s brightness, a servo\'s angle, an LCD\'s text, a NeoPixel\'s colors, a display\'s framebuffer summarized unless "full"), the level and volts of the pins asked for ("part:pin"), and the boards asleep (an ESP32\'s or ESP32-C3\'s light or deep sleep: "sleeping", with what wakes it — the timer\'s time, the wake pins), and for an ESP32-S3 or ESP32-S2 whose sketch uses its own USB (USB-OTG) what the bench\'s USB host received ("usb": the device, what it uses, the text a keyboard typed, the last 50 events — mouse, media keys, MIDI messages). Filter parts with "parts".',
   inputSchema: {
     type: 'object',
     properties: {
@@ -497,7 +497,7 @@ export const simFiles: Tool<SimContext> = {
   name: 'sim_files',
   title: 'Read or change a card\'s files',
   description:
-    'The files on a part that keeps them — a microSD card, or an ESP32-S3 board whose sketch is a USB drive (the bench\'s USB host mounts it as a computer does) — in an open session, as the sketch left them. Without "path": every file and directory (path, size, last write). With "path": that file — as text when it is UTF-8, else base64 — at most 64 KB ("truncated" says when there was more). With "path" and "write" (text) or "writeBase64": creates or replaces the file, making directories on the way. With "path" and "remove": true: deletes it (a directory with everything in it). A sketch holding the volume open may not notice outside changes, as with a real card swapped under it.',
+    'The files on a part that keeps them — a microSD card, or an ESP32-S3 or ESP32-S2 board whose sketch is a USB drive (the bench\'s USB host mounts it as a computer does) — in an open session, as the sketch left them. Without "path": every file and directory (path, size, last write). With "path": that file — as text when it is UTF-8, else base64 — at most 64 KB ("truncated" says when there was more). With "path" and "write" (text) or "writeBase64": creates or replaces the file, making directories on the way. With "path" and "remove": true: deletes it (a directory with everything in it). A sketch holding the volume open may not notice outside changes, as with a real card swapped under it.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -517,7 +517,7 @@ export const simFiles: Tool<SimContext> = {
     const part = args.part as string;
     if (!session.doc.parts.some((p) => p.id === part)) throw new ToolError(`no part "${part}" in the session`);
     const storage = session.bench.storage(part);
-    if (storage === undefined) throw new ToolError(`"${part}" keeps no files (a microSD card does, and an ESP32-S3 board once its sketch's USB drive is mounted)`);
+    if (storage === undefined) throw new ToolError(`"${part}" keeps no files (a microSD card does, and an ESP32-S3 or ESP32-S2 board once its sketch's USB drive is mounted)`);
     const path = args.path as string | undefined;
     const changes = [args.write, args.writeBase64, args.remove].filter((v) => v !== undefined).length;
     if (changes > 1) throw new ToolError('give at most one of "write", "writeBase64" or "remove"');

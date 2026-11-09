@@ -76,9 +76,9 @@ export interface Mcu {
   /**
    * Which chip; matches `BoardSpec.mcu` ('rp2040', 'rp2350': BT60/BT65, additive, approved
    * 2026-10-21; 'esp32c3': BT94, additive, approved 2026-10-28; 'esp32s3': BT126, additive,
-   * approved 2026-11-07).
+   * approved 2026-11-07; 'esp32s2': BT150, additive, approved 2026-11-08).
    */
-  readonly kind: 'atmega328p' | 'atmega2560' | 'esp32' | 'rp2040' | 'rp2350' | 'esp32c3' | 'esp32s3';
+  readonly kind: 'atmega328p' | 'atmega2560' | 'esp32' | 'rp2040' | 'rp2350' | 'esp32c3' | 'esp32s3' | 'esp32s2';
   /**
    * Hz: the rate at which `cycles` advances. Constant for the life of the Mcu; an MCU whose CPU
    * clock changes at run time (ESP32) counts `cycles` in a fixed reference clock. The bench

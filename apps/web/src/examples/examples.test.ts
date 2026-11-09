@@ -31,7 +31,7 @@ const manifest = JSON.parse(readFileSync(join(REPO_ROOT, 'fixtures', 'firmware',
 describe('examples gallery (BT38, BT43, BT45, BT47, BT56)', () => {
   it('has unique ids, the planned categories and examples', () => {
     expect(new Set(ALL_EXAMPLES.map((e) => e.id)).size).toBe(ALL_EXAMPLES.length);
-    expect([...CATEGORIES]).toEqual(['Basics', 'Displays', 'Sensors', 'Motors', 'Sound', 'Power', 'Storage', 'Environment', 'ESP32', 'ESP32-C3', 'ESP32-S3', 'WiFi', 'Raspberry Pi Pico', 'Raspberry Pi Pico 2', 'Mega', 'Two boards']);
+    expect([...CATEGORIES]).toEqual(['Basics', 'Displays', 'Sensors', 'Motors', 'Sound', 'Power', 'Storage', 'Environment', 'ESP32', 'ESP32-C3', 'ESP32-S3', 'ESP32-S2', 'WiFi', 'Raspberry Pi Pico', 'Raspberry Pi Pico 2', 'Mega', 'Two boards']);
     for (const e of EXAMPLES) expect(CATEGORIES).toContain(e.category);
     const planned = [
       'blink', 'button', 'fade', 'serial-echo', 'potentiometer', 'lcd1602', 'oled', 'servo', 'neopixel', 'dht22', 'hc-sr04', 'esp32-blink', 'esp32-serial-hello',
@@ -86,6 +86,11 @@ describe('examples gallery (BT38, BT43, BT45, BT47, BT56)', () => {
       'esp32s3-usb-drive',
       // BT146
       'esp32s3-usb-synth',
+      // BT150
+      'esp32s2-rgb-blink',
+      'esp32s2-serial-hello',
+      'esp32s2-pot-led',
+      'esp32s2-oled-clock',
     ];
     for (const id of planned) expect(ALL_EXAMPLES.some((e) => e.id === id), id).toBe(true);
     for (const category of CATEGORIES) expect(EXAMPLES.some((e) => e.category === category), category).toBe(true);

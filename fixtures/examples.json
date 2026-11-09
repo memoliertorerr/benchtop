@@ -976,6 +976,58 @@
     "description": "A USB MIDI instrument on the S3's own USB (TinyUSB's MIDI class): play the one-octave keyboard in the board's USB section of the Inspector and the speaker on IO5 sounds each note at its pitch while the RGB LED takes its color; the serial monitor lists what arrived."
   },
   {
+    "id": "esp32s2-rgb-blink",
+    "title": "ESP32-S2 RGB blink",
+    "category": "ESP32-S2",
+    "project": "esp32s2-rgb-blink",
+    "boards": {
+      "s2": {
+        "firmware": "esp32s2/rgb-blink.bin",
+        "sketch": "esp32s2/rgb-blink"
+      }
+    },
+    "description": "The DevKitM-1's own RGB LED (a WS2812 on GPIO18) cycles red, green, blue and white through neopixelWrite, on the S2's RMT."
+  },
+  {
+    "id": "esp32s2-serial-hello",
+    "title": "ESP32-S2 serial hello",
+    "category": "ESP32-S2",
+    "project": "esp32s2-serial",
+    "boards": {
+      "s2": {
+        "firmware": "esp32s2/serial-hello.bin",
+        "sketch": "esp32s2/serial-hello"
+      }
+    },
+    "description": "A single-core Xtensa LX7 ESP32-S2 boots its real ROM and prints \"hello from esp32s2\", then counts once a second."
+  },
+  {
+    "id": "esp32s2-pot-led",
+    "title": "ESP32-S2 potentiometer dimmer",
+    "category": "ESP32-S2",
+    "project": "esp32s2-pot-led",
+    "boards": {
+      "s2": {
+        "firmware": "esp32s2/pot-led.bin",
+        "sketch": "esp32s2/pot-led"
+      }
+    },
+    "description": "A potentiometer on GPIO1 (the S2's 13-bit ADC1, read at 12 bits) sets an LED's brightness on GPIO2 through LEDC PWM; past 2.5 V the 11 dB range is full."
+  },
+  {
+    "id": "esp32s2-oled-clock",
+    "title": "ESP32-S2 OLED clock",
+    "category": "ESP32-S2",
+    "project": "esp32s2-oled-clock",
+    "boards": {
+      "s2": {
+        "firmware": "esp32s2/oled-clock.bin",
+        "sketch": "esp32s2/oled-clock"
+      }
+    },
+    "description": "A DS1307 clock shown large on an SSD1306 OLED, both on the S2's default I2C pins (SDA 8, SCL 9)."
+  },
+  {
     "id": "esp32-wifi-webserver",
     "title": "ESP32 WiFi web server",
     "category": "WiFi",

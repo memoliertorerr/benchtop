@@ -21,7 +21,7 @@
  * like the LED's 2.646 mm, still fit) no wire is drawn; otherwise the connections become wires
  * and a warning says so.
  *
- * BT132: the ESP32-C3-DevKitM-1 and ESP32-S3-DevKitC-1 have our own pin tables (no element library
+ * BT132: the ESP32-C3-DevKitM-1 and ESP32-S3-DevKitC-1 (BT150: and the ESP32-S2-DevKitM-1) have our own pin tables (no element library
  * draws them), named IO<n> where a diagram may name a GPIO by number ("4", "GPIO4"): their mappings
  * rename such pins (`pin`), and a numbered power or ground pin our board doesn't have ("GND.7")
  * falls back to the first of its bus ("GND.1" — they are one net). Their Wokwi type names are
@@ -104,6 +104,7 @@ const TYPES: Readonly<Record<string, Mapping>> = {
   'wokwi-esp32-devkit-v1': { type: 'esp32-devkit-v1' },
   'board-esp32-c3-devkitm-1': { type: 'esp32-c3-devkitm-1', pin: espBoardPin }, // BT132
   'board-esp32-s3-devkitc-1': { type: 'esp32-s3-devkitc-1', pin: espBoardPin },
+  'board-esp32-s2-devkitm-1': { type: 'esp32-s2-devkitm-1', pin: espBoardPin }, // BT150
   'wokwi-breadboard': { type: 'breadboard' },
   'wokwi-breadboard-half': { type: 'breadboard-half' },
   'wokwi-breadboard-mini': { type: 'breadboard-mini' },

@@ -12,7 +12,9 @@
  * Candidates are bucketed by op0/op1/op2 (24-bit) or op0 (16-bit) at module load and tried most
  * specific first. BT124: `decode(…, s3)` decodes for the ESP32-S3: its own rows on, the ESP32's
  * TIE rows off (isa-table.ts); the ESP32's decoder (the default) leaves the S3's encodings invalid,
- * as its objdump does.
+ * as its objdump does. BT148: `decode(…, false, true)` decodes for the ESP32-S2: neither chip's
+ * rows, nor the loop, MAC16, FPU, boolean and S32C1I options its core lacks (`OpInfo.notS2`) —
+ * those are illegal instructions there.
  */
 
 import * as isa from './isa.ts';
@@ -43,11 +45,11 @@ const popcount = (n: number): number => {
   return c;
 };
 
-function buildBuckets(s3: boolean): { wide: Int16Array[]; narrow: Int16Array[] } {
+function buildBuckets(s3: boolean, s2 = false): { wide: Int16Array[]; narrow: Int16Array[] } {
   const wide: number[][] = Array.from({ length: 4096 }, () => []);
   const narrow: number[][] = Array.from({ length: 16 }, () => []);
   OPS.forEach((op, index) => {
-    if (s3 ? op.esp32 : op.s3) return;
+    if (s2 ? op.notS2 : s3 ? op.esp32 : op.s3) return;
     if (op.length === 2) {
       narrow[op.match & 0xf].push(index);
       return;
@@ -63,6 +65,7 @@ function buildBuckets(s3: boolean): { wide: Int16Array[]; narrow: Int16Array[] }
 
 const BUCKETS = buildBuckets(false);
 const BUCKETS_S3 = buildBuckets(true);
+const BUCKETS_S2 = buildBuckets(false, true);
 const MASKS = Int32Array.from(OPS, (op) => op.mask);
 const MATCHES = Int32Array.from(OPS, (op) => op.match);
 const IMMS = Uint8Array.from(OPS, (op) => op.imm);
@@ -76,7 +79,7 @@ export function lengthOf(b0: number): 2 | 3 {
 const sext = (value: number, bits: number): number => (value << (32 - bits)) >> (32 - bits);
 
 /** Decodes the instruction starting with b0 (b1, b2 follow in memory). */
-export function decode(b0: number, b1: number, b2: number, out: Int32Array, s3 = false): void {
+export function decode(b0: number, b1: number, b2: number, out: Int32Array, s3 = false, s2 = false): void {
   const length = lengthOf(b0);
   const word = length === 2 ? b0 | (b1 << 8) : b0 | (b1 << 8) | (b2 << 16);
   const r = (word >> 12) & 0xf;
@@ -89,7 +92,7 @@ export function decode(b0: number, b1: number, b2: number, out: Int32Array, s3 =
   out[D_IMM] = 0;
   out[D_IMM2] = 0;
   out[D_OFF] = 0;
-  const buckets = s3 ? BUCKETS_S3 : BUCKETS;
+  const buckets = s2 ? BUCKETS_S2 : s3 ? BUCKETS_S3 : BUCKETS;
   const bucket = length === 2 ? buckets.narrow[b0 & 0xf] : buckets.wide[(b0 & 0xf) | ((b2 & 0xff) << 4)];
   let op = OP_INVALID;
   for (let i = 0; i < bucket.length; i++) {

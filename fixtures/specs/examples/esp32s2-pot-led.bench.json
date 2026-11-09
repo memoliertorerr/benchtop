@@ -1,0 +1,30 @@
+{
+  "name": "example: esp32s2-pot-led",
+  "project": "../../projects/esp32s2-pot-led.json",
+  "firmware": {
+    "s2": "../../firmware/esp32s2/pot-led.bin"
+  },
+  "steps": [
+    {
+      "at": "1s",
+      "part": "pot",
+      "input": {
+        "kind": "value",
+        "value": 0.1
+      }
+    },
+    {
+      "at": "1500ms",
+      "part": "pot",
+      "input": {
+        "kind": "value",
+        "value": 0.6
+      }
+    }
+  ],
+  "expect": [
+    "pin s2:IO2 duty is 66% \u00b13 between 700ms and 1s",
+    "pin s2:IO2 duty is 13% \u00b13 between 1200ms and 1500ms",
+    "pin s2:IO2 duty is 79% \u00b13 between 1700ms and 2s"
+  ]
+}

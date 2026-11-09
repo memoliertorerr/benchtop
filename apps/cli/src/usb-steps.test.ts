@@ -78,7 +78,7 @@ describe('midi and locks steps (BT145)', () => {
     expect(errorOf({ locks: ['shift'] })).toBe('script step 1: "locks" lists the lock keys on: "num", "caps", "scroll" ([] for none)');
     expect(errorOf({ locks: [], midi: '90 3C 64' })).toBe('script step 1: give "midi" or "locks", not both');
     expect(errorOf({ locks: [], part: 's3' })).toBe('script step 1: a "locks" step names a "board", not a "part"');
-    expect(errorOf({ locks: [], board: 'uno' }, true)).toBe('script step 1: "uno" has no USB port the bench hosts (an ESP32-S3 board has)');
+    expect(errorOf({ locks: [], board: 'uno' }, true)).toBe('script step 1: "uno" has no USB port the bench hosts (an ESP32-S3 or ESP32-S2 board has)');
     expect(errorOf({ locks: [], board: 'nope' })).toBe('script step 1: no board "nope"');
     expect(errorOf({ locks: ['num'] }, true)).toBeNull(); // one board with a USB host: no "board" needed
   }, 60_000);

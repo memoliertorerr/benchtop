@@ -73,6 +73,79 @@ export const S3_IDLE_HIGH_SIGNALS: ReadonlySet<number> = new Set([S3_SIG.U0TXD, 
 
 /** Is `g` a pad (GPIO0–21, 26–48)? */
 export const isS3Pad = (g: number): boolean => g >= 0 && g < S3_PADS && (g < 22 || g > 25);
+
+/**
+ * BT149: what this model takes from its chip. The ESP32-S2's GPIO, matrix and IO_MUX have the S3's
+ * registers (gpio_reg.h, 397 of 397 at the same offsets) and the same IO_MUX functions on the same
+ * pads (GPIO0–21, 26–46: 47 pads), with their own signal numbers (gpio_sig_map.h) and interrupt
+ * sources.
+ */
+export interface GpioChip {
+  /** Pads 0 … pads − 1 (GPIO22–25 are never pads). */
+  readonly pads: number;
+  readonly sig: Readonly<Record<keyof typeof S3_SIG, number>>;
+  readonly gpioSource: number;
+  readonly nmiSource: number;
+  readonly gpioBase: number;
+  readonly ioMuxBase: number;
+  /** The Problem code for a flash pad made a GPIO. */
+  readonly flashPinCode: string;
+  /**
+   * BT150: the first pad the module's flash holds (…32): 26 on the S3 (SPICS1, its PSRAM's chip
+   * select, is held too); 27 on the S2, whose DevKitM-1 breaks GPIO26 out (its S2FH4 has no PSRAM).
+   */
+  readonly firstFlashPad: number;
+}
+
+export const S3_GPIO_CHIP: GpioChip = { pads: S3_PADS, sig: S3_SIG, gpioSource: S3_SRC.GPIO, nmiSource: S3_SRC.GPIO_NMI, gpioBase: S3_GPIO_BASE, ioMuxBase: S3_IO_MUX_BASE, flashPinCode: 'esp32s3-flash-pin', firstFlashPad: 26 };
+
+/** The chip's pads, signals that idle high, and IO_MUX's direct functions — built once per chip. */
+class ChipPads {
+  readonly chip: GpioChip;
+  readonly idleHigh: ReadonlySet<number>;
+  /** IO_MUX output functions as (gpio << 3 | MCU_SEL) → the signal they carry. */
+  readonly directOut: ReadonlyMap<number, number>;
+  /** IO_MUX input functions as (gpio << 3 | MCU_SEL) → the signal they feed. */
+  readonly directIn: ReadonlyMap<number, number>;
+
+  constructor(chip: GpioChip) {
+    this.chip = chip;
+    const g = chip.sig;
+    this.idleHigh = new Set([g.U0TXD, g.U1TXD, g.U2TXD, g.I2C0_SCL, g.I2C0_SDA, g.I2C1_SCL, g.I2C1_SDA]);
+    this.directOut = new Map([
+      [(43 << 3) | 0, g.U0TXD],
+      [(17 << 3) | 2, g.U1TXD],
+      [(12 << 3) | 4, g.FSPICLK],
+      [(11 << 3) | 4, g.FSPID],
+      [(10 << 3) | 4, g.FSPICS0],
+      [(36 << 3) | 2, g.FSPICLK],
+      [(35 << 3) | 2, g.FSPID],
+      [(34 << 3) | 2, g.FSPICS0],
+    ]);
+    this.directIn = new Map([
+      [(44 << 3) | 0, g.U0RXD],
+      [(18 << 3) | 2, g.U1RXD],
+      [(13 << 3) | 4, g.FSPIQ],
+      [(37 << 3) | 2, g.FSPIQ],
+    ]);
+  }
+
+  isPad(g: number): boolean {
+    return g >= 0 && g < this.chip.pads && (g < 22 || g > 25);
+  }
+
+  /** Is `g` one of the module's flash pads (firstFlashPad…32)? */
+  isFlashPad(g: number): boolean {
+    return g >= this.chip.firstFlashPad && g <= 32;
+  }
+}
+
+const CHIP_PADS = new Map<GpioChip, ChipPads>();
+function chipPads(chip: GpioChip): ChipPads {
+  let p = CHIP_PADS.get(chip);
+  if (p === undefined) CHIP_PADS.set(chip, (p = new ChipPads(chip)));
+  return p;
+}
 /** Is `g` one of the module's flash pads (GPIO26–32)? */
 export const isS3FlashPad = (g: number): boolean => g >= 26 && g <= 32;
 export const CODE_S3_FLASH_PIN = 'esp32s3-flash-pin';
@@ -122,47 +195,33 @@ export const CODE_S3_PIN_RESERVED = 'pin-reserved';
 export const OCTAL_PSRAM_PADS = ['SPIIO4', 'SPIIO5', 'SPIIO6', 'SPIIO7', 'SPIDQS'] as const;
 /** IO_MUX's sleep-mode fields (MCU_OE, SLP_SEL, MCU_WPD, MCU_WPU, MCU_IE and reserved, 6:0). */
 const MUX_SLEEP_FIELDS = 0x7f;
-/** IO_MUX output functions as (gpio << 3 | MCU_SEL) → the signal they carry. */
-const DIRECT_OUT: ReadonlyMap<number, number> = new Map([
-  [(43 << 3) | 0, S3_SIG.U0TXD],
-  [(17 << 3) | 2, S3_SIG.U1TXD],
-  [(12 << 3) | 4, S3_SIG.FSPICLK],
-  [(11 << 3) | 4, S3_SIG.FSPID],
-  [(10 << 3) | 4, S3_SIG.FSPICS0],
-  [(36 << 3) | 2, S3_SIG.FSPICLK],
-  [(35 << 3) | 2, S3_SIG.FSPID],
-  [(34 << 3) | 2, S3_SIG.FSPICS0],
-]);
-/** IO_MUX input functions as (gpio << 3 | MCU_SEL) → the signal they feed. */
-const DIRECT_IN: ReadonlyMap<number, number> = new Map([
-  [(44 << 3) | 0, S3_SIG.U0RXD],
-  [(18 << 3) | 2, S3_SIG.U1RXD],
-  [(13 << 3) | 4, S3_SIG.FSPIQ],
-  [(37 << 3) | 2, S3_SIG.FSPIQ],
-]);
-/** Pads whose function 0 is the GPIO. */
+/** Pads whose function 0 is the GPIO (the S3's and the S2's alike). */
 const gpioAt0 = (g: number): boolean => g <= 21 || (g >= 33 && g <= 38) || g === 45 || g === 46;
 
 export class S3IoMux implements Peripheral {
   readonly regs = new Uint32Array(1024);
   /** Pads the firmware configured (a write that changed more than the sleep fields; as the C3's). */
-  readonly configured = new Uint8Array(S3_PADS);
+  readonly configured: Uint8Array;
+  /** BT149: the chip (the S3's by default). */
+  readonly pads: ChipPads;
   /** Something that decides a pad's mode changed. */
   onConfig: (() => void) | null = null;
   /** BT136: whether the octal PSRAM runs (it holds GPIO33–37); null: no watch. */
   octalPsram: (() => boolean) | null = null;
   private readonly problems: ProblemLog | null;
 
-  constructor(problems: ProblemLog | null = null) {
+  constructor(problems: ProblemLog | null = null, chip: GpioChip = S3_GPIO_CHIP) {
     this.problems = problems;
+    this.pads = chipPads(chip);
+    this.configured = new Uint8Array(chip.pads);
     this.systemReset();
   }
 
   systemReset(): void {
     this.regs.fill(0);
     this.configured.fill(0);
-    for (let g = 0; g < S3_PADS; g++) {
-      if (!isS3Pad(g)) continue;
+    for (let g = 0; g < this.pads.chip.pads; g++) {
+      if (!this.pads.isPad(g)) continue;
       let v = MUX.DRV2;
       if (g !== 19 && g !== 20) v |= MUX.FUN_IE;
       if (g === 0 || g === 44 || (g >= 26 && g <= 32)) v |= MUX.FUN_WPU;
@@ -196,14 +255,14 @@ export class S3IoMux implements Peripheral {
   write32(offset: number, value: number): void {
     const before = this.regs[offset >>> 2];
     this.regs[offset >>> 2] = value;
-    if (offset >= 4 && offset < 4 + S3_PADS * 4) {
+    if (offset >= 4 && offset < 4 + this.pads.chip.pads * 4) {
       const g = (offset - 4) >>> 2;
       if (((before ^ value) & ~MUX_SLEEP_FIELDS) !== 0) this.configured[g] = 1;
-      if (isS3FlashPad(g) && this.isGpio(g) && this.problems !== null) {
-        this.problems.report('warning', CODE_S3_FLASH_PIN, S3_IO_MUX_BASE + offset, `GPIO${g} is the module's SPI flash (${FLASH_PAD_NAMES[g - 26]}): using it as a GPIO cuts the flash off on a board (the simulator's flash keeps working). Pick another pin.`);
+      if (this.pads.isFlashPad(g) && this.isGpio(g) && this.problems !== null) {
+        this.problems.report('warning', this.pads.chip.flashPinCode, this.pads.chip.ioMuxBase + offset, `GPIO${g} is the module's SPI flash (${FLASH_PAD_NAMES[g - 26]}): using it as a GPIO cuts the flash off on a board (the simulator's flash keeps working). Pick another pin.`);
       }
       if (g >= 33 && g <= 37 && ((before ^ value) & MUX.MCU_SEL) !== 0 && this.isGpio(g) && this.problems !== null && this.octalPsram !== null && this.octalPsram()) {
-        this.problems.report('warning', CODE_S3_PIN_RESERVED, S3_IO_MUX_BASE + offset, `The firmware made GPIO${g} a GPIO, but it carries the octal PSRAM's ${OCTAL_PSRAM_PADS[g - 33]}: on a board the PSRAM stops answering (the simulator's keeps working). On an N8R8 module IO35–37 aren't free: pick another pin.`);
+        this.problems.report('warning', CODE_S3_PIN_RESERVED, this.pads.chip.ioMuxBase + offset, `The firmware made GPIO${g} a GPIO, but it carries the octal PSRAM's ${OCTAL_PSRAM_PADS[g - 33]}: on a board the PSRAM stops answering (the simulator's keeps working). On an N8R8 module IO35–37 aren't free: pick another pin.`);
       }
       this.onConfig?.();
     }
@@ -220,16 +279,23 @@ export class S3Gpio implements Peripheral {
   onFloatingRead: ((g: number) => void) | null = null;
   /** After a pad's input changed. */
   onInputs: (() => void) | null = null;
-  private readonly floating = new Uint8Array(S3_PADS);
-  private readonly padIn = new Uint8Array(S3_PADS);
-  private readonly seenIn = new Uint8Array(S3_PADS);
+  private readonly floating: Uint8Array;
+  private readonly padIn: Uint8Array;
+  private readonly seenIn: Uint8Array;
   private readonly ctx: SocContext;
   private readonly iomux: S3IoMux;
   private readonly sources = new Uint8Array(2);
+  /** BT149: the chip (the IO_MUX's). */
+  readonly pads: ChipPads;
 
   constructor(ctx: SocContext, iomux: S3IoMux) {
     this.ctx = ctx;
     this.iomux = iomux;
+    this.pads = iomux.pads;
+    const n = this.pads.chip.pads;
+    this.floating = new Uint8Array(n);
+    this.padIn = new Uint8Array(n);
+    this.seenIn = new Uint8Array(n);
     this.systemReset();
   }
 
@@ -242,7 +308,7 @@ export class S3Gpio implements Peripheral {
     outs.forEach((v, word) => {
       if (v !== 0) this.onOutput?.(word, 0, this.ctx.now());
     });
-    for (let g = 0; g < S3_PADS; g++) this.seenIn[g] = this.inBit(g);
+    for (let g = 0; g < this.pads.chip.pads; g++) this.seenIn[g] = this.inBit(g);
     this.updateInterrupts();
     this.onConfig?.();
   }
@@ -269,7 +335,7 @@ export class S3Gpio implements Peripheral {
   }
 
   setPadInput(g: number, level: number): void {
-    if (isS3FlashPad(g)) return; // the module's flash drives these
+    if (this.pads.isFlashPad(g)) return; // the module's flash drives these
     const v = level !== 0 ? 1 : 0;
     if (this.padIn[g] === v) return;
     this.padIn[g] = v;
@@ -287,7 +353,7 @@ export class S3Gpio implements Peripheral {
     const cfg = this.regs[(REG.FUNC_IN_SEL >>> 2) + signal];
     if ((cfg & 0x80) === 0) return -1;
     const sel = cfg & 0x3f;
-    return isS3Pad(sel) ? sel : -1;
+    return this.pads.isPad(sel) ? sel : -1;
   }
 
   /** The level a peripheral input signal sees (`direct` when it isn't routed through the matrix). */
@@ -297,7 +363,7 @@ export class S3Gpio implements Peripheral {
     if ((cfg & 0x80) === 0) v = direct;
     else {
       const sel = cfg & 0x3f;
-      v = sel === IN_CONST_ONE ? 1 : isS3Pad(sel) ? this.inBit(sel) : 0;
+      v = sel === IN_CONST_ONE ? 1 : this.pads.isPad(sel) ? this.inBit(sel) : 0;
     }
     return (cfg & 0x40) !== 0 ? v ^ 1 : v;
   }
@@ -315,7 +381,7 @@ export class S3Gpio implements Peripheral {
   private inWord(word: number): number {
     let v = 0;
     const first = word * 32;
-    const last = Math.min(S3_PADS, first + 32);
+    const last = Math.min(this.pads.chip.pads, first + 32);
     for (let g = first; g < last; g++) if (this.inBit(g) !== 0) v |= 1 << (g - first);
     return v >>> 0;
   }
@@ -323,7 +389,7 @@ export class S3Gpio implements Peripheral {
   /** BT128: the pins armed for a light sleep's GPIO wake, as "GPIO4 low". */
   wakePins(): string[] {
     const pins: string[] = [];
-    for (let g = 0; g < S3_PADS; g++) {
+    for (let g = 0; g < this.pads.chip.pads; g++) {
       const pin = this.regs[(REG.PIN0 >>> 2) + g];
       const type = (pin >>> 7) & 7;
       if ((pin & (1 << 10)) !== 0 && (type === 4 || type === 5)) pins.push(`GPIO${g} ${type === 4 ? 'low' : 'high'}`);
@@ -335,7 +401,7 @@ export class S3Gpio implements Peripheral {
   inputsChanged(): void {
     let set0 = 0;
     let set1 = 0;
-    for (let g = 0; g < S3_PADS; g++) {
+    for (let g = 0; g < this.pads.chip.pads; g++) {
       const cur = this.inBit(g);
       const old = this.seenIn[g];
       this.seenIn[g] = cur;
@@ -354,7 +420,7 @@ export class S3Gpio implements Peripheral {
   }
 
   private reassertLevels(): void {
-    for (let g = 0; g < S3_PADS; g++) {
+    for (let g = 0; g < this.pads.chip.pads; g++) {
       const type = (this.regs[(REG.PIN0 >>> 2) + g] >>> 7) & 7;
       const level = this.seenIn[g];
       if ((type === 4 && level === 0) || (type === 5 && level === 1)) {
@@ -381,17 +447,17 @@ export class S3Gpio implements Peripheral {
     const nmi = this.masked(0, ENA_CPU_NMI) !== 0 || this.masked(1, ENA_CPU_NMI) !== 0 ? 1 : 0;
     if (cpu !== this.sources[0]) {
       this.sources[0] = cpu;
-      this.ctx.matrix.setSource(S3_SRC.GPIO, cpu === 1);
+      this.ctx.matrix.setSource(this.pads.chip.gpioSource, cpu === 1);
     }
     if (nmi !== this.sources[1]) {
       this.sources[1] = nmi;
-      this.ctx.matrix.setSource(S3_SRC.GPIO_NMI, nmi === 1);
+      this.ctx.matrix.setSource(this.pads.chip.nmiSource, nmi === 1);
     }
   }
 
   /** BT128: a light sleep's GPIO wake — a pin with WAKEUP_ENABLE (PINn bit 10) at its level type (INT_TYPE 4 low, 5 high). */
   wakeLevel(): boolean {
-    for (let g = 0; g < S3_PADS; g++) {
+    for (let g = 0; g < this.pads.chip.pads; g++) {
       const pin = this.regs[(REG.PIN0 >>> 2) + g];
       if ((pin & (1 << 10)) === 0) continue;
       const type = (pin >>> 7) & 7;
@@ -415,7 +481,7 @@ export class S3Gpio implements Peripheral {
       case REG.IN1: {
         const word = offset === REG.IN ? 0 : 1;
         if (this.onFloatingRead !== null) {
-          for (let g = word * 32; g < Math.min(S3_PADS, word * 32 + 32); g++) if (this.floating[g] !== 0 && this.iomux.inputEnabled(g)) this.onFloatingRead(g);
+          for (let g = word * 32; g < Math.min(this.pads.chip.pads, word * 32 + 32); g++) if (this.floating[g] !== 0 && this.iomux.inputEnabled(g)) this.onFloatingRead(g);
         }
         return this.inWord(word);
       }
@@ -500,29 +566,37 @@ const WORDS: readonly [number, number, number][] = [
 ];
 
 export class S3Pads {
-  readonly mode = new Uint8Array(S3_PADS);
-  readonly level = new Uint8Array(S3_PADS);
+  readonly mode: Uint8Array;
+  readonly level: Uint8Array;
   /** ADC pads a conversion used (by GPIO): with input and pulls off they read as analog. */
-  readonly adcUsed = new Uint8Array(S3_PADS);
+  readonly adcUsed: Uint8Array;
   onPin: ((gpio: number) => void) | null = null;
   private readonly gpio: S3Gpio;
   private readonly iomux: S3IoMux;
+  private readonly pads: ChipPads;
   /** The level of a peripheral output signal. */
-  signalLevel: (signal: number) => number = (s) => (S3_IDLE_HIGH_SIGNALS.has(s) ? 1 : 0);
+  signalLevel: (signal: number) => number;
   /** BT128: −1 when a pad isn't routed to the RTC (RTC_IO's MUX_SEL), else its RTC pulls (0 none, 1 up, 2 down). */
   rtcPad: (g: number) => number = () => -1;
 
   constructor(gpio: S3Gpio, iomux: S3IoMux) {
     this.gpio = gpio;
     this.iomux = iomux;
-    for (let g = 0; g < S3_PADS; g++) this.resolve(g);
+    this.pads = iomux.pads;
+    const n = this.pads.chip.pads;
+    this.mode = new Uint8Array(n);
+    this.level = new Uint8Array(n);
+    this.adcUsed = new Uint8Array(n);
+    const idle = this.pads.idleHigh;
+    this.signalLevel = (signal) => (idle.has(signal) ? 1 : 0);
+    for (let g = 0; g < n; g++) this.resolve(g);
   }
 
   /** The GPIO that drives peripheral output `signal` (matrix or IO_MUX), or −1. */
   pinOfOutSignal(signal: number): number {
-    for (let g = 0; g < S3_PADS; g++) {
-      if (!isS3Pad(g)) continue;
-      if (this.iomux.isGpio(g) ? (this.gpio.outConfig(g) & 0x1ff) === signal : DIRECT_OUT.get((g << 3) | this.iomux.func(g)) === signal) return g;
+    for (let g = 0; g < this.pads.chip.pads; g++) {
+      if (!this.pads.isPad(g)) continue;
+      if (this.iomux.isGpio(g) ? (this.gpio.outConfig(g) & 0x1ff) === signal : this.pads.directOut.get((g << 3) | this.iomux.func(g)) === signal) return g;
     }
     return -1;
   }
@@ -531,15 +605,15 @@ export class S3Pads {
   pinOfInSignal(signal: number): number {
     const routed = this.gpio.inRoute(signal);
     if (routed >= 0) return routed;
-    for (let g = 0; g < S3_PADS; g++) if (isS3Pad(g) && DIRECT_IN.get((g << 3) | this.iomux.func(g)) === signal) return g;
+    for (let g = 0; g < this.pads.chip.pads; g++) if (this.pads.isPad(g) && this.pads.directIn.get((g << 3) | this.iomux.func(g)) === signal) return g;
     return -1;
   }
 
   /** The level peripheral input `signal` sees: through the matrix, or an IO_MUX pad, else idle. */
   inputSignal(signal: number, idle: number): number {
     let direct = idle;
-    for (let g = 0; g < S3_PADS; g++) {
-      if (isS3Pad(g) && DIRECT_IN.get((g << 3) | this.iomux.func(g)) === signal) {
+    for (let g = 0; g < this.pads.chip.pads; g++) {
+      if (this.pads.isPad(g) && this.pads.directIn.get((g << 3) | this.iomux.func(g)) === signal) {
         direct = this.gpio.padLevel(g);
         break;
       }
@@ -549,8 +623,8 @@ export class S3Pads {
 
   /** Recomputes every pad; reports the pins that changed. */
   update(): void {
-    for (let g = 0; g < S3_PADS; g++) {
-      if (!isS3Pad(g)) continue;
+    for (let g = 0; g < this.pads.chip.pads; g++) {
+      if (!this.pads.isPad(g)) continue;
       const mode = this.mode[g];
       const level = this.level[g];
       this.resolve(g);
@@ -584,7 +658,7 @@ export class S3Pads {
       if ((cfg & (1 << 9)) !== 0) level ^= 1;
       if ((cfg & (1 << 11)) !== 0 && (cfg & (1 << 10)) !== 0) enabled = !enabled;
     } else {
-      const signal = DIRECT_OUT.get((g << 3) | this.iomux.func(g));
+      const signal = this.pads.directOut.get((g << 3) | this.iomux.func(g));
       if (signal !== undefined) {
         enabled = true;
         level = this.signalLevel(signal);

@@ -30,7 +30,9 @@
  * RTC calibration (RTCCALICFG): START (bit 31) counts XTAL cycles over RTC_CALI_MAX cycles (0:
  * until the next edge) of the selected slow clock (CLK_SEL 0: RC 150 kHz, 1: 8MD256 = 8.5 MHz /
  * 256, 2: 32 kHz crystal — absent, so it never completes) and sets RDY (bit 15) and RTCCALICFG1
- * VALUE (bits 31:7) after that much simulated time.
+ * VALUE (bits 31:7) after that much simulated time. BT148: the ESP32-S2's group adds RTCCALICFG2
+ * (0xA8), whose TIMEOUT (0) sets at once when a threshold is written during a periodic
+ * calibration (START_CYCLING, 12), as the C3's.
  */
 
 import type { SocContext } from './context.ts';
@@ -64,6 +66,9 @@ const WDTWPROTECT = 0x64;
 const WDT_WKEY = 0x50d83aa1;
 const RTCCALICFG = 0x68;
 const RTCCALICFG1 = 0x6c;
+/** BT148: the ESP32-S2's RTCCALICFG2 (the original ESP32 has none): TIMEOUT (0), the threshold (31:7). */
+const RTCCALICFG2 = 0xa8;
+const CALI_START_CYCLING = 1 << 12;
 const INT_ENA = 0x98;
 const INT_RAW = 0x9c;
 const INT_ST = 0xa0;
@@ -99,12 +104,17 @@ export class Timg extends RegisterFile {
   private readonly levelBase: number;
   private readonly edgeBase: number;
 
-  constructor(context: SocContext, index: number) {
+  /**
+   * BT148: `sources` are the first level and edge sources of this group's four lines (T0, T1,
+   * WDT, LACT) — the ESP32's 14 + 4·index and 58 + 4·index unless given (the ESP32-S2's group
+   * has the same registers at its own sources).
+   */
+  constructor(context: SocContext, index: number, sources?: { level: number; edge: number }) {
     super(TIMG_BASES[index]);
     this.index = index;
     this.context = context;
-    this.levelBase = 14 + 4 * index;
-    this.edgeBase = 58 + 4 * index;
+    this.levelBase = sources?.level ?? 14 + 4 * index;
+    this.edgeBase = sources?.edge ?? 58 + 4 * index;
     for (let c = 0; c < 3; c++) this.alarmSlots.push(context.events.add(() => this.alarm(c)));
     this.calibrationSlot = context.events.add(() => {
       this.regs[RTCCALICFG >>> 2] |= CALI_RDY;
@@ -123,7 +133,7 @@ export class Timg extends RegisterFile {
   }
 
   implements(offset: number): boolean {
-    return offset < 0x98 + 16 || offset === 0xf8;
+    return offset < 0x98 + 16 || offset === RTCCALICFG2 || offset === 0xf8;
   }
 
   override systemReset(_rtcDomain: boolean): void {
@@ -316,8 +326,18 @@ export class Timg extends RegisterFile {
     if (offset === RTCCALICFG) {
       const before = this.regs[offset >>> 2];
       super.write32(offset, value & ~CALI_RDY);
-      if ((value & CALI_START) !== 0 && (before & CALI_START) === 0) this.startCalibration(value);
-      else if ((value & CALI_START) === 0) this.context.events.cancel(this.calibrationSlot);
+      if ((value & CALI_START) !== 0 && (before & CALI_START) === 0) {
+        this.regs[RTCCALICFG2 >>> 2] &= ~1; // a new calibration: no timeout
+        this.startCalibration(value);
+      } else if ((value & CALI_START) === 0) this.context.events.cancel(this.calibrationSlot);
+      return;
+    }
+    if (offset === RTCCALICFG2) {
+      // BT148 (the S2; the C3's BT124 rule): a timeout threshold written while a periodic
+      // calibration runs (START_CYCLING, which the S2 resets with) times out at once — IDF waits
+      // for RDY or TIMEOUT before starting its own.
+      const cycling = (this.regs[RTCCALICFG >>> 2] & CALI_START_CYCLING) !== 0;
+      this.regs[RTCCALICFG2 >>> 2] = ((value & ~1) | (cycling && value >>> 7 !== 0 ? 1 : 0)) >>> 0;
       return;
     }
     if (offset === INT_CLR) {

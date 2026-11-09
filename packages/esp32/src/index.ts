@@ -21,6 +21,14 @@ export * from './soc/mmu.ts';
 export * from './soc/periph.ts';
 export * from './soc/psram.ts';
 export * from './soc/soc.ts';
+/** BT148: the timer group model the ESP32-S2 shares (the same registers), and what it needs from a SoC. */
+export { Timg, TIMG_BASES } from './soc/timg.ts';
+/** BT149: the RMT and I2C models the ESP32-S2 shares (the same registers at its own offsets and sources). */
+export { ESP32_RMT_LAYOUT, Rmt as Esp32Rmt, type RmtLayout32 } from './soc/rmt.ts';
+export { I2c as Esp32I2c } from './soc/i2c.ts';
+export { Spi as Esp32Spi, type SpiLayout } from './soc/spi.ts';
+export type { InterruptSink, SocContext as Esp32SocContext } from './soc/context.ts';
+export type { ResetSink } from './soc/reset.ts';
 export * from './util/md5.ts';
 export * from './util/sha256.ts';
 export * from './util/ustar.ts';

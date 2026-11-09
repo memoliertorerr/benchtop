@@ -39,7 +39,7 @@
  *   serial monitor; `board` may be left out with one board). Steps apply at exactly their time,
  *   in file order; assertions at the same time see their effect.
  * - BT144: { at, part, write: "<path>", text: "…" } (or base64: "…") creates or replaces a file
- *   on a part's storage — a microSD card, or an ESP32-S3 board's USB drive — and { at, part,
+ *   on a part's storage — a microSD card, or an ESP32-S3 or ESP32-S2 board's USB drive — and { at, part,
  *   remove: "<path>" } deletes a file or a directory with what is in it. A file step that can't
  *   apply then (no volume, the drive not mounted yet, a bad name, full, nothing to remove) ends
  *   the run with an error naming the step.
@@ -47,7 +47,7 @@
  *   board's USB host to the device's MIDI port (an error when it has none then); { at, locks:
  *   ["caps"], board? } sets the host's lock keys on (num, caps, scroll; [] none), which its
  *   keyboards get as their LEDs. `board` may be left out with one board whose USB port the
- *   bench hosts (an ESP32-S3).
+ *   bench hosts (an ESP32-S3 or, BT150, an ESP32-S2).
  *
  * Exit codes: 0 every assertion passed, 1 one failed, 2 usage, load or run error.
  */
@@ -313,9 +313,14 @@ export const MAX_FILE_STEP = 256 * 1024;
 /** Characters a file step's path may have. */
 const MAX_FILE_PATH = 1024;
 
-/** Part types whose storage file steps and `file` assertions read: a microSD card, an ESP32-S3 board (its USB drive). */
+/** BT150: boards whose own USB port the bench hosts — USB-OTG on an ESP32-S3 or an ESP32-S2. */
+export function hostsUsb(mcu: string | undefined): boolean {
+  return mcu === 'esp32s3' || mcu === 'esp32s2';
+}
+
+/** Part types whose storage file steps and `file` assertions read: a microSD card, an ESP32-S3 or ESP32-S2 board (its USB drive). */
 function keepsFiles(type: string): boolean {
-  return FILE_TYPES.has(type) || CATALOG.get(type)?.board?.mcu === 'esp32s3';
+  return FILE_TYPES.has(type) || hostsUsb(CATALOG.get(type)?.board?.mcu);
 }
 
 /** Characters one serial step may send. */
@@ -360,7 +365,7 @@ function parseSet(value: unknown, where: string): PartInput[] {
 function parseFileStep(step: { at?: unknown; input?: unknown; set?: unknown; write?: unknown; remove?: unknown; text?: unknown; base64?: unknown }, part: string, doc: ProjectDoc, where: string): FileStep {
   if (step.input !== undefined || step.set !== undefined || (step.write !== undefined && step.remove !== undefined)) throw new UsageError(`${where}: give one of "input", "set", "write" or "remove"`);
   const type = doc.parts.find((p) => p.id === part)?.type ?? '';
-  if (!keepsFiles(type)) throw new UsageError(`${where}: "${part}" is a ${type}, not a part that keeps files (a microSD card, or an ESP32-S3 board's USB drive)`);
+  if (!keepsFiles(type)) throw new UsageError(`${where}: "${part}" is a ${type}, not a part that keeps files (a microSD card, or an ESP32-S3 or ESP32-S2 board's USB drive)`);
   const key = step.write !== undefined ? 'write' : 'remove';
   const path = step.write ?? step.remove;
   if (typeof path !== 'string' || path.trim() === '' || path.length > MAX_FILE_PATH) throw new UsageError(`${where}: "${key}" must be a file's path (up to ${MAX_FILE_PATH} characters)`);
@@ -406,13 +411,13 @@ const LOCK_NAMES = ['num', 'caps', 'scroll'] as const;
 function parseUsbStep(step: { at?: unknown; board?: unknown; midi?: unknown; locks?: unknown; part?: unknown }, doc: ProjectDoc, boards: readonly string[], where: string): ScriptStep {
   if (step.midi !== undefined && step.locks !== undefined) throw new UsageError(`${where}: give "midi" or "locks", not both`);
   if (step.part !== undefined) throw new UsageError(`${where}: a "${step.midi !== undefined ? 'midi' : 'locks'}" step names a "board", not a "part"`);
-  const hosted = boards.filter((b) => CATALOG.get(doc.parts.find((p) => p.id === b)?.type ?? '')?.board?.mcu === 'esp32s3');
+  const hosted = boards.filter((b) => hostsUsb(CATALOG.get(doc.parts.find((p) => p.id === b)?.type ?? '')?.board?.mcu));
   let board: string;
   if (step.board === undefined) {
     if (hosted.length !== 1) throw new UsageError(`${where}: say "board" (the project's boards with a USB host: ${hosted.length === 0 ? 'none' : hosted.join(', ')})`);
     board = hosted[0];
   } else if (typeof step.board !== 'string' || !hosted.includes(step.board)) {
-    throw new UsageError(`${where}: ${typeof step.board === 'string' && boards.includes(step.board) ? `"${step.board}" has no USB port the bench hosts (an ESP32-S3 board has)` : `no board "${String(step.board)}"`}`);
+    throw new UsageError(`${where}: ${typeof step.board === 'string' && boards.includes(step.board) ? `"${step.board}" has no USB port the bench hosts (an ESP32-S3 or ESP32-S2 board has)` : `no board "${String(step.board)}"`}`);
   } else board = step.board;
   const at = parseTime(step.at as string);
   if (step.locks !== undefined) {
@@ -522,7 +527,7 @@ const VISUAL_TYPES: Readonly<Record<'led' | 'servo' | 'lcd' | 'pixel' | 'digits'
   servo: { test: (t) => t === 'servo', what: 'a servo' },
   lcd: { test: (t) => Object.hasOwn(LCD_SIZES, t), what: 'a character LCD' },
   // BT94: the ESP32-C3-DevKitM-1's own RGB LED is a WS2812 too (its pixels[0]).
-  pixel: { test: (t) => t.startsWith('neopixel-') || t === 'esp32-c3-devkitm-1' || t === 'esp32-s3-devkitc-1', what: 'a NeoPixel strip, ring or matrix (or a board with one)' },
+  pixel: { test: (t) => t.startsWith('neopixel-') || t === 'esp32-c3-devkitm-1' || t === 'esp32-s3-devkitc-1' || t === 'esp32-s2-devkitm-1', what: 'a NeoPixel strip, ring or matrix (or a board with one)' },
   digits: { test: (t) => t.startsWith('seven-segment'), what: 'a 7-segment display' },
 };
 
@@ -539,12 +544,12 @@ function checkAgainstProject(a: Assertion, doc: ProjectDoc, boards: readonly str
     return;
   }
   if (a.kind === 'usb') {
-    // BT139: boards whose own USB port the bench hosts (an ESP32-S3's USB-OTG).
-    const hosted = boards.filter((b) => CATALOG.get(doc.parts.find((p) => p.id === b)?.type ?? '')?.board?.mcu === 'esp32s3');
+    // BT139: boards whose own USB port the bench hosts (an ESP32-S3's USB-OTG; BT150: an S2's).
+    const hosted = boards.filter((b) => hostsUsb(CATALOG.get(doc.parts.find((p) => p.id === b)?.type ?? '')?.board?.mcu));
     if (a.board === null) {
       if (hosted.length !== 1) throw new UsageError(`${a.text}: say usb[<board>] (the project's boards with a USB host: ${hosted.length === 0 ? 'none' : hosted.join(', ')})`);
       a.board = hosted[0];
-    } else if (!hosted.includes(a.board)) throw new UsageError(`${a.text}: ${boards.includes(a.board) ? `"${a.board}" has no USB port the bench hosts (an ESP32-S3 board has)` : `no board "${a.board}"`}`);
+    } else if (!hosted.includes(a.board)) throw new UsageError(`${a.text}: ${boards.includes(a.board) ? `"${a.board}" has no USB port the bench hosts (an ESP32-S3 or ESP32-S2 board has)` : `no board "${a.board}"`}`);
     return;
   }
   if (a.kind === 'wifi') {
@@ -561,8 +566,8 @@ function checkAgainstProject(a: Assertion, doc: ProjectDoc, boards: readonly str
     return;
   }
   if (a.kind === 'file') {
-    // BT142: an ESP32-S3 board's USB drive (its host's mass storage) keeps files too.
-    if (!keepsFiles(part.type)) throw new UsageError(`${a.text}: "${a.part}" is a ${part.type}, not a part that keeps files (a microSD card, or an ESP32-S3 board's USB drive)`);
+    // BT142: an ESP32-S3 (BT150: or S2) board's USB drive (its host's mass storage) keeps files too.
+    if (!keepsFiles(part.type)) throw new UsageError(`${a.text}: "${a.part}" is a ${part.type}, not a part that keeps files (a microSD card, or an ESP32-S3 or ESP32-S2 board's USB drive)`);
     return;
   }
   if (a.kind === 'pin' || a.kind === 'frequency' || a.kind === 'duty') {

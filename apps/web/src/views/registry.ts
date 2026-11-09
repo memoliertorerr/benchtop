@@ -9,6 +9,7 @@ import { microphoneView, speakerView } from './audio-parts.ts';
 import { breadboardView } from './breadboard.ts';
 import { ENVIRONMENT_VIEW_TYPES, environmentView } from './environment.ts';
 import { esp32C3DevkitM1View } from './esp32-c3-devkitm-1.ts';
+import { esp32S2DevkitM1View } from './esp32-s2-devkitm-1.ts';
 import { esp32S3DevkitC1View } from './esp32-s3-devkitc-1.ts';
 import { fallbackView } from './fallback.ts';
 import { httpClientView, httpServerView, networkView } from './network.ts';
@@ -39,6 +40,7 @@ export function viewFor(type: string): ViewFactory {
   if (type === 'raspberry-pi-pico' || type === 'raspberry-pi-pico-2' || type === 'raspberry-pi-pico-w' || type === 'raspberry-pi-pico-2w') return raspberryPiPicoView;
   if (type === 'esp32-c3-devkitm-1') return esp32C3DevkitM1View;
   if (type === 'esp32-s3-devkitc-1') return esp32S3DevkitC1View;
+  if (type === 'esp32-s2-devkitm-1') return esp32S2DevkitM1View;
   if (type === 'speaker') return speakerView;
   if (type === 'microphone') return microphoneView;
   if (ENVIRONMENT_VIEW_TYPES.has(type)) return environmentView;

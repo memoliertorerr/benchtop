@@ -40,10 +40,10 @@ import { MAX_INPUT_VOLTS } from './static.ts';
  * no per-pin maximum; their strongest drive setting is 12 mA (pad DC characteristics), the
  * limit used here.
  */
-export const MAX_PIN_AMPS: Readonly<Record<BoardSpec['mcu'], number>> = { atmega328p: 0.04, atmega2560: 0.04, esp32: 0.04, rp2040: 0.012, rp2350: 0.012, esp32c3: 0.04, esp32s3: 0.04 };
+export const MAX_PIN_AMPS: Readonly<Record<BoardSpec['mcu'], number>> = { atmega328p: 0.04, atmega2560: 0.04, esp32: 0.04, rp2040: 0.012, rp2350: 0.012, esp32c3: 0.04, esp32s3: 0.04, esp32s2: 0.04 };
 /** Checks (10 ms each) a pin overcurrent stays reported after the last one that saw it: 1 s. */
 const OVERCURRENT_HOLD = 100;
-const CHIP_NAMES: Readonly<Record<BoardSpec['mcu'], string>> = { atmega328p: 'ATmega328P', atmega2560: 'ATmega2560', esp32: 'ESP32', rp2040: 'RP2040', rp2350: 'RP2350', esp32c3: 'ESP32-C3', esp32s3: 'ESP32-S3' };
+const CHIP_NAMES: Readonly<Record<BoardSpec['mcu'], string>> = { atmega328p: 'ATmega328P', atmega2560: 'ATmega2560', esp32: 'ESP32', rp2040: 'RP2040', rp2350: 'RP2350', esp32c3: 'ESP32-C3', esp32s3: 'ESP32-S3', esp32s2: 'ESP32-S2' };
 /** A pin a port-overcurrent names carries at least this much of the group's current, amps. */
 const CONTRIBUTOR_AMPS = 0.001;
 
@@ -181,7 +181,7 @@ export class DynamicChecks {
           });
         }
       }
-      if ((p.mcu === 'esp32' || p.mcu === 'esp32c3' || p.mcu === 'esp32s3') && s.volts > MAX_INPUT_VOLTS[p.mcu]) {
+      if ((p.mcu === 'esp32' || p.mcu === 'esp32c3' || p.mcu === 'esp32s3' || p.mcu === 'esp32s2') && s.volts > MAX_INPUT_VOLTS[p.mcu]) {
         problems.push({
           severity: 'error',
           code: 'esp32-overvoltage',

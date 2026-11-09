@@ -41,9 +41,19 @@ export interface UartFields {
   thrBits: number;
   toutEn: number;
   toutThrShift: number;
+  /**
+   * BT148: where the ESP32-S2's UART differs — MEM_CONF, FSM_STATUS and ID 4 to 8 bytes earlier
+   * (0x5C, 0x68, 0x78) and no CLK_CONF: its baud clock is APB with CONF0.TICK_REF_ALWAYS_ON (27),
+   * else the 1 MHz REF_TICK (`clock: 'ref-tick'`). Absent: the C3's offsets and CLK_CONF.
+   */
+  memConf?: number;
+  fsmStatus?: number;
+  id?: number;
+  clock?: 'clk-conf' | 'ref-tick';
 }
 export const C3_UART_FIELDS: UartFields = { thrBits: 9, toutEn: 21, toutThrShift: 16 };
 export const S3_UART_FIELDS: UartFields = { thrBits: 10, toutEn: 23, toutThrShift: 17 };
+export const S2_UART_FIELDS: UartFields = { thrBits: 9, toutEn: 31, toutThrShift: 16, memConf: 0x5c, fsmStatus: 0x68, id: 0x78, clock: 'ref-tick' };
 
 export const UART_INT = { RXFIFO_FULL: 1 << 0, TXFIFO_EMPTY: 1 << 1, RXFIFO_OVF: 1 << 4, RXFIFO_TOUT: 1 << 8, TX_DONE: 1 << 14 } as const;
 
@@ -79,6 +89,9 @@ export class Uart implements Peripheral {
   /** BT125: the chip's CONF1/MEM_CONF field positions. */
   private readonly fields: UartFields;
   private readonly thrMask: number;
+  private readonly memConf: number;
+  private readonly fsmStatus: number;
+  private readonly idReg: number;
 
   constructor(ctx: SocContext, index: number, source: number, base: number = UART_BASES[index], fields: UartFields = C3_UART_FIELDS) {
     this.ctx = ctx;
@@ -87,6 +100,9 @@ export class Uart implements Peripheral {
     this.base = base;
     this.fields = fields;
     this.thrMask = (1 << fields.thrBits) - 1;
+    this.memConf = fields.memConf ?? MEM_CONF;
+    this.fsmStatus = fields.fsmStatus ?? FSM_STATUS;
+    this.idReg = fields.id ?? ID;
     this.txSlot = ctx.events.add(() => this.frameSent());
     this.rxSlot = ctx.events.add(() => this.frameReceived());
     this.toutSlot = ctx.events.add(() => this.timeout());
@@ -105,6 +121,12 @@ export class Uart implements Peripheral {
 
   /** The baud rate the registers configure (0 when they make no sense). */
   baud(): number {
+    if (this.fields.clock === 'ref-tick') {
+      const clock = (this.regs[CONF0 >>> 2] & (1 << 27)) !== 0 ? this.ctx.apbHz : 1_000_000;
+      const d = this.regs[CLKDIV >>> 2];
+      const by = (d & 0xfffff) + ((d >>> 20) & 0xf) / 16;
+      return by === 0 ? 0 : clock / by;
+    }
     const clk = this.regs[CLK_CONF >>> 2];
     const sel = (clk >>> 20) & 3;
     const sclk = sel === 1 ? this.ctx.apbHz : sel === 2 ? 17_500_000 : XTAL_HZ;
@@ -159,7 +181,7 @@ export class Uart implements Peripheral {
   private armTimeout(): void {
     const conf1 = this.regs[CONF1 >>> 2];
     if ((conf1 & (1 << this.fields.toutEn)) === 0 || this.rxCount === 0) return;
-    const bits = (this.regs[MEM_CONF >>> 2] >>> this.fields.toutThrShift) & 0x3ff;
+    const bits = (this.regs[this.memConf >>> 2] >>> this.fields.toutThrShift) & 0x3ff;
     this.ctx.events.schedule(this.toutSlot, this.lastRx + this.bitTime(Math.max(bits, 1)));
   }
 
@@ -210,11 +232,9 @@ export class Uart implements Peripheral {
       case STATUS:
         // RXD and TXD idle high (bits 15 and 31), the FIFO counts.
         return ((1 << 31) | (this.txCount << 16) | (1 << 15) | this.rxCount) >>> 0;
-      case FSM_STATUS:
-        return this.sending >= 0 ? 1 << 4 : 0;
-      case ID:
-        return this.regs[ID >>> 2] & 0x7fffffff;
     }
+    if (offset === this.fsmStatus) return this.sending >= 0 ? 1 << 4 : 0;
+    if (offset === this.idReg) return this.regs[offset >>> 2] & 0x7fffffff;
     return this.regs[offset >>> 2];
   }
 
@@ -244,7 +264,7 @@ export class Uart implements Peripheral {
     }
     this.regs[offset >>> 2] = value;
     if (offset === INT_ENA || offset === CONF1) this.update();
-    if (offset === CONF1 || offset === MEM_CONF) this.armTimeout();
+    if (offset === CONF1 || offset === this.memConf) this.armTimeout();
   }
 
   /** Bytes waiting to be sent (tests). */

@@ -21,6 +21,7 @@ const MCU_FQBNS = {
   rp2350: 'rp2040:rp2040:rpipico2:arch=riscv',
   esp32c3: 'esp32:esp32:esp32c3',
   esp32s3: 'esp32:esp32:esp32s3', // BT126
+  esp32s2: 'esp32:esp32:esp32s2', // BT150
 } as const;
 
 /** The FQBN the bridge compiles for a board part type, or undefined for non-boards. */

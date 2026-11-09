@@ -1,5 +1,5 @@
 /**
- * The Inspector's USB section for an ESP32-S3 board (BT139): the computer's side of the board's
+ * The Inspector's USB section for an ESP32-S3 board (BT139; BT150: an ESP32-S2's too): the computer's side of the board's
  * own USB port (USB-OTG), as the bench's USB host sees it (`sim.usb`, Bench.usbOf) — the device
  * it enumerated and what it uses, the text a keyboard typed, and the last events (mouse, media
  * keys, MIDI messages) with their times. Refreshed every 500 ms while running. BT142: a USB drive

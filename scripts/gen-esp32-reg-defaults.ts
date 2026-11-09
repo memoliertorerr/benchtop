@@ -6,6 +6,7 @@
  *   node scripts/gen-esp32-reg-defaults.ts
  *   node scripts/gen-esp32-reg-defaults.ts --chip esp32c3   (BT92: packages/esp32c3's table)
  *   node scripts/gen-esp32-reg-defaults.ts --chip esp32s3   (BT124: packages/esp32s3's table)
+ *   node scripts/gen-esp32-reg-defaults.ts --chip esp32s2   (BT148: packages/esp32s2's table — PeriBus1)
  * Sources: the installed esp32 Arduino core's ESP-IDF headers (Apache-2.0, Espressif),
  * SDK/include/soc/esp32/include/soc/<name>_reg.h with the DR_REG_* bases of soc.h. Register
  * macros with an instance parameter (`UART_CLKDIV_REG(i)`) expand for every instance. The
@@ -99,9 +100,35 @@ const ESP32S3_HEADERS: [string, number][] = [
   ['assist_debug_reg.h', 1],
 ];
 
+/** BT148: the ESP32-S2's peripherals on PeriBus1, 0x3F40_0000–0x3F4F_FFFF (soc.h). SPI2/3's spi_reg.h
+ * indexes from 2 (REG_SPI_BASE(0) is 0), so it waits for the step that models them. */
+const ESP32S2_HEADERS: [string, number][] = [
+  ['system_reg.h', 1],
+  ['sensitive_reg.h', 1],
+  ['interrupt_reg.h', 1],
+  ['rtc_cntl_reg.h', 1],
+  ['rtc_io_reg.h', 1],
+  ['sens_reg.h', 1],
+  ['efuse_reg.h', 1],
+  ['apb_ctrl_reg.h', 1],
+  ['timer_group_reg.h', 2],
+  ['uart_reg.h', 2],
+  ['gpio_reg.h', 1],
+  ['io_mux_reg.h', 1],
+  ['ledc_reg.h', 1],
+  ['i2c_reg.h', 2],
+  ['spi_mem_reg.h', 2],
+  ['rmt_reg.h', 1],
+  ['systimer_reg.h', 1],
+  ['apb_saradc_reg.h', 1],
+  ['usb_wrap_reg.h', 1],
+  ['assist_debug_reg.h', 1],
+];
+
 const CHIPS: Record<string, Chip> = {
   esp32: { title: 'ESP32', soc: 'esp32/include/soc/esp32/include/soc', out: 'packages/esp32/src/soc/reg-defaults.generated.ts', headers: ESP32_HEADERS, space: [0x3ff00000, 0x3ff80000] },
   esp32s3: { title: 'ESP32-S3', soc: 'esp32s3/include/soc/esp32s3/include/soc', out: 'packages/esp32s3/src/soc/reg-defaults.generated.ts', headers: ESP32S3_HEADERS, space: [0x60000000, 0x600d1000], newFormat: true },
+  esp32s2: { title: 'ESP32-S2', soc: 'esp32s2/include/soc/esp32s2/include/soc', out: 'packages/esp32s2/src/soc/reg-defaults.generated.ts', headers: ESP32S2_HEADERS, space: [0x3f400000, 0x3f500000], newFormat: true },
   esp32c3: { title: 'ESP32-C3', soc: 'esp32c3/include/soc/esp32c3/include/soc', out: 'packages/esp32c3/src/soc/reg-defaults.generated.ts', headers: ESP32C3_HEADERS, space: [0x60000000, 0x600d1000] },
 };
 

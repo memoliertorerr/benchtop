@@ -37,22 +37,34 @@ const DONE_SAR = 1 << 16;
 const ADC_CLOCK_HZ = 8_000_000;
 const CONVERSION_CYCLES = 9 + 12 + 2;
 
+/** BT149: where a chip's SENS is, its reset values and its codes' width (the ESP32-S2's are 13 bits). */
+export interface SensChip {
+  base: number;
+  defaults: (address: number) => number;
+  bits: number;
+}
+export const S3_SENS_CHIP: SensChip = { base: SENS_BASE, defaults: registerDefault, bits: 12 };
+
 export class S3Sens implements Peripheral {
   readonly regs = new Uint32Array(SENS_SIZE >>> 2);
-  /** A conversion's 12-bit code: `adc` 1 or 2, its channel and attenuation (0–3). */
+  /** A conversion's code (12 bits, 13 on the S2): `adc` 1 or 2, its channel and attenuation (0–3). */
   sample: (adc: number, channel: number, attenuation: number) => number = () => 0;
   private readonly ctx: SocContext;
   private readonly slots: [number, number];
   private readonly result = new Uint16Array(2);
+  private readonly chip: SensChip;
+  private readonly max: number;
 
-  constructor(ctx: SocContext) {
+  constructor(ctx: SocContext, chip: SensChip = S3_SENS_CHIP) {
     this.ctx = ctx;
+    this.chip = chip;
+    this.max = (1 << chip.bits) - 1;
     this.slots = [ctx.events.add(() => this.done(0)), ctx.events.add(() => this.done(1))];
     this.systemReset();
   }
 
   systemReset(): void {
-    for (let i = 0; i < this.regs.length; i++) this.regs[i] = registerDefault(SENS_BASE + i * 4);
+    for (let i = 0; i < this.regs.length; i++) this.regs[i] = this.chip.defaults(this.chip.base + i * 4);
     this.ctx.events.cancel(this.slots[0]);
     this.ctx.events.cancel(this.slots[1]);
   }
@@ -83,9 +95,9 @@ export class S3Sens implements Peripheral {
     let code = 0;
     if (channel < 10) {
       const attenuation = (this.regs[(n === 0 ? ATTEN1 : ATTEN2) >>> 2] >>> (channel * 2)) & 3;
-      code = this.sample(n + 1, channel, attenuation) & 0xfff;
+      code = this.sample(n + 1, channel, attenuation) & this.max;
     }
-    if ((reader & (n === 0 ? 1 << 28 : 1 << 29)) !== 0) code = 0xfff - code;
+    if ((reader & (n === 0 ? 1 << 28 : 1 << 29)) !== 0) code = this.max - code;
     this.result[n] = code;
     const seconds = (CONVERSION_CYCLES * ((reader & 0xff) || 1)) / ADC_CLOCK_HZ;
     this.ctx.events.schedule(this.slots[n], this.ctx.now() + seconds * this.ctx.refHz);

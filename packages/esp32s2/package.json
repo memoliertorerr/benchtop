@@ -1,0 +1,17 @@
+{
+  "name": "@benchtop/esp32s2",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Espressif ESP32-S2 SoC on Benchtop's Xtensa core: one LX7 core, memory map, cache MMU, interrupt matrix, its own and shared peripheral models, direct boot of Arduino app images. DOM-free.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@benchtop/core": "0.0.0",
+    "@benchtop/esp32": "0.0.0",
+    "@benchtop/esp32c3": "0.0.0",
+    "@benchtop/esp32s3": "0.0.0"
+  }
+}

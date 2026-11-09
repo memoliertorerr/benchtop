@@ -189,6 +189,6 @@ describe('usb … received (BT139)', () => {
     expect(uno.exitCode).toBe(2);
     expect(uno.error).toBe('usb received "x" by 1s: say usb[<board>] (the project\'s boards with a USB host: none)');
     const named = runHeadless({ project: 'fixtures/projects/blink-led.json', firmware: { uno: 'fixtures/firmware/uno/blink.hex' }, expect: ['usb[uno] received "x" by 1s'] }, io);
-    expect(named.error).toBe('usb[uno] received "x" by 1s: "uno" has no USB port the bench hosts (an ESP32-S3 board has)');
+    expect(named.error).toBe('usb[uno] received "x" by 1s: "uno" has no USB port the bench hosts (an ESP32-S3 or ESP32-S2 board has)');
   });
 });

@@ -1,0 +1,3042 @@
+00000000		a	.callsz
+00000000		a	.callsz
+00000000		a	.locsz
+00000000		a	.locsz
+00000000		a	KEXC_pc
+00000000		a	KEXC_pc
+00000000		a	KEXC_pc
+00000000		a	KEXC_pc
+00000000		a	KEXC_pc
+00000000		a	KEXC_pc
+00000000		a	KEXC_pc
+00000000		a	UEXC_pc
+00000000		a	UEXC_pc
+00000000		a	UEXC_pc
+00000000		a	UEXC_pc
+00000000		a	UEXC_pc
+00000000		a	UEXC_pc
+00000000		a	UEXC_pc
+00000000		a	XT_SOL_EXIT
+00000000		a	XT_SOL_EXIT
+00000000		a	XT_SOL_EXIT
+00000000		a	XT_SOL_EXIT
+00000000		a	XT_SOL_EXIT
+00000000		a	XT_SOL_EXIT
+00000000		a	XT_SOL_EXIT
+00000000		a	XT_STK_EXIT
+00000000		a	XT_STK_EXIT
+00000000		a	XT_STK_EXIT
+00000000		a	XT_STK_EXIT
+00000000		a	XT_STK_EXIT
+00000000		a	XT_STK_EXIT
+00000000		a	XT_STK_EXIT
+00000000		A	_flash_cache_start
+00000000		B	_rtc_fast_length
+00000004		a	KEXC_ps
+00000004		a	KEXC_ps
+00000004		a	KEXC_ps
+00000004		a	KEXC_ps
+00000004		a	KEXC_ps
+00000004		a	KEXC_ps
+00000004		a	KEXC_ps
+00000004		a	UEXC_ps
+00000004		a	UEXC_ps
+00000004		a	UEXC_ps
+00000004		a	UEXC_ps
+00000004		a	UEXC_ps
+00000004		a	UEXC_ps
+00000004		a	UEXC_ps
+00000004		a	XT_SOL_PC
+00000004		a	XT_SOL_PC
+00000004		a	XT_SOL_PC
+00000004		a	XT_SOL_PC
+00000004		a	XT_SOL_PC
+00000004		a	XT_SOL_PC
+00000004		a	XT_SOL_PC
+00000004		a	XT_STK_PC
+00000004		a	XT_STK_PC
+00000004		a	XT_STK_PC
+00000004		a	XT_STK_PC
+00000004		a	XT_STK_PC
+00000004		a	XT_STK_PC
+00000004		a	XT_STK_PC
+00000004		A	_esp_memprot_align_size
+00000008		a	KEXC_areg
+00000008		a	KEXC_areg
+00000008		a	KEXC_areg
+00000008		a	KEXC_areg
+00000008		a	KEXC_areg
+00000008		a	KEXC_areg
+00000008		a	KEXC_areg
+00000008		a	UEXC_sar
+00000008		a	UEXC_sar
+00000008		a	UEXC_sar
+00000008		a	UEXC_sar
+00000008		a	UEXC_sar
+00000008		a	UEXC_sar
+00000008		a	UEXC_sar
+00000008		a	XT_SOL_PS
+00000008		a	XT_SOL_PS
+00000008		a	XT_SOL_PS
+00000008		a	XT_SOL_PS
+00000008		a	XT_SOL_PS
+00000008		a	XT_SOL_PS
+00000008		a	XT_SOL_PS
+00000008		a	XT_STK_PS
+00000008		a	XT_STK_PS
+00000008		a	XT_STK_PS
+00000008		a	XT_STK_PS
+00000008		a	XT_STK_PS
+00000008		a	XT_STK_PS
+00000008		a	XT_STK_PS
+0000000c		a	UEXC_vpri
+0000000c		a	UEXC_vpri
+0000000c		a	UEXC_vpri
+0000000c		a	UEXC_vpri
+0000000c		a	UEXC_vpri
+0000000c		a	UEXC_vpri
+0000000c		a	UEXC_vpri
+0000000c		a	XT_SOL_THREADPTR
+0000000c		a	XT_SOL_THREADPTR
+0000000c		a	XT_SOL_THREADPTR
+0000000c		a	XT_SOL_THREADPTR
+0000000c		a	XT_SOL_THREADPTR
+0000000c		a	XT_SOL_THREADPTR
+0000000c		a	XT_SOL_THREADPTR
+0000000c		a	XT_STK_A0
+0000000c		a	XT_STK_A0
+0000000c		a	XT_STK_A0
+0000000c		a	XT_STK_A0
+0000000c		a	XT_STK_A0
+0000000c		a	XT_STK_A0
+0000000c		a	XT_STK_A0
+00000010		a	.callsz
+00000010		a	.callsz
+00000010		a	.locsz
+00000010		a	.locsz
+00000010		a	UEXC_a2
+00000010		a	UEXC_a2
+00000010		a	UEXC_a2
+00000010		a	UEXC_a2
+00000010		a	UEXC_a2
+00000010		a	UEXC_a2
+00000010		a	UEXC_a2
+00000010		a	XT_SOL_A0
+00000010		a	XT_SOL_A0
+00000010		a	XT_SOL_A0
+00000010		a	XT_SOL_A0
+00000010		a	XT_SOL_A0
+00000010		a	XT_SOL_A0
+00000010		a	XT_SOL_A0
+00000010		a	XT_STK_A1
+00000010		a	XT_STK_A1
+00000010		a	XT_STK_A1
+00000010		a	XT_STK_A1
+00000010		a	XT_STK_A1
+00000010		a	XT_STK_A1
+00000010		a	XT_STK_A1
+00000010		A	_esp_flash_mmap_prefetch_pad_size
+00000010		A	_esp_memprot_prefetch_pad_size
+00000010		A	_flash_rodata_align
+00000010		B	_rtc_slow_length
+00000014		a	UEXC_a3
+00000014		a	UEXC_a3
+00000014		a	UEXC_a3
+00000014		a	UEXC_a3
+00000014		a	UEXC_a3
+00000014		a	UEXC_a3
+00000014		a	UEXC_a3
+00000014		a	XT_SOL_A1
+00000014		a	XT_SOL_A1
+00000014		a	XT_SOL_A1
+00000014		a	XT_SOL_A1
+00000014		a	XT_SOL_A1
+00000014		a	XT_SOL_A1
+00000014		a	XT_SOL_A1
+00000014		a	XT_STK_A2
+00000014		a	XT_STK_A2
+00000014		a	XT_STK_A2
+00000014		a	XT_STK_A2
+00000014		a	XT_STK_A2
+00000014		a	XT_STK_A2
+00000014		a	XT_STK_A2
+00000018		a	KEXC_sar
+00000018		a	KEXC_sar
+00000018		a	KEXC_sar
+00000018		a	KEXC_sar
+00000018		a	KEXC_sar
+00000018		a	KEXC_sar
+00000018		a	KEXC_sar
+00000018		a	UEXC_a4
+00000018		a	UEXC_a4
+00000018		a	UEXC_a4
+00000018		a	UEXC_a4
+00000018		a	UEXC_a4
+00000018		a	UEXC_a4
+00000018		a	UEXC_a4
+00000018		a	XT_SOL_A2
+00000018		a	XT_SOL_A2
+00000018		a	XT_SOL_A2
+00000018		a	XT_SOL_A2
+00000018		a	XT_SOL_A2
+00000018		a	XT_SOL_A2
+00000018		a	XT_SOL_A2
+00000018		a	XT_STK_A3
+00000018		a	XT_STK_A3
+00000018		a	XT_STK_A3
+00000018		a	XT_STK_A3
+00000018		a	XT_STK_A3
+00000018		a	XT_STK_A3
+00000018		a	XT_STK_A3
+0000001c		a	KernelFrameSize
+0000001c		a	KernelFrameSize
+0000001c		a	KernelFrameSize
+0000001c		a	KernelFrameSize
+0000001c		a	KernelFrameSize
+0000001c		a	KernelFrameSize
+0000001c		a	KernelFrameSize
+0000001c		a	UEXC_a5
+0000001c		a	UEXC_a5
+0000001c		a	UEXC_a5
+0000001c		a	UEXC_a5
+0000001c		a	UEXC_a5
+0000001c		a	UEXC_a5
+0000001c		a	UEXC_a5
+0000001c		a	XT_SOL_A3
+0000001c		a	XT_SOL_A3
+0000001c		a	XT_SOL_A3
+0000001c		a	XT_SOL_A3
+0000001c		a	XT_SOL_A3
+0000001c		a	XT_SOL_A3
+0000001c		a	XT_SOL_A3
+0000001c		a	XT_STK_A4
+0000001c		a	XT_STK_A4
+0000001c		a	XT_STK_A4
+0000001c		a	XT_STK_A4
+0000001c		a	XT_STK_A4
+0000001c		a	XT_STK_A4
+0000001c		a	XT_STK_A4
+00000020		a	UEXC_exccause
+00000020		a	UEXC_exccause
+00000020		a	UEXC_exccause
+00000020		a	UEXC_exccause
+00000020		a	UEXC_exccause
+00000020		a	UEXC_exccause
+00000020		a	UEXC_exccause
+00000020		a	XT_STK_A5
+00000020		a	XT_STK_A5
+00000020		a	XT_STK_A5
+00000020		a	XT_STK_A5
+00000020		a	XT_STK_A5
+00000020		a	XT_STK_A5
+00000020		a	XT_STK_A5
+00000020		a	XtSolFrameSize
+00000020		a	XtSolFrameSize
+00000020		a	XtSolFrameSize
+00000020		a	XtSolFrameSize
+00000020		a	XtSolFrameSize
+00000020		a	XtSolFrameSize
+00000020		a	XtSolFrameSize
+00000020		a	i
+00000024		a	UEXC_pad
+00000024		a	UEXC_pad
+00000024		a	UEXC_pad
+00000024		a	UEXC_pad
+00000024		a	UEXC_pad
+00000024		a	UEXC_pad
+00000024		a	UEXC_pad
+00000024		a	XT_STK_A6
+00000024		a	XT_STK_A6
+00000024		a	XT_STK_A6
+00000024		a	XT_STK_A6
+00000024		a	XT_STK_A6
+00000024		a	XT_STK_A6
+00000024		a	XT_STK_A6
+00000028		a	XT_STK_A7
+00000028		a	XT_STK_A7
+00000028		a	XT_STK_A7
+00000028		a	XT_STK_A7
+00000028		a	XT_STK_A7
+00000028		a	XT_STK_A7
+00000028		a	XT_STK_A7
+0000002c		a	XT_STK_A8
+0000002c		a	XT_STK_A8
+0000002c		a	XT_STK_A8
+0000002c		a	XT_STK_A8
+0000002c		a	XT_STK_A8
+0000002c		a	XT_STK_A8
+0000002c		a	XT_STK_A8
+00000030		a	UserFrameSize
+00000030		a	UserFrameSize
+00000030		a	UserFrameSize
+00000030		a	UserFrameSize
+00000030		a	UserFrameSize
+00000030		a	UserFrameSize
+00000030		a	UserFrameSize
+00000030		a	XT_STK_A9
+00000030		a	XT_STK_A9
+00000030		a	XT_STK_A9
+00000030		a	XT_STK_A9
+00000030		a	XT_STK_A9
+00000030		a	XT_STK_A9
+00000030		a	XT_STK_A9
+00000034		a	XT_STK_A10
+00000034		a	XT_STK_A10
+00000034		a	XT_STK_A10
+00000034		a	XT_STK_A10
+00000034		a	XT_STK_A10
+00000034		a	XT_STK_A10
+00000034		a	XT_STK_A10
+00000038		a	XT_STK_A11
+00000038		a	XT_STK_A11
+00000038		a	XT_STK_A11
+00000038		a	XT_STK_A11
+00000038		a	XT_STK_A11
+00000038		a	XT_STK_A11
+00000038		a	XT_STK_A11
+0000003c		a	XT_STK_A12
+0000003c		a	XT_STK_A12
+0000003c		a	XT_STK_A12
+0000003c		a	XT_STK_A12
+0000003c		a	XT_STK_A12
+0000003c		a	XT_STK_A12
+0000003c		a	XT_STK_A12
+00000040		a	XT_STK_A13
+00000040		a	XT_STK_A13
+00000040		a	XT_STK_A13
+00000040		a	XT_STK_A13
+00000040		a	XT_STK_A13
+00000040		a	XT_STK_A13
+00000040		a	XT_STK_A13
+00000044		a	XT_STK_A14
+00000044		a	XT_STK_A14
+00000044		a	XT_STK_A14
+00000044		a	XT_STK_A14
+00000044		a	XT_STK_A14
+00000044		a	XT_STK_A14
+00000044		a	XT_STK_A14
+00000048		a	XT_STK_A15
+00000048		a	XT_STK_A15
+00000048		a	XT_STK_A15
+00000048		a	XT_STK_A15
+00000048		a	XT_STK_A15
+00000048		a	XT_STK_A15
+00000048		a	XT_STK_A15
+0000004c		a	XT_STK_SAR
+0000004c		a	XT_STK_SAR
+0000004c		a	XT_STK_SAR
+0000004c		a	XT_STK_SAR
+0000004c		a	XT_STK_SAR
+0000004c		a	XT_STK_SAR
+0000004c		a	XT_STK_SAR
+00000050		a	XT_STK_EXCCAUSE
+00000050		a	XT_STK_EXCCAUSE
+00000050		a	XT_STK_EXCCAUSE
+00000050		a	XT_STK_EXCCAUSE
+00000050		a	XT_STK_EXCCAUSE
+00000050		a	XT_STK_EXCCAUSE
+00000050		a	XT_STK_EXCCAUSE
+00000054		a	XT_STK_EXCVADDR
+00000054		a	XT_STK_EXCVADDR
+00000054		a	XT_STK_EXCVADDR
+00000054		a	XT_STK_EXCVADDR
+00000054		a	XT_STK_EXCVADDR
+00000054		a	XT_STK_EXCVADDR
+00000054		a	XT_STK_EXCVADDR
+00000058		a	XT_STK_TMP0
+00000058		a	XT_STK_TMP0
+00000058		a	XT_STK_TMP0
+00000058		a	XT_STK_TMP0
+00000058		a	XT_STK_TMP0
+00000058		a	XT_STK_TMP0
+00000058		a	XT_STK_TMP0
+0000005c		a	XT_STK_TMP1
+0000005c		a	XT_STK_TMP1
+0000005c		a	XT_STK_TMP1
+0000005c		a	XT_STK_TMP1
+0000005c		a	XT_STK_TMP1
+0000005c		a	XT_STK_TMP1
+0000005c		a	XT_STK_TMP1
+00000060		a	UserFrameTotalSize
+00000060		a	UserFrameTotalSize
+00000060		a	UserFrameTotalSize
+00000060		a	UserFrameTotalSize
+00000060		a	UserFrameTotalSize
+00000060		a	UserFrameTotalSize
+00000060		a	UserFrameTotalSize
+00000060		a	XT_STK_TMP2
+00000060		a	XT_STK_TMP2
+00000060		a	XT_STK_TMP2
+00000060		a	XT_STK_TMP2
+00000060		a	XT_STK_TMP2
+00000060		a	XT_STK_TMP2
+00000060		a	XT_STK_TMP2
+00000064		a	XtExcFrameSize
+00000064		a	XtExcFrameSize
+00000064		a	XtExcFrameSize
+00000064		a	XtExcFrameSize
+00000064		a	XtExcFrameSize
+00000064		a	XtExcFrameSize
+00000064		a	XtExcFrameSize
+3f000020		A	_rodata_reserved_start
+3f000020		A	_rodata_start
+3f000020	00000100	R	esp_app_desc
+3f000120		A	_flash_rodata_start
+3f000164	00000038	V	_ZTV14HardwareSerial
+3f00019c	00000038	V	_ZTV6Stream
+3f0001e0	00000038	V	_ZTV6USBCDC
+3f000248	00000039	d	tinyusb_bos_descriptor
+3f000281	000000b2	d	tinyusb_ms_os_20_descriptor
+3f0003dc	00000054	d	default_rates$9338
+3f000430	00000010	d	__func__$9229
+3f0004e4	00000038	V	_ZTV12StreamString
+3f0005be	0000001a	d	__FUNCTION__$7620
+3f0005d8	00000010	d	__FUNCTION__$7506
+3f0005e8	0000000f	d	__FUNCTION__$7510
+3f0005f7	00000014	d	__FUNCTION__$7498
+3f00060b	00000013	d	__FUNCTION__$7502
+3f00061e	00000013	d	__FUNCTION__$7490
+3f000631	00000012	d	__FUNCTION__$7494
+3f000643	00000013	d	__FUNCTION__$7535
+3f000656	00000013	d	__FUNCTION__$7523
+3f000669	0000000f	d	__FUNCTION__$7515
+3f000678	00000012	d	__FUNCTION__$7468
+3f00068a	00000011	d	__FUNCTION__$7464
+3f00069b	00000010	d	__FUNCTION__$7460
+3f0006ab	0000000f	d	__FUNCTION__$7456
+3f0006fa	00000014	d	__func__$4956
+3f00070e	00000016	d	__func__$4952
+3f000724	00000015	d	__func__$4948
+3f000bac	00000014	d	__FUNCTION__$8078
+3f000bc0	0000001b	d	__FUNCTION__$8068
+3f000bdb	00000013	d	__FUNCTION__$8048
+3f000bee	00000014	d	__FUNCTION__$8042
+3f000c02	00000011	d	__FUNCTION__$8015
+3f000c13	0000001d	d	__FUNCTION__$8009
+3f000c30	0000001b	d	__FUNCTION__$8004
+3f000c4b	00000018	d	__FUNCTION__$7757
+3f000c63	00000010	d	__FUNCTION__$7993
+3f000c73	00000011	d	__FUNCTION__$7975
+3f000c84	00000012	d	__func__$7942
+3f000c96	00000012	d	__FUNCTION__$7937
+3f000ca8	00000011	d	__FUNCTION__$7892
+3f000cb9	00000012	d	__FUNCTION__$7887
+3f000ccb	0000000d	d	__FUNCTION__$7867
+3f000cd8	00000012	d	__FUNCTION__$7847
+3f000cea	00000014	d	__FUNCTION__$7836
+3f000cfe	00000019	d	__FUNCTION__$7806
+3f000d17	00000017	d	__FUNCTION__$7763
+3f000d2e	00000016	d	__FUNCTION__$7723
+3f000d44	00000012	d	__FUNCTION__$7718
+3f000d56	00000012	d	__FUNCTION__$7713
+3f000d68	00000010	d	__FUNCTION__$7708
+3f000d78	00000010	d	__FUNCTION__$7703
+3f000d88	00000013	d	__FUNCTION__$7698
+3f000d9b	00000013	d	__FUNCTION__$7693
+3f000dae	00000015	d	__FUNCTION__$7688
+3f000dc3	00000015	d	__FUNCTION__$7683
+3f000f42	0000001e	d	__func__$5700
+3f000f60	00000020	d	__func__$5657
+3f001110	00000028	d	__func__$5177
+3f00140d	00000019	d	__func__$3892
+3f001426	00000017	d	__func__$3885
+3f00150f	00000013	d	__func__$5369
+3f001522	0000001a	d	__func__$5360
+3f00153c	00000018	d	__func__$5354
+3f001554	00000017	d	__func__$5347
+3f00156b	00000014	d	__func__$5340
+3f00157f	00000013	d	__func__$5330
+3f001592	00000012	d	__func__$5285
+3f0015a4	00000013	d	__func__$5236
+3f0016d4	00000011	d	__func__$6838
+3f0016e5	00000015	d	__func__$6829
+3f00182f	0000001a	d	__func__$8414
+3f001849	00000010	d	__func__$8396
+3f001859	00000017	d	__func__$8324
+3f001870	0000000a	d	TAG
+3f0018de	0000000a	d	TAG
+3f00192b	0000001a	d	__func__$7762
+3f00194c	00000030	V	_ZTVN3nvs12NVSPartitionE
+3f00197c	00000010	V	_ZTVN3nvs19NVSPartitionManagerE
+3f0019e6	00000046	d	_ZZN3nvs11PageManager4loadEPNS_9PartitionEjjE19__PRETTY_FUNCTION__
+3f001b5e	00000015	d	__func__$6626
+3f001b73	00000016	d	__func__$6597
+3f001b89	0000000f	d	__FUNCTION__$6561
+3f001bd4	0000002e	d	__func__$6306
+3f001d76	00000012	d	__func__$7429
+3f001e74	0000000d	d	__func__$7248
+3f001edd	0000001a	d	__func__$5191
+3f0020c7	0000000d	d	__func__$14500
+3f0020d4	00000004	D	g_startup_fn
+3f002888	00000020	d	pseudo_reason$5358
+3f0028a8	000000a0	d	reason$5352
+3f002948	00000038	d	spi_flash_gpspi_clk_cfg_reg
+3f002980	00000038	d	spi_flash_clk_cfg_reg
+3f002a11	0000000f	d	__func__$6964
+3f002a3c	000000a4	d	vfs
+3f002b45	0000000b	d	__func__$8089
+3f002b50	00000011	d	__func__$8105
+3f002b61	0000000a	d	__func__$8111
+3f002b6b	0000000b	d	__func__$8127
+3f002b76	0000000b	d	__func__$8123
+3f002b81	0000000b	d	__func__$8133
+3f002b8c	0000000b	d	__func__$8143
+3f002b98	000000a4	d	vfs
+3f002c3c	00000008	d	s_ctx
+3f002e69	00000012	d	__func__$8579
+3f002e7b	00000029	d	__func__$8514
+3f002ea4	00000016	d	__func__$8489
+3f002eba	00000013	d	__func__$8448
+3f002f31	00000015	d	__func__$3606
+3f002f46	00000012	d	__func__$3570
+3f00306a	00000011	d	__func__$5164
+3f00307b	00000012	d	__func__$5150
+3f00308d	0000000f	d	__func__$5130
+3f00309c	00000017	d	__func__$5140
+3f0030b3	0000001a	d	__func__$5081
+3f0030cd	00000019	d	__func__$5075
+3f0030e6	00000018	d	__func__$5033
+3f0030fe	00000011	d	__func__$5066
+3f0031af	0000000f	d	__func__$5063
+3f0031be	0000000e	d	__func__$5032
+3f003237	00000018	d	__func__$5186
+3f00324f	00000019	d	__func__$5144
+3f0038a2	00000010	d	__func__$3689
+3f0038b2	0000000d	d	__func__$3905
+3f0038bf	00000011	d	__func__$3676
+3f0038d0	0000000d	d	__func__$3664
+3f0038dd	00000011	d	__func__$3670
+3f0038ee	0000000a	d	__func__$3892
+3f0038f8	0000000c	d	__func__$3659
+3f003904	00000010	d	__func__$3682
+3f003914	00000016	d	__func__$3619
+3f00392a	00000012	d	__func__$3704
+3f00393c	00000012	d	__func__$3716
+3f00394e	00000012	d	__func__$3628
+3f003960	00000012	d	__func__$3636
+3f003a1f	0000001e	d	__func__$5045
+3f003a3d	00000013	d	__func__$5025
+3f003a50	00000010	d	__func__$5012
+3f003b4e	0000001b	d	__func__$2745
+3f003b6c	00000004	D	soc_memory_region_count
+3f003b70	00000160	D	soc_memory_regions
+3f003cec	00000078	D	soc_memory_types
+3f003d64	000000bc	D	GPIO_PIN_MUX_REG
+3f003e20	000004d0	D	rtc_io_desc
+3f0042f0	000000bc	D	rtc_io_num_map
+3f0043ac	00000030	D	uart_periph_signal
+3f0043dc	000000b0	D	usb_periph_iopins
+3f00451f	00000011	d	__func__$5608
+3f004530	0000000e	d	__func__$5588
+3f00453e	00000014	d	__func__$5522
+3f004552	00000015	d	__func__$5498
+3f0045cc	0000001a	d	__func__$3970
+3f00467a	00000006	d	esp_unknown_msg
+3f005cec	000006b8	d	esp_err_msg_table
+3f0064b3	0000001a	d	__func__$5571
+3f0065af	0000001e	d	__func__$5437
+3f0065cd	0000000a	d	__func__$5423
+3f0065d7	0000001d	d	__func__$5418
+3f006ad4	0000000d	d	__func__$5621
+3f006ae1	00000017	d	__func__$5610
+3f006af8	00000017	d	__func__$5604
+3f006b0f	00000015	d	__func__$5587
+3f006b24	0000000b	d	__func__$5576
+3f006b2f	00000014	d	__func__$5563
+3f006b43	0000000e	d	__func__$5552
+3f006b51	00000012	d	__func__$5541
+3f006b63	00000019	d	__func__$5532
+3f006b7c	0000001b	d	__func__$5706
+3f006b97	00000012	d	__func__$5520
+3f006ba9	0000001e	d	__func__$5509
+3f006bc7	00000019	d	__func__$5496
+3f006be0	00000019	d	__func__$5489
+3f006bf9	00000014	d	__func__$5449
+3f006c0d	0000001a	d	__func__$5439
+3f006c27	00000013	d	__func__$5430
+3f006fd1	0000001e	d	__func__$5930
+3f006fef	00000018	d	__func__$5870
+3f007007	00000024	d	__func__$5851
+3f00702b	00000018	d	__func__$5842
+3f007043	00000015	d	__func__$5726
+3f007058	00000019	d	__func__$5698
+3f007071	00000016	d	__func__$5677
+3f007087	00000013	d	__func__$5671
+3f00709a	00000014	d	ucExpectedStackBytes$5669
+3f0070ae	00000013	d	__func__$5663
+3f0070c1	0000000e	d	__func__$5610
+3f0070cf	0000000f	d	__func__$5587
+3f0070de	00000014	d	__func__$5567
+3f0070f2	0000000d	d	__func__$5536
+3f0070ff	0000000b	d	__func__$5493
+3f00710a	0000000d	d	__func__$5805
+3f007117	0000000d	d	__func__$5809
+3f007124	0000000c	d	__func__$5477
+3f007130	0000001e	d	__func__$5428
+3f00723b	00000016	d	__func__$5247
+3f007251	00000013	d	__func__$5215
+3f007264	00000015	d	__func__$5190
+3f007279	00000015	d	__func__$5170
+3f00728e	0000000c	d	__func__$5161
+3f007377	0000002d	d	_ZZ17__cxa_guard_abortE19__PRETTY_FUNCTION__
+3f0073a4	0000002f	d	_ZZ19__cxa_guard_releaseE19__PRETTY_FUNCTION__
+3f0073d3	00000022	d	_ZZL18wait_for_guard_objP7guard_tE19__PRETTY_FUNCTION__
+3f0073f5	0000002e	d	_ZZ19__cxa_guard_acquireE19__PRETTY_FUNCTION__
+3f007428	000000c0	d	_usbd_driver
+3f00755a	00000001	d	_cap_get_set
+3f00755b	00000001	d	_cap_get
+3f007c5e	0000001a	d	__func__$5882
+3f007c78	00000012	d	__func__$5877
+3f007c8a	0000001d	d	__func__$5872
+3f007ca7	00000016	d	__func__$5865
+3f007cbd	00000017	d	__func__$5848
+3f007cd4	00000019	d	__func__$5730
+3f007ced	0000001a	d	__func__$5811
+3f007d07	00000012	d	__func__$5716
+3f007d19	00000013	d	__func__$5803
+3f007d2c	00000017	d	__func__$5794
+3f007d43	00000010	d	__func__$5779
+3f007d53	0000000f	d	__func__$5597
+3f007d62	00000018	d	__func__$5602
+3f007d7a	00000017	d	__func__$5623
+3f007d91	00000016	d	__func__$5615
+3f007da7	00000012	d	__func__$5662
+3f007db9	00000015	d	__func__$5676
+3f007dce	00000016	d	__func__$5642
+3f007de4	0000001b	d	__func__$5608
+3f007dff	00000013	d	__func__$5650
+3f007e12	00000012	d	__func__$5670
+3f007e24	00000015	d	__func__$5686
+3f007e39	00000012	d	__func__$5735
+3f007e4c	00000004	d	BLK_VERSION_MINOR
+3f007e50	00000018	d	MAC_FACTORY
+3f007f74	0000001b	d	__func__$4547
+3f007f8f	0000001a	d	__func__$4451
+3f007fac	00000058	D	range_read_addr_blocks
+3f008004	00000004	D	g_spi_lock_main_flash_dev
+3f008050	00000020	d	__func__$5814
+3f0080d9	0000001a	d	__func__$8721
+3f008116	00000019	d	__FUNCTION__$7154
+3f00812f	0000001e	d	__FUNCTION__$7135
+3f00814d	00000010	d	__FUNCTION__$6957
+3f00815d	0000000e	d	__FUNCTION__$7095
+3f00816b	00000019	d	__FUNCTION__$6939
+3f008184	00000019	d	__FUNCTION__$7063
+3f00819d	0000000f	d	__FUNCTION__$6979
+3f0081ac	0000000d	d	__FUNCTION__$7000
+3f0081b9	00000017	d	__FUNCTION__$7075
+3f0081d0	00000015	d	__FUNCTION__$7112
+3f0081e5	00000016	d	__FUNCTION__$6930
+3f0081fb	00000020	d	__FUNCTION__$7169
+3f00821b	00000018	d	__FUNCTION__$7188
+3f0082d4	00000021	d	__func__$5890
+3f0082f5	00000018	d	__func__$5864
+3f008393	0000001d	d	__func__$4211
+3f0083b0	0000001e	d	__func__$4201
+3f0083ce	0000001e	d	__func__$4193
+3f008436	00000017	d	__func__$4907
+3f00844d	00000017	d	__func__$4902
+3f008464	00000180	d	interrupt_descriptor_table
+3f0085e4	00000040	d	sha256_padding
+3f00875c	00000020	D	Xthal_intlevel
+3f0087fa	0000000d	V	_ZTSSt9exception
+3f008808	00000008	V	_ZTISt9exception
+3f008810	00000027	V	_ZTSN9__gnu_cxx24__concurrence_lock_errorE
+3f008838	0000000c	V	_ZTIN9__gnu_cxx24__concurrence_lock_errorE
+3f008844	00000029	V	_ZTSN9__gnu_cxx26__concurrence_unlock_errorE
+3f008870	0000000c	V	_ZTIN9__gnu_cxx26__concurrence_unlock_errorE
+3f00887c	00000014	V	_ZTVN9__gnu_cxx24__concurrence_lock_errorE
+3f008890	00000014	V	_ZTVN9__gnu_cxx26__concurrence_unlock_errorE
+3f0088a4	00000001	D	_ZSt7nothrow
+3f0088b7	00000016	V	_ZTSSt17bad_function_call
+3f0088d0	0000000c	V	_ZTISt17bad_function_call
+3f0088dc	00000014	V	_ZTVSt17bad_function_call
+3f0088f0	0000002c	V	_ZTVN10__cxxabiv120__si_class_type_infoE
+3f00891c	0000002c	V	_ZTVN10__cxxabiv117__class_type_infoE
+3f008948	0000000d	V	_ZTSSt9bad_alloc
+3f008958	0000000c	V	_ZTISt9bad_alloc
+3f0089cc	00000008	d	terminator$7037
+3f008c70	00000010	d	zeroes$5030
+3f008c80	00000010	d	blanks$5029
+3f008f84	00000010	d	zeroes$5045
+3f008f94	00000010	d	blanks$5044
+3f009064	0000016c	D	__default_global_locale
+3f009258	0000000c	d	p05$3440
+3f009268	00000028	D	__mprec_tinytens
+3f009290	00000028	D	__mprec_bigtens
+3f0092b8	000000c8	D	__mprec_tens
+3f00961c	00000010	d	zeroes$5009
+3f00962c	00000010	d	blanks$5008
+3f00963c	0000006c	D	__action_table
+3f0096a8	0000006c	D	__state_table
+3f009714	00000100	D	__chclass
+3f009ab0	00000010	d	zeroes$5013
+3f009ac0	00000010	d	blanks$5012
+3f009ad0		A	__XT_EXCEPTION_TABLE_
+3f009c38		d	__EH_FRAME_BEGIN__
+3f009c38		A	__eh_frame
+3f00c5a8		d	__FRAME_END__
+3f00c5b0		A	__init_array_start
+3f00c5e0		d	__DTOR_LIST__
+3f00c5e0		A	__init_array_end
+3f00c608		D	__DTOR_END__
+3f00c60c		A	__XT_EXCEPTION_DESCS_
+3f00c60c		A	__XT_EXCEPTION_DESCS_END__
+3f00c60c	00000008	d	reserved_region_rtc_retain_mem
+3f00c60c		A	soc_reserved_memory_region_start
+3f00c614	00000008	d	reserved_region_rtcram_data
+3f00c61c	00000008	d	reserved_region_extram_data_region
+3f00c624	00000008	d	reserved_region_iram_code
+3f00c62c	00000008	d	reserved_region_dram_data
+3f00c634	00000008	d	reserved_region_rom_data_region
+3f00c63c		A	_lit4_end
+3f00c63c		A	_lit4_start
+3f00c63c		A	_rodata_end
+3f00c63c		A	_rodata_reserved_end
+3f00c63c		A	_thread_local_end
+3f00c63c		A	_thread_local_start
+3f00c63c		A	soc_reserved_memory_region_end
+3f400000		A	UART0
+3f402000		A	SPIMEM1
+3f404000		A	GPIO
+3f408000		A	RTCCNTL
+3f408400		A	RTCIO
+3f408800		A	SENS
+3f410000		A	UART1
+3f41a000		A	EFUSE
+3f41f000		A	TIMERG0
+3f420000		A	TIMERG1
+3f423000		A	SYSTIMER
+3f424000		A	GPSPI2
+3f425000		A	GPSPI3
+3f439000		A	USB_WRAP
+3f440000		A	APB_SARADC
+3f500000		A	_ext_ram_bss_end
+3f500000		A	_ext_ram_bss_start
+3ff9e000		A	_coredump_rtc_fast_end
+3ff9e000		A	_coredump_rtc_fast_start
+3ff9e000		A	_data_seg_org
+3ff9e000		A	_rtc_dummy_end
+3ff9e000		A	_rtc_dummy_start
+3ff9e000		A	_rtc_fast_start
+3ff9e000		A	_rtc_force_fast_end
+3ff9e000		A	_rtc_force_fast_start
+3ffac76c	00000101	A	_ctype_
+3ffac870		A	__nsau_data
+3ffac870		A	__popcount_tab
+3ffaf08c	00000020	A	__sf_fake_stderr
+3ffaf0ac	00000020	A	__sf_fake_stdout
+3ffaf0cc	00000020	A	__sf_fake_stdin
+3ffbfa60		A	_data_start
+3ffbfa60		A	_esp_system_init_fn_array_start
+3ffbfa60	00000008	d	esp_system_init_fn_init_components0
+3ffbfa68	00000004	D	ARDUINO_USB_CDC_EVENTS
+3ffbfa68		A	_esp_system_init_fn_array_end
+3ffbfa6c	00000082	d	tinyusb_url_descriptor
+3ffbfaf0	00000050	d	tinyusb_string_descriptor
+3ffbfb40	00000004	d	tinyusb_string_descriptor_len
+3ffbfb44	00000012	d	tinyusb_device_descriptor
+3ffbfb56	0000007f	d	USB_DEVICE_LANGUAGE
+3ffbfbd8	00000040	d	_uart_bus_array
+3ffbfc18	00000004	D	ARDUINO_USB_EVENTS
+3ffbfc1c	00000018	d	gpio_context
+3ffbfc34	00000008	d	_gpio_hal
+3ffbfc3c	00000008	d	periph_spinlock
+3ffbfc44	00000008	d	uart_selectlock
+3ffbfc4c	00000020	d	uart_context
+3ffbfc6c	00000001	d	first_call$3832
+3ffbfc70	00000004	D	esp_flash_registered_chips
+3ffbfc74	00000020	d	default_registered_chips
+3ffbfc94	00000008	D	pthread_lazy_init_lock
+3ffbfc9c	00000008	d	s_keys_lock
+3ffbfca4	00000008	d	twdt_spinlock
+3ffbfcac	00000008	d	hooks_spinlock
+3ffbfcb4	00000004	d	s_panic_uart
+3ffbfcb8	00000008	d	rtc_wdt_ctx
+3ffbfcc0	00000008	d	wdt0_context
+3ffbfcc8	000000c0	d	s_fd_table
+3ffbfd88	00000008	d	s_registered_select_lock
+3ffbfd90	00000048	d	s_context
+3ffbfdd8	00000004	d	s_log_print_func
+3ffbfddc	00000004	D	esp_log_default_level
+3ffbfde0	00000004	d	malloc_alwaysinternal_limit
+3ffbfde4	00000008	d	s_esp_rtc_time_lock
+3ffbfdec	00000008	d	spinlock
+3ffbfdf4	00000008	d	mux
+3ffbfdfc	00000004	d	s_cur_pll_freq
+3ffbfe00		D	_xt_interrupt_table
+3ffbff00		D	_xt_exception_table
+3ffc0000	00000008	d	s_timer_lock
+3ffc0008	00000010	d	timestamp_id$5555
+3ffc0018	00000008	D	s_time_update_lock
+3ffc0020		D	port_IntStack
+3ffc0850		D	port_IntStackTop
+3ffc0854		D	port_switch_flag
+3ffc0858	00000008	d	xTaskQueueMutex
+3ffc0860	00000008	d	lock_init_spinlock
+3ffc0868	00000090	d	s_stub_table
+3ffc08f8	00000008	d	_ZL15s_init_spinlock
+3ffc0900	0000005c	D	_usbd_qdef
+3ffc095c	00000001	d	_usbd_rhport
+3ffc095d	00000001	d	_allocated_fifos
+3ffc0960	00000008	D	ESP_EFUSE_BLK_VERSION_MINOR
+3ffc0968	0000001c	D	ESP_EFUSE_MAC_FACTORY
+3ffc0984	00000064	d	s_fake_stack_frame
+3ffc09e8	00000008	d	reason_spinlock
+3ffc09f0	00000004	D	_ZN10__cxxabiv120__unexpected_handlerE
+3ffc09f4	00000004	D	_ZN10__cxxabiv119__terminate_handlerE
+3ffc09f8	00000001	d	enable_exception_fde_sorting
+3ffc09fc	00000004	d	object_mutex
+3ffc0a00	00000004	D	__atexit_recursive_mutex
+3ffc0a04	00000004	D	__global_locale_ptr
+3ffc0a08	00000018	D	g_flash_guard_no_os_ops
+3ffc0a20	00000018	D	g_flash_guard_default_ops
+3ffc0a38	00000004	D	rom_spiflash_api_funcs
+3ffc0a3c	00000010	d	default_spiflash_rom_api
+3ffc0a4c	00000020	d	default_chip
+3ffc0a6c	00000028	d	esp_flash_default_host
+3ffc0a94	00000024	d	esp_flash_spi1_default_os_functions
+3ffc0ab8	00000010	d	main_flash_arg
+3ffc0ac8	00000024	D	esp_flash_noos_functions
+3ffc0aec	00000008	d	spi_arg
+3ffc0af4	00000014	D	spi_flash_chip_generic_timeout
+3ffc0b08	00000004	D	rom_flash_chip_dummy_hpm
+3ffc0b0c	00000004	D	rom_flash_chip_dummy
+3ffc0b10	00000018	d	esp_flash_encryption_default
+3ffc0b28	00000006	d	hpm_flash_chip_dummy
+3ffc0b2e	00000006	d	default_flash_chip_dummy
+3ffc0b34	00000058	d	esp_flash_default_host
+3ffc0b8c	00000020	d	__c$3380
+3ffc0bac	00000019	d	__c$7417
+3ffc0bc5	00000008	d	__c$7412
+3ffc0bcd	00000006	d	__c$7410
+3ffc0bd3	00000006	d	__c$7408
+3ffc0bdc	00000004	D	uxTopUsedPriority
+3ffc0be0	00000038	d	__c$5774
+3ffc0c18	00000015	d	TAG
+3ffc0c2d	00000032	d	__c$8755
+3ffc0c5f	00000035	d	__c$8751
+3ffc0c94	0000002b	d	__c$8748
+3ffc0cbf	0000002a	d	__c$8746
+3ffc0ce9	00000029	d	__c$8730
+3ffc0d12	00000039	d	__c$8728
+3ffc0d4b	00000035	d	__c$8723
+3ffc0d80	0000002c	d	__c$8696
+3ffc0dac	0000004a	d	__c$8694
+3ffc0df6	00000037	d	__c$8684
+3ffc0e2d	00000037	d	__c$8682
+3ffc0e64	00000028	d	__c$8669
+3ffc0e8c	00000030	d	__c$8665
+3ffc0ebc	00000030	d	__c$8653
+3ffc0eec	00000037	d	__c$8651
+3ffc0f23	0000002a	d	__c$8638
+3ffc0f4d	00000014	d	TAG
+3ffc0f61	0000002a	d	__c$7206
+3ffc0f8b	00000033	d	__c$7200
+3ffc0fbe	0000002c	d	__c$7198
+3ffc0fea	00000036	d	__c$7196
+3ffc1020	00000028	d	__c$7186
+3ffc1048	00000040	d	__c$7176
+3ffc1088	00000041	d	__c$7174
+3ffc10c9	0000003b	d	__c$7172
+3ffc1104	0000003d	d	__c$7170
+3ffc1141	0000003d	d	__c$7167
+3ffc117e	0000004e	d	__c$7160
+3ffc11cc	00000041	d	__c$7158
+3ffc120d	00000022	d	__c$7156
+3ffc122f	00000043	d	__c$7152
+3ffc1272	0000003f	d	__c$7137
+3ffc12b1	0000002a	d	__c$7133
+3ffc12db	00000046	d	__c$7120
+3ffc1321	0000003c	d	__c$7116
+3ffc135d	0000003d	d	__c$7110
+3ffc139a	0000003e	d	__c$7096
+3ffc13d8	0000003c	d	__c$7093
+3ffc1414	0000004d	d	__c$7085
+3ffc1461	00000042	d	__c$7081
+3ffc14a3	00000042	d	__c$7079
+3ffc14e5	00000042	d	__c$7076
+3ffc1527	00000042	d	__c$7073
+3ffc1569	00000046	d	__c$7061
+3ffc15af	00000046	d	__c$7053
+3ffc15f5	00000032	d	__c$7043
+3ffc1627	00000033	d	__c$7010
+3ffc165a	0000003f	d	__c$7002
+3ffc1699	00000035	d	__c$6998
+3ffc16ce	00000035	d	__c$6987
+3ffc1703	00000035	d	__c$6985
+3ffc1738	00000037	d	__c$6983
+3ffc176f	00000036	d	__c$6980
+3ffc17a5	00000038	d	__c$6963
+3ffc17dd	00000038	d	__c$6959
+3ffc1815	0000002e	d	__c$6955
+3ffc1843	0000003a	d	__c$6941
+3ffc187d	00000032	d	__c$6928
+3ffc18af	00000012	d	TAG
+3ffc18c1	0000002e	d	__c$5894
+3ffc18ef	00000035	d	__c$5815
+3ffc1924	00000013	d	TAG
+3ffc1937	00000004	d	__c$4216
+3ffc193b	00000005	d	__c$4214
+3ffc1940	00000005	d	__c$4212
+3ffc1945	00000037	d	__c$4194
+3ffc197c	00000017	d	TAG
+3ffc1994	0000000c	d	s_dma_descr_buf
+3ffc19a0	0000000c	d	s_dma_descr_input
+3ffc19ac		A	_bt_data_end
+3ffc19ac		A	_bt_data_start
+3ffc19ac		A	_btdm_data_end
+3ffc19ac		A	_btdm_data_start
+3ffc19ac		A	_coredump_dram_end
+3ffc19ac		A	_coredump_dram_start
+3ffc19f4	00000017	d	__func__$2305
+3ffc1a0b	00000016	d	__func__$2281
+3ffc1b12	00000017	d	__func__$2932
+3ffc1b29	00000018	d	__func__$2873
+3ffc1c3d	00000020	d	__func__$2906
+3ffc1cac		A	_nimble_data_end
+3ffc1cac		A	_nimble_data_start
+3ffc1d2c	00000019	d	__func__$6006
+3ffc1d45	00000018	d	__func__$5998
+3ffc1d5d	00000019	d	__func__$5992
+3ffc1d76	00000007	d	TAG
+3ffc1d80	00000058	d	esp_flash_gpspi_host
+3ffc1dd8	0000007c	D	esp_flash_chip_boya
+3ffc1e54	00000005	d	chip_name
+3ffc1e5c	0000007c	D	esp_flash_chip_gd
+3ffc1ed8	00000003	d	chip_name
+3ffc1ff9	00000029	d	__func__$4168
+3ffc2024	0000007c	D	esp_flash_chip_generic
+3ffc20a0	00000008	d	chip_name
+3ffc20a8	0000000d	d	TAG
+3ffc20b8	0000007c	D	esp_flash_chip_issi
+3ffc2134	00000005	d	chip_name
+3ffc213c	0000007c	D	esp_flash_chip_mxic
+3ffc21b8	00000005	d	chip_name
+3ffc21c0	0000007c	D	esp_flash_chip_th
+3ffc223c	00000003	d	chip_name
+3ffc2240	0000007c	D	esp_flash_chip_winbond
+3ffc22bc	00000008	d	chip_name
+3ffc22c4	00000008	d	TAG
+3ffc22cc		A	_data_end
+3ffc22cc		A	_noinit_end
+3ffc22cc		A	_noinit_start
+3ffc22d0	00000004	b	_ZL4last
+3ffc22d0		A	_bss_start
+3ffc22d4	00000004	b	_ZL1n
+3ffc22d8	00000010	b	_ZL4line
+3ffc22e8	0000004c	B	Serial1
+3ffc2334	0000004c	B	Serial0
+3ffc2380	0000002c	B	Serial
+3ffc23ac	00000001	b	_ZZN6USBCDC12_onLineStateEbbE9lineState
+3ffc23b0	00000008	B	devices
+3ffc23b8	00000010	B	emptyString
+3ffc23c8	000000fe	b	_desc_str$12940
+3ffc24c6	00000001	b	tinyusb_is_initialized
+3ffc24c8	00000004	b	usb_persist_mode
+3ffc24cc	00000004	b	tinyusb_endpoints
+3ffc24d0	00000004	b	tinyusb_config_descriptor
+3ffc24d4	00000002	b	tinyusb_config_descriptor_len
+3ffc24d6	00000001	b	tinyusb_loaded_interfaces_num
+3ffc24d8	00000004	b	tinyusb_loaded_interfaces_mask
+3ffc24dc	0000001c	b	tinyusb_loaded_interfaces_callbacks
+3ffc24f8	00000002	b	USB_DEVICE_POWER
+3ffc24fa	00000001	b	USB_DEVICE_ATTRIBUTES
+3ffc24fb	0000007f	b	USB_DEVICE_SERIAL
+3ffc257a	0000007f	b	USB_DEVICE_MANUFACTURER
+3ffc25f9	0000007f	b	USB_DEVICE_PRODUCT
+3ffc2678	0000007f	b	WEBUSB_URL
+3ffc26f7	00000001	b	WEBUSB_ENABLED
+3ffc26f8	00000001	b	uartStateDetectingBaudrate$9334
+3ffc26fc	00000004	b	s_uart_debug_nr
+3ffc2700	00000001	B	loopTaskWDTEnabled
+3ffc2708	00000008	b	_ZZ16yieldIfNecessaryvE9lastYield
+3ffc2710	00000004	B	loopTaskHandle
+3ffc2714	0000005c	B	USB
+3ffc2770	00000001	b	_ZL22tinyusb_device_mounted
+3ffc2774	00000004	b	_ZL29arduino_usb_event_loop_handle
+3ffc2778	00000001	b	initialized$8027
+3ffc277c	00000004	b	apb_change_lock
+3ffc2780	00000004	b	apb_change_callbacks
+3ffc2784	0000001f	b	ref_counts
+3ffc27a3	00000001	b	pat_flg$7919
+3ffc27a4	00000008	b	p_uart_obj
+3ffc27ac	00000004	b	curr_partition$5698
+3ffc27b0	00000008	b	s_app_elf_sha256$3831
+3ffc27b8	00000004	b	map
+3ffc27bc	00000004	b	s_partition_list_lock
+3ffc27c0	00000004	b	s_partition_list
+3ffc27c4	00000004	b	s_mmap_last_handle
+3ffc27c8	00000180	b	s_mmap_page_refcnt
+3ffc2948	00000004	b	s_mmap_entries_head
+3ffc294c	00000004	b	s_flash_guard_ops
+3ffc2950	00000004	B	esp_flash_default_chip
+3ffc2954	00000008	b	s_flash_op_cache_state
+3ffc295c	00000004	B	_ZN3nvs4Lock10mSemaphoreE
+3ffc2960	00000004	B	_ZN3nvs19NVSPartitionManager8instanceE
+3ffc2964	00000004	b	s_pthread_cfg_key
+3ffc2968	00000004	b	s_threads_mux
+3ffc296c	00000004	B	s_keys
+3ffc2970	00000014	b	shutdown_handlers
+3ffc2984	00000004	B	__stack_chk_guard
+3ffc2988	00000004	b	twdt_config
+3ffc298c	00000008	b	twdt_context
+3ffc2994	00000004	b	s_reset_reason
+3ffc2998	00000020	b	tick_cb
+3ffc29b8	00000020	b	idle_cb
+3ffc29d8	00000001	b	s_dumping_core$7972
+3ffc29dc	00000004	b	s_panic_abort_details
+3ffc29e0	00000001	B	g_panic_abort
+3ffc29e4	00000028	b	ob$14475
+3ffc2a10	00000008	B	g_startup_time
+3ffc2a18	00000004	B	g_exc_frames
+3ffc2a1c	00000004	b	s_fd_table_lock
+3ffc2a20	00000004	b	s_vfs_count
+3ffc2a24	00000020	b	s_vfs
+3ffc2a44	00000008	b	vfs_console
+3ffc2a4c	00000004	b	primary_vfs_index
+3ffc2a50	00000004	b	s_registered_select_num
+3ffc2a54	00000004	b	s_registered_selects
+3ffc2a58	00000004	b	s_log_cache_misses
+3ffc2a5c	00000004	b	s_log_cache_entry_count
+3ffc2a60	00000004	b	s_log_cache_max_generation
+3ffc2a64	000000f8	b	s_log_cache
+3ffc2b5c	00000004	b	s_log_tags
+3ffc2b60	00000004	b	base$5584
+3ffc2b64	00000004	b	s_log_mutex
+3ffc2b68	00000004	b	alloc_failed_callback
+3ffc2b6c	00000004	b	last_ccount$4028
+3ffc2b70	00000001	b	non_iram_int_disabled_flag
+3ffc2b74	00000004	b	non_iram_int_disabled
+3ffc2b78	00000004	b	non_iram_int_mask
+3ffc2b7c	00000004	b	vector_desc_head
+3ffc2b80	00000004	b	s_crypto_dma_lock
+3ffc2b84	00000004	b	s_timer_task
+3ffc2b88	00000004	b	s_timers
+3ffc2b90	00000008	b	s_correction_us
+3ffc2b98	00000004	b	systimer_hal
+3ffc2b9c	00000004	b	s_alarm_handler
+3ffc2ba0	00000004	b	s_timer_interrupt_handle
+3ffc2ba4	00000004	B	port_uxOldInterruptState
+3ffc2ba8	00000004	B	port_uxCriticalNesting
+3ffc2bac	00000004	B	port_interruptNesting
+3ffc2bb0	00000004	B	_xt_tick_divisor
+3ffc2bb4	00000004	B	port_xSchedulerRunning
+3ffc2bb8	00000004	b	xSwitchingContext
+3ffc2bbc	00000004	b	uxSchedulerSuspended
+3ffc2bc0	00000004	b	xIdleTaskHandle
+3ffc2bc4	00000004	b	xNextTaskUnblockTime
+3ffc2bc8	00000004	b	uxTaskNumber
+3ffc2bcc	00000004	b	xNumOfOverflows
+3ffc2bd0	00000004	b	xYieldPending
+3ffc2bd4	00000004	b	xPendedTicks
+3ffc2bd8	00000004	b	xSchedulerRunning
+3ffc2bdc	00000004	b	uxTopReadyPriority
+3ffc2be0	00000004	b	xTickCount
+3ffc2be4	00000004	b	uxCurrentNumberOfTasks
+3ffc2be8	00000014	b	xSuspendedTaskList
+3ffc2bfc	00000004	b	uxDeletedTasksWaitingCleanUp
+3ffc2c00	00000014	b	xTasksWaitingTermination
+3ffc2c14	00000014	b	xPendingReadyList
+3ffc2c28	00000004	b	pxOverflowDelayedTaskList
+3ffc2c2c	00000004	b	pxDelayedTaskList
+3ffc2c30	00000014	b	xDelayedTaskList2
+3ffc2c44	00000014	b	xDelayedTaskList1
+3ffc2c58	000001f4	b	pxReadyTasksLists
+3ffc2e4c	00000004	B	pxCurrentTCB
+3ffc2e50	00000054	B	__lock___atexit_recursive_mutex
+3ffc2e50	00000054	B	__lock___env_recursive_mutex
+3ffc2e50	00000054	B	__lock___malloc_recursive_mutex
+3ffc2e50	00000054	B	__lock___sfp_recursive_mutex
+3ffc2e50	00000054	B	__lock___sinit_recursive_mutex
+3ffc2e50	00000054	b	s_common_recursive_mutex
+3ffc2ea4	00000054	B	__lock___arc4random_mutex
+3ffc2ea4	00000054	B	__lock___at_quick_exit_mutex
+3ffc2ea4	00000054	B	__lock___dd_hash_mutex
+3ffc2ea4	00000054	B	__lock___tz_mutex
+3ffc2ea4	00000054	b	s_common_mutex
+3ffc2ef8	000000f0	b	s_reent
+3ffc2fe8	00000004	b	s_time_lock
+3ffc2ff0	00000008	b	s_adjtime_total_correction_us
+3ffc2ff8	00000008	b	s_adjtime_start_us
+3ffc3000	00000004	b	s_boot_time_lock
+3ffc3008	00000008	B	s_microseconds_offset
+3ffc3010	00000004	b	_ZL31s_static_init_max_waiting_count
+3ffc3014	00000004	b	_ZL27s_static_init_waiting_count
+3ffc3018	00000004	b	_ZL22s_static_init_wait_sem
+3ffc301c	00000004	b	_ZL19s_static_init_mutex
+3ffc3020	00000010	b	s_priv_data
+3ffc3030	000001e0	b	_cdcd_itf
+3ffc3210	00000040	b	_usbd_ctrl_buf
+3ffc3250	00000014	b	_ctrl_xfer
+3ffc3264	00000004	b	_usbd_mutex
+3ffc3268	00000054	b	_ubsd_mutexdef
+3ffc32bc	00000004	b	_usbd_q
+3ffc32c0	000000c0	b	_usbd_qdef_buf
+3ffc3380	00000001	b	_app_driver_count
+3ffc3384	00000004	b	_app_driver
+3ffc3388	0000002b	b	_usbd_dev
+3ffc33b4	000000a8	b	xfer_status
+3ffc345c	00000008	b	_setup_packet
+3ffc3464	00000004	b	usb_ih
+3ffc3468	0000008c	b	_hidd_itf
+3ffc34f4	00001000	b	_mscd_buf
+3ffc44f4	00000040	b	_mscd_itf
+3ffc4534	00000060	b	_videod_streaming_itf
+3ffc4594	0000000b	b	_videod_itf
+3ffc45a0	00001014	b	_dfu_ctx
+3ffc55b4	000001d4	b	_vendord_itf
+3ffc5788	00000004	b	s_burn_counter
+3ffc578c	00000004	b	s_exc_frame
+3ffc5790	00000014	b	s_stack_context
+3ffc57a4	00000464	b	s_coredump_stack
+3ffc5c08	0000002c	b	wr_data$8692
+3ffc5c34	00000014	b	wr_cfg$8691
+3ffc5c48	00000010	b	s_core_flash_config
+3ffc5c58	00000020	b	name_buffer$6973
+3ffc5c78	00000014	b	dump_hdr$7182
+3ffc5c8c	00000058	b	self$7181
+3ffc5ce4	0000024c	b	s_reg_dump$5889
+3ffc5f30	00000094	b	s_extra_info
+3ffc5fc4	00000004	b	s_fake_stacks_num
+3ffc5fc8	00000008	b	s_checksum_context
+3ffc5fd0	00000004	b	reason
+3ffc5fd4	00000008	b	iwdt_context
+3ffc5fdc	00000004	b	_ZN12_GLOBAL__N_113__new_handlerE
+3ffc5fe0	00000004	b	_ZN12_GLOBAL__N_12mxE
+3ffc5fe8	00000008	b	_ZGVZN12_GLOBAL__N_116get_atomic_mutexEvE12atomic_mutex
+3ffc5ff0	00000004	b	_ZZN12_GLOBAL__N_116get_atomic_mutexEvE12atomic_mutex
+3ffc5ff4	00000004	b	_ZN12_GLOBAL__N_12mxE
+3ffc5ff8	00000008	b	_ZL4init
+3ffc6000	00000008	b	_ZL10eh_globals
+3ffc6008	00000010	b	_ZN12_GLOBAL__N_114emergency_poolE
+3ffc6018	00000004	b	marker$6931
+3ffc601c	00000004	b	seen_objects
+3ffc6020	00000004	b	unseen_objects
+3ffc6024	00000004	B	environ
+3ffc6028	00000004	B	registered_heaps
+3ffc602c	000001e0	B	_midid_itf
+3ffc620c		A	_bt_bss_end
+3ffc620c		A	_bt_bss_start
+3ffc620c		A	_bt_common_end
+3ffc620c		A	_bt_common_start
+3ffc620c		A	_btdm_bss_end
+3ffc620c		A	_btdm_bss_start
+3ffc620c		A	_btdm_common_end
+3ffc620c		A	_btdm_common_start
+3ffc620c		A	_nimble_bss_end
+3ffc620c		A	_nimble_bss_start
+3ffc620c		A	_nimble_common_end
+3ffc620c		A	_nimble_common_start
+3ffc6210		A	_bss_end
+3ffc6210		A	_heap_start
+3ffc6210		A	_static_data_end
+3ffffa10		A	_dram0_rtos_reserved_start
+3ffffd3c		A	SPI_flashchip_data
+3ffffd3c		A	g_rom_flashchip
+3ffffd54		A	dummy_len_plus
+3ffffd54		A	g_rom_spiflash_dummy_len_plus
+3ffffd70		A	g_ticks_per_us
+3ffffd70		A	g_ticks_per_us_pro
+3ffffd78		A	syscall_table_ptr_pro
+3ffffd80	00000004	A	_PathLocale
+3ffffd84		A	__sinit_recursive_mutex
+3ffffd88		A	__sfp_recursive_mutex
+3ffffd8c	00000004	A	_global_impure_ptr
+40000000		A	_heap_end
+40000540		A	setjmp
+400005a4		A	longjmp
+40000618	00000008	A	abs
+40000620		A	div
+40000648	00000008	A	labs
+40000650		A	ldiv
+400006f4	000002cc	A	qsort
+400012a0		A	_wcrtomb_r
+400012f4		A	wcrtomb
+40001310	000002c1	A	__sfvwrite_r
+400015bc		A	__swbuf_r
+4000167c		A	__swbuf
+40001690	000000df	A	__swsetup_r
+40001770		A	__fputwc
+400017f8		A	_fputwc_r
+40001864		A	fputwc
+400018ac	0000001c	A	_wctomb_r
+400018d0	00000025	A	__ascii_wctomb
+400018f8	00000076	A	__swhatbuf_r
+40001954	0000008b	A	__smakebuf_r
+400019dc	00000157	A	__sflush_r
+40001b30	0000008c	A	_fflush_r
+40001bb8	00000028	A	fflush
+40001bdc	00000033	A	_setlocale_r
+40001c0c	00000010	A	__locale_mb_cur_max
+40001c24		A	__locale_ctype_ptr_l
+40001c2c		A	__locale_ctype_ptr
+40001c44	00000014	A	setlocale
+4000526c		A	esp_rom_md5_init
+4000528c		A	esp_rom_md5_update
+4000530c		A	esp_rom_md5_final
+40005524		A	__mulsf3
+400055d0		A	__eqsf2
+400055d0		A	__nesf2
+400055fc		A	__gtsf2
+4000561c		A	__lesf2
+40005668		A	__gesf2
+40005688		A	__ltsf2
+400056d4		A	__unordsf2
+400056fc		A	__negdf2
+400057e8		A	__muldf3
+40005904		A	__eqdf2
+40005904		A	__nedf2
+40005938		A	__gtdf2
+40005960		A	__ledf2
+400059c4		A	__gedf2
+400059ec		A	__ltdf2
+40005a50		A	__unorddf2
+40005a7c		A	__cmpdi2
+40005a9c		A	__ucmpdi2
+40005abc		A	__clear_cache
+40005ac4		A	__absvsi2
+40005ad8		A	__absvdi2
+40005af8		A	__powisf2
+40005b40		A	__powidf2
+40005ba4		A	__mulsc3
+40005f0c		A	__muldc3
+40006544		A	__divsc3
+40006854		A	__divdc3
+40006d0c	00000026	A	__bswapsi2
+40006d34	00000056	A	__bswapdi2
+40006d90		A	__clrsbsi2
+40006da8		A	__clrsbdi2
+40006de0		A	__gcc_bcmp
+40006e18		A	__udiv_w_sdiv
+40006e20		A	__udivmoddi4
+4000788c		A	creat
+400078a0	0000000b	A	_isatty_r
+400078c8	00000012	A	bzero
+400078d8		A	isalnum
+400078e8		A	isalpha
+400078f8		A	isblank
+40007918		A	iscntrl
+40007930		A	isdigit
+40007948		A	islower
+40007968		A	isgraph
+40007980		A	isprint
+40007994		A	ispunct
+400079ac	00000012	A	isspace
+400079c4		A	isupper
+400079e0	0000001c	A	_mbtowc_r
+40007a04	00000024	A	__ascii_mbtowc
+40007a24		A	srand
+40007af4		A	rand_r
+40007b38		A	strcasecmp
+40007b7c		A	strcasestr
+40007be4	00000103	A	strcmp
+40007ce8		A	strcoll
+40007cfc	00000087	A	strcpy
+40007d84		A	strdup
+40007d98		A	_strdup_r
+40007db8	00000052	A	strlcat
+40007e08	0000005f	A	strlen
+40007e68		A	strlwr
+40007e94		A	strncasecmp
+40007f20	000000c6	A	strncpy
+40007fe8		A	strndup
+40007ffc		A	_strndup_r
+40008040	0000002d	A	strrchr
+4000806c		A	strsep
+40008084		A	strupr
+400080c4		A	open
+40008158	00000016	A	tolower
+40008174	00000016	A	toupper
+40008190		A	__negsf2
+400081b8		A	__addsf3
+400082a0		A	__subsf3
+4000841c		A	__divsf3
+400084dc		A	__fixsfsi
+4000851c		A	__fixsfdi
+4000857c		A	__fixunssfsi
+400085d4		A	__fixunssfdi
+40008660		A	__adddf3
+400087b4		A	__subdf3
+40008a24		A	__divdf3
+40008b4c		A	__fixdfsi
+40008b98		A	__fixdfdi
+40008c04		A	__fixunsdfsi
+40008c64		A	__truncdfsf2
+40008d08		A	__extendsfdf2
+40008d6c		A	__addvsi3
+40008d90		A	__addvdi3
+40008dd0		A	__subvsi3
+40008df4		A	__subvdi3
+40008e38		A	__mulvsi3
+40008e50		A	__mulvdi3
+40008f4c		A	__negvsi2
+40008f6c		A	__negvdi2
+40008fa8	00000037	A	__popcountsi2
+40008fe0		A	__popcountdi2
+40009038		A	__paritysi2
+4000d888		A	esp_rom_delay_us
+4000d888		A	ets_delay_us
+4000d8b0		A	ets_get_cpu_frequency
+4000e0c0		A	ets_efuse_read
+4000e100		A	ets_efuse_clear_program_registers
+4000e134		A	ets_efuse_program
+4000e444		A	esp_rom_efuse_get_flash_wp_gpio
+4000e444		A	ets_efuse_get_wp_pad
+4000e4a0		A	esp_rom_efuse_get_flash_gpio_info
+4000e4a0		A	ets_efuse_get_spiconfig
+4000e6f8		A	ets_efuse_rs_calculate
+4000f1d0		A	intr_matrix_set
+4000f6c4		A	main
+4000feb0		A	ets_install_putc1
+4000fed0		A	ets_install_putc2
+4000fee0		A	esp_rom_printf
+4000fee0		A	ets_printf
+4000ff58		A	esp_rom_get_reset_reason
+4000ff58		A	rtc_get_reset_reason
+400119dc		A	crc32_le
+400119dc		A	esp_rom_crc32_le
+40012b10		A	esp_rom_uart_tx_one_char
+40012b10		A	uart_tx_one_char
+40012b6c		A	esp_rom_uart_tx_wait_idle
+40012b6c		A	uart_tx_wait_idle
+40012bf0		A	esp_rom_uart_rx_one_char
+40012bf0		A	uart_rx_one_char
+400135e8		A	chip_usb_set_persist_flags
+40015b50		A	spi_dummy_len_fix
+40015b88		A	SelectSpiQIO
+40015b88		A	esp_rom_spiflash_select_qio_pins
+40016680		A	SPI_Wait_Idle
+40016680		A	esp_rom_spiflash_wait_idle
+400170a0		A	SPIClkConfig
+400170a0		A	esp_rom_spiflash_config_clk
+400177e0		A	SPI_Encrypt_Write
+400177e0		A	esp_rom_spiflash_write_encrypted
+400179e8		A	esp_rom_spi_set_op_mode
+40017ba8		A	esp_rom_spi_cmd_start
+40017c58		A	esp_rom_spi_cmd_config
+4001803c		A	Cache_Set_ICache_Mode
+40018074		A	Cache_Set_DCache_Mode
+400182e4		A	Cache_Invalidate_Addr
+400183c8		A	Cache_WriteBack_Addr
+40018420		A	Cache_Invalidate_ICache_All
+4001842c		A	Cache_Invalidate_DCache_All
+40018444		A	Cache_WriteBack_All
+40018c2c		A	Cache_Disable_ICache
+40018c68		A	Cache_Disable_DCache
+40018ca4		A	Cache_Suspend_ICache
+40018cdc		A	Cache_Resume_ICache
+40018d04		A	Cache_Suspend_DCache
+40018d3c		A	Cache_Resume_DCache
+40018d6c		A	Cache_Allocate_SRAM
+40018df4		A	Cache_Ibus_MMU_Set
+40018eb0		A	Cache_Dbus_MMU_Set
+40019430		A	esp_rom_gpio_connect_in_signal
+40019430		A	gpio_matrix_in
+40019460		A	esp_rom_gpio_connect_out_signal
+40019460		A	gpio_matrix_out
+40019510		A	esp_rom_gpio_pad_select_gpio
+40019510		A	gpio_pad_select_gpio
+40019564		A	esp_rom_gpio_pad_pullup_only
+40019564		A	gpio_pad_pullup
+4001961c		A	esp_rom_gpio_pad_unhold
+4001961c		A	gpio_pad_unhold
+4001a480	00000010	A	_cleanup_r
+4001a4c8	00000036	A	__sfmoreglue
+4001a508	0000000e	A	__sfp_lock_acquire
+4001a514	0000000e	A	__sfp_lock_release
+4001a520	0000000e	A	__sinit_lock_acquire
+4001a52c	0000000e	A	__sinit_lock_release
+4001a538	00000067	A	__sinit
+4001a590	000000b0	A	__sfp
+4001a64c	00000017	A	__fp_unlock_all
+4001a660	00000034	A	__sread
+4001a690	00000007	A	__seofread
+4001a698	00000038	A	__swrite
+4001a6cc	00000038	A	__sseek
+4001a700	00000012	A	__sclose
+4001a714	0000010c	A	_fclose_r
+4001a804	00000012	A	fclose
+4001a8c0		A	_xtos_set_intlevel
+4001aaec		A	isascii
+4001ab00		A	memccpy
+4001ab24	0000001b	A	memchr
+4001ab40	00000046	A	memcmp
+4001aba8	00000105	A	memcpy
+4001acb0	0000003f	A	memmove
+4001acec		A	memrchr
+4001ad3c	00000054	A	memset
+4001ad90	00000023	A	strcat
+4001adb0	0000001d	A	strchr
+4001adcc	0000002b	A	strcspn
+4001adf8	00000046	A	strlcpy
+4001ae34		A	strncat
+4001ae64	0000003e	A	strncmp
+4001ae9c		A	strnlen
+4001aebc		A	strspn
+4001aee8	00000036	A	strstr
+4001af18		A	__strtok_r
+4001af7c		A	strtok_r
+4001af90		A	toascii
+4001af98		A	__mulsi3
+4001afa0		A	__divsi3
+4001afa8		A	__modsi3
+4001afb0		A	__udivsi3
+4001afb8		A	__umodsi3
+4001afc0		A	__umulsidi3
+4001afd0		A	__clzsi2
+4001afd8		A	__ctzsi2
+4001afec		A	__ffssi2
+4001b000	00000018	A	__ashldi3
+4001b018		A	__ashrdi3
+4001b034	00000018	A	__lshrdi3
+4001b04c		A	__floatunsisf
+4001b058		A	__floatsisf
+4001b098		A	__floatundisf
+4001b0a8		A	__floatdisf
+4001b120		A	__floatunsidf
+4001b12c		A	__floatsidf
+4001b160		A	__floatundidf
+4001b170		A	__floatdidf
+4001b1e4		A	__muldi3
+4001b1fc		A	__negdi2
+4001b214		A	__ffsdi2
+4001b238		A	__clzdi2
+4001b24c		A	__ctzdi2
+4001b26c	000002aa	A	__divdi3
+4001b534	000002ae	A	__moddi3
+4001b7dc	0000026e	A	__udivdi3
+4001ba60	00000272	A	__umoddi3
+4001bcec	00000037	A	_fwalk
+4001bd24	0000003f	A	_fwalk_reent
+40024000		T	_WindowOverflow4
+40024000		A	_iram_start
+40024000		A	_vector_table
+40024040		T	_WindowUnderflow4
+40024050		T	_xt_alloca_exc
+40024080		T	_WindowOverflow8
+400240c0		T	_WindowUnderflow8
+40024100		T	_WindowOverflow12
+40024140		T	_WindowUnderflow12
+40024180		T	_Level2Vector
+400241c0		T	_Level3Vector
+40024200		T	_Level4Vector
+40024240		T	_Level5Vector
+40024280		T	_DebugExceptionVector
+400242c0		T	_NMIExceptionVector
+40024300		T	_KernelExceptionVector
+40024340		T	_UserExceptionVector
+400243c0		T	_DoubleExceptionVector
+40024400		T	_init
+40024400		A	_invalid_pc_placeholder
+40024403		A	_init_end
+40024404		T	_coredump_iram_end
+40024404		T	_coredump_iram_start
+40024404		A	_iram_text_start
+40025050	00000055	t	usb_persist_shutdown_handler
+400250a8	00000096	T	esp_ota_get_app_elf_sha256
+40025140	000001b8	T	bootloader_flash_execute_command_common
+400252f8	00000020	T	bootloader_execute_flash_command
+40025318	0000002a	T	bootloader_read_flash_id
+40025344	00000060	t	spi_flash_mmap_init
+400253a4	00000024	t	get_mmu_region
+400253c8	0000001a	t	spi_flash_protected_read_mmu_entry
+400253e4	0000005e	t	is_page_mapped_in_cache$constprop$0
+40025444	000001c7	T	spi_flash_mmap_pages
+4002560c	00000067	T	spi_flash_mmap
+40025674	00000089	T	spi_flash_munmap
+40025700	00000049	T	spi_flash_mmap_get_free_pages
+4002574c	00000051	T	spi_flash_check_and_flush_cache
+400257a0	00000014	t	spi_flash_os_yield
+400257b4	0000000a	T	spi_flash_guard_set
+400257c0	00000046	T	spi_flash_read_encrypted
+40025808	00000040	t	flash_end_flush_cache
+40025848	00000072	t	spi_flash_translate_rc
+400258bc	00000065	t	detect_spi_flash_chip
+40025924	00000060	t	read_id_core
+40025984	00000058	T	esp_flash_get_physical_size
+400259dc	000000ee	T	esp_flash_init_main
+40025acc	000001f6	T	esp_flash_erase_region
+40025cc4	00000102	T	esp_flash_read
+40025dc8	0000012e	T	esp_flash_write
+40025ef8	0000017c	T	esp_flash_write_encrypted
+40026074	00000017	T	spi_flash_read
+4002608c	0000000a	t	release_buffer_malloc
+40026098	00000045	t	get_buffer_malloc
+400260e0	00000010	t	delay_us
+400260f0	00000040	t	spi1_flash_os_check_yield
+40026130	0000001e	t	main_flash_region_protected
+40026150	0000000e	t	cache_enable$isra$1
+40026160	0000000e	t	cache_disable$isra$2
+40026170	0000000a	t	spi1_start
+4002617c	00000016	t	spi1_flash_os_yield
+40026194	00000011	t	spi1_end
+400261a8	00000010	t	delay_us
+400261b8	0000001e	t	end
+400261d8	00000017	t	start
+400261f0	00000011	T	esp_flash_app_disable_os_functions
+40026204	0000000d	T	spi_flash_disable_cache
+40026214	00000018	T	spi_flash_disable_interrupts_caches_and_other_cpu
+4002622c	00000012	T	spi_flash_disable_interrupts_caches_and_other_cpu_no_os
+40026240	0000000e	T	spi_flash_restore_cache
+40026250	0000001a	T	spi_flash_enable_interrupts_caches_and_other_cpu
+4002626c	00000014	T	spi_flash_enable_interrupts_caches_no_os
+40026280	00000010	T	spi_flash_cache_enabled
+40026290	00000034	T	esp_config_instruction_cache_mode
+400262c4	0000000f	T	spi_flash_enable_cache
+400262d4	00000044	t	pthread_mutex_lock_internal
+40026318	00000028	T	pthread_mutex_lock
+40026340	00000055	T	pthread_mutex_unlock
+40026398	00000024	T	esp_restart_noos_dig
+400263bc	00000033	T	esp_restart
+400263f0	00000009	T	__stack_chk_fail
+400263fc	00000122	T	call_start_cpu0
+40026520		T	xt_highint4
+40026595		T	ld_include_highint_hdl
+40026598	0000002e	T	esp_reset_reason_set_hint
+400265c8	0000001c	T	esp_reset_reason_get_hint
+400265e4	0000011b	T	esp_restart_noos
+40026700	00000022	T	esp_cache_err_get_cpuid
+40026724	00000022	t	esp_ptr_executable
+40026748	00000029	t	esp_stack_ptr_is_sane
+40026774	00000019	t	print_str
+40026790	0000003d	T	esp_backtrace_get_next_frame
+400267d0	0000014c	T	esp_backtrace_print_from_frame
+4002691c	00000028	T	esp_backtrace_print
+40026944		T	esp_backtrace_get_start
+40026964	00000019	T	esp_vApplicationTickHook
+40026980	0000001a	T	panic_abort
+4002699c	0000001e	t	__esp_system_init_fn_init_components0
+400269bc	00000010	t	panic_enable_cache
+400269cc	00000012	T	panicHandler
+400269e0	00000012	T	xt_unhandled_exception
+400269f4	00000056	T	esp_rom_uart_set_clock_baudrate
+40026a4c	0000001f	T	efuse_hal_chip_revision
+40026a6c	00000027	T	efuse_hal_flash_encryption_enabled
+40026a94	00000011	T	efuse_hal_get_major_chip_version
+40026aa8	0000001f	T	efuse_hal_get_minor_chip_version
+40026ac8	00000016	t	heap_caps_alloc_failed
+40026ae0	00000021	t	find_containing_heap
+40026b04	000000e4	t	heap_caps_malloc_base
+40026be8	00000020	T	heap_caps_malloc
+40026c08	0000004f	T	heap_caps_malloc_default
+40026c58	00000036	T	heap_caps_free
+40026c90	000000ec	t	heap_caps_realloc_base
+40026d7c	0000001e	T	heap_caps_realloc
+40026d9c	00000057	T	heap_caps_realloc_default
+40026df4	00000032	T	heap_caps_calloc
+40026e28	00000017	T	esp_cpu_reset
+40026e40	0000004d	T	esp_cpu_set_watchpoint
+40026e90	0000000e	T	esp_cpu_in_ocd_debug_mode
+40026ea0	00000010	T	esp_clk_cpu_freq
+40026eb0	00000018	T	esp_clk_apb_freq
+40026ec8	0000000a	T	ets_update_cpu_frequency
+40026ed4	0000003a	T	esp_random
+40026f10	0000003d	t	shared_intr_isr
+40026f50	00000044	T	esp_intr_noniram_disable
+40026f94	00000034	T	esp_intr_noniram_enable
+40026fc8	0000006f	T	esp_intr_enable
+40027038	000000ab	T	esp_intr_disable
+400270e4	0000003a	T	regi2c_ctrl_read_reg_mask
+40027120	00000034	T	regi2c_ctrl_write_reg
+40027154	0000003a	T	regi2c_ctrl_write_reg_mask
+40027190	00000130	T	esp_memprot_get_active_intr_memtype
+400272c0	0000010e	T	esp_memprot_get_fault_status
+400273d0	0000003c	T	esp_memprot_type_to_str
+4002740c	00000012	T	xt_unhandled_interrupt
+40027420	00000017	t	timer_list_lock
+40027438	0000006a	t	timer_insert
+400274a4	00000013	t	timer_list_unlock
+400274b8	00000022	t	timer_alarm_handler
+400274dc	0000001f	T	esp_system_get_time
+400274fc	00000026	t	timer_alarm_isr
+40027524	00000020	T	esp_timer_get_time
+40027524	00000020	T	esp_timer_impl_get_time
+40027544	0000004a	T	esp_timer_impl_set_alarm_id
+40027590	0000000d	T	esp_timer_impl_update_apb_freq
+40027590	0000000d	T	esp_timer_private_update_apb_freq
+400275a0	00000013	T	xPortInterruptedFromISRContext
+400275b4	0000002a	T	vPortEvaluateYieldFromISR
+400275e0		t	_xt_kernel_exc
+400275f0		t	_xt_to_alloca_exc
+400275f8		t	_xt_to_syscall_exc
+400275fc		t	_xt_user_exc
+4002768c		T	_xt_user_exit
+400276a0		t	_xt_syscall_exc
+400276d0		t	_xt_lowint1
+4002776c		t	_xt_medint2
+40027804		T	_xt_medint2_exit
+40027818		t	_xt_medint3
+400278b0		T	_xt_medint3_exit
+400278c4		t	_xt_debugexception
+400278c4		W	xt_debugexception
+400278dc		t	_xt_highint4
+400278e4		t	_xt_highint5
+400278e4		W	xt_highint5
+400278ec		T	_xt_nmi
+400278ec		W	xt_nmi
+400278f4	00000028	t	lock_init_generic
+4002791c	00000092	t	lock_acquire_generic
+400279b0	00000017	t	check_lock_nonzero
+400279c8	00000058	t	lock_release_generic
+40027a20	00000013	T	_lock_init
+40027a34	00000013	T	_lock_init_recursive
+40027a48	0000003a	T	_lock_close
+40027a48	0000003a	T	_lock_close_recursive
+40027a84	0000000e	T	_lock_acquire
+40027a94	0000000e	T	_lock_acquire_recursive
+40027aa4	00000010	T	_lock_try_acquire
+40027ab4	00000010	T	_lock_try_acquire_recursive
+40027ac4	0000000f	T	_lock_release
+40027ad4	0000000f	T	_lock_release_recursive
+40027ae4	00000013	T	__retarget_lock_init_recursive
+40027af8	0000000f	T	__retarget_lock_close_recursive
+40027b08	00000013	T	__retarget_lock_acquire_recursive
+40027b1c	00000013	T	__retarget_lock_release
+40027b30	00000013	T	__retarget_lock_release_recursive
+40027b44	00000037	T	esp_reent_init
+40027b7c	00000054	t	_gettimeofday_r$part$0
+40027bd0	0000000e	T	_gettimeofday_r
+40027be0	00000020	T	_times_r
+40027c00	00000029	t	esp_stack_ptr_is_sane
+40027c2c	0000003a	t	esp_crosscore_isr
+40027c68	00000046	t	esp_crosscore_int_send
+40027cb0	0000000f	T	esp_crosscore_int_send_yield
+40027cc0	00000032	t	tick_hook
+40027cf4		T	_xt_panic
+40027d38	00000005	T	esp_mspi_pin_init
+40027d40	00000007	T	spi_flash_init_chip_state
+40027d48	0000002a	t	spiflash_start_default
+40027d74	00000018	t	spiflash_end_default
+40027d8c	00000005	W	_Unwind_SetNoFunctionContextInstall
+40027d8c	00000005	t	_Unwind_SetNoFunctionContextInstall_Default
+40027d94	00000033	T	esp_cpu_configure_region_protection
+40027dc8	00000097	t	i2c_rtc_enable_block
+40027e60	00000067	T	i2c_rtc_read_reg_mask
+40027ec8	00000038	T	i2c_rtc_write_reg
+40027f00	000000aa	T	i2c_rtc_write_reg_mask
+40027fac	00000082	T	rtc_clk_32k_enable_internal
+40028030	0000005e	T	rtc_clk_32k_enable
+40028090	00000085	T	rtc_clk_8m_enable
+40028118	00000015	T	rtc_clk_8m_enabled
+40028130	00000015	T	rtc_clk_8md256_enabled
+40028148	00000060	T	rtc_clk_slow_freq_set
+400281a8	00000010	T	rtc_clk_slow_freq_get
+400281b8	00000026	T	rtc_clk_slow_freq_get_hz
+400281e0	0000002c	T	rtc_clk_fast_freq_set
+4002820c	00000118	T	rtc_clk_bbpll_configure
+40028324	000000a6	T	rtc_clk_cpu_freq_get_config
+400283cc	00000113	t	rtc_clk_cpu_freq_to_pll_mhz
+400284e0	00000019	T	rtc_clk_apb_freq_update
+400284fc	00000092	T	rtc_clk_cpu_freq_to_xtal
+40028590	00000086	T	rtc_clk_cpu_freq_set_config
+40028618	00000032	T	rtc_clk_cpu_freq_set_config_fast
+4002864c	0000000f	T	rtc_clk_cpu_freq_set_xtal
+4002865c	0000002a	T	rtc_clk_apb_freq_get
+40028688	0000004d	T	rtc_clk_cpu_freq_mhz_to_config
+400286d8	00000007	T	rtc_clk_xtal_freq_get
+400286d8	00000007	T	rtc_get_xtal
+400286e0	0000015f	T	rtc_sleep_pd
+40028840	00000283	T	rtc_clk_cal_internal
+40028ac4	000000c6	T	rtc_clk_cal
+40028b8c	0000001f	T	rtc_time_us_to_slowclk
+40028bac	00000028	T	rtc_time_get
+40028bd4	00000096	t	prvGetItemByteBuf
+40028c6c	000000ec	t	prvReturnItemDefault
+40028d58	000000f1	t	prvGetItemDefault
+40028e4c	00000087	t	prvAcquireItemNoSplit
+40028ed4	000000d9	t	prvSendItemDoneNoSplit
+40028fb0	00000087	t	prvCheckItemFitsDefault
+40029038	00000098	t	prvInitializeNewRingbuffer
+400290d0	00000076	t	prvCopyItemByteBuf
+40029148	000000c5	t	prvCopyItemAllowSplit
+40029210	00000020	t	prvCopyItemNoSplit
+40029230	000000f4	t	prvReceiveGeneric
+40029324	000000b1	t	prvReceiveGenericFromISR
+400293d8	0000003a	t	prvReturnItemByteBuf
+40029414	0000004c	t	prvCheckItemFitsByteBuffer
+40029460	0000002e	t	prvGetFreeSize
+40029490	00000093	T	xRingbufferCreate
+40029524	000000d3	T	xRingbufferSend
+400295f8	0000009f	T	xRingbufferSendFromISR
+40029698	0000003a	T	xRingbufferReceive
+400296d4	00000036	T	xRingbufferReceiveFromISR
+4002970c	00000052	T	xRingbufferReceiveUpTo
+40029760	0000004e	T	vRingbufferReturnItem
+400297b0	0000004a	T	vRingbufferReturnItemFromISR
+400297fc	00000034	T	vRingbufferDelete
+40029830	00000019	T	xRingbufferGetMaxItemSize
+4002984c	0000002a	t	prvCheckItemAvail
+40029878	00000035	t	prvGetCurMaxSizeNoSplit
+400298b0	00000046	t	prvGetCurMaxSizeAllowSplit
+400298f8	0000001c	t	prvGetCurMaxSizeByteBuf
+40029914	0000005a	t	esp_error_check_failed_print
+40029970	00000016	T	_esp_error_check_failed
+40029988	00000008	T	esp_system_abort
+40029990	00000005	T	__ubsan_include
+40029998		T	_frxt_setup_switch
+400299b0		T	_frxt_int_enter
+400299f4		T	_frxt_int_exit
+40029a44		T	_frxt_timer_int
+40029a6c		T	_frxt_tick_timer_init
+40029a88		T	_frxt_dispatch
+40029abc		T	vPortYield
+40029afc		T	vPortYieldFromInt
+40029b04		T	_xt_context_save
+40029b98		T	_xt_context_restore
+40029bcc	0000001c	T	_xt_tick_divisor_init
+40029be8	0000000b	T	vPortSetupTimer
+40029bf4	00000013	T	xPortSysTickHandler
+40029c08	00000023	t	prvIsQueueEmpty
+40029c2c	0000007e	t	prvCopyDataToQueue
+40029cac	0000008a	t	prvNotifyQueueSetContainer
+40029d38	00000023	t	prvCopyDataFromQueue
+40029d5c	000000a4	t	prvUnlockQueue
+40029e00	0000007f	T	xQueueGenericReset
+40029e80	000000a3	T	xQueueGenericCreateStatic
+40029f24	00000072	T	xQueueGenericCreate
+40029f98	00000025	T	xQueueGetMutexHolder
+40029fc0	0000003d	T	xQueueCreateCountingSemaphore
+4002a000	00000188	T	xQueueGenericSend
+4002a188	00000028	T	xQueueCreateMutexStatic
+4002a1b0	00000038	T	xQueueGiveMutexRecursive
+4002a1e8	00000024	T	xQueueCreateMutex
+4002a20c	000000e2	T	xQueueGenericSendFromISR
+4002a2f0	000000d4	T	xQueueGiveFromISR
+4002a3c4	0000013c	T	xQueueReceive
+4002a500	0000017c	T	xQueueSemaphoreTake
+4002a67c	00000040	T	xQueueTakeMutexRecursive
+4002a6bc	00000138	T	xQueuePeek
+4002a7f4	000000b4	T	xQueueReceiveFromISR
+4002a8a8	0000002c	T	uxQueueMessagesWaiting
+4002a8d4	00000032	T	uxQueueSpacesAvailable
+4002a908	00000023	T	vQueueDelete
+4002a92c	0000002e	t	prvResetNextTaskUnblockTime
+4002a95c	00000027	t	prvDeleteTLS
+4002a984	000000b6	t	prvInitialiseNewTask$isra$3
+4002aa3c	00000035	t	prvDeleteTCB
+4002aa74	000000a0	t	prvIdleTask
+4002ab14	00000115	t	prvAddNewTaskToReadyList$isra$6
+4002ac2c	000000a8	t	prvAddCurrentTaskToDelayedList$constprop$9
+4002acd4	00000022	T	taskYIELD_OTHER_CORE
+4002acf8	000000bb	T	xTaskCreateStaticPinnedToCore
+4002adb4	00000056	T	xTaskCreatePinnedToCore
+4002ae0c	0000001e	T	vTaskSuspendAll
+4002ae2c	0000000d	T	xTaskGetTickCount
+4002ae3c	00000016	T	xTaskGetTickCountFromISR
+4002ae54	00000026	T	pcTaskGetName
+4002ae7c	0000016f	T	xTaskIncrementTick
+4002afec	000000eb	T	vTaskSwitchContext
+4002b0d8	00000125	T	vTaskSuspend
+4002b200	0000003e	T	vTaskPlaceOnEventList
+4002b240	000000f6	T	xTaskRemoveFromEventList
+4002b338	00000019	T	vTaskInternalSetTimeOutState
+4002b354	000000a1	T	xTaskCheckForTimeOut
+4002b3f8	0000000f	T	vTaskMissedYield
+4002b408	0000002e	T	vTaskSetThreadLocalStoragePointerAndDelCallback
+4002b438	00000022	T	pvTaskGetThreadLocalStoragePointer
+4002b45c	00000012	T	xTaskGetAffinity
+4002b470	00000016	T	xTaskGetCurrentTaskHandle
+4002b488	00000012	T	__getreent
+4002b49c	0000001a	T	xTaskGetCurrentTaskHandleForCPU
+4002b4b8	0000002c	T	xTaskGetSchedulerState
+4002b4e4	000000e0	T	vTaskDelete
+4002b5c4	00000038	T	vTaskDelay
+4002b5fc	0000016a	T	xTaskResumeAll
+4002b768	000000d2	T	xTaskPriorityInherit
+4002b83c	000000d3	T	xTaskPriorityDisinherit
+4002b910	000000c7	T	vTaskPriorityDisinheritAfterTimeout
+4002b9d8	00000033	T	pvTaskIncrementMutexHeldCount
+4002ba0c	0000009e	T	ulTaskGenericNotifyTake
+4002baac	000000ee	T	vTaskGenericNotifyGiveFromISR
+4002bb9c	00000012	T	pxListGetReadyTask
+4002bbb0	00000012	T	pxListGetReadyPendingTask
+4002bbc4	0000000d	T	pxGetDelayedTaskList
+4002bbd4	0000000d	T	pxGetOverflowDelayedTaskList
+4002bbe4	00000008	T	pxGetTasksWaitingTermination
+4002bbec	00000008	T	pxGetSuspendedTaskList
+4002bbf4	00000072	T	vTaskStartScheduler
+4002bc68	0000002f	T	vTaskGetSnapshot
+4002bc98	000000f7	T	pxTaskGetNext
+4002bd90	00000007	T	pxTCBGetStateListItem
+4002bd98	00000007	T	pxTCBGetTopOfStack
+4002bda0	00000008	T	pxTCBGetEndOfStack
+4002bda8	00000007	W	xTimerCreateTimerTask
+4002bdb0	00000018	T	vListInitialise
+4002bdc8	00000009	T	vListInitialiseItem
+4002bdd4	00000021	T	vListInsertEnd
+4002bdf8	00000032	T	vListInsert
+4002be2c	0000002b	T	uxListRemove
+4002be58	0000001a	T	xPortStartScheduler
+4002be74	00000075	T	pxPortInitialiseStack
+4002beec	0000001c	T	xPortInIsrContext
+4002bf08	0000001c	T	xPortEnterCriticalTimeout
+4002bf24	0000001e	T	vPortExitCritical
+4002bf44	0000000a	T	vPortYieldOtherCore
+4002bf50	00000045	W	vApplicationStackOverflowHook
+4002bf98	0000001a	T	vPortSetStackWatchpoint
+4002bfb4	0000003e	T	esp_startup_start_app_common
+4002bff4	00000045	T	xPortCheckValidTCBMem
+4002c03c	0000000c	T	xPortcheckValidStackMem
+4002c048	00000043	T	vApplicationGetIdleTaskMemory
+4002c08c	0000001e	T	__xtensa_libgcc_window_spill
+4002c0ac	00000040	T	__xtensa_nonlocal_goto
+4002c0ec	00000008	T	__xtensa_sync_caches
+4002c0f4	00000059	T	cpu_hal_set_watchpoint
+4002c150	00000022	T	cpu_hal_set_breakpoint
+4002c174	00000008	T	cpu_hal_set_vecbase
+4002c17c	00000045	T	spi_flash_encryption_hal_enable
+4002c1c4	00000017	T	spi_flash_encryption_hal_disable
+4002c1dc	00000034	T	spi_flash_encryption_hal_prepare
+4002c210	00000022	T	spi_flash_encryption_hal_done
+4002c234	0000000f	T	spi_flash_encryption_hal_destroy
+4002c244	00000011	T	spi_flash_encryption_hal_check
+4002c258	00000055	t	gpspi_flash_ll_get_buffer_data
+4002c2b0	0000013b	T	spi_flash_hal_gpspi_device_config
+4002c3ec	000002a5	T	spi_flash_hal_gpspi_configure_host_io_mode
+4002c694	00000195	T	spi_flash_hal_gpspi_common_command
+4002c82c	000000ac	T	spi_flash_hal_gpspi_read
+4002c8d8	0000000f	T	spi_flash_hal_gpspi_poll_cmd_done
+4002c8e8	00000007	T	spi_flash_hal_gpspi_supports_direct_write
+4002c8f0	00000007	T	spi_flash_hal_gpspi_supports_direct_read
+4002c8f8	00000019	T	spi_flash_hal_gpspi_check_status
+4002c914	0000003e	t	spimem_flash_ll_set_buffer_data
+4002c954	00000054	t	spimem_flash_ll_get_buffer_data
+4002c9a8	00000260	T	spi_flash_hal_configure_host_io_mode
+4002cc08	00000130	T	spi_flash_hal_common_command
+4002cd38	00000082	T	spi_flash_hal_read
+4002cdbc	00000026	T	spi_flash_hal_erase_chip
+4002cde4	0000005e	T	spi_flash_hal_erase_sector
+4002ce44	00000057	T	spi_flash_hal_erase_block
+4002ce9c	00000074	T	spi_flash_hal_program_page
+4002cf10	0000002c	T	spi_flash_hal_set_write_protect
+4002cf3c	00000013	T	spi_flash_hal_setup_read_suspend
+4002cf50	00000053	T	spi_flash_hal_setup_auto_suspend_mode
+4002cfa4	00000053	T	spi_flash_hal_disable_auto_suspend_mode
+4002cff8	000000ea	T	spi_flash_hal_device_config
+4002d0e4	0000000f	T	spi_flash_hal_poll_cmd_done
+4002d0f4	00000029	T	spi_flash_hal_check_status
+4002d120	00000018	T	spi_flash_hal_resume
+4002d138	00000018	T	spi_flash_hal_suspend
+4002d150	00000040	T	systimer_hal_init
+4002d190	00000039	T	systimer_hal_get_counter_value
+4002d1cc	000000e6	T	systimer_hal_set_alarm_target
+4002d2b4	0000003d	T	systimer_hal_select_alarm_mode
+4002d2f4	00000043	T	systimer_hal_set_steps_per_tick
+4002d338	00000037	T	systimer_hal_on_apb_freq_update
+4002d370	0000001e	T	systimer_hal_enable_alarm_int
+4002d390	00000005	T	systimer_hal_enable_counter
+4002d398	00000005	T	systimer_hal_connect_alarm_counter
+4002d3a0	0000025b	T	wdt_hal_init
+4002d5fc	00000150	T	wdt_hal_config_stage
+4002d74c	0000001d	T	wdt_hal_write_protect_disable
+4002d76c	00000046	T	wdt_hal_enable
+4002d7b4	0000002f	T	wdt_hal_disable
+4002d7e4	0000004a	T	wdt_hal_handle_intr
+4002d830	00000028	T	wdt_hal_feed
+4002d858	00000043	T	wdt_hal_set_flashboot_en
+4002d89c	0000001c	T	wdt_hal_write_protect_enable
+4002d8b8	0000001d	T	wdt_hal_is_enabled
+4002d8d8	00000007	T	tlsf_alloc_overhead
+4002d8e0	00000016	T	tlsf_block_size
+4002d8f8	00000018	T	tlsf_block_size_max
+4002d910	000002e8	T	tlsf_free
+4002dbf8	0000000d	T	tlsf_get_pool
+4002dc08	000002ea	T	tlsf_malloc
+4002def4	00000395	T	tlsf_realloc
+4002e28c	0000000a	T	tlsf_size
+4002e298	00000025	t	assert_valid_block
+4002e2c0	00000046	T	multi_heap_free_impl
+4002e308	0000000c	T	multi_heap_get_allocated_size_impl
+4002e314	0000000e	T	multi_heap_internal_lock
+4002e324	0000000c	T	multi_heap_internal_unlock
+4002e330	00000055	T	multi_heap_malloc_impl
+4002e388	0000006e	T	multi_heap_realloc_impl
+4002e3f8	00000007	T	multi_heap_set_lock
+4002e400	00000034	T	multi_heap_free
+4002e434	00000034	T	multi_heap_get_allocated_size
+4002e468	0000002d	T	multi_heap_malloc
+4002e498	0000006a	T	multi_heap_realloc
+4002e504	0000003b	t	poison_allocated_region
+4002e540	0000005f	t	verify_allocated_region
+4002e5a0	0000001f	T	esp_log_early_timestamp
+4002e5c0	00000023	T	esp_log_impl_lock
+4002e5e4	00000032	T	esp_log_impl_lock_timeout
+4002e618	0000001b	T	esp_log_impl_unlock
+4002e634	0000003b	T	esp_log_timestamp
+4002e670	00000094	T	abort
+4002e704	00000100	T	__assert_func
+4002e804	00000005	T	newlib_include_assert_impl
+4002e80c	0000000c	T	malloc
+4002e80c	0000000c	T	pvalloc
+4002e80c	0000000c	T	valloc
+4002e818	00000011	T	realloc
+4002e82c	0000000a	T	cfree
+4002e82c	0000000a	T	free
+4002e838	0000000c	T	_malloc_r
+4002e844	0000000a	T	_free_r
+4002e850	00000011	T	_realloc_r
+4002e864	00000023	T	_calloc_r
+4002e888	00000014	T	calloc
+4002e89c	00000005	T	newlib_include_heap_impl
+4002e8a4	00000035	T	memspi_host_read_status_hs
+4002e8dc	00000023	T	memspi_host_erase_chip
+4002e900	0000002c	T	memspi_host_set_write_protect
+4002e92c	00000019	T	memspi_host_flush_cache
+4002e948	00000080	T	memspi_host_read_id_hs
+4002e9c8	0000003e	T	memspi_host_erase_sector
+4002ea08	0000003e	T	memspi_host_erase_block
+4002ea48	00000047	T	memspi_host_program_page
+4002ea90	0000001d	T	memspi_host_init_pointers
+4002eab0	0000003a	T	memspi_host_write_data_slicer
+4002eaec	0000002a	T	memspi_host_read_data_slicer
+4002eb18	0000001f	T	spi_flash_chip_boya_probe
+4002eb38	00000007	T	spi_flash_chip_boya_get_caps
+4002eb40	00000034	T	spi_flash_chip_gd_detect_size
+4002eb74	0000001c	T	spi_flash_chip_gd_get_io_mode
+4002eb90	0000001f	T	spi_flash_chip_gd_probe
+4002ebb0	00000037	T	spi_flash_chip_gd_set_io_mode
+4002ebe8	00000017	T	spi_flash_chip_gd_get_caps
+4002ec00	00000043	T	spi_flash_chip_generic_detect_size
+4002ec44	00000106	T	spi_flash_chip_generic_config_host_io_mode
+4002ed4c	00000030	t	spi_flash_common_write_qe_sr
+4002ed7c	00000015	T	spi_flash_common_write_status_16b_wrsr
+4002ed94	000000c3	T	spi_flash_chip_generic_read
+4002ee58	000000ba	T	spi_flash_chip_generic_write
+4002ef14	00000046	T	spi_flash_chip_generic_yield
+4002ef5c	00000089	T	spi_flash_chip_generic_read_unique_id
+4002efe8	00000055	T	spi_flash_chip_generic_reset
+4002f040	000000a3	T	spi_flash_chip_generic_write_encrypted
+4002f0e4	00000038	T	spi_flash_chip_generic_get_write_protect
+4002f11c	00000055	T	spi_flash_chip_generic_suspend_cmd_conf
+4002f174	00000030	t	spi_flash_common_read_qe_sr$constprop$5
+4002f1a4	00000030	T	spi_flash_common_read_status_16b_rdsr_rdsr2
+4002f1d4	00000010	T	spi_flash_common_read_status_8b_rdsr2
+4002f1e4	0000001c	T	spi_flash_chip_generic_get_io_mode
+4002f200	00000010	T	spi_flash_common_read_status_8b_rdsr
+4002f210	00000015	T	spi_flash_common_write_status_8b_wrsr
+4002f228	00000015	T	spi_flash_common_write_status_8b_wrsr2
+4002f240	00000018	T	spi_flash_chip_generic_set_io_mode
+4002f258	00000007	T	spi_flash_chip_generic_probe
+4002f260	00000069	T	spi_flash_chip_generic_erase_chip
+4002f2cc	0000006d	T	spi_flash_chip_generic_erase_sector
+4002f33c	0000006d	T	spi_flash_chip_generic_erase_block
+4002f3ac	00000065	T	spi_flash_chip_generic_page_program
+4002f414	00000052	T	spi_flash_chip_generic_set_write_protect
+4002f468	00000012	T	spi_flash_chip_generic_read_reg
+4002f47c	00000080	T	spi_flash_chip_generic_wait_idle
+4002f4fc	00000019	T	spi_flash_chip_generic_get_caps
+4002f518	00000008	T	spi_flash_chip_generic_read_unique_id_none
+4002f520	0000008a	T	spi_flash_common_set_io_mode
+4002f5ac	0000001f	T	spi_flash_chip_issi_probe
+4002f5cc	00000014	T	spi_flash_chip_issi_set_io_mode
+4002f5e0	0000001c	T	spi_flash_chip_issi_get_io_mode
+4002f5fc	00000007	T	spi_flash_chip_issi_get_caps
+4002f604	0000001c	T	spi_flash_chip_mxic_probe
+4002f620	00000007	T	spi_flash_chip_mxic_get_caps
+4002f628	0000001f	T	spi_flash_chip_th_probe
+4002f648	00000007	T	spi_flash_chip_th_get_caps
+4002f650	000000d3	T	spi_flash_chip_winbond_read
+4002f724	00000062	T	spi_flash_chip_winbond_page_program
+4002f788	00000087	T	spi_flash_chip_winbond_erase_sector
+4002f810	0000008b	T	spi_flash_chip_winbond_erase_block
+4002f89c	00000018	T	spi_flash_chip_winbond_probe
+4002f8b4	00000017	T	spi_flash_chip_winbond_get_caps
+4002f8cc		T	xthal_spill_registers_into_stack_nw
+4002f8cc	00000111	T	xthal_window_spill_nw
+4002f9e0	00000023	T	xthal_window_spill
+4002fa04	00000008	T	xthal_set_intclear
+4002fa0c	00000007	T	xthal_restore_extra_nw
+4002fa14	00000007	T	xthal_save_extra_nw
+4002fa1c	00000018	T	xt_ints_on
+4002fa34	0000001b	T	xt_ints_off
+4002fa60		A	_iram_end
+4002fa60		A	_iram_text_end
+40070000		?	_rtc_code_end
+40070000		?	_rtc_code_start
+40070000		A	_rtc_text_end
+40070000		A	_rtc_text_start
+40080020		A	_instruction_reserved_start
+40080020		T	_stext
+40080020		A	_text_start
+40081750	0000005b	T	_Z5setupv
+400817ac	0000000e	t	_GLOBAL__sub_I__Z5setupv
+400817bc	0000000b	t	_GLOBAL__sub_D__Z5setupv
+400817c8	0000007f	T	_Z4loopv
+40081848	0000008d	T	_ZN14HardwareSerial14_uartEventTaskEPv
+400818d8	0000000c	T	_ZN14HardwareSerial9availableEv
+400818e4	0000000c	T	_ZN14HardwareSerial17availableForWriteEv
+400818f0	0000001e	T	_ZN14HardwareSerial4peekEv
+40081910	00000020	T	_ZN14HardwareSerial4readEv
+40081930	0000001c	T	_ZN14HardwareSerial9readBytesEPhj
+4008194c	0000000a	T	_ZN14HardwareSerial5flushEv
+40081958	00000012	T	_ZN14HardwareSerial5writeEh
+4008196c	00000010	T	_ZN14HardwareSerial5writeEPKhj
+4008197c	00000077	T	_ZN14HardwareSerialC1Eh
+4008197c	00000077	T	_ZN14HardwareSerialC2Eh
+400819f4	0000001f	T	_ZN14HardwareSerial16_createEventTaskEPv
+40081a14	00000012	T	_ZN14HardwareSerial17_destroyEventTaskEv
+40081a28	000001a8	T	_ZN14HardwareSerial5beginEmjaabmh
+40081bd0	0000005c	T	_ZN14HardwareSerial3endEv
+40081c2c	00000024	T	_ZN14HardwareSerialD1Ev
+40081c2c	00000024	T	_ZN14HardwareSerialD2Ev
+40081c50	00000012	T	_ZN14HardwareSerialD0Ev
+40081c64	00000017	t	_GLOBAL__sub_I_Serial0
+40081c7c	00000011	t	_GLOBAL__sub_D_Serial0
+40081c90	00000024	W	_Z14serialEventRunv
+40081cb4	0000001e	W	_ZN5Print5writeEPKc
+40081cd4	0000009a	T	_ZN5Print6printfEPKcz
+40081d70	00000012	T	_ZN5Print7printlnEv
+40081d84	00000018	T	_ZN5Print7printlnEPKc
+40081d9c	0000002a	T	_ZN6Stream9timedReadEv
+40081dc8	0000001f	T	_ZN6Stream9readBytesEPcj
+40081de8	0000003d	T	_ZN6Stream10readStringEv
+40081e28	00000114	t	_ZL19load_cdc_descriptorPhS_
+40081f3c	0000001c	T	_ZN6USBCDC9availableEv
+40081f58	0000002a	T	_ZN6USBCDC4readEv
+40081f84	00000025	T	_ZN6USBCDC4peekEv
+40081fac	00000030	T	_ZN6USBCDC5flushEv
+40081fdc	0000003a	T	_ZN6USBCDC17availableForWriteEv
+40082018	000000b7	T	_ZN6USBCDC5writeEPKhj
+400820d0	0000004e	T	_ZN6USBCDCC1Eh
+400820d0	0000004e	T	_ZN6USBCDCC2Eh
+40082120	0000008e	T	_ZN6USBCDC15setRxBufferSizeEj
+400821b0	0000002f	T	_ZN6USBCDC5beginEm
+400821e0	0000002c	T	_ZN6USBCDC3endEv
+4008220c	00000012	T	_ZN6USBCDCD1Ev
+4008220c	00000012	T	_ZN6USBCDCD2Ev
+40082220	00000012	T	_ZN6USBCDCD0Ev
+40082234	00000027	T	_ZN6USBCDC12_onUnpluggedEv
+4008225c	0000000a	t	_ZL16usb_unplugged_cbPvPKciS_
+40082268	000000cf	T	_ZN6USBCDC12_onLineStateEbb
+40082338	00000023	W	tud_cdc_line_state_cb
+4008235c	0000005f	T	_ZN6USBCDC13_onLineCodingEjhhh
+400823bc	00000044	W	tud_cdc_line_coding_cb
+40082400	0000007a	T	_ZN6USBCDC5_onRXEv
+4008247c	0000001b	W	tud_cdc_rx_cb
+40082498	00000018	T	_ZN6USBCDC5_onTXEv
+400824b0	0000001b	W	tud_cdc_tx_complete_cb
+400824cc	0000000d	t	_GLOBAL__sub_I_ARDUINO_USB_CDC_EVENTS
+400824dc	0000000b	t	_GLOBAL__sub_D_ARDUINO_USB_CDC_EVENTS
+400824e8	0000001e	W	_ZN6String4initEv
+40082508	00000018	T	_ZN6String10invalidateEv
+40082520	0000000a	T	_ZN6StringD1Ev
+40082520	0000000a	T	_ZN6StringD2Ev
+4008252c	00000102	T	_ZN6String12changeBufferEj
+40082630	00000049	T	_ZN6String7reserveEj
+4008267c	00000037	T	_ZN6String4copyEPKcj
+400826b4	00000020	T	_ZN6StringC1EPKc
+400826b4	00000020	T	_ZN6StringC2EPKc
+400826d4	0000002d	T	_ZN6StringaSERKS_
+40082704	00000024	T	_ZN6StringaSEPKc
+40082728	0000005e	T	_ZN6String6concatEPKcj
+40082788	00000018	T	_ZN6String6concatEc
+400827a0	00000052	T	_ZNK6String6equalsEPKc
+400827f4	00000026	T	_ZNK6StringixEj
+4008281c	00000011	T	_ZNK6String6charAtEj
+40082830	0000004a	T	_ZN6String6removeEjj
+4008287c	0000000e	t	_GLOBAL__sub_I__ZN6StringC2EPKc
+4008288c	0000000b	t	_GLOBAL__sub_D__ZN6StringC2EPKc
+40082898	00000008	T	__yield
+40082898	00000008	W	yield
+400828a0	0000001e	T	xTaskCreateUniversal
+400828c0	00000016	T	millis
+400828d8	0000000a	T	delay
+400828e4	00000072	T	initArduino
+40082958	0000000f	t	usb_device_task
+40082968	0000009d	T	tinyusb_driver_install
+40082a08	0000000a	W	tud_descriptor_configuration_cb
+40082a14	00000008	W	tud_descriptor_device_cb
+40082a1c	00000070	W	tud_descriptor_string_cb
+40082a8c	00000008	W	tud_descriptor_bos_cb
+40082a94	00000088	W	tud_vendor_control_xfer_cb
+40082b1c	0000001a	T	usb_persist_restart
+40082b38	00000074	T	tinyusb_enable_interface
+40082bac	00000028	T	tinyusb_add_string_descriptor
+40082bd4	0000024a	T	tinyusb_init
+40082e20	0000001e	t	uart0_write_char
+40082e40	00000027	t	uart1_write_char
+40082e68	00000170	t	_uartDetachPins
+40082fd8	000000cc	t	_uartAttachPins$part$1
+400830a4	00000013	T	uart_get_RxPin
+400830b8	00000013	T	uart_get_TxPin
+400830cc	0000001f	T	_get_effective_baudrate
+400830ec	00000012	T	uartIsDriverInstalled
+40083100	00000180	T	uartSetPins
+40083280	0000004d	T	_testUartBegin
+400832d0	0000003f	T	uartSetRxTimeout
+40083310	0000003f	T	uartSetRxFIFOFull
+40083350	00000064	T	uartEnd
+400833b4	00000042	T	uartAvailable
+400833f8	00000057	T	uartAvailableForWrite
+40083450	00000087	T	uartReadBytes
+400834d8	0000005d	T	uartPeek
+40083538	00000033	T	uartWrite
+4008356c	00000047	T	uartWriteBuf
+400835b4	00000066	T	uartFlushTxOnly
+4008361c	0000000f	T	uartFlush
+4008362c	000002af	T	uartBegin
+400838dc	00000026	T	uart_install_putc
+40083904	0000001b	T	uartSetDebug
+40083920	0000000a	T	uartGetDebug
+4008392c	00000077	T	uartBaudrateDetect
+400839a4	00000030	T	uartStartDetectBaudrate
+400839d4	00000086	T	uartDetectBaudrate
+40083a5c	00000036	T	_Z16yieldIfNecessaryv
+40083a94	0000002c	T	_Z8loopTaskPv
+40083ac0	00000008	W	_Z27getArduinoLoopTaskStackSizev
+40083ac8	00000038	T	app_main
+40083b00	0000000a	T	tud_dfu_runtime_reboot_to_dfu_cb
+40083b0c	00000020	T	_Z22arduino_usb_event_postPKciPvjj
+40083b2c	0000001e	T	_Z39arduino_usb_event_handler_register_withPKciPFvPvS0_iS1_ES1_
+40083b4c	00000020	W	tud_mount_cb
+40083b6c	00000020	W	tud_umount_cb
+40083b8c	0000001b	W	tud_suspend_cb
+40083ba8	00000018	W	tud_resume_cb
+40083bc0	000000c3	T	_ZN6ESPUSBC1Ejh
+40083bc0	000000c3	T	_ZN6ESPUSBC2Ejh
+40083c84	0000002e	T	_ZN6ESPUSBD1Ev
+40083c84	0000002e	T	_ZN6ESPUSBD2Ev
+40083cb4	0000012a	T	_ZN6ESPUSB5beginEv
+40083de0	00000010	t	_GLOBAL__sub_I_tud_dfu_runtime_reboot_to_dfu_cb
+40083df0	0000000b	t	_GLOBAL__sub_D_tud_dfu_runtime_reboot_to_dfu_cb
+40083dfc	00000030	t	initApbChangeCallback
+40083e2c	0000005d	t	triggerApbChangeCallback
+40083e8c	000000cb	T	setCpuFrequencyMhz
+40083f58	00000022	T	getApbFrequency
+40083f7c	00000010	T	_ZN12StreamString5writeEh
+40083f8c	00000010	W	_ZN12StreamStringD1Ev
+40083f8c	00000010	W	_ZN12StreamStringD2Ev
+40083f9c	00000012	W	_ZN12StreamStringD0Ev
+40083fb0	0000000d	T	_ZN12StreamString9availableEv
+40083fc0	00000024	T	_ZN12StreamString4readEv
+40083fe4	0000001c	T	_ZN12StreamString4peekEv
+40084000	00000088	T	_ZN12StreamString5writeEPKhj
+40084088	0000005b	t	gpio_input_enable
+400840e4	00000059	t	gpio_input_disable
+40084140	00000088	t	gpio_output_disable
+400841c8	0000005f	t	gpio_od_enable
+40084228	0000005f	t	gpio_od_disable
+40084288	00000085	t	gpio_output_enable
+40084310	00000067	T	gpio_pullup_en
+40084378	00000065	T	gpio_pullup_dis
+400843e0	0000006b	T	gpio_pulldown_en
+4008444c	0000006a	T	gpio_pulldown_dis
+400844b8	000000a2	T	gpio_set_level
+4008455c	00000088	T	gpio_set_pull_mode
+400845e4	000000ac	T	gpio_set_direction
+40084690	00000086	T	gpio_set_drive_capability
+40084718	0000003e	T	gpio_iomux_in
+40084758	00000068	T	gpio_iomux_out
+400847c0	000000f6	t	periph_ll_get_clk_en_mask
+400848b8	00000108	t	periph_ll_get_rst_en_mask
+400849c0	0000002e	t	periph_ll_get_rst_en_reg
+400849f0	0000009c	T	periph_module_enable
+40084a8c	0000009c	T	periph_module_disable
+40084b28	0000005b	T	periph_module_reset
+40084b84	00000036	t	uart_pattern_enqueue
+40084bbc	0000003e	t	uart_pattern_queue_update
+40084bfc	00000053	t	uart_try_set_iomux_pin
+40084c50	00000047	t	uart_module_enable
+40084c98	0000006a	t	uart_enable_tx_write_fifo
+40084d04	00000664	t	uart_rx_intr_handler_default
+40085368	00000060	t	uart_free_driver_obj
+400853c8	0000006e	t	uart_reenable_intr_mask$constprop$8
+40085438	0000005b	t	uart_check_buf_full
+40085494	0000006b	T	uart_set_word_length
+40085500	00000038	T	uart_get_word_length
+40085538	0000006b	T	uart_set_stop_bits
+400855a4	00000049	T	uart_get_stop_bits
+400855f0	0000004b	T	uart_set_parity
+4008563c	0000004b	T	uart_get_parity
+40085688	0000004b	T	uart_set_baudrate
+400856d4	0000004b	T	uart_get_baudrate
+40085720	0000004b	T	uart_set_line_inverse
+4008576c	0000006e	T	uart_disable_intr_mask
+400857dc	00000097	T	uart_pattern_queue_reset
+40085874	00000012	T	uart_disable_rx_intr
+40085888	00000011	T	uart_disable_tx_intr
+4008589c	000000ad	T	uart_enable_tx_intr
+4008594c	0000015f	t	uart_tx_all$part$5
+40085aac	0000005e	T	uart_isr_register
+40085b0c	0000026b	T	uart_set_pin
+40085d78	0000010e	T	uart_param_config
+40085e88	000000b1	T	uart_intr_config
+40085f3c	0000017e	T	uart_wait_tx_done
+400860bc	0000007d	T	uart_write_bytes
+4008613c	00000117	T	uart_read_bytes
+40086254	00000070	T	uart_get_buffered_data_len
+400862c4	00000078	T	uart_get_tx_buffer_free_size
+4008633c	0000014b	T	uart_flush
+4008633c	0000014b	T	uart_flush_input
+40086488	000000c2	T	uart_driver_delete
+4008654c	00000229	T	uart_driver_install
+40086778	0000001b	T	uart_is_driver_installed
+40086794	00000017	T	uart_set_select_notif_callback
+400867ac	00000008	T	uart_get_selectlock
+400867b4	0000009e	T	uart_set_rx_full_threshold
+40086854	0000006f	T	uart_set_rx_timeout
+400868c4	00000046	t	image_validate
+4008690c	00000080	t	read_otadata
+4008698c	00000032	t	rewrite_ota_seq$part$1
+400869c0	0000006b	T	esp_ota_get_running_partition
+40086a2c	00000037	T	esp_ota_get_app_partition_count
+40086a64	000000a1	T	esp_ota_check_rollback_is_possible
+40086b08	000000ba	t	esp_ota_current_ota_is_workable
+40086bc4	0000000c	T	esp_ota_mark_app_valid_cancel_rollback
+40086bd0	0000000c	T	esp_ota_mark_app_invalid_rollback_and_reboot
+40086bdc	0000009a	T	esp_ota_get_state_partition
+40086c78	0000000f	T	esp_ota_init_app_elf_sha256
+40086c88	00000014	T	bootloader_common_ota_select_crc
+40086c9c	00000022	T	bootloader_common_ota_select_valid
+40086cc0	00000108	T	bootloader_common_check_chip_validity
+40086dc8	00000028	T	bootloader_common_get_active_otadata
+40086df0	0000000c	T	bootloader_mmap_get_free_pages
+40086dfc	0000005f	T	bootloader_mmap
+40086e5c	00000018	T	bootloader_munmap
+40086e74	0000002b	T	bootloader_flash_read
+40086ea0	000000c2	t	process_checksum
+40086f64	000000c7	t	process_image_header
+4008702c	00000052	t	process_appended_hash_and_sig$constprop$2
+40087080	000001db	t	process_segments$constprop$0
+4008725c	00000152	t	image_load
+400873b0	00000010	T	esp_image_verify
+400873c0	0000001e	T	bootloader_sha256_start
+400873e0	0000002e	T	bootloader_sha256_data
+40087410	0000003a	T	bootloader_sha256_finish
+4008744c	000001ac	t	ensure_partitions_loaded$part$0
+400875f8	00000078	T	esp_partition_next
+40087670	00000042	T	esp_partition_find
+400876b4	0000000a	T	esp_partition_iterator_release
+400876c0	00000019	T	esp_partition_get
+400876dc	00000020	T	esp_partition_find_first
+400876fc	00000054	T	esp_partition_write
+40087750	00000038	T	esp_partition_read_raw
+40087788	00000038	T	esp_partition_write_raw
+400877c0	00000042	T	esp_partition_erase_range
+40087804	00000058	T	esp_partition_mmap
+4008785c	00000074	T	esp_partition_read
+400878d0	00000032	T	esp_partition_main_flash_region_safe
+40087904	00000052	T	spi_flash_cache2phys
+40087958	00000015	t	is_safe_write_address
+40087970	00000008	T	spi_flash_init
+40087978	00000020	t	check_chip_pointer_default
+40087998	00000010	T	esp_flash_read_chip_id
+400879a8	0000001e	T	esp_flash_app_disable_protect
+400879c8	0000007e	T	esp_flash_init_default_chip
+40087a48	0000000d	T	esp_flash_app_init
+40087a58	00000025	T	esp_flash_app_enable_os_functions
+40087a80	00000008	T	spi_flash_op_lock
+40087a88	00000008	T	spi_flash_op_unlock
+40087a90	00000018	t	_ZN3nvs4LockD2Ev$constprop$17
+40087aa8	00000014	t	_ZN3nvs4LockC2Ev$constprop$18
+40087abc	0000001e	W	_ZN3nvs4Lock4initEv
+40087adc	0000003c	T	nvs_flash_init_partition
+40087b18	0000000d	T	nvs_flash_init
+40087b28	000000a6	T	_ZN3nvs7Storage19populateBlobIndicesER14intrusive_listINS0_13BlobIndexNodeEE
+40087bd0	00000133	T	_ZN3nvs7Storage20eraseOrphanDataBlobsER14intrusive_listINS0_13BlobIndexNodeEE
+40087d04	0000002c	W	_ZN14intrusive_listIN3nvs7Storage14NamespaceEntryEE17clearAndFreeNodesEv
+40087d30	00000059	T	_ZN3nvs7StorageD1Ev
+40087d30	00000059	T	_ZN3nvs7StorageD2Ev
+40087d8c	00000158	T	_ZN3nvs7Storage4initEjj
+40087ee4	00000015	T	_ZN3nvs12NVSPartition8read_rawEjPvj
+40087efc	00000015	T	_ZN3nvs12NVSPartition9write_rawEjPKvj
+40087f14	00000010	T	_ZN3nvs12NVSPartition11erase_rangeEjj
+40087f24	0000000a	W	_ZN3nvs12NVSPartitionD0Ev
+40087f30	0000001d	T	_ZN3nvs12NVSPartition4readEjPvj
+40087f50	0000001d	T	_ZN3nvs12NVSPartition5writeEjPKvj
+40087f70	0000001a	T	_ZN3nvs12NVSPartitionC1EPK15esp_partition_t
+40087f70	0000001a	T	_ZN3nvs12NVSPartitionC2EPK15esp_partition_t
+40087f8c	0000000a	W	_ZN3nvs19NVSPartitionManagerD0Ev
+40087f98	0000002e	T	_ZN3nvs19NVSPartitionManager12get_instanceEv
+40087fc8	00000022	T	_ZN3nvs19NVSPartitionManager24lookup_storage_from_nameEPKc
+40087fec	000000b5	T	_ZN3nvs19NVSPartitionManager11init_customEPNS_9PartitionEjj
+400880a4	00000077	T	_ZN3nvs19NVSPartitionManager14init_partitionEPKc
+4008811c	0000007e	T	_ZN3nvs8HashList6insertERKNS_4ItemEj
+4008819c	00000042	T	_ZN3nvs8HashList4findEjRKNS_4ItemE
+400881e0	0000001f	T	_ZN3nvs8HashList5clearEv
+40088200	0000000a	T	_ZN3nvs8HashListD1Ev
+40088200	0000000a	T	_ZN3nvs8HashListD2Ev
+4008820c	0000005d	T	_ZN3nvs8HashList5eraseEj
+4008826c	0000003a	W	_ZN3nvs4ItemC1EhNS_8ItemTypeEhPKch
+4008826c	0000003a	W	_ZN3nvs4ItemC2EhNS_8ItemTypeEhPKch
+400882a8	00000029	T	_ZN3nvs4PageC1Ev
+400882a8	00000029	T	_ZN3nvs4PageC2Ev
+400882d4	00000014	T	_ZN3nvs4Page6Header14calculateCrc32Ev
+400882e8	00000084	T	_ZN3nvs4Page10initializeEv
+4008836c	00000057	T	_ZN3nvs4Page10writeEntryERKNS_4ItemE
+400883c4	0000001f	T	_ZNK3nvs4Page12getSeqNumberERj
+400883e4	00000014	T	_ZN3nvs4Page12setSeqNumberEj
+400883f8	00000033	T	_ZN3nvs4Page5eraseEv
+4008842c	0000003f	T	_ZN3nvs4Page20updateFirstUsedEntryEjj
+4008846c	0000012a	T	_ZN3nvs4Page17eraseEntryAndSpanEj
+40088598	000001b2	T	_ZN3nvs4Page8findItemEhNS_8ItemTypeEPKcRjRNS_4ItemEhNS_9VerOffsetE
+4008874c	00000053	T	_ZN3nvs4Page9eraseItemEhNS_8ItemTypeEPKchNS_9VerOffsetE
+400887a0	0000031e	T	_ZN3nvs4Page15mLoadEntryTableEv
+40088ac0	00000154	T	_ZN3nvs4Page4loadEPNS_9PartitionEj
+40088c14	000000c2	T	_ZN3nvs4Page9copyItemsERS0_
+40088cd8	00000012	W	_ZN14intrusive_listIN3nvs4PageEE5clearEv
+40088cec	00000041	T	_ZN3nvs11PageManager12activatePageEv
+40088d30	00000343	T	_ZN3nvs11PageManager4loadEPNS_9PartitionEjj
+40089074	00000032	T	_ZN3nvs16partition_lookup20lookup_nvs_partitionEPKcPPNS_12NVSPartitionE
+400890a8	0000002c	T	_ZNK3nvs4Item14calculateCrc32Ev
+400890d4	00000028	T	_ZNK3nvs4Item26calculateCrc32WithoutValueEv
+400890fc	0000000a	t	esp_pthread_cfg_key_destructor
+40089108	0000002a	T	esp_pthread_init
+40089134	0000001e	T	pthread_cancel
+40089154	00000047	T	pthread_mutex_init
+4008919c	00000027	t	pthread_mutex_init_if_static$part$3
+400891c4	0000005b	T	pthread_mutex_destroy
+40089220	0000002a	t	find_key
+4008924c	0000003f	t	pthread_local_storage_thread_deleted_callback
+4008928c	0000003e	T	pthread_key_create
+400892cc	0000003c	T	pthread_key_delete
+40089308	00000023	T	pthread_getspecific
+4008932c	000000a3	T	pthread_setspecific
+400893d0	0000000d	t	__esp_stack_guard_setup
+400893e0	0000002f	t	find_task_in_twdt_list
+40089410	0000002c	t	reset_hw_timer
+4008943c	0000012e	t	task_wdt_isr
+4008956c	000000e3	T	esp_task_wdt_init
+40089650	0000004f	T	esp_task_wdt_reset
+400896a0	00000049	t	select_rtc_slow_clk
+400896ec	000000f1	W	esp_clk_init
+400897e0	00000133	W	esp_perip_clk_init
+40089914	0000008a	t	esp_reset_reason_init
+400899a0	00000044	T	esp_cache_err_int_init
+400899e4	00000024	T	esp_vApplicationIdleHook
+40089a08	00000043	T	esp_register_freertos_tick_hook_for_cpu
+40089a4c	0000002a	t	panic_print_char_uart
+40089a78	0000003b	t	disable_all_wdts
+40089ab4	00000016	T	panic_print_str
+40089acc	0000000d	t	print_abort_details
+40089adc	0000002a	T	panic_print_hex
+40089b08	0000003d	T	panic_print_dec
+40089b48	00000052	T	esp_panic_handler_reconfigure_wdts
+40089b9c	0000018b	T	esp_panic_handler
+40089d28	00000102	W	start_cpu0
+40089d28	00000102	t	start_cpu0_default
+40089e2c	000000a2	t	panic_handler
+40089ed0	0000002a	t	print_state
+40089efc	00000014	T	panic_restart
+40089f10	0000001a	T	esp_brownout_init
+40089f2c	00000052	t	print_illegal_instruction_details
+40089f80	0000016f	t	print_cache_err_details
+4008a0f0	00000063	t	print_memprot_err_details
+4008a154	00000060	t	print_debug_exception_details
+4008a1b4	000000bc	T	panic_print_registers
+4008a270	0000002c	T	panic_arch_fill_info
+4008a29c	00000075	T	panic_soc_fill_info
+4008a314	00000020	T	panic_print_backtrace
+4008a334	00000026	T	uart_hal_set_sclk
+4008a35c	0000004e	T	uart_hal_set_baudrate
+4008a3ac	00000041	T	uart_hal_get_baudrate
+4008a3f0	00000061	T	uart_hal_set_hw_flow_ctrl
+4008a454	00000022	T	uart_hal_set_tx_idle_num
+4008a478	00000020	T	uart_hal_set_txfifo_empty_thr
+4008a498	000000e3	T	uart_hal_inverse_signal
+4008a57c	00000106	T	uart_hal_init
+4008a684	00000052	T	uart_hal_set_rx_timeout
+4008a6d8	00000013	T	uart_hal_get_max_rx_timeout_thrd
+4008a6ec	00000027	T	uart_hal_txfifo_rst
+4008a714	00000027	T	uart_hal_rxfifo_rst
+4008a73c	00000056	T	uart_hal_tx_break
+4008a794	00000044	T	uart_hal_write_txfifo
+4008a7d8	00000038	T	uart_hal_read_rxfifo
+4008a810	000000ec	T	spi_flash_hal_init
+4008a8fc	00000021	T	spi_flash_hal_supports_direct_write
+4008a920	00000011	T	spi_flash_hal_supports_direct_read
+4008a934	00000046	T	usb_hal_init
+4008a97c	000000df	T	brownout_hal_config
+4008aa5c	0000001d	t	get_local_fd
+4008aa7c	0000003b	t	translate_path
+4008aab8	0000008f	t	esp_vfs_register_common$part$2
+4008ab48	00000040	T	esp_vfs_register_common
+4008ab88	0000001c	T	esp_vfs_register
+4008aba4	00000020	T	get_vfs_for_index
+4008abc4	00000024	t	get_vfs_for_fd
+4008abe8	00000089	T	get_vfs_for_path
+4008ac74	000000c0	T	_open_r
+4008ac74	000000c0	T	esp_vfs_open
+4008ad34	0000004b	T	_write_r
+4008ad34	0000004b	T	esp_vfs_write
+4008ad80	00000047	T	_lseek_r
+4008ad80	00000047	T	esp_vfs_lseek
+4008adc8	0000004b	T	_read_r
+4008adc8	0000004b	T	esp_vfs_read
+4008ae14	00000081	T	_close_r
+4008ae14	00000081	T	esp_vfs_close
+4008ae98	00000044	T	_fstat_r
+4008ae98	00000044	T	esp_vfs_fstat
+4008aedc	00000044	T	_stat_r
+4008aedc	00000044	T	esp_vfs_stat
+4008af20	0000005f	T	_link_r
+4008af20	0000005f	T	esp_vfs_link
+4008af80	0000003f	T	_unlink_r
+4008af80	0000003f	T	esp_vfs_unlink
+4008afc0	0000005f	T	_rename_r
+4008afc0	0000005f	T	esp_vfs_rename
+4008b020	00000043	T	esp_vfs_select_triggered
+4008b064	0000003d	T	esp_vfs_select_triggered_isr
+4008b0a4	0000001f	T	console_open
+4008b0c4	00000020	T	console_write
+4008b0e4	00000018	T	console_fstat
+4008b0fc	0000001c	T	console_close
+4008b118	00000020	T	console_read
+4008b138	00000021	T	console_fcntl
+4008b15c	0000001d	T	console_fsync
+4008b17c	0000001d	T	console_access
+4008b19c	00000020	T	console_end_select
+4008b1bc	00000021	T	console_tcsetattr
+4008b1e0	0000001c	T	console_tcgetattr
+4008b1fc	0000001d	T	console_tcdrain
+4008b21c	0000001c	T	console_tcflush
+4008b238	00000034	t	console_start_select
+4008b26c	00000015	T	esp_vfs_dev_console_register
+4008b284	00000020	T	esp_vfs_console_register
+4008b2a4	00000038	t	uart_tx_char
+4008b2dc	00000032	t	uart_rx_char
+4008b310	00000024	t	uart_read_char
+4008b334	00000079	t	uart_end_select
+4008b3b0	0000016f	t	uart_start_select
+4008b520	000000a9	t	select_notif_callback_isr
+4008b5cc	000002b6	t	uart_tcgetattr
+4008b884	00000276	t	uart_tcsetattr
+4008bafc	0000002b	t	uart_tcflush
+4008bb28	00000050	t	uart_access
+4008bb78	0000003f	t	uart_open
+4008bbb8	00000057	t	uart_fcntl
+4008bc10	0000002d	t	uart_fstat
+4008bc40	00000019	t	uart_close
+4008bc5c	00000012	t	uart_return_char$part$7
+4008bc70	00000038	t	uart_fsync
+4008bca8	00000060	t	uart_write
+4008bd08	0000009e	t	uart_read
+4008bda8	0000002a	t	uart_tcdrain
+4008bdd4	00000008	T	esp_vfs_uart_get_vfs
+4008bddc	0000006b	T	heap_caps_get_info
+4008be48	00000011	T	heap_caps_get_largest_free_block
+4008be5c	00000027	t	register_heap
+4008be84	00000026	T	heap_caps_enable_nonos_stack_heaps
+4008beac	000001c8	T	heap_caps_init
+4008c074	00000018	T	soc_get_available_memory_region_max_count
+4008c08c	000001be	T	soc_get_available_memory_regions
+4008c24c	000000a2	T	esp_rtc_get_time_us
+4008c2f0	00000010	T	esp_clk_slowclk_cal_set
+4008c300	00000021	t	find_desc_for_int
+4008c324	00000097	t	get_desc_for_int
+4008c3bc	0000009d	t	is_vect_desc_usable$constprop$2
+4008c45c	00000010	T	esp_intr_enable_source
+4008c46c	00000010	T	esp_intr_disable_source
+4008c47c	0000037a	T	esp_intr_alloc_intrstatus
+4008c7f8	00000018	T	esp_intr_alloc
+4008c810	000000c6	T	esp_intr_free
+4008c8d8	0000002d	T	esp_efuse_mac_get_default
+4008c908	00000072	T	esp_deep_sleep_wakeup_io_reset
+4008c97c	00000021	t	memprot_ll_iram0_intr_ena
+4008c9a0	00000108	t	memprot_ll_iram0_sram_set_prot
+4008caa8	00000021	t	memprot_ll_dram0_intr_ena
+4008cacc	0000001c	t	memprot_ll_dram0_rtcfast_get_fault_address
+4008cacc	0000001c	t	memprot_ll_dram0_sram_get_fault_address
+4008cae8	00000021	t	memprot_ll_peri1_intr_ena
+4008cb0c	00000021	t	memprot_ll_peri2_intr_ena
+4008cb30	0000005f	t	esp_memprot_set_prot_peri1$part$2
+4008cb90	0000006b	t	esp_memprot_set_prot_peri2$part$3
+4008cbfc	000000cb	t	memprot_ll_dram0_sram_set_prot
+4008ccc8	00000057	T	esp_memprot_intr_init
+4008cd20	00000033	T	esp_memprot_is_locked_any
+4008cd54	00000033	T	esp_memprot_is_intr_ena_any
+4008cd88	00000079	T	esp_memprot_set_prot_dram
+4008ce04	00000093	T	esp_memprot_set_prot_iram
+4008ce98	0000008d	T	esp_memprot_set_prot_peri2
+4008cf28	00000208	T	esp_memprot_set_prot
+4008d130	0000000b	T	esp_crypto_dma_lock_acquire
+4008d13c	0000000b	T	esp_crypto_dma_lock_release
+4008d148	00000028	T	sar_periph_ctrl_init
+4008d170	00000020	T	xt_int_has_handler
+4008d190	0000003b	T	xt_set_interrupt_handler
+4008d1cc	00000029	T	esp_err_to_name
+4008d1f8	00000109	t	timer_task
+4008d304	0000000f	T	esp_timer_early_init
+4008d314	0000004a	T	esp_timer_init
+4008d360	00000046	T	esp_timer_impl_init_system_time
+4008d3a8	00000056	T	esp_timer_impl_early_init
+4008d400	0000009b	T	esp_timer_impl_init
+4008d49c	00000048	T	esp_newlib_locks_init
+4008d4e4	0000000f	t	raise_r_stub
+4008d4f4	00000026	T	esp_newlib_init
+4008d4f4	00000026	T	esp_setup_newlib_syscalls
+4008d51c	00000006	T	_exit
+4008d51c	00000006	T	_raise_r
+4008d51c	00000006	T	_sbrk_r
+4008d51c	00000006	T	raise
+4008d51c	00000006	t	syscall_not_implemented_aborts
+4008d524	0000010d	t	adjust_boot_time
+4008d634	00000063	t	settimeofday$part$1
+4008d698	0000000e	T	settimeofday
+4008d6a8	00000008	T	esp_newlib_time_init
+4008d6b0	0000001f	T	esp_time_impl_get_time_since_boot
+4008d6d0	00000024	T	esp_time_impl_set_boot_time
+4008d6f4	00000024	T	esp_time_impl_get_boot_time
+4008d718	00000029	T	esp_set_time_from_rtc
+4008d744	00000060	T	esp_sync_counters_rtc_and_frc
+4008d7a4	00000008	T	esp_time_impl_init
+4008d7ac	00000022	t	_ZL20signal_waiting_tasksv
+4008d7d0	0000011a	T	__cxa_guard_acquire
+4008d8ec	0000006a	T	__cxa_guard_release
+4008d958	00000076	T	__cxa_guard_abort
+4008d9d0	00000036	t	append_arg$constprop$2
+4008da08	00000604	t	diag_log_add
+4008e00c	00000017	T	__wrap_esp_log_writev
+4008e024	00000094	T	__wrap_esp_log_write
+4008e0b8	0000003f	T	esp_diag_timestamp_get
+4008e0f8	00000045	t	_prep_out_transaction
+4008e140	00000031	T	tud_cdc_n_connected
+4008e174	00000036	T	tud_cdc_n_read
+4008e1ac	00000075	T	tud_cdc_n_write_flush
+4008e224	0000003e	T	tud_cdc_n_write
+4008e264	00000021	T	tud_cdc_n_write_available
+4008e288	0000005f	T	cdcd_init
+4008e2e8	00000024	T	cdcd_reset
+4008e30c	000000a2	T	cdcd_open
+4008e3b0	000000ff	T	cdcd_control_xfer_cb
+4008e4b0	000000eb	T	cdcd_xfer_cb
+4008e59c	00000060	t	_ff_pull_const_addr
+4008e5fc	00000126	t	_tu_fifo_peek_n
+4008e724	00000056	t	_tu_fifo_read_n
+4008e77c	0000004f	t	_ff_push_const_addr
+4008e7cc	000001b5	t	_tu_fifo_write_n$part$0
+4008e984	00000076	T	tu_fifo_config
+4008e9fc	00000016	T	tu_fifo_read_n
+4008ea14	0000001a	T	tu_fifo_write_n
+4008ea30	00000042	T	tu_fifo_clear
+4008ea74	00000048	T	tu_fifo_set_overwritable
+4008eabc	00000021	t	_status_stage_xact
+4008eae0	00000049	t	_data_stage_xact
+4008eb2c	00000029	T	tud_control_status
+4008eb58	00000050	T	tud_control_xfer
+4008eba8	00000012	T	usbd_control_reset
+4008ebbc	0000000a	T	usbd_control_set_complete_callback
+4008ebc8	0000001a	T	usbd_control_set_request
+4008ebe4	000000b8	T	usbd_control_xfer_cb
+4008ec9c	00000018	t	invoke_class_control
+4008ecb4	00000073	t	configuration_reset
+4008ed28	0000001a	T	tud_mounted
+4008ed44	00000011	T	tud_suspended
+4008ed58	000000bb	T	tud_init
+4008ee14	00000193	T	dcd_event_handler
+4008efa8	00000033	T	usbd_edpt_open
+4008efdc	0000005a	T	usbd_open_edpt_pair
+4008f038	00000028	T	usbd_edpt_claim
+4008f060	00000028	T	usbd_edpt_release
+4008f088	0000006e	T	usbd_edpt_xfer
+4008f0f8	00000021	T	usbd_edpt_busy
+4008f11c	00000050	T	usbd_edpt_stall
+4008f16c	00000050	T	usbd_edpt_clear_stall
+4008f1bc	000006d4	T	tud_task_ext
+4008f890	00000021	T	usbd_edpt_stalled
+4008f8b4	0000005f	T	usbd_edpt_close
+4008f914	0000000c	T	tusb_init
+4008f920	00000062	T	tu_edpt_claim
+4008f984	00000047	T	tu_edpt_release
+4008f9cc	000000ab	t	bus_reset
+4008fa78	00000068	t	enum_done_processing
+4008fae0	00000548	t	_dcd_int_handler
+40090028	0000001a	W	dcd_connect
+40090044	000001de	T	dcd_init
+40090224	00000161	T	dcd_edpt_open
+40090388	00000046	T	dcd_edpt_close_all
+400903d0	000000dc	T	dcd_edpt_xfer
+400904ac	0000002e	T	dcd_set_address
+400904dc	00000120	T	dcd_edpt_stall
+400905fc	00000050	T	dcd_edpt_clear_stall
+4009064c	00000017	T	dcd_int_enable
+40090664	00000013	T	hidd_reset
+40090678	0000000a	T	hidd_init
+40090684	00000093	T	hidd_open
+40090718	000001d0	T	hidd_control_xfer_cb
+400908e8	0000005d	T	hidd_xfer_cb
+40090948	0000003c	t	_prep_out_transaction
+40090984	0000004a	t	write_flush
+400909d0	0000004f	T	midid_init
+40090a20	00000020	T	midid_reset
+40090a40	000000ce	T	midid_open
+40090b10	0000008f	T	midid_xfer_cb
+40090ba0	00000046	t	fail_scsi_op$constprop$12
+40090be8	0000004b	t	proc_write10_cmd$constprop$5
+40090c34	000000ab	t	proc_read10_cmd$constprop$3
+40090ce0	00000012	T	mscd_init
+40090cf4	00000012	T	mscd_reset
+40090d08	00000067	T	mscd_open
+40090d70	0000015d	T	mscd_control_xfer_cb
+40090ed0	0000050a	T	mscd_xfer_cb
+400913dc	00000040	t	_get_desc_vs
+4009141c	00000029	t	_next_desc_itf
+40091448	00000032	t	_find_desc_format
+4009147c	00000043	t	_find_desc_frame
+400914c0	00000225	t	_update_streaming_parameters
+400916e8	00000040	t	_prepare_in_payload
+40091728	0000002d	t	_find_desc_3$constprop$6
+40091758	0000009b	t	_open_vc_itf
+400917f4	0000013e	t	_open_vs_itf
+40091934	0000001f	T	videod_init
+40091954	0000001f	T	videod_reset
+40091974	00000160	T	videod_open
+40091ad4	00000893	T	videod_control_xfer_cb
+40092368	00000097	T	videod_xfer_cb
+40092400	00000073	T	dfu_rtd_control_xfer_cb
+40092474	00000013	t	reset_state
+40092488	0000002c	t	reply_getstatus
+400924b4	00000010	T	dfu_moded_reset
+400924c4	0000000a	T	dfu_moded_init
+400924d0	00000063	T	dfu_moded_open
+40092534	000002a1	T	dfu_moded_control_xfer_cb
+400927d8	00000032	t	_prep_out_transaction
+4009280c	0000006e	T	tud_vendor_n_write_flush
+4009287c	0000004f	T	vendord_init
+400928cc	0000001b	T	vendord_reset
+400928e8	0000009a	T	vendord_open
+40092984	00000054	T	vendord_xfer_cb
+400929d8	00000050	T	esp_efuse_read_field_blob
+40092a28	00000043	T	esp_efuse_read_block
+40092a6c	0000000a	T	esp_efuse_check_errors
+40092a78	0000013f	T	esp_efuse_utility_process
+40092bb8	00000048	T	esp_efuse_utility_read_reg
+40092c00	000000b8	T	esp_efuse_utility_fill_buff
+40092cb8	00000038	T	esp_efuse_utility_count_once
+40092cf0	00000008	T	bootloader_init_mem
+40092cf8	0000000d	T	bootloader_flash_update_id
+40092d08	000000cc	T	esp_core_dump_write
+40092dd4	00000008	T	esp_core_dump_reset_tasks_snapshots_iter
+40092ddc	0000000c	T	esp_core_dump_get_next_task
+40092de8	00000057	T	esp_core_dump_get_user_ram_info
+40092e40	00000012	T	esp_core_dump_tcb_addr_is_sane
+40092e54	0000000c	T	esp_core_dump_get_current_task_handle
+40092e60	0000007e	T	esp_core_dump_get_task_snapshot
+40092ee0	0000000d	t	esp_core_dump_flash_write_start
+40092ef0	00000083	t	esp_core_dump_flash_write_prepare
+40092f74	0000009f	t	esp_core_dump_partition_and_size_get
+40093014	00000033	t	esp_core_dump_flash_custom_write
+40093048	0000010f	t	esp_core_dump_flash_write_data
+40093158	000000c6	t	esp_core_dump_flash_write_end
+40093220	00000046	T	esp_core_dump_flash_init
+40093268	00000083	T	esp_core_dump_to_flash
+400932ec	0000012a	T	esp_core_dump_image_check
+40093418	0000001b	T	esp_core_dump_init
+40093434	00000144	t	elf_add_note$constprop$15
+40093578	0000003b	t	elf_add_regs$constprop$14
+400935b4	0000003c	t	elf_write_segment_header$constprop$18
+400935f0	000000ce	t	elf_add_segment$constprop$17
+400936c0	00000074	t	elf_process_note_segment$constprop$9
+40093734	000004db	t	esp_core_dump_do_write_elf_pass$constprop$3
+40093c10	0000011a	T	esp_core_dump_write_elf
+40093d2c	00000052	T	esp_core_dump_port_init
+40093d80	0000000c	T	esp_core_dump_reset_fake_stacks
+40093d8c	00000008	T	esp_core_dump_get_isr_stack_end
+40093d94	0000004d	T	esp_core_dump_check_stack
+40093de4	0000007d	T	esp_core_dump_mem_seg_is_sane
+40093e64	0000003a	T	esp_core_dump_get_stack
+40093ea0	00000041	T	esp_core_dump_check_task
+40093ee4	000003ed	T	esp_core_dump_get_task_regs_dump
+400942d4	0000001d	T	esp_core_dump_port_set_crashed_tcb
+400942f4	00000011	T	esp_core_dump_get_extra_info
+40094308	00000008	T	esp_core_dump_elf_version
+40094310	00000012	T	esp_core_dump_checksum_init
+40094324	00000044	T	esp_core_dump_checksum_update
+40094368	0000002e	T	esp_core_dump_checksum_finish
+40094398	0000003b	T	esp_core_dump_print_checksum
+400943d4	0000003f	T	esp_crosscore_int_init
+40094414	00000044	T	esp_int_wdt_init
+40094458	00000024	T	esp_int_wdt_cpu_init
+4009447c	00000017	T	interrupt_controller_hal_desc_type
+40094494	00000017	T	interrupt_controller_hal_desc_level
+400944ac	0000001c	T	interrupt_controller_hal_desc_flags
+400944c8	00000008	T	interrupt_controller_hal_desc_table
+400944d0	000000bf	t	mbedtls_sha256_update_ret$part$2
+40094590	00000012	T	mbedtls_sha256_init
+400945a4	00000020	T	mbedtls_sha256_starts_ret
+400945c4	00000018	T	mbedtls_sha256_update_ret
+400945dc	0000009b	T	mbedtls_sha256_finish_ret
+40094678	0000000f	T	esp_sha_write_digest_state
+40094688	0000000f	T	esp_sha_read_digest_state
+40094698	0000000f	T	esp_sha_acquire_hardware
+400946a8	0000000d	T	esp_sha_release_hardware
+400946b8	0000027f	T	esp_sha_dma
+40094938	00000068	T	esp_sha_dma_start
+400949a0	00000010	T	sha_hal_wait_idle
+400949b0	00000042	T	sha_hal_hash_block
+400949f4	0000002b	T	sha_hal_hash_dma
+40094a20	00000030	T	sha_hal_read_digest
+40094a50	00000026	T	sha_hal_write_digest
+40094a78	0000000a	T	_ZdaPvRKSt9nothrow_t
+40094a84	0000000a	T	_ZdlPv
+40094a90	000000db	t	_ZL28read_encoded_value_with_basehjPKhPj
+40094b6c	0000004e	t	_ZL15get_ttype_entryP16lsda_header_infom
+40094bbc	00000038	t	_ZL20check_exception_specP16lsda_header_infoPKSt9type_infoPvl
+40094bf4	00000058	t	_ZL21base_of_encoded_valuehP15_Unwind_Context
+40094c4c	0000001c	t	_ZL18read_encoded_valueP15_Unwind_ContexthPKhPj
+40094c68	00000068	t	_ZL17parse_lsda_headerP15_Unwind_ContextPKhP16lsda_header_info
+40094cd0	000002c7	T	__gxx_personality_v0
+40094f98	0000007d	T	__cxa_call_unexpected
+40095018	0000002b	t	_ZL23__gxx_exception_cleanup19_Unwind_Reason_CodeP17_Unwind_Exception
+40095044	0000002e	T	__cxa_init_primary_exception
+40095074	0000002a	T	__cxa_throw
+400950a0	00000050	T	__cxa_rethrow
+400950f0	00000036	T	__cxa_call_terminate
+40095128	00000006	T	__cxa_pure_virtual
+40095130	0000000a	T	_ZdaPv
+4009513c	00000011	T	_ZnajRKSt9nothrow_t
+40095150	00000008	W	_ZNK9__gnu_cxx24__concurrence_lock_error4whatEv
+40095158	00000008	W	_ZNK9__gnu_cxx26__concurrence_unlock_error4whatEv
+40095160	00000012	W	_ZN9__gnu_cxx24__concurrence_lock_errorD1Ev
+40095160	00000012	W	_ZN9__gnu_cxx24__concurrence_lock_errorD2Ev
+40095174	00000012	W	_ZN9__gnu_cxx26__concurrence_unlock_errorD1Ev
+40095174	00000012	W	_ZN9__gnu_cxx26__concurrence_unlock_errorD2Ev
+40095188	00000014	W	_ZN9__gnu_cxx24__concurrence_lock_errorD0Ev
+4009519c	00000014	W	_ZN9__gnu_cxx26__concurrence_unlock_errorD0Ev
+400951b0	00000023	W	_ZN9__gnu_cxx7__mutex4lockEv
+400951d4	0000003c	W	_ZN9__gnu_cxx13__scoped_lockD1Ev
+400951d4	0000003c	W	_ZN9__gnu_cxx13__scoped_lockD2Ev
+40095210	0000001a	T	_ZSt15get_new_handlerv
+4009522c	0000000d	t	_GLOBAL__sub_I__ZSt7nothrow
+4009523c	0000000b	t	_GLOBAL__sub_D__ZSt7nothrow
+40095248	0000000b	t	__tcf_0
+40095254	000000be	T	_ZN9__gnu_cxx18__exchange_and_addEPVii
+40095314	00000008	T	_ZNKSt17bad_function_call4whatEv
+4009531c	00000012	T	_ZNSt17bad_function_callD1Ev
+4009531c	00000012	T	_ZNSt17bad_function_callD2Ev
+40095330	00000012	T	_ZNSt17bad_function_callD0Ev
+40095344	00000016	T	_ZSt25__throw_bad_function_callv
+4009535c	0000000a	T	_ZdlPvj
+40095368	00000032	T	_ZN10__cxxabiv111__terminateEPFvvE
+4009539c	0000001a	T	_ZSt13get_terminatev
+400953b8	00000009	T	_ZSt9terminatev
+400953c4	00000009	T	_ZN10__cxxabiv112__unexpectedEPFvvE
+400953d0	0000001a	T	_ZSt14get_unexpectedv
+400953ec	00000009	T	_ZSt10unexpectedv
+400953f8	0000000d	t	_GLOBAL__sub_I__ZN10__cxxabiv111__terminateEPFvvE
+40095408	0000000b	t	_GLOBAL__sub_D__ZN10__cxxabiv111__terminateEPFvvE
+40095414	0000005a	T	__cxa_begin_catch
+40095470	00000062	T	__cxa_end_catch
+400954d4	00000020	t	_ZL15eh_globals_dtorPv
+400954f4	0000001a	T	__cxa_get_globals_fast
+40095510	00000036	T	__cxa_get_globals
+40095548	00000022	t	_GLOBAL__sub_I___cxa_get_globals_fast
+4009556c	00000012	t	_GLOBAL__sub_D___cxa_get_globals_fast
+40095580	00000012	T	_ZN10__cxxabiv120__si_class_type_infoD1Ev
+40095580	00000012	T	_ZN10__cxxabiv120__si_class_type_infoD2Ev
+40095594	00000014	T	_ZN10__cxxabiv120__si_class_type_infoD0Ev
+400955a8	00000028	t	_ZNKSt9type_infoeqERKS_$isra$0
+400955d0	0000002c	T	_ZNK10__cxxabiv120__si_class_type_info20__do_find_public_srcEiPKvPKNS_17__class_type_infoES2_
+400955fc	0000008c	T	_ZNK10__cxxabiv120__si_class_type_info12__do_dyncastEiNS_17__class_type_info10__sub_kindEPKS1_PKvS4_S6_RNS1_16__dyncast_resultE
+40095688	00000026	T	_ZNK10__cxxabiv120__si_class_type_info11__do_upcastEPKNS_17__class_type_infoEPKvRNS1_15__upcast_resultE
+400956b0	00000012	T	_ZN10__cxxabiv117__class_type_infoD1Ev
+400956b0	00000012	T	_ZN10__cxxabiv117__class_type_infoD2Ev
+400956c4	00000014	T	_ZN10__cxxabiv117__class_type_infoD0Ev
+400956d8	00000028	t	_ZNKSt9type_infoeqERKS_$isra$0
+40095700	00000036	T	_ZNK10__cxxabiv117__class_type_info12__do_dyncastEiNS0_10__sub_kindEPKS0_PKvS3_S5_RNS0_16__dyncast_resultE
+40095738	0000001d	T	_ZNK10__cxxabiv117__class_type_info11__do_upcastEPKS0_PKvRNS0_15__upcast_resultE
+40095758	00000020	T	_ZNK10__cxxabiv117__class_type_info10__do_catchEPKSt9type_infoPPvj
+40095778	00000072	t	_ZN12_GLOBAL__N_14pool4freeEPv$constprop$4
+400957ec	00000059	t	_ZN12_GLOBAL__N_14pool8allocateEj$constprop$5
+40095848	0000002e	T	__cxa_allocate_exception
+40095878	00000021	T	__cxa_free_exception
+4009589c	00000052	t	_GLOBAL__sub_I__ZN9__gnu_cxx9__freeresEv
+400958f0	0000000b	t	_GLOBAL__sub_D__ZN9__gnu_cxx9__freeresEv
+400958fc	00000036	T	_ZnwjRKSt9nothrow_t
+40095934	00000025	t	read_uleb128
+4009595c	0000003c	t	read_sleb128
+40095998	000000d4	t	read_encoded_value_with_base
+40095a6c	0000004c	t	base_of_encoded_value
+40095ab8	00000090	t	uw_update_context_1
+40095b48	00000050	t	uw_init_context_1
+40095b98	000001c2	t	uw_frame_state_for
+40095d5c	00000019	T	_Unwind_GetGR
+40095d78	00000024	t	uw_update_context
+40095d9c	00000064	t	_Unwind_RaiseException_Phase2
+40095e00	00000074	t	_Unwind_ForcedUnwind_Phase2
+40095e74	00000007	T	_Unwind_GetCFA
+40095e7c	00000019	T	_Unwind_SetGR
+40095e98	00000007	T	_Unwind_GetIP
+40095ea0	0000000e	T	_Unwind_GetIPInfo
+40095eb0	00000007	T	_Unwind_SetIP
+40095eb8	00000007	T	_Unwind_GetLanguageSpecificData
+40095ec0	00000007	T	_Unwind_GetRegionStart
+40095ec8	00000015	T	_Unwind_FindEnclosingFunction
+40095ee0	00000007	T	_Unwind_GetDataRelBase
+40095ee8	00000007	T	_Unwind_GetTextRelBase
+40095ef0	000000ea	T	_Unwind_RaiseException
+40095fdc	0000008b	T	_Unwind_ForcedUnwind
+40096068	00000096	T	_Unwind_Resume
+40096100	00000098	T	_Unwind_Resume_or_Rethrow
+40096198	00000010	T	_Unwind_DeleteException
+400961a8	00000050	T	_Unwind_Backtrace
+400961f8	00000025	t	read_uleb128
+40096220	0000003c	t	read_sleb128
+4009625c	0000005a	t	frame_downheap
+400962b8	00000050	t	frame_heapsort
+40096308	00000032	t	size_of_encoded_value
+4009633c	00000046	t	base_from_object
+40096384	000000d4	t	read_encoded_value_with_base
+40096458	00000042	t	fde_single_encoding_compare
+4009649c	00000090	t	get_cie_encoding
+4009652c	000000bb	t	classify_object_over_fdes
+400965e8	000000b1	t	linear_search_fdes
+4009669c	00000011	t	get_fde_encoding
+400966b0	0000004e	t	fde_mixed_encoding_compare
+40096700	0000004a	t	fde_unencoded_compare
+4009674c	000000b1	t	add_fdes
+40096800	0000038e	t	search_object
+40096b90	0000000b	T	_Unwind_SetEnableExceptionFdeSorting
+40096b9c	0000003a	T	__register_frame_info_bases
+40096bd8	00000010	T	__register_frame_info
+40096be8	00000016	T	__register_frame
+40096c00	00000032	T	__register_frame_info_table_bases
+40096c34	00000010	T	__register_frame_info_table
+40096c44	00000012	T	__register_frame_table
+40096c58	00000093	T	__deregister_frame_info_bases
+40096cec	0000000c	T	__deregister_frame_info
+40096cf8	00000014	T	__deregister_frame
+40096d0c	000000ca	T	_Unwind_Find_FDE
+40096dd8	00000015	T	atexit
+40096df0	0000000a	T	__errno
+40096dfc	000000c2	T	_fopen_r
+40096ec0	00000014	T	fopen
+40096ed4	00000015	T	_fseek_r
+40096eec	00000015	T	fseek
+40096f04	00000305	T	_fseeko_r
+4009720c	00000016	T	fseeko
+40097224	00000103	T	_ftello_r
+40097328	00000012	T	ftello
+4009733c	0000003c	T	__itoa
+40097378	00000010	T	itoa
+40097388	00000038	T	_printf_r
+400973c0	0000003c	T	printf
+400973fc	00000018	T	cleanup_glue
+40097414	000000d4	T	_reclaim_reent
+400974e8	0000001c	t	lflush
+40097504	00000128	T	__srefill_r
+4009762c	00000066	T	_snprintf_r
+40097694	00000071	T	snprintf
+40097708	000004c0	t	get_arg$isra$0
+40097bc8	00002ebf	T	_svfprintf_r
+4009aa88	00000014	T	gettimeofday
+4009aa9c	00000063	T	__utoa
+4009ab00	00000010	T	utoa
+4009ab10	000004c0	t	get_arg$isra$0
+4009afd0	00002fca	T	_vfprintf_r
+4009df9c	0000001d	T	vfprintf
+4009dfbc	00000093	t	__sbprintf
+4009e050	00000030	T	vprintf
+4009e080	0000002e	T	_vprintf_r
+4009e0b0	00000056	T	_vsnprintf_r
+4009e108	00000025	T	vsnprintf
+4009e130	000000a6	T	__register_exitproc
+4009e1d8	0000010e	t	quorem
+4009e2e8	00000c7c	T	_dtoa_r
+4009ef64	00000080	T	__sflags
+4009efe4	0000000a	T	__localeconv_l
+4009eff0	0000000f	T	_localeconv_r
+4009f000	0000000f	T	localeconv
+4009f010	0000008d	T	_Balloc
+4009f0a0	00000042	T	_Bfree
+4009f0e4	00000085	T	__multadd
+4009f16c	00000099	T	__s2b
+4009f208	00000047	T	__hi0bits
+4009f250	00000070	T	__lo0bits
+4009f2c0	00000027	T	__i2b
+4009f2e8	0000011f	T	__multiply
+4009f408	000000a7	T	__pow5mult
+4009f4b0	000000ac	T	__lshift
+4009f55c	00000038	T	__mcmp
+4009f594	000000e2	T	__mdiff
+4009f678	00000048	T	__ulp
+4009f6c0	000000a4	T	__b2d
+4009f764	000000b4	T	__d2b
+4009f818	00000053	T	__ratio
+4009f86c	00000035	T	_mprec_log10
+4009f8a4	00000035	T	__copybits
+4009f8dc	00000050	T	__any_on
+4009f92c	0000005c	T	frexp
+4009f988	000004c0	t	get_arg$isra$0
+4009fe48	00000109	T	__ssprint_r
+4009ff54	00001fc2	T	_svfiprintf_r
+400a1f18	000004c0	t	get_arg$isra$0
+400a23d8	00000024	T	__sprint_r
+400a23fc	000020aa	T	_vfiprintf_r
+400a44a8	00000021	T	vfiprintf
+400a44cc	00000097	t	__sbprintf
+400a4564	00000014	W	_ZN14HardwareSerial9readBytesEPcj
+400a4578	00000012	W	_ZNSt14_Function_baseD1Ev
+400a4578	00000012	W	_ZNSt14_Function_baseD2Ev
+400a458c	00000005	W	_Z11serialEventv
+400a4594	00000005	W	_Z12serialEvent1v
+400a459c	00000007	W	_ZN5Print17availableForWriteEv
+400a45a4	00000005	W	_ZN5Print5flushEv
+400a45ac	00000022	T	_ZN5Print5writeEPKhj
+400a45d0	00000014	W	_ZN6Stream9readBytesEPhj
+400a45e4	00000007	T	_ZN6Stream10getTimeoutEv
+400a45ec	00000018	T	_ZN6USBCDC5writeEh
+400a4604	00000005	W	tud_cdc_send_break_cb
+400a460c	00000007	T	_ZN6USBCDC8baudRateEv
+400a4614	00000012	T	_ZNK6USBCDCcvbEv
+400a4628	00000015	W	_ZNK6String3lenEv
+400a4640	00000033	W	_ZN6String6setLenEi
+400a4674	00000005	W	initVariant
+400a467c	00000005	W	init
+400a4684	00000007	W	verifyOta
+400a468c	00000007	W	verifyRollbackLater
+400a4694	00000007	W	tinyusb_vendor_control_request_cb
+400a469c	00000007	W	tud_dfu_get_timeout_cb
+400a46a4	00000005	W	tud_dfu_download_cb
+400a46ac	00000005	W	tud_dfu_manifest_cb
+400a46b4	00000007	W	tud_hid_descriptor_report_cb
+400a46bc	00000007	W	tud_hid_get_report_cb
+400a46c4	00000005	W	tud_hid_set_report_cb
+400a46cc	00000007	W	tud_msc_test_unit_ready_cb
+400a46d4	00000005	W	tud_msc_inquiry_cb
+400a46dc	00000005	W	tud_msc_capacity_cb
+400a46e4	00000007	W	tud_msc_read10_cb
+400a46ec	00000007	W	tud_msc_write10_cb
+400a46f4	00000007	W	tud_msc_scsi_cb
+400a46fc	00000010	T	uartGetEventQueue
+400a470c	00000005	T	_ZN12StreamString5flushEv
+400a4714	0000001e	W	_ZNK6String6lengthEv
+400a4734	00000019	T	bootloader_common_ota_select_invalid
+400a4750	0000004d	T	bootloader_common_select_otadata
+400a47a0	00000005	T	bootloader_debug_buffer
+400a47a8	00000010	T	esp_flash_chip_driver_initialized
+400a47b8	00000005	T	spi_flash_init_lock
+400a47c0	00000021	W	_ZN14intrusive_listIN3nvs7Storage14NamespaceEntryEE9push_backEPS2_
+400a47e4	00000005	W	_ZN3nvs12NVSPartitionD1Ev
+400a47e4	00000005	W	_ZN3nvs12NVSPartitionD2Ev
+400a47ec	0000000a	T	_ZN3nvs12NVSPartition18get_partition_nameEv
+400a47f8	00000009	T	_ZN3nvs12NVSPartition11get_addressEv
+400a4804	00000009	T	_ZN3nvs12NVSPartition8get_sizeEv
+400a4810	00000005	W	_ZN3nvs19NVSPartitionManagerD1Ev
+400a4810	00000005	W	_ZN3nvs19NVSPartitionManagerD2Ev
+400a4818	00000022	W	_ZN14intrusive_listIN3nvs12NVSPartitionEE5eraseENS2_8iteratorE
+400a483c	0000000d	T	_ZN3nvs8HashListC1Ev
+400a483c	0000000d	T	_ZN3nvs8HashListC2Ev
+400a484c	0000001e	T	_ZN3nvs8HashList13HashListBlockC1Ev
+400a484c	0000001e	T	_ZN3nvs8HashList13HashListBlockC2Ev
+400a486c	00000022	W	_ZN14intrusive_listIN3nvs8HashList13HashListBlockEE5eraseENS3_8iteratorE
+400a4890	00000026	W	_ZN3nvs20isVariableLengthTypeENS_8ItemTypeE
+400a48b8	00000058	T	_ZN3nvs4Page15alterEntryStateEjNS0_10EntryStateE
+400a4910	0000007e	T	_ZN3nvs4Page20alterEntryRangeStateEjjNS0_10EntryStateE
+400a4990	00000028	T	_ZNK3nvs4Page9readEntryEjRNS_4ItemE
+400a49b8	0000002c	W	_ZNK19CompressedEnumTableIN3nvs4Page10EntryStateELj2ELj126EE3getEjPS2_
+400a49e4	00000020	W	_ZN14intrusive_listIN3nvs4PageEE9push_backEPS1_
+400a4a04	00000022	W	_ZN14intrusive_listIN3nvs4PageEE5eraseENS2_8iteratorE
+400a4a28	00000005	T	pthread_include_pthread_impl
+400a4a30	00000005	T	pthread_include_pthread_cond_var_impl
+400a4a38	00000005	T	pthread_include_pthread_local_storage_impl
+400a4a40	00000005	T	pthread_include_pthread_rwlock_impl
+400a4a48	00000005	T	include_esp_phy_override
+400a4a50	00000005	W	esp_task_wdt_isr_user_handler
+400a4a58	00000007	T	__cxx_eh_arena_size_get
+400a4a60	00000007	T	panic_get_address
+400a4a68	00000008	T	panic_get_cause
+400a4a70	00000007	T	panic_set_address
+400a4a78	00000020	T	uart_hal_set_stop_bits
+400a4a98	00000011	T	uart_hal_get_stop_bits
+400a4aac	0000001f	T	uart_hal_set_data_bit_num
+400a4acc	00000011	T	uart_hal_get_data_bit_num
+400a4ae0	00000036	T	uart_hal_set_parity
+400a4b18	00000020	T	uart_hal_get_parity
+400a4b38	0000001d	T	uart_hal_set_rxfifo_full_thr
+400a4b58	00000046	T	uart_hal_get_symb_len
+400a4ba0	00000005	T	vfs_include_syscalls_impl
+400a4ba8	00000026	T	heap_caps_match
+400a4bd0	0000000c	t	s_compare_reserved_regions
+400a4bdc	0000002c	t	esp_memprot_ll_err_to_esp_err
+400a4c08	00000007	T	pthread_setcancelstate
+400a4c10	00000005	T	newlib_include_pthread_impl
+400a4c18	0000000b	T	_getpid_r
+400a4c18	0000000b	T	_kill_r
+400a4c18	0000000b	T	_system_r
+400a4c18	0000000b	t	syscall_not_implemented
+400a4c24	00000005	T	newlib_include_syscalls_impl
+400a4c2c	00000005	T	__cxa_guard_dummy
+400a4c34	0000001b	t	advance_index
+400a4c50	00000033	T	tu_fifo_count
+400a4c84	00000021	T	tu_fifo_empty
+400a4ca8	0000003b	T	tu_fifo_remaining
+400a4ce4	00000005	W	dcd_edpt0_status_complete
+400a4cec	00000005	W	tud_event_hook_cb
+400a4cf4	00000076	T	tu_edpt_validate
+400a4d6c	00000031	T	tu_edpt_bind_driver
+400a4da0	00000007	T	midid_control_xfer_cb
+400a4da8	0000007b	T	rdwr10_validate_cmd
+400a4e24	00000018	t	_find_desc
+400a4e3c	00000005	T	dfu_rtd_init
+400a4e44	00000005	T	dfu_rtd_reset
+400a4e4c	00000027	T	dfu_rtd_open
+400a4e74	00000020	T	esp_efuse_get_field_size
+400a4e94	00000016	T	esp_efuse_utility_get_number_of_items
+400a4eac	00000007	T	esp_efuse_utility_check_errors
+400a4eb4	00000008	T	esp_pm_impl_waiti
+400a4ebc	00000007	T	esp_core_dump_get_arch_id
+400a4ec4	00000007	T	esp_core_dump_checksum_size
+400a4ecc	0000003c	T	mpu_hal_set_region_access
+400a4f08	0000001a	T	mbedtls_sha256_free
+400a4f24	0000001b	t	state_length
+400a4f40	00000021	T	esp_dport_access_read_buffer
+400a4f64	00000025	t	_ZL12read_uleb128PKhPm
+400a4f8c	0000003c	t	_ZL12read_sleb128PKhPl
+400a4fc8	00000034	t	_ZL16get_adjusted_ptrPKSt9type_infoS1_PPv
+400a4ffc	00000032	T	_ZNK10__cxxabiv117__class_type_info11__do_upcastEPKS0_PPv
+400a5030	00000011	T	_ZNK10__cxxabiv117__class_type_info20__do_find_public_srcEiPKvPKS0_S2_
+400a5044	00000005	T	_ZNSt9exceptionD1Ev
+400a5044	00000005	T	_ZNSt9exceptionD2Ev
+400a504c	00000005	T	_ZNSt9type_infoD1Ev
+400a504c	00000005	T	_ZNSt9type_infoD2Ev
+400a5054	00000007	T	_ZNKSt9type_info14__is_pointer_pEv
+400a5054	00000007	T	_ZNKSt9type_info15__is_function_pEv
+400a505c	00000080	t	handler_instances_add
+400a50dc	000000c0	t	base_node_add_handler
+400a519c	000000ff	t	loop_node_add_handler
+400a529c	00000034	t	handler_instances_remove_all$isra$1
+400a52d0	00000120	T	esp_event_loop_create
+400a53f0	0000019f	T	esp_event_loop_run
+400a5590	00000033	t	esp_event_loop_run_task
+400a55c4	00000114	T	esp_event_loop_delete
+400a56d8	00000131	T	esp_event_handler_register_with_internal
+400a580c	0000001d	T	esp_event_handler_register_with
+400a582c	000000fb	T	esp_event_post_to
+400a5928	0000058c	T	rtc_init
+400a5eb4	0000002f	T	esp_register_shutdown_handler
+400a5ee4	00000011	T	esp_startup_start_app
+400a5ef8	00000032	t	main_task
+400a5f2c	0000001e	t	default_walker
+400a5f4c	00000036	T	tlsf_walk_pool
+400a5f84	00000029	T	tlsf_fit_size
+400a5fb0	00000123	T	tlsf_add_pool
+400a60d4	00000155	T	tlsf_create
+400a622c	00000023	T	tlsf_create_with_pool
+400a6250	0000004c	T	multi_heap_register_impl
+400a629c	00000066	T	multi_heap_get_info_impl
+400a6304	00000024	t	multi_heap_get_info_tlsf
+400a6328	00000011	T	multi_heap_register
+400a633c	00000048	T	multi_heap_get_info
+400a6384	00000050	t	heap_bubble_down
+400a63d4	000000ef	t	s_log_level_get_and_unlock
+400a64c4	000000f2	T	esp_log_level_set
+400a65b8	0000002e	T	esp_log_writev
+400a65e8		T	_fini
+400a65fb		T	_etext
+400a65fb		A	_instruction_reserved_end
+400a65fb		A	_text_end
+50000000		A	_coredump_rtc_end
+50000000		A	_coredump_rtc_start
+50000000		A	_rtc_bss_end
+50000000		A	_rtc_bss_start
+50000000		A	_rtc_data_end
+50000000		A	_rtc_data_start
+50000000		A	_rtc_noinit_start
+50000000	00000008	b	s_rtc_last_ticks
+50000008	00000008	b	s_esp_rtc_time_us
+50000010		A	_rtc_force_slow_end
+50000010		A	_rtc_force_slow_start
+50000010		A	_rtc_noinit_end
+60080000		A	USB0

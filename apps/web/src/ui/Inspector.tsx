@@ -128,7 +128,7 @@ export function Inspector() {
         </div>
       )}
       {def.board !== undefined && <BoardStorage board={part.id} />}
-      {def.board?.mcu === 'esp32s3' && <BoardUsb board={part.id} />}
+      {(def.board?.mcu === 'esp32s3' || def.board?.mcu === 'esp32s2') && <BoardUsb board={part.id} />}
       <PartControls part={part} defaults={def.defaults} />
       {Object.entries(def.defaults).map(([key, fallback]) => {
         if (OWN_SECTION[part.type]?.includes(key)) return null;

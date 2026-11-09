@@ -192,11 +192,12 @@ describe('bridge downloads (BT147)', () => {
   });
   afterAll(() => bridge.close());
 
-  it('lists what the worker fetches: the ESP32, C3 and S3 ROMs, the RP2350 bootrom, both MicroPython UF2s', () => {
+  it('lists what the worker fetches: the ESP32, C3, S3 and S2 ROMs, the RP2350 bootrom, both MicroPython UF2s', () => {
     expect(DOWNLOADS.map((d) => [d.path, d.file])).toEqual([
       ['/esp32-rom/esp32_rev0_rom.elf', '.cache/esp32-rom/esp32_rev0_rom.elf'],
       ['/esp32c3-rom/esp32c3_rev3_rom.elf', '.cache/esp32c3-rom/esp32c3_rev3_rom.elf'],
       ['/esp32s3-rom/esp32s3_rev0_rom.elf', '.cache/esp32s3-rom/esp32s3_rev0_rom.elf'],
+      ['/esp32s2-rom/esp32s2_rev0_rom.elf', '.cache/esp32s2-rom/esp32s2_rev0_rom.elf'],
       ['/rp2350-rom/bootrom-combined.bin', '.cache/rp2350-rom/bootrom-combined.bin'],
       [expect.stringMatching(/^\/micropython\/RPI_PICO-.*\.uf2$/), expect.stringMatching(/^\.cache\/micropython\/RPI_PICO-.*\.uf2$/)],
       [expect.stringMatching(/^\/micropython\/RPI_PICO2-.*\.uf2$/), expect.stringMatching(/^\.cache\/micropython\/RPI_PICO2-.*\.uf2$/)],

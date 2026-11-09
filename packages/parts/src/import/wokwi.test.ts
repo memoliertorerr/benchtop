@@ -177,6 +177,26 @@ describe('importWokwiDiagram (BT38)', () => {
     expect(parsed.ok).toBe(true);
   });
 
+  it('BT150: the S2 board — GPIOs by number, its one 3V3 for a numbered one, grounds to GND.1', () => {
+    const s2 = imported({
+      version: 1,
+      parts: [
+        { type: 'board-esp32-s2-devkitm-1', id: 'esp', top: 0, left: 0, attrs: {} },
+        { type: 'wokwi-led', id: 'led1', top: -60, left: 100, attrs: { color: 'red' } },
+      ],
+      connections: [
+        ['esp:18', 'led1:A', 'green', []],
+        ['led1:C', 'esp:GND.3', 'black', []],
+        ['esp:3V3.1', 'led1:A', 'red', []],
+        ['esp:TX', '$serialMonitor:RX', '', []],
+      ],
+    });
+    expect(s2.doc.parts.find((p) => p.id === 'esp')?.type).toBe('esp32-s2-devkitm-1');
+    expect(s2.doc.wires.map((w) => `${w.from.part}:${w.from.pin} ${w.to.part}:${w.to.pin}`)).toEqual(['esp:IO18 led1:A', 'led1:C esp:GND.1', 'esp:3V3 led1:A']);
+    expect(s2.warnings).toEqual([]);
+    expect(parseProject(s2.doc).ok).toBe(true);
+  });
+
   it('maps every Wokwi type it knows to a catalog part whose pins it can name', () => {
     for (const type of WOKWI_TYPES) {
       const result = importWokwiDiagram({ parts: [{ type, id: 'p' }], connections: [] });

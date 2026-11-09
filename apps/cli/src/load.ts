@@ -8,6 +8,7 @@
 import { avrMcuFactory } from '@benchtop/avr';
 import { esp32McuFactory } from '@benchtop/esp32';
 import { esp32c3McuFactory } from '@benchtop/esp32c3';
+import { esp32s2McuFactory } from '@benchtop/esp32s2';
 import { esp32s3McuFactory } from '@benchtop/esp32s3';
 import { rp2040McuFactory } from '@benchtop/rp2040';
 import { rp2350McuFactory } from '@benchtop/rp2350';
@@ -36,6 +37,8 @@ export interface CliIo {
   esp32c3Rom?(): Uint8Array | undefined;
   /** BT126: the ESP32-S3 ROM ELF, if cached; ESP32-S3 boards report it missing otherwise. */
   esp32s3Rom?(): Uint8Array | undefined;
+  /** BT150: the ESP32-S2 ROM ELF, if cached; ESP32-S2 boards report it missing otherwise. */
+  esp32s2Rom?(): Uint8Array | undefined;
   /** The stock MicroPython UF2 for the Pico 2's RISC-V cores (BT67), if cached. */
   micropythonPico2?(): Uint8Array | undefined;
   /**
@@ -55,11 +58,12 @@ export interface BenchRoms {
   micropythonPico2?: Uint8Array | undefined;
   esp32c3Rom?: Uint8Array | undefined;
   esp32s3Rom?: Uint8Array | undefined;
+  esp32s2Rom?: Uint8Array | undefined;
 }
 
 /** Everything a CliIo has cached. */
 export function cachedRoms(io: CliIo): BenchRoms {
-  return { esp32Rom: io.esp32Rom?.(), micropython: io.micropython?.(), rp2350Rom: io.rp2350Rom?.(), micropythonPico2: io.micropythonPico2?.(), esp32c3Rom: io.esp32c3Rom?.(), esp32s3Rom: io.esp32s3Rom?.() };
+  return { esp32Rom: io.esp32Rom?.(), micropython: io.micropython?.(), rp2350Rom: io.rp2350Rom?.(), micropythonPico2: io.micropythonPico2?.(), esp32c3Rom: io.esp32c3Rom?.(), esp32s3Rom: io.esp32s3Rom?.(), esp32s2Rom: io.esp32s2Rom?.() };
 }
 
 export function readText(io: CliIo, path: string, what: string): string {
@@ -199,10 +203,11 @@ export function buildBench(
   const esp32 = esp32McuFactory(roms.esp32Rom);
   const esp32c3 = esp32c3McuFactory(roms.esp32c3Rom);
   const esp32s3 = esp32s3McuFactory(roms.esp32s3Rom);
+  const esp32s2 = esp32s2McuFactory(roms.esp32s2Rom);
   const env: BenchEnv = {
     part: benchEnvParts,
     createMcu(board, partId, report, props) {
-      const mcu = avrMcuFactory(board) ?? esp32(board, partId, report, props) ?? esp32c3(board, partId, report) ?? esp32s3(board, partId, report, props) ?? rp2040McuFactory(board, partId, report, roms.micropython) ?? rp2350McuFactory(board, partId, report, { rom: roms.rp2350Rom, micropython: roms.micropythonPico2 });
+      const mcu = avrMcuFactory(board) ?? esp32(board, partId, report, props) ?? esp32c3(board, partId, report) ?? esp32s3(board, partId, report, props) ?? esp32s2(board, partId, report) ?? rp2040McuFactory(board, partId, report, roms.micropython) ?? rp2350McuFactory(board, partId, report, { rom: roms.rp2350Rom, micropython: roms.micropythonPico2 });
       if (mcu !== undefined) mcus.push(mcu);
       const symbols = tables[partId]?.symbols;
       if (mcu !== undefined && symbols != null && usesSymbols(mcu)) mcu.useSymbols(symbols);

@@ -39,6 +39,7 @@ simulation core has no DOM, the same code runs headless in Node for tests and CI
 | `@benchtop/rp2350` | the RP2350 SoC (RISC-V side) on `@benchtop/riscv` with the real bootrom: memory map, Xh3irq, peripherals, QMI and flash, the `Mcu` (`createRp2350Mcu`, `rp2350McuFactory`) | know about parts or the UI |
 | `@benchtop/esp32c3` | the ESP32-C3 `Mcu` (`createEsp32c3Mcu`, `esp32c3McuFactory`): the SoC on `@benchtop/riscv` with its mask ROM — memory map, flash MMU, interrupt matrix, peripherals, direct boot, the debugger view | know about parts or the UI |
 | `@benchtop/esp32s3` | the ESP32-S3 `Mcu` (`createEsp32s3Mcu`, `esp32s3McuFactory`): the SoC — two LX7 cores on `@benchtop/esp32`'s Xtensa core with the C3's peripheral models at the S3's addresses — memory map, flash MMU, interrupt matrix, SYSTEM/EXTMEM/RTC, direct boot, GPIO/IO_MUX over 49 pads, USB-Serial-JTAG, LEDC, the ADC through SENS, I2C ×2, SPI2, RMT, the debugger view | know about parts or the UI |
+| `@benchtop/esp32s2` | the ESP32-S2 `Mcu` (`createEsp32s2Mcu`, `esp32s2McuFactory`): the SoC — one LX7 core on `@benchtop/esp32`'s Xtensa core (its S2 set), the peripheral models it shares with the ESP32, the C3 and the S3 and its own (SYSTEM, EXTMEM, RTC_CNTL, eFuse, SYSTIMER), the cache MMU's six windows, the interrupt matrix, direct boot, GPIO, LEDC, the ADC, I2C, SPI2, RMT, USB-OTG, the debugger view | know about parts or the UI |
 | `@benchtop/pcb` | the PCB document, footprints, nets from the bench, ratsnest, DRC, fabrication exports | touch DOM; run simulation |
 | `@benchtop/web` | the editor, part views, the worker host and the worker entry | run CPU emulation on the UI thread |
 | `@benchtop/bridge` | the local compile bridge: runs arduino-cli for the browser (Node, zero dependencies) | listen beyond loopback; write outside its temp build folders |
@@ -2857,6 +2858,131 @@ sequence, files matched by basename or trailing path.
   `soc/usb-otg.test.ts`, with the SET_REPORT path against the scripted boot keyboard (no OUT
   endpoint); the runner's steps in `apps/cli/src/usb-steps.test.ts`.
 
+- **ESP32-S2** — `@benchtop/esp32s2`: Espressif's single-core Xtensa LX7 chip with
+  native USB, running Arduino-ESP32 2.0.17 images (FQBN `esp32:esp32:esp32s2`) booted directly
+  with its mask ROM. The S2 sits between the generations, so its models were chosen by measured
+  register layout — each S2 header against the ESP32's, the S3's and the C3's, counting the
+  registers at the same offset under the same name: LEDC, the GPIO matrix and eFuse are the S3's
+  (54/54, 397/397, 116/116); the timer groups (42/45) and I2C (37/44) the original ESP32's; the
+  UART half and half; RMT, SPI, SYSTIMER, SYSTEM, EXTMEM and the cache MMU its own. So the S2's
+  timer groups are `@benchtop/esp32`'s `Timg` (now exported, its interrupt sources a constructor
+  option, and RTCCALICFG2 at 0xA8 — the S2 resets with a periodic calibration running and IDF
+  waits it out through the timeout, as the C3's model learned for the S3); its UARTs the C3's
+  model with `S2_UART_FIELDS` (MEM_CONF, FSM_STATUS and ID 4–8 bytes earlier, RX_TOUT_EN at bit
+  31, the baud clock APB with CONF0.TICK_REF_ALWAYS_ON or else the 1 MHz REF_TICK); SPI0/1 and
+  the flash chip, the RNG (WDEV 0x3F43_507C) and the analog I2C master (`S3AnalogI2c`, 0x6000_E000
+  on PeriBus2) shared too. Its own (`packages/esp32s2/src/soc`): SYSTEM (`system.ts`: SYSCLK_CONF
+  0x8C and CPU_PER_CONF 0x18 — 240 MHz on the PLL —, FROM_CPU 0x58–0x64, the RTC memory CRC
+  unit at 0x78), EXTMEM (0x6180_0000: PRO_DCACHE_CTRL and PRO_ICACHE_CTRL's ENA/DONE pairs done at
+  once, PRO_CACHE_STATE idle — `Cache_Suspend_ICache` waits for it), RTC_CNTL (the RTC timer,
+  the reset cause, SW_SYS_RST) and eFuse at the S2's offsets, SYSTIMER (`systimer.ts`: one
+  64-bit counter adding PLL_STEP per 80 MHz APB cycle or XTAL_STEP per 40 MHz crystal cycle —
+  IDF sets 1 and 2, 80 ticks a µs either way — and three comparators, one-shot or periodic;
+  esp_timer runs on it, the FreeRTOS tick on CCOMPARE), the interrupt matrix's block (95 sources,
+  one core's map at 0x3F4C_2000 + 4·source, PRO_INTR_STATUS_0–2), and SENSITIVE (memory
+  protection — not enforced) and APB_CTRL as storage.
+
+  **The core.** `XtensaCore` with `s2: true` decodes the S2's set (`OpInfo.notS2`): the S2's
+  core-isa.h has windowed registers, 32 interrupts, MUL32/DIV32, NSA, MINMAX, CLAMPS, SEXT and
+  THREADPTR, LX7's SALT/SALTU — and no zero-overhead loops, MAC16, FPU, booleans or S32C1I, whose
+  174 ops (and their special registers) are illegal instructions there; neither chip's TIE is
+  decoded (the S2's own, the dedicated GPIO's `*_gpio_out` ops, would fault as unimplemented). A
+  decode corpus from the S2's own objdump (`fixtures/xtensa/corpus/s2-serial-hello`) holds the
+  decoder to it. One core, so no IPC and no interleaving.
+
+  **Memory** (`memory.ts`, `bus.ts`): 320 KB of SRAM seen at 0x3FFB_0000 (data) and 0x4002_0000
+  (instruction), 128 KB of ROM at 0x4000_0000 (its second half also at 0x3FFA_0000), RTC fast
+  memory at 0x3FF9_E000 / 0x4007_0000 and slow memory at 0x5000_0000. Flash goes through the
+  cache's six MMU windows of 64 entries (`cache_memory.h`, `mmu.h`): the ICache's IBUS0 (IRAM0,
+  entries 0–63 from 0x4000_0000; flash code from 0x4008_0000), IBUS1 (IRAM1, 0x4040_0000) and —
+  the S2 reads constant data through its instruction cache — IBUS2 (DROM0, entries 128–191 from
+  0x3F00_0000); the DCache's DBUS0 (DRAM0, 0x3FC0_0000), DBUS1 (DRAM1, 0x3F80_0000) and DBUS2
+  (DPORT, 0x3F40_0000, flash from 0x3F50_0000). An entry is ACCESS_FLASH (15) | the page,
+  INVALID (14), or ACCESS_SPIRAM (16 — PSRAM isn't modeled: `esp32s2-psram`). The peripherals sit
+  on both PeriBus1 (0x3F40_0000) and PeriBus2 (0x6000_0000), one set of blocks
+  (`S2PeripheralMap`, named by their PeriBus1 address); EXTMEM and the MMU table are their own
+  8 KB at 0x6180_0000.
+
+  **Time and running** (`soc.ts`): 240 MHz reference cycles; the one core runs in 256-cycle
+  slices up to the next event, a model scheduling one inside a slice ends it (`hurry`), events
+  due fire before a peripheral access, and WAITI skip-ahead jumps over whole slices. A system
+  reset stops the run with `resetRequested`. The SoC implements both models' contexts: the C3's
+  (`matrix`, `refHz`, `regDefault`, `hurry`) and the ESP32's (`interrupts`, `resets`, `pc`).
+
+  **ROM.** `esp32s2_rev0_rom.elf` from the same pinned esp-rom-elfs-20241011 tarball, extracted by
+  `npm run fetch:esp32-rom` into `.cache/esp32s2-rom` (SHA-256 pinned in `rom-manifest.ts`; with
+  the tarball cached nothing is downloaded); `parseS2Rom` as the S3's.
+
+  **What the bootloader leaves** (`directBootS2`): the app at its partition (chip id 2) and its
+  RAM segments copied, the MMU mapped page by page in each segment's window, the ROM's RAM data
+  placed, `g_ticks_per_us` = 40, the legacy flash descriptor (`SPI_flashchip_data`) with the
+  JEDEC id and the image's size, RTC_CNTL STORE4 = 40 MHz XTAL (0x3F40_80BC), the TIMG watchdogs
+  off, the core as `callx8 entry` leaves it on the ROM's stack (`__stack`, 0x3FFF_E710), on the
+  crystal. The S2's register reset values come from its headers (`gen-esp32-reg-defaults.ts
+  --chip esp32s2`, PeriBus1; its headers mix both comment styles, so the newer style is read too).
+  `scripts/esp32s2-trace.ts` boots a fixture and shows where the time went.
+  `fixtures/sketches/esp32s2/serial-hello` prints "hello from esp32s2" and ticks a second apart
+  (to within a 1 ms tick) at 240 MHz with the core in WAITI between — 2.5 s in ≈ 0.7 s wall —
+  and `blink` toggles its pin. Two boot stalls found it: the cache state register
+  (PRO_CACHE_STATE) and the periodic RTC calibration; and DROM's MMU window (IBUS2, not DBUS0).
+
+  **Peripherals**, again chosen by layout, so the shared models grew a chip parameter
+  rather than copies: GPIO, the matrix and IO_MUX are `@benchtop/esp32s3`'s `S3Gpio`/`S3IoMux`/
+  `S3Pads` over a `GpioChip` (`S2_GPIO_CHIP`, `soc/gpio.ts`: 47 pads — GPIO0–21 and 26–46, the
+  module's flash on 26–32 refused —, the S2's gpio_sig_map.h numbers (no UART2), its GPIO and NMI
+  sources, the blocks at 0x3F40_4000 / 0x3F40_9000; the IO_MUX functions are the S3's: U0 on 43/44,
+  U1 on 17/18, FSPI on 10–13 and 34–37). LEDC is the C3's `Ledc` (8 channels, 0x3F41_9000). RMT is
+  the ESP32's model over an `RmtLayout32` (`S2_RMT_LAYOUT`: 4 channels, CONF0 at 0x10, STATUS 0x30,
+  INT_RAW 0x50, TX_LIM 0x70, APB_CONF 0x80, RMTMEM at 0x400, the threshold interrupt from bit 12)
+  — the DevKitM-1's WS2812 on GPIO18 through it; I2C the ESP32's (`Esp32I2c`, a `{ base, source,
+  defaults, last }` per controller: 0x3F41_3000 and 0x3F42_7000, with the S2's four storage
+  registers after COMD15 — timeouts, bus clear, clock stretch — up to 0xA4); SPI2 the ESP32's `Esp32Spi` over a
+  `SpiLayout` (`S2_SPI2_LAYOUT`: USR bit 24, CLOCK 0x14, USER 0x18, separate MOSI/MISO lengths at
+  0x24/0x28, W0–W17 from 0x98, a 5-bit ADDR_BITLEN, DMA's link enables (0x50/0x54 bit 31) reported
+  as unsupported like slave mode); the ADC the S3's `S3Sens` over a `SensChip` (SENS at
+  0x3F40_8800, in RTC_CNTL's page — `S2RtcCntl.sens` — the same registers, 13-bit codes): ADC1
+  channels 0–9 on GPIO1–10, ADC2's on 11–20, an idealized linear code over the S2 datasheet's
+  ranges (`S2_ADC_FULL_SCALE`: 0.75, 1.05, 1.3, 2.5 V), so Arduino's analogRead gives 0–8191 by
+  default (core 2.0.17 maps an ADC2 read to the resolution twice — `__analogReadRaw`, then
+  `__analogRead` — so below 13 bits ADC2 drops twice the bits ADC1 does, as on real boards);
+  APB_SARADC (the digital controller, where IDF only sets the arbiter) is storage. USB-OTG is the S3's DWC2 model and the bench's host (`S3UsbOtg` at 0x3F48_0000, which
+  PeriBus2 reaches as 0x6008_0000; its USB_WRAP at 0x3F43_9000): the S2 has no other USB, so the
+  OTG side always owns the PHY. `CDCOnBoot=cdc` builds put `Serial` on TinyUSB's CDC-ACM port, which
+  the host enumerates ("ESP32S2_DEV") and opens. `Esp32s2Debug` (`debug.ts`) is the S3's view on
+  one core: pc, a0–a15, sar, ps, windowbase, windowstart (no loop registers on the S2), memory
+  through `S2Bus.peek8`/`poke8`, the adapter's breakpoint set on the core, `stepCore`.
+  Fixtures (`fixtures/sketches/esp32s2/`): `gpio-interrupt`, `ledc-fade`, `adc-read`, `i2c-scan`,
+  `spi-loopback`, `rgb-blink`, `usb-cdc`, `debug-demo` — `soc/peripherals.test.ts` and
+  `debug.test.ts`.
+
+  **On the bench.** `'esp32s2'` is in `Mcu.kind` and `BoardSpec.mcu`. `esp32s2-mcu.ts` is the `Mcu` — the S3's
+  adapter on one core: pins GPIO0–21, 26 and 33–46 (GPIO27–32 are the flash; the GPIO model's
+  `GpioChip.firstFlashPad` is 27 on the S2, whose S2FH4 has no PSRAM, so SPICS1 — GPIO26 — is a
+  GPIO the DevKitM-1 breaks out), 3.3 V thresholds and the floating-input warning, the pin's volts
+  to the ADC, `uart(0)` = UART0 and the OTG CDC port together (typed bytes to the open CDC port,
+  else UART0), `uart(1)`, `i2c(0/1)`, `spi(2)` with the variant's default pins (SDA 8, SCL 9; SCK
+  36, MOSI 35, MISO 37), the kept flash (`nonVolatile`), resets and the reboot-loop guard, the
+  debugger (`Esp32s2Debug`), and the bench's USB host as the S3's (`usbHost`, `usbStorage`,
+  `usbMidi`, `usbLocks` — HID, MIDI and mass-storage builds work as there). Not yet: WiFi — the
+  radio's registers touched outside the power-down controls are `esp32s2-wifi-unsupported` (once
+  a boot, through `S2PeripheralMap.onRadio`) — and sleep — RTC_CNTL STATE0.SLEEP_EN calls
+  `S2RtcCntl.onSleep`, and the SoC halts (`halt(reason)`, which also ends the core's slice) after
+  `esp32s2-sleep-unsupported`. `esp32s2McuFactory` gives each board a MAC from its part id
+  (7C:DF:A1 and a hash) and folds Problems per code. The board, `esp32-s2-devkitm-1`
+  (packages/parts, our own pin table from the user guide: J1 3V3, 0–17, 5V, G; J3 G, RST, 46, 45,
+  RX, TX, 42–33, 26, 21–18; 21 pins each, 0.9" apart), decodes its WS2812 on GPIO18 into
+  `pixels[0]` as the C3's and S3's boards do, and puts USB's 5 V on its 5V pin; its drawing is
+  apps/web's views/esp32-s2-devkitm-1.ts. The bench's tables have its 3.3 V logic, 45 kΩ pulls,
+  40 mA a pin, 3.6 V maximum input (`esp32-overvoltage`). The worker fetches the ROM from
+  /esp32s2-rom/ (scripts/downloads.ts: the dev server and the bridge serve it), the CLI and the MCP
+  server read `.cache/esp32s2-rom` (`cachedRoms`); the compile bridge allows
+  `esp32:esp32:esp32s2`, where a `// benchtop: usb-otg` line adds `CDCOnBoot=cdc`; the Inspector's
+  USB and Storage sections, test specs' USB steps and assertions, `sim_usb`/`sim_files` and the
+  Wokwi importer (`board-esp32-s2-devkitm-1`) take S2 boards as they take S3 ones. Gallery
+  (category ESP32-S2): the RGB LED, serial hello, a potentiometer dimmer, an OLED clock — specs in
+  fixtures/specs/examples, `examples-run-esp32s2.test.ts`; the MCP debug tools run on the S2's
+  debug-demo (`build-debug.test.ts`).
+
 ## Worker protocol
 
 `apps/web/src/sim/protocol.ts` defines `ToSim` (UI → worker) and `FromSim` (worker → UI)
@@ -3748,7 +3874,7 @@ sketch rules — in `scripts/compile.ts`, shared with the CLI's MCP server;
 plain Node type stripping) does it on the same machine: `npm run bridge` listens on
 127.0.0.1:5175 and the Vite dev server proxies `/api` to it; `npm start` builds the app and
 serves it from the bridge on one origin (with the same cross-origin isolation headers). The
-downloads the simulation worker fetches — the ESP32, ESP32-C3 and ESP32-S3 ROMs, the RP2350
+downloads the simulation worker fetches — the ESP32, ESP32-C3, ESP32-S3 and ESP32-S2 ROMs, the RP2350
 bootrom, the Pico's and Pico 2's MicroPython UF2s — are one table, `scripts/downloads.ts` (URL path
 → the file in the git-ignored .cache, and its fetch command). The dev server's one `downloads()`
 plugin and the bridge (when it serves the app) both answer from it: GET (and HEAD on the bridge)
