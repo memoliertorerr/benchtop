@@ -57,6 +57,10 @@ export interface RtcChip {
   slpWakeupCause: number;
   /** STORE0–7. */
   stores: readonly number[];
+  /** BT158: INT_ENA's write-1-to-set and write-1-to-clear registers (the S3's 0x138/0x13C), if any. */
+  intEnaW1ts?: number;
+  /** BT160: TOUCH_SLP_THRES (the sleep pad and its threshold) — in the RTC domain: the woken app reads its pad. */
+  touchSlpThres: number;
 }
 
 export const S3_RTC_CHIP: RtcChip = {
@@ -68,6 +72,8 @@ export const S3_RTC_CHIP: RtcChip = {
   extWakeup1Status: 0xe4,
   slpWakeupCause: 0x130,
   stores: [0x50, 0x54, 0x58, 0x5c, 0xc0, 0xc4, 0xc8, 0xcc],
+  intEnaW1ts: 0x138,
+  touchSlpThres: 0x114,
 };
 
 const OPTIONS0 = 0x00;
@@ -100,7 +106,7 @@ const PAD_MUX_SEL = 1 << 19;
 const PAD_RUE = 1 << 27;
 const PAD_RDE = 1 << 28;
 /** BT128: wake sources (WAKEUP_STATE ENA, SLP_WAKEUP_CAUSE; esp32s3 rtc.h). */
-export const S3_WAKE = { EXT0: 1 << 0, EXT1: 1 << 1, GPIO: 1 << 2, TIMER: 1 << 3 } as const;
+export const S3_WAKE = { EXT0: 1 << 0, EXT1: 1 << 1, GPIO: 1 << 2, TIMER: 1 << 3, TOUCH: 1 << 8 } as const;
 
 /** Reset causes (RESET_STATE's PROCPU and APPCPU fields; esp_rom reset_reasons.h). */
 export const S3_RESET_REASON = { POWERON: 1, SW_SYS: 3, DEEPSLEEP: 5, TG0WDT_SYS: 7, TG1WDT_SYS: 8, RTCWDT_SYS: 9, TG0WDT_CPU: 11, SW_CPU: 12, RTCWDT_CPU: 13 } as const;
@@ -135,7 +141,7 @@ export class S3RtcCntl implements Peripheral {
     this.EXT_WAKEUP1 = chip.extWakeup1;
     this.EXT_WAKEUP1_STATUS = chip.extWakeup1Status;
     this.SLP_WAKEUP_CAUSE = chip.slpWakeupCause;
-    this.RTC_DOMAIN = [SLP_TIMER0, SLP_TIMER1, WAKEUP_STATE, EXT_WAKEUP_CONF, chip.digPwc, chip.extWakeup1, chip.extWakeup1Status, chip.slpWakeupCause, ...chip.stores];
+    this.RTC_DOMAIN = [SLP_TIMER0, SLP_TIMER1, WAKEUP_STATE, EXT_WAKEUP_CONF, chip.digPwc, chip.extWakeup1, chip.extWakeup1Status, chip.slpWakeupCause, ...chip.stores, chip.touchSlpThres];
     this.systemReset(true);
   }
 
@@ -227,6 +233,11 @@ export class S3RtcCntl implements Peripheral {
       const mode = (conf & EXT_WAKEUP1_LV) !== 0 ? 'high (any)' : 'low (all)';
       for (let n = 0; n < RTC_PADS; n++) if (((sel >>> n) & 1) !== 0) pins.push(`GPIO${n} ${mode}`);
     }
+    // BT160: a touch wake — the sleep pad (TOUCH_SLP_THRES 31:27), TOUCH<n> on GPIO<n>.
+    if ((sources & S3_WAKE.TOUCH) !== 0) {
+      const pad = (this.regs[this.chip.touchSlpThres >>> 2] >>> 27) & 0x1f;
+      if (pad > 0 && pad < 15) pins.push(`touch T${pad} (GPIO${pad})`);
+    }
     return pins;
   }
 
@@ -308,6 +319,14 @@ export class S3RtcCntl implements Peripheral {
       return;
     }
     if (offset === INT_RAW || offset === this.SLP_WAKEUP_CAUSE) return; // read-only
+    const w1ts = this.chip.intEnaW1ts;
+    if (w1ts !== undefined && (offset === w1ts || offset === w1ts + 4)) {
+      // BT158: the S3's INT_ENA_W1TS / INT_ENA_W1TC (IDF's touch_ll_intr_enable uses them).
+      if (offset === w1ts) this.regs[INT_ENA >>> 2] |= value;
+      else this.regs[INT_ENA >>> 2] &= ~value;
+      this.updateLine();
+      return;
+    }
     if (offset === this.EXT_WAKEUP1 && (value & EXT_WAKEUP1_STATUS_CLR) !== 0) {
       this.regs[this.EXT_WAKEUP1_STATUS >>> 2] = 0;
       value &= ~EXT_WAKEUP1_STATUS_CLR;

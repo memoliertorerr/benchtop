@@ -30,7 +30,9 @@
  *     polling CRC_FINISH (31). The polynomial isn't documented; the only reader is the ROM's wake
  *     path, which the direct boot skips: a CRC-32 of those bytes, done at once.
  * RTC IO (0x3FF48400–0x3FF484C8, the same 4 KB block) is rtcio.ts and SENS (0x3FF48800–0x3FF488FF)
- * sens.ts, both reached through here (BT34, BT35).
+ * sens.ts, both reached through here (BT34, BT35). BT159: the touch sensor (touch.ts) owns SENS's
+ * touch registers (SAR_TOUCH_CTRL1 … SAR_TOUCH_ENABLE), reads STATE0's TOUCH_SLP_TIMER_EN and RTC
+ * IO's TOUCH_CFG/TOUCH_PADn here, and raises INT_RAW's TOUCH (bit 6) — RTC_CORE like the watchdog's.
  * Brownout, power and the other configuration registers are storage.
  */
 
@@ -40,6 +42,7 @@ import { RegisterFile } from './periph.ts';
 import { RESET_REASON } from './reset.ts';
 import { RTC_GPIO_TO_GPIO, RTC_IO_END, RTC_IO_OFFSET, RtcIo } from './rtcio.ts';
 import { Sens, SENS_END, SENS_OFFSET } from './sens.ts';
+import { ESP32_TOUCH_GPIO, Esp32Touch, RTC_TOUCH_INT } from './touch.ts';
 import { Watchdog } from './wdt.ts';
 
 export const RTC_CNTL_BASE = 0x3ff48000;
@@ -98,7 +101,7 @@ const EXT_WAKEUP1_STATUS_CLR = 1 << 18;
 const MEM_CRC_START = 1 << 8;
 const MEM_CRC_FINISH = 1 << 31;
 /** BT121: wake sources (WAKEUP_STATE ENA and CAUSE bits, esp32 rtc.h's RTC_*_TRIG_EN). */
-export const WAKE = { EXT0: 1 << 0, EXT1: 1 << 1, GPIO: 1 << 2, TIMER: 1 << 3 } as const;
+export const WAKE = { EXT0: 1 << 0, EXT1: 1 << 1, GPIO: 1 << 2, TIMER: 1 << 3, TOUCH: 1 << 8 } as const;
 /** RTC_CNTL registers in the RTC domain that a chip reset other than an RTC one keeps (BT121: the sleep and wake ones). */
 const RTC_DOMAIN = [RTC.SLP_TIMER0, RTC.SLP_TIMER1, RTC.WAKEUP_STATE, RTC.EXT_WAKEUP_CONF, RTC.SLP_REJECT_CONF, RTC.DIG_PWC, RTC.EXT_WAKEUP1, RTC.EXT_WAKEUP1_STATUS];
 
@@ -116,6 +119,8 @@ export class RtcCntl extends RegisterFile {
   readonly watchdog: Watchdog;
   readonly rtcio: RtcIo;
   readonly sens: Sens;
+  /** BT159: the touch sensor (T0–T9). */
+  readonly touch: Esp32Touch;
   private readonly context: SocContext;
   private sourceHigh = false;
   /** BT121: RTC fast memory's bytes (the CRC unit reads them; set by the SoC). */
@@ -126,6 +131,7 @@ export class RtcCntl extends RegisterFile {
     this.context = context;
     this.rtcio = new RtcIo(this);
     this.sens = new Sens(context, this);
+    this.touch = new Esp32Touch(context, { read32: (offset) => this.read32(offset), slowHz: () => RTC_SLOW_HZ, raise: (bits) => this.raise(bits) }, REF_HZ);
     this.watchdog = new Watchdog(
       context,
       {
@@ -181,6 +187,7 @@ export class RtcCntl extends RegisterFile {
       RTC_DOMAIN.forEach((offset, i) => (this.regs[offset >>> 2] = kept[i]));
     }
     this.watchdog.stop();
+    this.touch.reset(rtcDomain);
     this.updateInterrupt();
     if (rtcDomain) {
       this.rtcio.reset();
@@ -264,6 +271,8 @@ export class RtcCntl extends RegisterFile {
       const mode = (conf & EXT_WAKEUP1_LV) !== 0 ? 'high (any)' : 'low (all)';
       for (let n = 0; n < 18; n++) if (((sel >>> n) & 1) !== 0) pins.push(`GPIO${RTC_GPIO_TO_GPIO[n]} ${mode}`);
     }
+    // BT160: a touch wake — the pads it watches.
+    if ((sources & WAKE.TOUCH) !== 0) for (const n of this.touch.wakePads()) pins.push(`touch T${n} (GPIO${ESP32_TOUCH_GPIO[n]})`);
     return pins;
   }
 
@@ -310,6 +319,7 @@ export class RtcCntl extends RegisterFile {
   }
 
   override read32(offset: number): number {
+    if (this.touch.owns(offset)) return this.touch.read32(offset);
     if (offset >= RTC_IO_OFFSET && offset < RTC_IO_OFFSET + RTC_IO_END) return this.rtcio.read32(offset - RTC_IO_OFFSET);
     if (offset >= SENS_OFFSET && offset < SENS_OFFSET + SENS_END) return this.sens.read32(offset - SENS_OFFSET);
     if (offset === RTC.INT_ST) return this.regs[RTC.INT_RAW >>> 2] & this.regs[RTC.INT_ENA >>> 2];
@@ -317,6 +327,10 @@ export class RtcCntl extends RegisterFile {
   }
 
   override write32(offset: number, value: number): void {
+    if (this.touch.owns(offset)) {
+      this.touch.write32(offset, value);
+      return;
+    }
     if (offset >= RTC_IO_OFFSET && offset < RTC_IO_OFFSET + RTC_IO_END) {
       this.rtcio.write32(offset - RTC_IO_OFFSET, value);
       return;
@@ -353,6 +367,7 @@ export class RtcCntl extends RegisterFile {
         const before = this.regs[offset >>> 2];
         super.write32(offset, value);
         if ((value & SLEEP_EN) !== 0 && (before & SLEEP_EN) === 0) this.context.sleeper?.enterSleep(this.deepSleep());
+        this.touch.rtcWritten(offset, value); // BT159: TOUCH_SLP_TIMER_EN
         return;
       }
       case RTC.EXT_WAKEUP1:
@@ -401,10 +416,16 @@ export class RtcCntl extends RegisterFile {
     else if (action === 4) this.context.resets.systemReset(RESET_REASON.RTCWDT_RTC, true);
   }
 
+  /** BT159: sets INT_RAW bits (the touch sensor's), updating RTC_CORE. */
+  raise(bits: number): void {
+    this.regs[RTC.INT_RAW >>> 2] |= bits;
+    this.updateInterrupt();
+  }
+
   private updateInterrupt(): void {
-    const raw = (this.regs[RTC.INT_RAW >>> 2] & WDT_INT) !== 0;
-    const enabled = (this.regs[RTC.INT_ENA >>> 2] & WDT_INT) !== 0 || (this.regs[RTC.WDTCONFIG0 >>> 2] & WDT_LEVEL_INT_EN) !== 0;
-    const high = raw && enabled;
+    const raw = this.regs[RTC.INT_RAW >>> 2];
+    const wdt = (raw & WDT_INT) !== 0 && ((this.regs[RTC.INT_ENA >>> 2] & WDT_INT) !== 0 || (this.regs[RTC.WDTCONFIG0 >>> 2] & WDT_LEVEL_INT_EN) !== 0);
+    const high = wdt || (raw & this.regs[RTC.INT_ENA >>> 2] & RTC_TOUCH_INT) !== 0;
     if (high === this.sourceHigh) return;
     this.sourceHigh = high;
     this.context.interrupts.setSource(WDT_SOURCE, high);

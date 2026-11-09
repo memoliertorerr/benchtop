@@ -1,0 +1,44 @@
+{
+  "format": 1,
+  "name": "esp32-touch-wake",
+  "parts": [
+    {
+      "id": "esp",
+      "type": "esp32-devkit-v1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "pad",
+      "type": "touch-pad",
+      "x": -30,
+      "y": 40,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "pad",
+        "pin": "PAD"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "D15"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    }
+  ],
+  "firmware": {
+    "esp": {
+      "kind": "file",
+      "name": "touch-wake.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

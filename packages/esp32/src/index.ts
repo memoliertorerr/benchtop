@@ -21,6 +21,7 @@ export * from './soc/mmu.ts';
 export * from './soc/periph.ts';
 export * from './soc/psram.ts';
 export * from './soc/soc.ts';
+export * from './soc/touch.ts';
 /** BT148: the timer group model the ESP32-S2 shares (the same registers), and what it needs from a SoC. */
 export { Timg, TIMG_BASES } from './soc/timg.ts';
 /** BT149: the RMT and I2C models the ESP32-S2 shares (the same registers at its own offsets and sources). */

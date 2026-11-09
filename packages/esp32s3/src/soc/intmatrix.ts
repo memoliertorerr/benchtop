@@ -28,6 +28,8 @@ export const S3_SRC = {
   UART2: 29,
   LEDC: 35,
   USB: 38,
+  /** BT158: ETS_RTC_CORE_INTR_SOURCE — RTC_CNTL's interrupt (the touch sensor's). */
+  RTC_CORE: 39,
   RMT: 40,
   I2C0: 42,
   I2C1: 43,

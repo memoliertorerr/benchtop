@@ -37,7 +37,7 @@
  *   (24:0A:C4 and three bytes of a hash), so two boards on one LAN differ.
  */
 
-import { type BoardSpec, type PartProps, type Debuggable, type FirmwareImage, type I2cController, type I2cDevice, type Level, type Mcu, type McuDebug, type McuPin, type NetState, type McuSleep, type NonVolatile, type NvMemory, type PinClaim, type PinClaims, type PinMode, type Problem, type RunResult, SectorMemory, type Sleeper, type SpiController, type SpiDevice, type SymbolTable, type UartPort, type WifiRadio, type WifiStation } from '@benchtop/core';
+import { type BoardSpec, type PartProps, type Debuggable, type FirmwareImage, type I2cController, type I2cDevice, type Level, type Mcu, type McuDebug, type McuPin, type NetState, type McuSleep, type NonVolatile, type NvMemory, type PinClaim, type PinClaims, type PinMode, type Problem, type RunResult, SectorMemory, type Sleeper, type SpiController, type SpiDevice, type SymbolTable, type TouchSensing, type UartPort, type WifiRadio, type WifiStation } from '@benchtop/core';
 import { macFromName } from '@benchtop/core';
 import { Esp32Debug } from './debug/debug.ts';
 import { describeFirmwareFormat } from '@benchtop/core';
@@ -51,6 +51,7 @@ import { PAD_MODE } from './soc/pads.ts';
 import type { SocProblem } from './soc/periph.ts';
 import { Esp32Soc } from './soc/soc.ts';
 import type { Spi, SpiAttachment } from './soc/spi.ts';
+import { ESP32_TOUCH_GPIO } from './soc/touch.ts';
 import { sha256Hex } from './util/sha256.ts';
 import { CODE_WIFI_NO_SYMBOLS, CODE_WIFI_UNSUPPORTED, WifiDriver } from './wifi/driver.ts';
 
@@ -94,6 +95,9 @@ export const ESP32_MODULE_SPECS: Readonly<Record<Esp32Module, { readonly psram: 
   'WROVER-E-N16R8': { psram: true, flash: 16 * 1024 * 1024 },
 };
 export const CODE_ESP32_MODULE = 'esp32-module';
+/** BT159: the touch pads' pins in pad order (T0–T9). */
+export const ESP32_TOUCH_PINS: readonly string[] = Object.freeze(ESP32_TOUCH_GPIO.map((g) => `GPIO${g}`));
+const TOUCH_PIN_BY_GPIO: readonly string[] = Array.from({ length: 40 }, (_, g) => (ESP32_TOUCH_GPIO.includes(g) ? `GPIO${g}` : ''));
 
 /** BT136: GPIO16/17 as a WROVER-E's PSRAM holds them (and as a PSRAM build on `auto` uses them). */
 const WROVER_CLAIMS: readonly PinClaim[] = Object.freeze([
@@ -293,7 +297,7 @@ class Esp32Uart implements UartPort {
   }
 }
 
-export class Esp32Mcu implements Mcu, Debuggable, WifiStation, NonVolatile, Sleeper, PinClaims {
+export class Esp32Mcu implements Mcu, Debuggable, WifiStation, NonVolatile, Sleeper, PinClaims, TouchSensing {
   readonly kind = 'esp32' as const;
   readonly clockHz = REF_HZ;
   readonly pins: ReadonlyMap<string, McuPin>;
@@ -322,6 +326,8 @@ export class Esp32Mcu implements Mcu, Debuggable, WifiStation, NonVolatile, Slee
   /** BT98: the bench's radio (joinWifi). */
   private radio: WifiRadio | null = null;
   private readonly mac: readonly number[] | undefined;
+  /** BT159: the bench's touch source (setTouchSource), outliving the SoCs. */
+  private touchSource: ((pin: string) => number) | null = null;
   /** BT135: the module has PSRAM. */
   private readonly psram: boolean;
   /** BT136: the board's module. */
@@ -474,6 +480,16 @@ export class Esp32Mcu implements Mcu, Debuggable, WifiStation, NonVolatile, Slee
    * BT136: the pins the module holds — a WROVER-E's GPIO16/17 (its PSRAM's chip select and clock)
    * always; on `auto`, the same once the build's PSRAM driver has read the chip's ID.
    */
+  /** BT159: the pins with a touch channel (T0–T9: GPIO4, 0, 2, 15, 13, 12, 14, 27, 33, 32). */
+  touchPins(): readonly string[] {
+    return ESP32_TOUCH_PINS;
+  }
+
+  /** BT159: the bench's capacitance on each touch pin's net (null: nothing wired). */
+  setTouchSource(source: ((pin: string) => number) | null): void {
+    this.touchSource = source;
+  }
+
   pinClaims(): readonly PinClaim[] {
     if (this.module === 'WROVER-E' || this.module === 'WROVER-E-N16R8') return WROVER_CLAIMS;
     return this.psram && this.soc.psram.identified ? PSRAM_BUILD_CLAIMS : NO_CLAIMS;
@@ -511,6 +527,7 @@ export class Esp32Mcu implements Mcu, Debuggable, WifiStation, NonVolatile, Slee
     soc.gpio.onFloatingRead = (g) => this.floatingRead(g);
     soc.periph.onRadio = (address, pc) => this.radioAccess(address, pc);
     soc.rtc.sens.padVolts = (g) => (this.byGpio[g] as Esp32Pin | undefined)?.volts ?? 0;
+    soc.rtc.touch.source = (g) => (this.touchSource === null ? 0 : this.touchSource(TOUCH_PIN_BY_GPIO[g] ?? ''));
     // The bus devices outlive the SoC (a reset builds a new one); during construction the lists are empty.
     if (this.i2cs !== undefined) {
       soc.i2c[0].devices = this.i2cs[0].devices;

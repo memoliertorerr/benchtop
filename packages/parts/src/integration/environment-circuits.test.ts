@@ -72,7 +72,7 @@ describe('sensors in the environment (BT55)', () => {
     expect(Number(first[2])).toBeCloseTo(45, 1);
     expect(Number(last[1])).toBeGreaterThan(23);
     expect(Number(last[2])).toBeLessThan(43);
-  });
+  }, 60_000); // a kill timeout, not a budget: 8.5 s of an Uno simulated, ≈ 10 s alone, more beside every other file
 
   it('an HC-SR04 follows a box driving toward it', () => {
     // Sensor centre (42.5, −33.5), looking up; the box's near face starts 90 cm away and stops 40 cm away.

@@ -29,7 +29,7 @@ export const SLOW_CLOCK_HZ = [90_000, 32_768, 31_250] as const;
 /** Reset causes (RESET_STATE's PROCPU field; esp_rom reset_reasons.h). */
 export const S2_RESET_REASON = { POWERON: 1, SW_SYS: 3, DEEPSLEEP: 5, TG0WDT_SYS: 7, TG1WDT_SYS: 8, RTCWDT_SYS: 9, TG0WDT_CPU: 11, SW_CPU: 12, RTCWDT_CPU: 13 } as const;
 /** BT152: wake sources (WAKEUP_STATE ENA, SLP_WAKEUP_CAUSE; esp32s2 rtc.h — the S3's bits). */
-export const S2_WAKE = { EXT0: 1 << 0, EXT1: 1 << 1, GPIO: 1 << 2, TIMER: 1 << 3 } as const;
+export const S2_WAKE = { EXT0: 1 << 0, EXT1: 1 << 1, GPIO: 1 << 2, TIMER: 1 << 3, TOUCH: 1 << 8 } as const;
 
 /** BT152: the S2's RTC_CNTL for the S3's model (rtc_cntl_reg.h). */
 export const S2_RTC_CHIP: RtcChip = {
@@ -41,6 +41,7 @@ export const S2_RTC_CHIP: RtcChip = {
   extWakeup1Status: 0xe0,
   slpWakeupCause: 0x12c,
   stores: [0x50, 0x54, 0x58, 0x5c, 0xbc, 0xc0, 0xc4, 0xc8],
+  touchSlpThres: 0x110,
 };
 
 export class S2RtcCntl extends S3RtcCntl {

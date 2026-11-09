@@ -20,7 +20,10 @@ fixtures/firmware/esp32/<name>.syms.tsv       `nm -S -n --defined-only` of the f
                                               ("addr\tsize\ttype\tname"); the ELF itself (6 MB,
                                               mostly DWARF), .map and bootloader are never committed
                                               (psram and psram-frame built with PSRAM=enabled,
-                                              the board menu's option for a WROVER's PSRAM)
+                                              the board menu's option for a WROVER's PSRAM;
+                                              touch-read (T0, T3), touch-interrupt (T0, 40),
+                                              touch-wake (T3, 40) — also on the S2 and S3 (T3,
+                                              5000) — and touch-led, the gallery's)
 fixtures/firmware/esp32c3/<name>.bin|.partitions.bin|.syms.tsv  the same for the ESP32-C3
                                               (serial-hello, blink, gpio-interrupt, adc-read,
                                               ledc-fade, i2c-scan, spi-loopback, rgb-blink,
@@ -56,7 +59,8 @@ fixtures/firmware/esp32s3/<name>.bin|.partitions.bin|.syms.tsv  the same for the
                                               host's lock LEDs) and usb-synth (MIDI from the
                                               host played on IO5), the same options;
                                               flash-info, FlashSize=16M — also
-                                              esp32/flash-info)
+                                              esp32/flash-info; touch-read, touch-interrupt —
+                                              the S2's — and touch-lamp, the S2's gallery sketch)
 fixtures/firmware/esp32s2/<name>.bin|.partitions.bin|.syms.tsv  the same for the ESP32-S2
                                               (serial-hello, blink — its Dev Module defaults,
                                               `esp32:esp32:esp32s2` —, gpio-interrupt,

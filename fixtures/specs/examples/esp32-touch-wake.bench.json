@@ -1,0 +1,28 @@
+{
+  "name": "example: esp32-touch-wake",
+  "project": "../../projects/esp32-touch-wake.json",
+  "firmware": {
+    "esp": "../../firmware/esp32/touch-wake.bin"
+  },
+  "steps": [
+    {
+      "at": "2s",
+      "part": "pad",
+      "input": {
+        "kind": "press"
+      }
+    },
+    {
+      "at": "2200ms",
+      "part": "pad",
+      "input": {
+        "kind": "release"
+      }
+    }
+  ],
+  "expect": [
+    "serial contains \"boot 1: power-on\" by 1s",
+    "serial contains \"sleeping\" by 1s",
+    "serial contains \"boot 2: touch pad 3\" by 3s"
+  ]
+}

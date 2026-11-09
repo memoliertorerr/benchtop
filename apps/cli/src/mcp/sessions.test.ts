@@ -351,6 +351,20 @@ describe('live sessions', () => {
     expect(state.parts.pad.contact).toBe(0);
   }, 60_000);
 
+  it('BT161: sim_state shows an ESP32 asleep until its touch pad is touched; sim_input wakes it', async () => {
+    const server = testServer({ maxWallMs: 60_000 });
+    const { session } = (await tool(server, 'open_example', { id: 'esp32-touch-wake' })).value as { session: string };
+    await tool(server, 'sim_run', { session, untilSerial: 'sleeping', duration: '2s' });
+    await tool(server, 'sim_run', { session, duration: '200ms' });
+    type State = { sleeping?: Record<string, { sleep: string; wakePins: string[] }> };
+    const asleep = (await tool(server, 'sim_state', { session, parts: [] })).value as State;
+    expect(asleep.sleeping?.esp).toMatchObject({ sleep: 'deep', wakePins: ['touch T3 (GPIO15)'] });
+    await tool(server, 'sim_input', { session, part: 'pad', input: { kind: 'press' } });
+    const woke = (await tool(server, 'sim_run', { session, untilSerial: 'boot 2', duration: '2s' })).value as Run;
+    await tool(server, 'sim_input', { session, part: 'pad', input: { kind: 'release' } });
+    expect(woke.serial.esp).toContain('boot 2: touch pad 3');
+  }, 60_000);
+
   it('sim_usb (BT146): MIDI by note and by bytes to the synth, the lock keys to a keyboard; sim_state says what the device takes', async () => {
     const server = testServer({ maxWallMs: 120_000 });
     const synth = ((await tool(server, 'sim_open', { project: 'fixtures/projects/esp32s3-usb-synth.json', firmware: { s3: 'fixtures/firmware/esp32s3/usb-synth.bin' } })).value as { session: string }).session;

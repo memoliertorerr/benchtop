@@ -34,6 +34,7 @@ import { registerDefault, S3PeripheralMap } from './periph.ts';
 import { EFUSE_BASE, REF_HZ, RTC_CNTL_BASE, S3_RESET_REASON, S3_WAKE, S3Efuse, S3RtcCntl } from './rtc-cntl.ts';
 import { S3Psram } from './psram.ts';
 import { S3_ADC_FULL_SCALE, S3Sens } from './sens.ts';
+import { S3_TOUCH_CHIP, TouchV2 } from './touch.ts';
 import { S3_USB_OTG_BASE, S3_USB_OTG_BLOCKS, S3_USB_WRAP_BASE, S3UsbOtg } from './usb-otg.ts';
 import { EXTMEM_BASE, S3Extmem, S3SystemRegs, SYSTEM_BASE, XTAL_HZ } from './system.ts';
 
@@ -113,6 +114,8 @@ export class Esp32s3Soc implements SocContext, S3BusParts {
   readonly spi1: SpiMem;
   /** BT125: SENS — the RTC controller's ADC conversions, analogRead's path in IDF 4.4. */
   readonly sens: S3Sens;
+  /** BT158: the touch sensor (TOUCH1–14 on GPIO1–14): the S2's model at the S3's offsets. */
+  readonly touch: TouchV2;
   /** BT125: GPIO, the matrix, IO_MUX and what each pad is doing. */
   readonly iomux = new S3IoMux(this.problems);
   readonly gpio: S3Gpio;
@@ -192,7 +195,20 @@ export class Esp32s3Soc implements SocContext, S3BusParts {
     this.iomux.octalPsram = () => this.psram.present && this.psram.mode === 'octal'; // BT136
     this.sens = new S3Sens(this);
     this.sens.sample = (adc, channel, attenuation) => this.adcSample(adc, channel, attenuation);
-    this.rtc.sens = this.sens;
+    // BT158: the touch sensor — its controls in RTC_CNTL, its data in SENS (0x5C–0xE0), its
+    // interrupts through RTC_CNTL's to the matrix (ETS_RTC_CORE_INTR_SOURCE, 39).
+    this.touch = new TouchV2(this, { read32: (offset) => this.rtc.read32(offset), slowHz: () => this.rtc.slowHz(), raise: (bits) => this.rtc.raise(bits) }, REF_HZ, S3_TOUCH_CHIP);
+    const sens = this.sens;
+    const touch = this.touch;
+    this.rtc.sens = {
+      read32: (offset) => (touch.owns(offset) ? touch.read32(offset) : sens.read32(offset)),
+      write32: (offset, value) => (touch.owns(offset) ? touch.write32(offset, value) : sens.write32(offset, value)),
+    };
+    this.rtc.onWrite = (offset, value, before) => {
+      touch.rtcWritten(offset, value, before);
+      if (offset === S3_TOUCH_CHIP.scanCtrl && ((value ^ before) >>> 10) !== 0) this.pads.update(); // a touch channel's pad reads as analog
+    };
+    this.rtc.onInterrupt = (on) => this.matrix.setSource(S3_SRC.RTC_CORE, on);
     this.usb = new UsbSerialJtag(this, S3_USB_SERIAL_JTAG_BASE, S3_SRC.USB_SERIAL_JTAG);
     this.usbOtg = new S3UsbOtg(this, S3_SRC.USB, () => this.rtc.usbConf(), () => this.usbWrap.regs[0]);
     this.ledc = new Ledc(this, S3_LEDC_CHANNELS);
@@ -205,9 +221,16 @@ export class Esp32s3Soc implements SocContext, S3BusParts {
     this.gpio.onConfig = () => this.pads.update();
     // BT128: sleep — RTC pads take the RTC's pulls; the timer and pins wake the chip.
     this.pads.rtcPad = (g) => this.rtc.rtcPad(g);
+    this.pads.analogPad = (g) => this.touch.uses(g); // BT158
     this.rtc.onRtcPads = () => this.pads.update();
     this.rtc.onSleep = (deep) => this.enterSleep(deep);
     this.wakeSlot = this.events.add(() => this.wake(S3_WAKE.TIMER));
+    // BT160: a touch wake — the sleep pad over its threshold wakes a sleeping chip.
+    this.touch.onSleepPad = () => {
+      if (this.sleeping === null || (this.rtc.wakeSources() & S3_WAKE.TOUCH) === 0) return;
+      this.pinCause |= S3_WAKE.TOUCH;
+      this.events.schedule(this.wakeSlot, this.now());
+    };
     this.gpio.onInputs = () => {
       if (this.sleeping !== null) this.checkPinWake();
     };
@@ -420,8 +443,11 @@ export class Esp32s3Soc implements SocContext, S3BusParts {
     if (this.sleeping !== null) return;
     this.sleeping = { deep };
     if (this.active >= 0) this.cores[this.active].requestStop();
-    if (deep) this.events.clear();
-    else for (const timg of this.timg) timg.gate();
+    if (deep) {
+      this.events.clear();
+      // BT160: the touch FSM is the RTC domain's: with a touch wake it measures on.
+      if ((this.rtc.wakeSources() & S3_WAKE.TOUCH) !== 0) this.touch.resume();
+    } else for (const timg of this.timg) timg.gate();
     const at = this.rtc.wakeTime();
     if (at >= 0) this.events.schedule(this.wakeSlot, Math.max(this.now(), at));
     this.checkPinWake();

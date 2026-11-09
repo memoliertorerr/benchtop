@@ -43,7 +43,7 @@
  * - PSRAM (BT130) is the build's: soc.ts's `psram` answers the quad or octal driver.
  */
 
-import type { BoardSpec, PartProps, PartStorage, Debuggable, FirmwareImage, I2cController, I2cDevice, Level, Mcu, McuDebug, McuPin, McuSleep, McuUsbHost, NetState, NonVolatile, NvMemory, PinClaim, PinClaims, PinMode, Problem, RunResult, Sleeper, SpiController, SpiDevice, SymbolTable, UartPort, UsbHosting, UsbLocks, UsbSending, UsbStorageHosting, WifiRadio, WifiStation } from '@benchtop/core';
+import type { BoardSpec, Debuggable, FirmwareImage, I2cController, I2cDevice, Level, Mcu, McuDebug, McuPin, McuSleep, McuUsbHost, NetState, NonVolatile, NvMemory, PartProps, PartStorage, PinClaim, PinClaims, PinMode, Problem, RunResult, Sleeper, SpiController, SpiDevice, SymbolTable, TouchSensing, UartPort, UsbHosting, UsbLocks, UsbSending, UsbStorageHosting, WifiRadio, WifiStation } from '@benchtop/core';
 import { describeFirmwareFormat, macFromName, SectorMemory } from '@benchtop/core';
 import { Hle, sha256Hex, type SocProblem, WifiDriver } from '@benchtop/esp32';
 import type { SpiAttachment } from '@benchtop/esp32c3';
@@ -107,6 +107,9 @@ export const S3_MODULES = { auto: 'auto', N8: 'none', N8R2: 'quad', N8R8: 'octal
 /** BT143: each module's flash chip — 8 MB on the N8s, 16 MB on the N16R8 — (auto: as the build says). */
 export const S3_MODULE_FLASH: Readonly<Record<keyof typeof S3_MODULES, number | null>> = { auto: null, N8: 8 * 1024 * 1024, N8R2: 8 * 1024 * 1024, N8R8: 8 * 1024 * 1024, N16R8: 16 * 1024 * 1024 };
 export const CODE_S3_MODULE = 'esp32s3-module';
+/** BT158: the touch channels' pins, TOUCH1–14 on GPIO1–14 (by GPIO number; index 0 unused). */
+export const S3_TOUCH_PINS: readonly string[] = Object.freeze(Array.from({ length: 14 }, (_, i) => `GPIO${i + 1}`));
+const TOUCH_PIN_BY_GPIO: readonly string[] = ['', ...S3_TOUCH_PINS];
 
 /** BT136: GPIO33–37 as an N8R8's octal PSRAM holds them (and as an octal build on `auto` uses them). */
 const OCTAL_PINS = ['SPIIO4', 'SPIIO5', 'SPIIO6', 'SPIIO7', 'SPIDQS'] as const;
@@ -286,7 +289,7 @@ class S3Uart implements UartPort {
   }
 }
 
-export class Esp32s3Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sleeper, PinClaims, UsbHosting, UsbStorageHosting, UsbSending {
+export class Esp32s3Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sleeper, PinClaims, TouchSensing, UsbHosting, UsbStorageHosting, UsbSending {
   readonly kind = 'esp32s3' as const;
   readonly clockHz = REF_HZ;
   readonly pins: ReadonlyMap<string, McuPin>;
@@ -317,6 +320,8 @@ export class Esp32s3Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sl
   private radio: WifiRadio | null = null;
   private radioReported = false;
   private readonly mac: readonly number[] | undefined;
+  /** BT158: the bench's touch source (setTouchSource), outliving the SoCs. */
+  private touchSource: ((pin: string) => number) | null = null;
   /** BT135: the module's PSRAM. */
   private readonly psram: 'auto' | 'none' | 'quad' | 'octal';
   /** BT143: its flash chip's size (undefined: the image's), and the pins its octal PSRAM holds. */
@@ -484,6 +489,16 @@ export class Esp32s3Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sl
   }
 
   /** BT128: the chip's light or deep sleep and what wakes it (the timer in ns from now), or null awake. */
+  /** BT158: the pins with a touch channel (TOUCH1–14: GPIO1–14). */
+  touchPins(): readonly string[] {
+    return S3_TOUCH_PINS;
+  }
+
+  /** BT158: the bench's capacitance on each touch pin's net (null: nothing wired). */
+  setTouchSource(source: ((pin: string) => number) | null): void {
+    this.touchSource = source;
+  }
+
   /**
    * BT136: the pins the module holds — an N8R8's GPIO33–37 (its octal PSRAM) always; on `auto`, the
    * same once an octal build's PSRAM driver has spoken to the chip. Quad PSRAM's chip select is
@@ -613,6 +628,7 @@ export class Esp32s3Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sl
     soc.pads.onPin = (g) => this.pinChanged(g);
     soc.gpio.onFloatingRead = (g) => this.floatingRead(g);
     soc.padVolts = (g) => this.byGpio[g]?.volts ?? 0;
+    soc.touch.source = (g) => (this.touchSource === null || g < 1 || g > 14 ? 0 : this.touchSource(TOUCH_PIN_BY_GPIO[g]));
     // The bus devices outlive the SoC; during construction the lists are empty.
     if (this.i2cs !== undefined) {
       soc.i2c[0].devices = this.i2cs[0].devices;

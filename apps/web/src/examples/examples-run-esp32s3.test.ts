@@ -131,12 +131,30 @@ export const ESP32S3_CHECKS: Record<string, (r: ExampleRun) => void> = {
     r.runTo(900);
     expect(pixel()).toBe(0);
   },
+  // BT161: the S2's touch lamp on the S3 (its RGB LED on GPIO48).
+  'esp32s3-touch-lamp'(r) {
+    const pixel = (): number => ((r.visual('s3')?.pixels as number[] | undefined) ?? [-1])[0];
+    r.runTo(500);
+    expect(r.serial('s3')).toContain('touch lamp ready');
+    r.input('pad', { kind: 'press' });
+    r.runTo(900);
+    r.input('pad', { kind: 'release' });
+    r.runTo(1100);
+    expect(r.serial('s3')).toContain('lamp on');
+    expect(pixel()).toBe(0xffa03c);
+    r.input('pad', { kind: 'press' });
+    r.runTo(1300);
+    r.input('pad', { kind: 'release' });
+    r.runTo(1500);
+    expect(r.serial('s3')).toContain('lamp off');
+    expect(pixel()).toBe(0);
+  },
 };
 
 describe('every ESP32-S3 example runs as described (BT126)', () => {
   const withS3 = EXAMPLES.filter((e) => Object.values(e.boards).some((b) => 'firmware' in b && b.firmware.startsWith('esp32s3/')));
   it('has a check for each', () => {
-    expect(withS3.length).toBe(12);
+    expect(withS3.length).toBe(13);
     expect(withS3.map((e) => e.id).filter((id) => ESP32S3_CHECKS[id] === undefined)).toEqual([]);
   });
   for (const example of withS3) {

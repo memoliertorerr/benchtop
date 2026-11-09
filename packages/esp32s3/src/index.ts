@@ -19,6 +19,7 @@ export * from './soc/rtc-cntl.ts';
 export * from './soc/sens.ts';
 export * from './soc/soc.ts';
 export * from './soc/system.ts';
+export * from './soc/touch.ts';
 export * from './soc/usb-host.ts';
 export * from './soc/usb-midi.ts';
 export * from './soc/usb-otg.ts';

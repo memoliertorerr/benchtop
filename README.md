@@ -87,8 +87,8 @@ reach the sketch's keyboard as its LEDs (and the keyboard's own Caps Lock key to
 the USB section has the lock keys, and a one-octave MIDI keyboard for a USB MIDI device — and
 a test spec sends MIDI to a USB MIDI device (`{ "at": "1s", "midi": "90 3C 64" }`, `{ "at": "2s",
 "locks": ["caps"] }`).
-On an N8R8, a wire on IO35–37 (its octal PSRAM's pins) gets a warning. Its ROM comes from the same download as
-the ESP32's.
+On an N8R8, a wire on IO35–37 (its octal PSRAM's pins) gets a warning. Capacitive touch on T1–T14
+(GPIO1–14), as on the S2 (below). Its ROM comes from the same download as the ESP32's.
 
 **ESP32-S2-DevKitM-1** (Xtensa LX7, single-core): the same Xtensa emulator with the S2's
 instruction set runs Espressif's USB-native ESP32-S2 on its real mask ROM, booting the `.bin`
@@ -129,11 +129,14 @@ running the real `.bin` image Arduino-ESP32 2.0.17 builds, on Espressif's real m
   how much flash the chip has (4, 8 or 16 MB), and sketches compile for it (on auto, a
   `// benchtop: psram` line asks for PSRAM); a wire on the PSRAM's pins (GPIO16/17, also Serial2's
   default pins) gets a warning;
+- capacitive touch on T0–T9 (GPIO4, 0, 2, 15, 13, 12, 14, 27, 33, 32): wire a touch pad part to
+  one — `touchRead` falls when you touch it, `touchAttachInterrupt` calls back while it's touched,
+  and `touchSleepWakeUpEnable` wakes it from deep sleep (also on the S2 and S3);
 - speed: a predecoded instruction cache (≈ 35–45 million instructions per second on an Apple
   M1 — a blinking sketch runs ~14× faster than real time) and idle skip-ahead, so cores
   waiting in `WAITI` cost almost nothing.
 
-Not on the ESP32 yet: ADC2, the DAC's cosine generator and DMA, touch, I2S, PCNT, CAN and the ULP
+Not on the ESP32 yet: ADC2, the DAC's cosine generator and DMA, I2S, PCNT, CAN and the ULP
 coprocessor; Bluetooth is out of scope.
 
 **WiFi on the ESP32, the ESP32-C3, the ESP32-S3, the ESP32-S2 and the Pico W** — a network inside the bench, no radio and, unless you allow hosts (see
@@ -229,10 +232,10 @@ gas meter, keypad, rotary encoder; Motors: servo sweep, a
 servo knob, a keypad lock, a stepper, an A4988 stepper driver, a relay; Sound: buzzers, a speaker melody, PCM through PWM,
 a microphone pitch meter, a VU meter; Power: a regulator meter (turn the bench supply and watch a
 7805 drop out); Storage: an SD card datalogger; Environment: a gas alarm with an extractor fan, a PIR
-hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, an LED Preferences remember, a deep sleep wake counter, a PWM fader, NeoPixel, a
+hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, an LED Preferences remember, a deep sleep wake counter, a touch LED, a touch wake from deep sleep, a PWM fader, NeoPixel, a
 rainbow ring, an OLED clock, a color TFT, a WROVER's frame buffer in PSRAM, the DAC, the microphone, an I2C scan; ESP32-C3: the RGB LED,
 serial, a potentiometer dimmer, an OLED clock; ESP32-S3: the RGB LED, serial, a potentiometer dimmer, an OLED clock, a deep sleep wake counter, a
-frame buffer in PSRAM on a color TFT, an RGB LED set over USB serial, a USB macro keypad, a USB MIDI controller, a USB MIDI synth, a USB flash drive; ESP32-S2: the RGB
+frame buffer in PSRAM on a color TFT, an RGB LED set over USB serial, a USB macro keypad, a USB MIDI controller, a USB MIDI synth, a USB flash drive, a touch lamp; ESP32-S2: the RGB
 LED, serial, a potentiometer dimmer, an OLED clock, a deep sleep wake counter, a touch lamp, a frame buffer in PSRAM on a color TFT; WiFi: an ESP32 web server switched by HTTP client
 parts, an ESP32 hosting its own access point and web server, an ESP32-C3, an ESP32-S3 and an ESP32-S2 web server that set their RGB LED, a Pico W and a Pico 2 W web server switching their onboard LEDs, a Pico W and an ESP32 HTTP client talking to a server part, two ESP32s over TCP, an NTP clock on an OLED;
 Raspberry Pi Pico:

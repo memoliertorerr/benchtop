@@ -159,6 +159,31 @@ export const ESP32_CHECKS: Record<string, (r: ExampleRun) => void> = {
     expect(r.serial('esp')).toContain('frame 2');
     expect(tftPixels(r, 'tft', [[20, 50], [200, 120], [20, 250], [20, 310]])).toEqual([0xf800, 0x07e0, 0x001f, 0]);
   },
+  // BT161: touch — the ESP32's readings fall when touched; a touch wakes it from deep sleep.
+  'esp32-touch-led'(r) {
+    r.runTo(500);
+    expect(r.serial('esp')).toContain('touch led ready');
+    expect((r.visual('led1')?.brightness as number | undefined) ?? 0).toBeLessThan(0.3);
+    r.input('pad', { kind: 'press' });
+    r.runTo(800);
+    expect(r.serial('esp')).toContain('led on');
+    expect(r.visual('led1')?.brightness as number).toBeGreaterThan(0.5);
+    r.input('pad', { kind: 'release' });
+    r.runTo(1100);
+    expect(r.serial('esp')).toContain('led off');
+    const readings = [...r.serial('esp').matchAll(/touch (\d+)/g)].map((m) => Number(m[1]));
+    expect(Math.max(...readings) - Math.min(...readings)).toBeGreaterThan(20);
+  },
+  'esp32-touch-wake'(r) {
+    r.runTo(1000);
+    expect(r.serial('esp')).toContain('boot 1: power-on');
+    expect(r.bench.sleepOf('esp')?.pins).toContain('touch T3 (GPIO15)');
+    r.input('pad', { kind: 'press' });
+    r.runTo(1200);
+    r.input('pad', { kind: 'release' });
+    r.runTo(2000);
+    expect(r.serial('esp')).toContain('boot 2: touch pad 3');
+  },
   'esp32-dac-sine'(r) {
     r.runTo(2000);
     expect(audioSamples(r, 'spk1')).toBeGreaterThanOrEqual(20 * 1024);

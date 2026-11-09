@@ -1,0 +1,30 @@
+{
+  "name": "example: esp32-touch-led",
+  "project": "../../projects/esp32-touch-led.json",
+  "firmware": {
+    "esp": "../../firmware/esp32/touch-led.bin"
+  },
+  "steps": [
+    {
+      "at": "1s",
+      "part": "pad",
+      "input": {
+        "kind": "press"
+      }
+    },
+    {
+      "at": "1500ms",
+      "part": "pad",
+      "input": {
+        "kind": "release"
+      }
+    }
+  ],
+  "expect": [
+    "serial contains \"touch led ready\" by 1s",
+    "serial contains \"led on\" by 1200ms",
+    "led led1 is lit at 1400ms",
+    "serial contains \"led off\" by 1700ms",
+    "led led1 is dark at 1900ms"
+  ]
+}

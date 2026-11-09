@@ -976,6 +976,19 @@
     "description": "A USB MIDI instrument on the S3's own USB (TinyUSB's MIDI class): play the one-octave keyboard in the board's USB section of the Inspector and the speaker on IO5 sounds each note at its pitch while the RGB LED takes its color; the serial monitor lists what arrived."
   },
   {
+    "id": "esp32s3-touch-lamp",
+    "title": "ESP32-S3 touch lamp",
+    "category": "ESP32-S3",
+    "project": "esp32s3-touch-lamp",
+    "boards": {
+      "s3": {
+        "firmware": "esp32s3/touch-lamp.bin",
+        "sketch": "esp32s3/touch-lamp"
+      }
+    },
+    "description": "Touch the pad (hold the mouse on it while running) and the DevKitC-1's RGB LED turns warm white; touch it again and it goes off. The S3's touch sensor reads the pad on T5 (GPIO5) — touchAttachInterrupt fires on each touch and release — and its readings rise while a finger is on it."
+  },
+  {
     "id": "esp32s2-rgb-blink",
     "title": "ESP32-S2 RGB blink",
     "category": "ESP32-S2",
@@ -1529,5 +1542,31 @@
       }
     },
     "description": "An ESP32 on a WROVER-E module (the board's module prop) keeps a whole 240×320 frame (150 KB) in its PSRAM, redraws it — color bands and a sliding square — and pushes it to an ILI9341 in one go. Its `// benchtop: psram` line builds it with PSRAM."
+  },
+  {
+    "id": "esp32-touch-led",
+    "title": "ESP32 touch LED",
+    "category": "ESP32",
+    "project": "esp32-touch-led",
+    "boards": {
+      "esp": {
+        "firmware": "esp32/touch-led.bin",
+        "sketch": "esp32/touch-led"
+      }
+    },
+    "description": "Hold the mouse on the touch pad (T0, GPIO4) and the LED lights; let go and it goes out. The ESP32's touch readings fall when a finger is on the pad — the sketch prints them, and below 40 counts as a touch."
+  },
+  {
+    "id": "esp32-touch-wake",
+    "title": "ESP32 touch wake",
+    "category": "ESP32",
+    "project": "esp32-touch-wake",
+    "boards": {
+      "esp": {
+        "firmware": "esp32/touch-wake.bin",
+        "sketch": "esp32/touch-wake"
+      }
+    },
+    "description": "Arduino's TouchWakeUp: the ESP32 counts its boots in RTC memory, arms a touch wake on T3 (GPIO15) and goes into deep sleep. Touch the pad and it wakes, says which pad woke it, and sleeps again. While it sleeps the board says so, and that the touch pad will wake it."
   }
 ]

@@ -226,6 +226,12 @@ export class Esp32Soc implements SocParts, SocContext, ResetSink, SleepSink {
     this.rebootSlot = this.events.add(() => this.reboot());
     // BT121: sleep — the timer's wake, pins checked as the bench changes them, RTC fast memory for the CRC unit.
     this.wakeSlot = this.events.add(() => this.wake(WAKE.TIMER));
+    // BT160: a touch wake — the round that would raise the touch interrupt wakes a sleeping chip.
+    this.rtc.touch.onFire = () => {
+      if (this.sleeping === null || (this.rtc.wakeSources() & WAKE.TOUCH) === 0) return;
+      this.pinCause |= WAKE.TOUCH;
+      this.events.schedule(this.wakeSlot, this.now());
+    };
     this.gpio.onInputs = () => {
       if (this.sleeping !== null) this.checkPinWake();
     };
@@ -406,8 +412,11 @@ export class Esp32Soc implements SocParts, SocContext, ResetSink, SleepSink {
     this.rtc.sleepWatchdog(true);
     // Deep: the digital domain is off — its timers (the watchdogs among them) stop with it.
     // BT122: light: its APB clock is gated — the timer groups hold until the wake.
-    if (deep) this.events.clear();
-    else {
+    if (deep) {
+      this.events.clear();
+      // BT160: the touch FSM is the RTC domain's: with a touch wake it measures on.
+      if ((this.rtc.wakeSources() & WAKE.TOUCH) !== 0) this.rtc.touch.resume();
+    } else {
       this.events.cancel(this.wakeSlot);
       for (const timg of this.timg) timg.gate();
     }

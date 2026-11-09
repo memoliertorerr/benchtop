@@ -298,7 +298,8 @@ plus `fingerPf` (10) times the contact (press 1, release 0, a value 0–1). An M
 channels opts in with `TouchSensing` (`touchPins()`, `setTouchSource()`, found by `usesTouch`):
 after every build (kept MCUs too) the bench gives it a source that sums the touch loads on each
 touch pin's net — breadboard strips and wires included, as nets are — and the MCU asks once per
-measurement and adds its own pad. Only the ESP32-S2 has touch channels so far (its section).
+measurement and adds its own pad. The ESP32 (version 1, readings fall when touched), the
+ESP32-S2 and the ESP32-S3 (version 2, readings rise) have touch channels (their sections).
 
 **IR remote and receiver, HX711**. The `ir-receiver` turns input `{ kind: 'key', key:
 'ir:<command>', down }` into a demodulated NEC frame on DAT (active low, address 0x00, 9 ms +
@@ -1656,6 +1657,42 @@ sequence, files matched by basename or trailing path.
   (Serial2's U2RXD/U2TXD), a GPIO output or input — gets `pin-reserved` (warning, once per pad),
   as a board's PSRAM would stop answering; the simulated one keeps working.
 
+  **Touch (`soc/touch.ts`).** The ESP32's version-1 touch sensor, written from IDF 4.4's
+  esp32 touch_sensor_ll.h and the SENS/RTC IO/RTC_CNTL headers: T0–T9 on GPIO4, 0, 2, 15, 13, 12,
+  14, 27, 33, 32 (`ESP32_TOUCH_PINS`). `Esp32Touch` owns SENS's SAR_TOUCH_CTRL1 (MEAS_DELAY — the
+  window in 8 MHz ticks —, XPD_WAIT, OUT_SEL below/above, OUT_1EN), THRES1–5 and OUT1–5 (two pads a
+  word: the even slot in 31:16), CTRL2 (MEAS_EN 9:0, MEAS_DONE, START_EN/START_FORCE, SLEEP_CYCLES,
+  MEAS_EN_CLR) and ENABLE (WORKEN, OUTEN2, OUTEN1), reached through `RtcCntl`; it reads RTC IO's
+  TOUCH_CFG (the reference voltages) and TOUCH_PADn (the slope) and STATE0.TOUCH_SLP_TIMER_EN (23)
+  there. SENS swaps pads 8 and 9 (IDF's TOUCH_LL_BITS_SWAP and touch_ll_num_wrap); RTC IO doesn't. A
+  round measures every WORKEN pad in turn (XPD_WAIT, then the window); a reading is the
+  charge-discharge cycles that fit — window / (2·C·ΔV / I), with the S2/S3 model's constants
+  (10 pF pad, 1 µA a slope step) — so a touch lowers it: Arduino's defaults (a 4096-tick window,
+  2.7 V / 0.5 V, slope 7) read 81 bare, 67 with a touch pad, 37 with a finger on it. MEAS_DONE
+  clears as a round starts; at its end the pads past their thresholds set MEAS_EN (sticky until
+  MEAS_EN_CLR) and, when they satisfy OUT_1EN (SET1 alone, or both sets), INT_RAW.TOUCH (bit 6)
+  rises — RTC_CORE (46), beside the watchdog's — every round while touched, which is what Arduino's
+  touchAttachInterrupt callback sees on a board. In timer mode a round starts SLEEP_CYCLES slow-clock
+  cycles (150 kHz) after the last one ended. SENS is in the RTC domain: a digital reset stops a round
+  but keeps the registers. The Mcu is the bench's `TouchSensing`; a touch pad reads as analog (RTC IO
+  routes it with its input off). Fixtures `touch-read` (T0 and T3) and `touch-interrupt`
+  (threshold 40): `soc/touch.test.ts`, `packages/parts/src/integration/esp32-touch.test.ts`.
+
+  **Touch wake.** WAKEUP_STATE's TOUCH (bit 8, RTC_TOUCH_TRIG_EN — `WAKE.TOUCH`): the touch
+  FSM is the RTC domain's, so a deep sleep that clears the SoC's events re-arms it (`resume`), and a
+  round that would raise the touch interrupt (`onFire`) wakes the sleeping chip with cause TOUCH. The
+  wake is a DEEPSLEEP reset in place: SENS keeps MEAS_EN, which IDF's
+  `esp_sleep_get_touchpad_wakeup_status` reads for the pad. `sleepState` lists "touch T3 (GPIO15)"
+  for the SET1 pads in WORKEN. Fixture `touch-wake` (Arduino's TouchWakeUp shape on T3, threshold
+  40): `packages/parts/src/integration/touch-wake.test.ts`, with the S2's and the S3's.
+
+  **Touch end to end:** the gallery's ESP32 touch LED (`esp32-touch-led`: a pad on T0 lights
+  the LED on GPIO2 while its reading is below 40) and ESP32 touch wake (`esp32-touch-wake`: the
+  `touch-wake` fixture, a pad on T3), and the S3 touch lamp (`esp32s3-touch-lamp`: the S2's sketch on
+  the DevKitC-1's RGB LED) — specs in fixtures/specs/examples and checks in `examples-run-esp32.test.ts`
+  and `examples-run-esp32s3.test.ts`; MCP's `sim_state` shows the ESP32 asleep with "touch T3
+  (GPIO15)" as its wake until `sim_input` touches the pad (`sessions.test.ts`).
+
   **The ESP32-C3's sleep (`packages/esp32c3`).** RTC_CNTL at its C3 offsets (`rtc-cntl.ts`):
   STATE0.SLEEP_EN (0x18) with DIG_PWC (0x88) bit 31 for deep; WAKEUP_STATE (0x3C) ENA bits 31:15
   (TIMER 8, GPIO 4); the timer target in SLP_TIMER0/1 (0x04/0x08); SLP_WAKEUP_CAUSE (0xF8, read-only)
@@ -2867,6 +2904,19 @@ sequence, files matched by basename or trailing path.
   `soc/usb-otg.test.ts`, with the SET_REPORT path against the scripted boot keyboard (no OUT
   endpoint); the runner's steps in `apps/cli/src/usb-steps.test.ts`.
 
+  **Touch** is the S2's (in the S2's section): the version-2 model moved here as
+  `soc/touch.ts`'s `TouchV2` over a `TouchChip` — where a chip keeps the fields, which are the same
+  on both. The S3's (`S3_TOUCH_CHIP`, esp32s3 rtc_cntl_reg.h/sens_reg.h): RTC_CNTL TOUCH_CTRL1
+  0x108, CTRL2 0x10C, SCAN_CTRL 0x110, SLP_THRES 0x114, FILTER_CTRL 0x11C, TIMEOUT_CTRL 0x124; each
+  pad's slope in RTC_CNTL's TOUCH_DAC (0x14C, pad n at bits 31−3n…29−3n) and TOUCH_DAC1 (0x150, pads
+  10–14), not RTC_IO; SENS SAR_TOUCH_CONF 0x5C, THRES1 0x64, CHN_ST 0x9C, STATUS0 0xA0, STATUS1
+  0xA4 … APPR_STATUS 0xE0. IDF enables the S3's touch interrupts through INT_ENA_W1TS/W1TC (0x138,
+  0x13C; `RtcChip.intEnaW1ts`), and RTC_CNTL's line drives ETS_RTC_CORE_INTR_SOURCE (39). TOUCH1–14
+  are GPIO1–14 (`S3_TOUCH_PINS`): the Mcu is the bench's `TouchSensing`, and a channel in the scan
+  map reads as an analog pad. Fixtures `touch-read` and `touch-interrupt` (the S2's sketches):
+  `soc/touch.test.ts`, `packages/parts/src/integration/esp32s3-touch.test.ts`. touch wake, as
+  the S2's (its section).
+
 - **ESP32-S2** — `@benchtop/esp32s2`: Espressif's single-core Xtensa LX7 chip with
   native USB, running Arduino-ESP32 2.0.17 images (FQBN `esp32:esp32:esp32s2`) booted directly
   with its mask ROM. The S2 sits between the generations, so its models were chosen by measured
@@ -3047,7 +3097,8 @@ sequence, files matched by basename or trailing path.
   (`SKETCH_OPTIONS`, `MODULE_OPTIONS`). Fixture `esp32s2/psram` (`soc/psram.test.ts`,
   `module-pins.test.ts`).
 
-  **Touch** — `soc/touch.ts` (`S2Touch`), written from IDF 4.4's register interface
+  **Touch** — `soc/touch.ts` (`S2Touch`; the model is @benchtop/esp32s3's `TouchV2`, shared with
+  the S3, and this file the S2's layout, `S2_TOUCH_CHIP`), written from IDF 4.4's register interface
   (touch_sensor_ll.h and the RTC_CNTL, SENS and RTC_IO headers): TOUCH1–14 on GPIO1–14 and the
   internal denoise channel 0. Its controls are RTC_CNTL's TOUCH_CTRL1/CTRL2/SCAN_CTRL/FILTER_CTRL/
   TIMEOUT_CTRL (the shared `S3RtcCntl` tells it about writes: `onWrite`) and RTC_IO's TOUCH_PADn
@@ -3073,9 +3124,18 @@ sequence, files matched by basename or trailing path.
   ≈ 19,400, a touch pad's electrode ≈ 23,300 and a finger on it ≈ 42,700 — model constants, chosen
   to land in the tens of thousands an S2 reads, not measurements. The Mcu is the bench's
   `TouchSensing` (`touchPins()`: GPIO1–14). Not modeled: noise, the waterproof shield, proximity
-  mode, touch wake from sleep. Fixtures `touch-read` (touchRead on T1 and T5) and
+  mode. Fixtures `touch-read` (touchRead on T1 and T5) and
   `touch-interrupt` (touchAttachInterrupt on T5, threshold 1500): `soc/touch.test.ts`,
   `packages/parts/src/integration/esp32s2-touch.test.ts`.
+
+  **Touch wake** on the S2 and S3: with WAKEUP_STATE's TOUCH (bit 8, `S2_WAKE.TOUCH`,
+  `S3_WAKE.TOUCH`), deep sleep re-arms the touch FSM after clearing the SoC's events (`resume`) —
+  IDF's touch_wakeup_prepare has left it measuring the sleep pad alone — and the sleep pad (RTC_CNTL
+  TOUCH_SLP_THRES: pad 31:27, threshold 21:0) read over its benchmark by more than that threshold
+  (`onSleepPad`) wakes the chip with cause TOUCH. TOUCH_SLP_THRES joined the RTC domain the
+  DEEPSLEEP reset keeps (`RtcChip.touchSlpThres`), since `esp_sleep_get_touchpad_wakeup_status`
+  reads its pad there; `sleepState` lists "touch T3 (GPIO3)". Fixture `touch-wake` (T3, threshold
+  5000): `packages/parts/src/integration/touch-wake.test.ts`.
 
   **Touch and PSRAM in the gallery:** the gallery's S2 touch lamp (`esp32s2-touch-lamp`: a touch pad on T5
   switches the RGB LED warm white and off, touchRead printed) and S2 PSRAM frame buffer

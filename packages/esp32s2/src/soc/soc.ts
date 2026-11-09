@@ -286,6 +286,12 @@ export class Esp32s2Soc implements SocContext, Esp32SocContext, S2BusParts {
       if (offset === TOUCH_SCAN_CTRL && ((value ^ before) >>> 10) !== 0) this.pads.update(); // a touch channel's pad reads as analog
     };
     this.rtc.onInterrupt = (on) => this.matrix.setSource(S2_SRC.RTC_CORE, on);
+    // BT160: a touch wake — the sleep pad over its threshold wakes a sleeping chip.
+    this.touch.onSleepPad = () => {
+      if (this.sleeping === null || (this.rtc.wakeSources() & S2_WAKE.TOUCH) === 0) return;
+      this.pinCause |= S2_WAKE.TOUCH;
+      this.events.schedule(this.wakeSlot, this.now());
+    };
     this.usbOtg = new S3UsbOtg(this, S2_SRC.USB, () => 3 << 19, () => this.usbWrap.regs[0]);
 
     const periph = this.periph;
@@ -445,8 +451,11 @@ export class Esp32s2Soc implements SocContext, Esp32SocContext, S2BusParts {
     if (this.sleeping !== null) return;
     this.sleeping = { deep };
     if (this.running) this.core.requestStop();
-    if (deep) this.events.clear();
-    else for (const timg of this.timg) timg.gate();
+    if (deep) {
+      this.events.clear();
+      // BT160: the touch FSM is the RTC domain's: with a touch wake it measures on.
+      if ((this.rtc.wakeSources() & S2_WAKE.TOUCH) !== 0) this.touch.resume();
+    } else for (const timg of this.timg) timg.gate();
     const at = this.rtc.wakeTime();
     if (at >= 0) this.events.schedule(this.wakeSlot, Math.max(this.now(), at));
     this.checkPinWake();
