@@ -33,7 +33,7 @@ export function isAllowedFqbn(fqbn: unknown): fqbn is string {
 const SKETCH_OPTIONS: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   'esp32:esp32:esp32': { psram: 'PSRAM=enabled' },
   'esp32:esp32:esp32s3': { psram: 'PSRAM=opi', 'usb-otg': 'USBMode=default,CDCOnBoot=cdc' },
-  'esp32:esp32:esp32s2': { 'usb-otg': 'CDCOnBoot=cdc' },
+  'esp32:esp32:esp32s2': { psram: 'PSRAM=enabled', 'usb-otg': 'CDCOnBoot=cdc' },
 };
 
 /**
@@ -44,6 +44,8 @@ const SKETCH_OPTIONS: Readonly<Record<string, Readonly<Record<string, string>>>>
 export const MODULE_OPTIONS: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   'esp32:esp32:esp32': { 'WROOM-32': '', 'WROVER-E': 'PSRAM=enabled', 'WROOM-32E-N8': 'FlashSize=8M', 'WROOM-32E-N16': 'FlashSize=16M', 'WROVER-E-N16R8': 'PSRAM=enabled,FlashSize=16M' },
   'esp32:esp32:esp32s3': { N8: 'FlashSize=8M', N8R2: 'PSRAM=enabled,FlashSize=8M', N8R8: 'PSRAM=opi,FlashSize=8M', N16R8: 'PSRAM=opi,FlashSize=16M' },
+  // BT154: the S2's menu has no flash size above its 4 MB default to pick.
+  'esp32:esp32:esp32s2': { N4: '', N4R2: 'PSRAM=enabled' },
 };
 
 /** BT137: why a compile request's `module` is refused, or null: absent, `auto`, or one of its FQBN's. */

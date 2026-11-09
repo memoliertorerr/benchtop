@@ -1,0 +1,25 @@
+{
+  "name": "memory: the EEPROM boot counter starts from a stored 41",
+  "project": "../../projects/uno-eeprom-counter.json",
+  "firmware": {
+    "uno": "../../firmware/uno/eeprom-counter.hex"
+  },
+  "memory": {
+    "uno": [
+      {
+        "offset": "0x0",
+        "base64": "KQ=="
+      }
+    ]
+  },
+  "steps": [
+    {
+      "at": "500ms",
+      "reset": "uno"
+    }
+  ],
+  "expect": [
+    "serial contains \"boot 42\" by 200ms",
+    "serial contains \"boot 43\" by 700ms"
+  ]
+}

@@ -19,7 +19,7 @@
  */
 
 import type { RunResult } from '@benchtop/core';
-import { Esp32I2c, Esp32Rmt, type Esp32SocContext, Esp32Spi, EventTable, HALT, type Peripheral, ProblemLog, type ResetSink, type RmtLayout32, type SpiLayout, Timg, XtensaCore } from '@benchtop/esp32';
+import { Esp32I2c, Esp32Rmt, type Esp32SocContext, Esp32Spi, EventTable, HALT, type Peripheral, ProblemLog, QuadPsram, type ResetSink, type RmtLayout32, type SpiLayout, Timg, XtensaCore } from '@benchtop/esp32';
 import { ApbCtrl, FlashChip, Ledc, RegisterFile, type SocContext, SpiMem, S2_UART_FIELDS, Uart } from '@benchtop/esp32c3';
 import { S3AnalogI2c, S3Gpio, S3IoMux, S3Pads, S3Sens, S3UsbOtg, S3_USB_OTG_BLOCKS } from '@benchtop/esp32s3';
 import { S2_GPIO_BASE, S2_GPIO_CHIP, S2_IO_MUX_BASE, S2_SIG } from './gpio.ts';
@@ -29,6 +29,7 @@ import { IRAM_BASE, IRAM_END, S2Memory } from './memory.ts';
 import { registerDefault, S2PeripheralMap } from './periph.ts';
 import { EFUSE_BASE, REF_HZ, RTC_CNTL_BASE, S2_RESET_REASON, S2_WAKE, S2Efuse, S2RtcCntl, SLOW_CLOCK_HZ } from './rtc-cntl.ts';
 import { S2Systimer, SYSTIMER_BASE } from './systimer.ts';
+import { S2Touch, TOUCH_SCAN_CTRL } from './touch.ts';
 import { S2Extmem, S2SystemRegs, SYSTEM_BASE, XTAL_HZ } from './system.ts';
 
 /** Reference cycles per slice (≈ 1.07 µs, as the other chips'). */
@@ -45,7 +46,7 @@ export const SPI1_BASE_S2 = 0x3f402000;
 export const SPI0_BASE_S2 = 0x3f403000;
 export const TIMG_BASES_S2 = [0x3f41f000, 0x3f420000] as const;
 export const ANA_I2C_BASE_S2 = 0x3f40e000;
-/** The block holding WDEV_RND_REG (+0x7C), the random number generator. */
+/** The block holding WDEV_RND_REG (+0x110, BT151), the random number generator. */
 export const S2_WDEV_BASE = 0x3f435000;
 export const S2_LEDC_BASE = 0x3f419000;
 export const S2_LEDC_CHANNELS = 8;
@@ -84,6 +85,10 @@ export const S2_ADC_FULL_SCALE = [0.75, 1.05, 1.3, 2.5] as const;
 /** SENSITIVE (the memory protection IDF configures at startup) and APB_CTRL: storage here. */
 export const S2_SENSITIVE_BASE = 0x3f4c1000;
 export const S2_APB_CTRL_BASE = 0x3f426000;
+/** BT154: the S2's PSRAM — 2 MB (16 Mbit), as in an ESP32-S2FN4R2 (the MINI-2) or on a WROVER. */
+export const S2_PSRAM_BYTES = 2 * 1024 * 1024;
+/** Its ID bytes: MFID 0x0D, KGD 0x5D, EID density bits 7:5 = 0 (16 Mbit). */
+export const S2_PSRAM_ID = [0x0d, 0x5d, 0x00] as const;
 
 export interface Esp32s2SocOptions {
   /** Flash size in bytes (a multiple of 64 KB; 4 MB by default). */
@@ -94,6 +99,8 @@ export interface Esp32s2SocOptions {
   mac?: readonly number[];
   /** Reference time to start at (a reset builds a fresh chip at the time the old one stopped). */
   time?: number;
+  /** BT154: the module has PSRAM (true by default — a PSRAM build finds it). */
+  psram?: boolean;
 }
 
 /** The MMU table: 384 entries — the flash page (13:0), INVALID (14), ACCESS_FLASH (15), ACCESS_SPIRAM (16). */
@@ -163,6 +170,8 @@ export class Esp32s2Soc implements SocContext, Esp32SocContext, S2BusParts {
   private pinCause = 0;
   readonly uarts: readonly [Uart, Uart];
   readonly spi1: SpiMem;
+  /** BT154: the PSRAM chip on SPI1's CS1 (the bytes allocated on first use). */
+  readonly psram = new QuadPsram(S2_PSRAM_BYTES, S2_PSRAM_ID);
   /** BT149: GPIO, the matrix, IO_MUX and what each pad is doing (the S3's model over the S2's pads). */
   readonly iomux: S3IoMux;
   readonly gpio: S3Gpio;
@@ -175,6 +184,8 @@ export class Esp32s2Soc implements SocContext, Esp32SocContext, S2BusParts {
   readonly spi2: Esp32Spi;
   /** SENS: the RTC-controlled SAR ADC (13-bit codes). */
   readonly sens: S3Sens;
+  /** BT155: the touch sensor (TOUCH1–14 on GPIO1–14), in RTC_CNTL, SENS and RTC_IO. */
+  readonly touch: S2Touch;
   /** The USB-OTG controller (the S3's model; the S2 has no other USB, so its PHY is always the OTG's). */
   readonly usbOtg: S3UsbOtg;
   readonly usbWrap = new RegisterFile(S2_USB_WRAP_BASE, registerDefault);
@@ -231,12 +242,16 @@ export class Esp32s2Soc implements SocContext, Esp32SocContext, S2BusParts {
     this.timg = [new Timg(this, 0, { level: S2_SRC.TG0_T0, edge: S2_SRC.TG0_T0_EDGE, slowClocks }), new Timg(this, 1, { level: S2_SRC.TG1_T0, edge: S2_SRC.TG1_T0_EDGE, slowClocks })];
     this.uarts = [new Uart(this, 0, S2_SRC.UART0, UART_BASES_S2[0], S2_UART_FIELDS), new Uart(this, 1, S2_SRC.UART1, UART_BASES_S2[1], S2_UART_FIELDS)];
     this.spi1 = new SpiMem(SPI1_BASE_S2, this.flash, registerDefault);
+    this.spi1.cs1 = this.psram;
+    this.psram.present = options.psram !== false;
     this.iomux = new S3IoMux(this.problems, S2_GPIO_CHIP);
+    this.iomux.psramCs = () => this.psram.identified; // BT154
     this.gpio = new S3Gpio(this, this.iomux);
     this.pads = new S3Pads(this.gpio, this.iomux);
     this.pads.signalLevel = (signal) => this.signalLevel(signal);
     this.gpio.onConfig = () => this.pads.update();
     this.pads.rtcPad = (g) => this.rtc.rtcPad(g);
+    this.pads.analogPad = (g) => (this.touch as S2Touch | undefined)?.uses(g) === true; // BT155 (built below)
     this.rtc.onRtcPads = () => this.pads.update();
     this.gpio.onInputs = () => {
       if (this.sleeping !== null) this.checkPinWake();
@@ -257,7 +272,20 @@ export class Esp32s2Soc implements SocContext, Esp32SocContext, S2BusParts {
     this.spi2.onCs = () => this.pads.update();
     this.sens = new S3Sens(this, { base: S2_SENS_BASE, defaults: registerDefault, bits: 13 });
     this.sens.sample = (adc, channel, attenuation) => this.adcSample(adc, channel, attenuation);
-    this.rtc.sens = this.sens;
+    // BT155: the touch sensor — its controls in RTC_CNTL and RTC_IO, its data in SENS (0x5C–0x118),
+    // its interrupts through RTC_CNTL's to the matrix (ETS_RTC_CORE_INTR_SOURCE).
+    this.touch = new S2Touch(this, { read32: (offset) => this.rtc.read32(offset), slowHz: () => this.rtc.slowHz(), raise: (bits) => this.rtc.raise(bits) }, REF_HZ);
+    const sens = this.sens;
+    const touch = this.touch;
+    this.rtc.sens = {
+      read32: (offset) => (touch.owns(offset) ? touch.read32(offset) : sens.read32(offset)),
+      write32: (offset, value) => (touch.owns(offset) ? touch.write32(offset, value) : sens.write32(offset, value)),
+    };
+    this.rtc.onWrite = (offset, value, before) => {
+      touch.rtcWritten(offset, value, before);
+      if (offset === TOUCH_SCAN_CTRL && ((value ^ before) >>> 10) !== 0) this.pads.update(); // a touch channel's pad reads as analog
+    };
+    this.rtc.onInterrupt = (on) => this.matrix.setSource(S2_SRC.RTC_CORE, on);
     this.usbOtg = new S3UsbOtg(this, S2_SRC.USB, () => 3 << 19, () => this.usbWrap.regs[0]);
 
     const periph = this.periph;
@@ -337,6 +365,22 @@ export class Esp32s2Soc implements SocContext, Esp32SocContext, S2BusParts {
   mmuPsram(entry: number): boolean {
     const value = this.mmu.table[entry];
     return (value & MMU_INVALID) === 0 && (value & MMU_ACCESS_SPIRAM) !== 0;
+  }
+
+  /** BT154: the PSRAM offset an MMU entry with ACCESS_SPIRAM maps, within the chip's size; else −1. */
+  mmuPsramPage(entry: number): number {
+    const value = this.mmu.table[entry];
+    if ((value & MMU_INVALID) !== 0 || (value & MMU_ACCESS_SPIRAM) === 0) return -1;
+    const page = (value & 0x3fff) * 0x10000;
+    return page + 0x10000 <= this.psram.size ? page : -1;
+  }
+
+  psramBytes(): Uint8Array {
+    return this.psram.data;
+  }
+
+  psramWords(): Uint32Array {
+    return this.psram.dataWords;
   }
 
   peripheralTurn(): void {

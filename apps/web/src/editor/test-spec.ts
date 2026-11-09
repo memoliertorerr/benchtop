@@ -3,7 +3,8 @@
  * circuit goes in inline — the spec replays exactly what was recorded against — and the firmware
  * as paths the user names (the browser can't know where their builds live; they're relative to
  * where the spec is saved). Steps keep the recording's exact times; a microSD card starts with
- * the files it had when the recording began (BT144). DOM-free: the dialog
+ * the files it had when the recording began (BT144), each board with its EEPROM or flash data
+ * (BT156: `memory`, sectors at hex offsets, trailing erased bytes trimmed). DOM-free: the dialog
  * (ui/RecordDialog.tsx) and the Node tests share it.
  */
 
@@ -38,10 +39,13 @@ export function buildSpec(draft: SpecDraft): Record<string, unknown> {
   // BT144: cards start with the files they had when the recording began (a reset keeps them).
   const cards = draft.test.cards;
   const project = Object.keys(cards).length === 0 ? draft.doc : { ...draft.doc, parts: draft.doc.parts.map((p) => (Object.hasOwn(cards, p.id) ? { ...p, props: { ...p.props, files: cards[p.id] } } : p)) };
+  // BT156: boards start with the data they held when the recording began (a reset keeps it).
+  const memory = Object.entries(draft.test.memory).filter(([board, sectors]) => Object.hasOwn(draft.firmware, board) && sectors.length > 0);
   return {
     name: draft.name,
     project,
     firmware: { ...draft.firmware },
+    ...(memory.length > 0 ? { memory: Object.fromEntries(memory.map(([board, sectors]) => [board, sectors.map((s) => ({ offset: `0x${s.offset.toString(16)}`, base64: s.base64 }))])) } : {}),
     duration: timeText(draft.test.durationNs),
     ...(steps.length > 0 ? { steps } : {}),
     expect: [...draft.expectations],

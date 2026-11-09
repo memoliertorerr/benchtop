@@ -249,7 +249,7 @@ export class SimSession {
         return;
       case 'recordStart':
         this.resetBench();
-        this.recording = new TestRecording(this.cardsAtStart());
+        this.recording = new TestRecording(this.cardsAtStart(), snapshotAll(this.requireBench()));
         return;
       case 'recordStop':
         this.stopRecording();

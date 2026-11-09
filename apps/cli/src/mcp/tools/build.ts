@@ -53,7 +53,7 @@ export const compileSketch: Tool<ToolContext> = {
       main: { type: 'string', maxLength: 64, description: 'The inline sketch\'s main .ino (default: its only .ino).' },
       board: { type: 'string', maxLength: 64, description: 'The board part type to compile for.' },
       fqbn: { type: 'string', enum: FQBN_ALLOWLIST, description: 'An FQBN instead of a board type.' },
-      module: { type: 'string', maxLength: 16, description: "The board's module, which picks the PSRAM build option: ESP32 auto, WROOM-32 or WROVER-E; ESP32-S3 auto, N8, N8R2 or N8R8 (a board's `module` prop). Default auto: a sketch's `// benchtop: psram` line decides." },
+      module: { type: 'string', maxLength: 16, description: "The board's module, which picks the PSRAM build option: ESP32 auto, WROOM-32 or WROVER-E; ESP32-S3 auto, N8, N8R2, N8R8 or N16R8; ESP32-S2 auto, N4 or N4R2 (a board's `module` prop). Default auto: a sketch's `// benchtop: psram` line decides." },
     },
     additionalProperties: false,
   },

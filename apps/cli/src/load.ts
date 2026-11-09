@@ -207,7 +207,7 @@ export function buildBench(
   const env: BenchEnv = {
     part: benchEnvParts,
     createMcu(board, partId, report, props) {
-      const mcu = avrMcuFactory(board) ?? esp32(board, partId, report, props) ?? esp32c3(board, partId, report) ?? esp32s3(board, partId, report, props) ?? esp32s2(board, partId, report) ?? rp2040McuFactory(board, partId, report, roms.micropython) ?? rp2350McuFactory(board, partId, report, { rom: roms.rp2350Rom, micropython: roms.micropythonPico2 });
+      const mcu = avrMcuFactory(board) ?? esp32(board, partId, report, props) ?? esp32c3(board, partId, report) ?? esp32s3(board, partId, report, props) ?? esp32s2(board, partId, report, props) ?? rp2040McuFactory(board, partId, report, roms.micropython) ?? rp2350McuFactory(board, partId, report, { rom: roms.rp2350Rom, micropython: roms.micropythonPico2 });
       if (mcu !== undefined) mcus.push(mcu);
       const symbols = tables[partId]?.symbols;
       if (mcu !== undefined && symbols != null && usesSymbols(mcu)) mcu.useSymbols(symbols);

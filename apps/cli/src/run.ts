@@ -52,7 +52,7 @@
  * Exit codes: 0 every assertion passed, 1 one failed, 2 usage, load or run error.
  */
 
-import { type Bench, BusDecoder, type BusTransaction, ipString, MAX_PROBES, type Mcu, type NetEvent, type NetState, type PartInput, type Problem, type ProjectDoc, type UsbLocks, type VisualState } from '@benchtop/core';
+import { type Bench, BusDecoder, type BusTransaction, ipString, MAX_PROBES, type Mcu, type NetEvent, type NetState, type NvSector, type PartInput, type Problem, type ProjectDoc, type UsbLocks, type VisualState } from '@benchtop/core';
 import { encodeMidi } from '@benchtop/esp32s3';
 import { base64Decode, CATALOG, envSpecFor, netSpecFor, sevenSegmentText } from '@benchtop/parts';
 import { buildBench, cachedRoms, type CliIo, loadFirmware, loadTables, loadProject, parseJson, projectFromJson, readText, resolvePin, UsageError } from './load.ts';
@@ -75,6 +75,31 @@ export interface RunOptions {
   maxDurationNs?: number | undefined;
   /** BT68: wall-clock budget (ms); the run stops with an error when it is used up. */
   maxWallMs?: number | undefined;
+  /** BT156: boards' EEPROM or flash data to start from (a recorded spec's `memory`; trailing 0xFF may be left out). */
+  memory?: Readonly<Record<string, readonly NvSector[]>> | undefined;
+}
+
+/**
+ * BT156: puts a spec's memory back on its boards — after the bench is built (the firmware booted,
+ * not yet run), as the app's worker restores saved data. A board the project lacks, one without
+ * memory, or a sector that isn't a data sector of its memory is a usage error naming it.
+ */
+export function restoreSpecMemory(bench: Bench, boards: readonly string[], memory: Readonly<Record<string, readonly NvSector[]>>): void {
+  for (const [board, sectors] of Object.entries(memory)) {
+    if (!boards.includes(board)) throw new UsageError(`memory: "${board}" isn't a board of the project`);
+    const nv = bench.nonVolatileOf(board);
+    if (nv === null) throw new UsageError(`memory.${board}: this board keeps no EEPROM or flash data`);
+    const padded: NvSector[] = sectors.map((sector) => {
+      const at = `0x${sector.offset.toString(16)}`;
+      if (sector.offset % nv.sectorSize !== 0 || sector.offset + nv.sectorSize > nv.size) throw new UsageError(`memory.${board}: ${at} isn't the start of a sector of its ${nv.kind} (${nv.size} bytes, ${nv.sectorSize}-byte sectors)`);
+      if (sector.bytes.length > nv.sectorSize) throw new UsageError(`memory.${board}: the sector at ${at} holds ${sector.bytes.length} bytes, more than its ${nv.sectorSize}`);
+      const bytes = new Uint8Array(nv.sectorSize).fill(0xff);
+      bytes.set(sector.bytes);
+      return { offset: sector.offset, bytes };
+    });
+    const restored = nv.restore(padded);
+    if (restored < padded.length) throw new UsageError(`memory.${board}: ${padded.length - restored} of ${padded.length} sectors fall on the firmware's own program sectors`);
+  }
 }
 
 export type RunIo = CliIo;
@@ -785,6 +810,7 @@ export function runHeadless(options: RunOptions, io: RunIo): RunReport {
     const built = buildBench(doc, images, cachedRoms(io), undefined, loadTables(io, doc, options.firmware), uplink);
     const bench = built.bench;
     mcus.push(...built.mcus);
+    if (options.memory !== undefined) restoreSpecMemory(bench, boards, options.memory);
 
     // Serial: the report keeps the first SERIAL_CAP characters; `contains` streams every chunk,
     // `matches` runs once at the end over the kept text, timed by the chunk its match ends in.

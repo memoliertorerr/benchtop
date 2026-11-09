@@ -95,6 +95,8 @@ export interface GpioChip {
    * select, is held too); 27 on the S2, whose DevKitM-1 breaks GPIO26 out (its S2FH4 has no PSRAM).
    */
   readonly firstFlashPad: number;
+  /** BT154: the pad that is the quad PSRAM's chip select when the module has one and the firmware may take (26 on the S2). */
+  readonly psramCsPad?: number;
 }
 
 export const S3_GPIO_CHIP: GpioChip = { pads: S3_PADS, sig: S3_SIG, gpioSource: S3_SRC.GPIO, nmiSource: S3_SRC.GPIO_NMI, gpioBase: S3_GPIO_BASE, ioMuxBase: S3_IO_MUX_BASE, flashPinCode: 'esp32s3-flash-pin', firstFlashPad: 26 };
@@ -208,6 +210,8 @@ export class S3IoMux implements Peripheral {
   onConfig: (() => void) | null = null;
   /** BT136: whether the octal PSRAM runs (it holds GPIO33–37); null: no watch. */
   octalPsram: (() => boolean) | null = null;
+  /** BT154: whether the quad PSRAM on the chip's `psramCsPad` runs; null: no watch. */
+  psramCs: (() => boolean) | null = null;
   private readonly problems: ProblemLog | null;
 
   constructor(problems: ProblemLog | null = null, chip: GpioChip = S3_GPIO_CHIP) {
@@ -263,6 +267,9 @@ export class S3IoMux implements Peripheral {
       }
       if (g >= 33 && g <= 37 && ((before ^ value) & MUX.MCU_SEL) !== 0 && this.isGpio(g) && this.problems !== null && this.octalPsram !== null && this.octalPsram()) {
         this.problems.report('warning', CODE_S3_PIN_RESERVED, this.pads.chip.ioMuxBase + offset, `The firmware made GPIO${g} a GPIO, but it carries the octal PSRAM's ${OCTAL_PSRAM_PADS[g - 33]}: on a board the PSRAM stops answering (the simulator's keeps working). On an N8R8 module IO35–37 aren't free: pick another pin.`);
+      }
+      if (g === this.pads.chip.psramCsPad && ((before ^ value) & MUX.MCU_SEL) !== 0 && this.isGpio(g) && this.problems !== null && this.psramCs !== null && this.psramCs()) {
+        this.problems.report('warning', CODE_S3_PIN_RESERVED, this.pads.chip.ioMuxBase + offset, `The firmware made GPIO${g} a GPIO, but it is the PSRAM's chip select (SPICS1): on a board the PSRAM stops answering (the simulator's keeps working). With PSRAM on the module GPIO${g} isn't free: pick another pin.`);
       }
       this.onConfig?.();
     }
@@ -578,6 +585,8 @@ export class S3Pads {
   signalLevel: (signal: number) => number;
   /** BT128: −1 when a pad isn't routed to the RTC (RTC_IO's MUX_SEL), else its RTC pulls (0 none, 1 up, 2 down). */
   rtcPad: (g: number) => number = () => -1;
+  /** BT155: an RTC pad an analog function holds besides the ADC (the S2's touch channels): it reads as analog. */
+  analogPad: (g: number) => boolean = () => false;
 
   constructor(gpio: S3Gpio, iomux: S3IoMux) {
     this.gpio = gpio;
@@ -638,7 +647,7 @@ export class S3Pads {
       // BT128: an RTC pad (rtc_gpio_init — a deep sleep's ext0/ext1 pin, or an ADC pad, which IDF's
       // adc_gpio_init routes there with no pulls): an input with the RTC's pulls, or analog.
       this.level[g] = 0;
-      this.mode[g] = rtc === 1 ? S3_PAD_MODE.PULLUP : rtc === 2 ? S3_PAD_MODE.PULLDOWN : this.adcUsed[g] !== 0 ? S3_PAD_MODE.ANALOG : S3_PAD_MODE.INPUT;
+      this.mode[g] = rtc === 1 ? S3_PAD_MODE.PULLUP : rtc === 2 ? S3_PAD_MODE.PULLDOWN : this.adcUsed[g] !== 0 || this.analogPad(g) ? S3_PAD_MODE.ANALOG : S3_PAD_MODE.INPUT;
       return;
     }
     let enabled = false;

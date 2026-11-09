@@ -23,7 +23,7 @@ import type {
   UsbLocks,
 } from '@benchtop/core';
 
-export const PROTOCOL_VERSION = 20; // BT146: `usbSend`
+export const PROTOCOL_VERSION = 21; // BT156: a recording's boards' memory
 
 export type ToSim =
   | { type: 'hello'; protocol: number }
@@ -207,6 +207,19 @@ export interface RecordedTest {
   cards: Record<string, string>;
   /** BT144: cards whose files at the start held more than the `files` prop takes (the replay starts from the project's). */
   cardsNotKept: string[];
+  /**
+   * BT156: each board's EEPROM or flash data when the recording began (a reset keeps it): its data
+   * sectors with their trailing erased bytes (0xFF) trimmed, so the replay starts from the same.
+   */
+  memory: Record<string, RecordedSector[]>;
+  /** BT156: boards that held more than MAX_RECORDED_MEMORY of data then (the replay starts them erased). */
+  memoryNotKept: string[];
+}
+
+/** BT156: a data sector of a board's memory in a recording: its offset, its bytes in base64 (trailing 0xFF trimmed). */
+export interface RecordedSector {
+  offset: number;
+  base64: string;
 }
 
 /** Why a debuggable board is not running. */

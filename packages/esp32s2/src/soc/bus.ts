@@ -14,8 +14,14 @@
  * The slow path: RTC fast memory (0x3FF9_E000 data, 0x4007_0000 instruction) and slow memory
  * (0x5000_0000), the peripherals on either peripheral bus (sub-word accesses merge into their
  * word), EXTMEM and the MMU table (0x6180_0000–0x6180_1FFF), and unmapped addresses
- * (LoadStoreError / InstrFetchError). PSRAM (an entry with ACCESS_SPIRAM) isn't modeled: it reads
- * as unmapped, with an `esp32s2-psram` Problem. Not modeled: cache timing, memory protection.
+ * (LoadStoreError / InstrFetchError).
+ *
+ * BT154: PSRAM — an MMU entry with ACCESS_SPIRAM arms its data-bus page (any window below
+ * 0x4000_0000: IDF 4.4 maps the chip into DBUS0/DBUS1/DBUS2, 0x3F50_0000–0x3FF7_FFFF) on the PSRAM
+ * chip's bytes (soc.ts), read and written like SRAM. An ACCESS_SPIRAM entry no chip answers (a
+ * module without PSRAM, a page past its size) reads as unmapped with an `esp32s2-psram` Problem.
+ * Instruction fetch from PSRAM isn't modeled (Arduino's builds don't place code there).
+ * Not modeled: cache timing, memory protection.
  */
 
 import { CODE_NONE, CODE_PLAIN, type CodeBus, EXCCAUSE, lengthOf, type Peripheral, type ProblemLog, type XtensaBus, XtensaBusError, type XtensaCore } from '@benchtop/esp32';
@@ -44,6 +50,7 @@ import type { S2PeripheralMap } from './periph.ts';
 const K_SRAM = 1;
 const K_ROM = 2;
 const K_FLASH = 3;
+const K_PSRAM = 4;
 const LOAD_STORE_ERROR = EXCCAUSE.LOAD_STORE_ERROR;
 const FETCH_ERROR = EXCCAUSE.INSTRUCTION_FETCH_ERROR;
 export const CODE_S2_PSRAM = 'esp32s2-psram';
@@ -98,6 +105,11 @@ export interface S2BusParts {
   mmuPage(entry: number): number;
   /** Whether MMU entry `entry` maps PSRAM. */
   mmuPsram(entry: number): boolean;
+  /** BT154: the PSRAM offset MMU entry `entry` maps (−1: not PSRAM, no chip or past its size). */
+  mmuPsramPage(entry: number): number;
+  /** BT154: the PSRAM chip's bytes and words (allocated on first use). */
+  psramBytes(): Uint8Array;
+  psramWords(): Uint32Array;
   /** Called before a peripheral access: events due by now fire first. */
   peripheralTurn(): void;
   /** A store hit a 4 KB SRAM page holding predecoded code. */
@@ -170,6 +182,7 @@ export class S2Bus implements XtensaBus, CodeBus {
     if (k === K_SRAM) return this.sram[this.base[p] + (a & 0xffff)];
     if (k === K_ROM) return this.rom[this.base[p] + (a & 0xffff)];
     if (k === K_FLASH) return this.flash[this.base[p] + (a & 0xffff)];
+    if (k === K_PSRAM) return this.parts.psramBytes()[this.base[p] + (a & 0xffff)];
     return this.slowRead(a, 1);
   }
 
@@ -179,7 +192,7 @@ export class S2Bus implements XtensaBus, CodeBus {
     const k = this.kind[p];
     if ((a & 1) === 0 && k !== 0) {
       const o = this.base[p] + (a & 0xffff);
-      const m = k === K_SRAM ? this.sram : k === K_ROM ? this.rom : this.flash;
+      const m = k === K_SRAM ? this.sram : k === K_ROM ? this.rom : k === K_PSRAM ? this.parts.psramBytes() : this.flash;
       return m[o] | (m[o + 1] << 8);
     }
     return this.slowRead(a, 2);
@@ -193,6 +206,7 @@ export class S2Bus implements XtensaBus, CodeBus {
       const o = this.base[p] + (a & 0xffff);
       if (k === K_SRAM) return this.sramWords[o >>> 2];
       if (k === K_ROM) return this.romWords[o >>> 2];
+      if (k === K_PSRAM) return this.parts.psramWords()[o >>> 2];
       const m = this.flash;
       return (m[o] | (m[o + 1] << 8) | (m[o + 2] << 16) | (m[o + 3] << 24)) >>> 0;
     }
@@ -206,7 +220,8 @@ export class S2Bus implements XtensaBus, CodeBus {
       const o = this.base[p] + (a & 0xffff);
       this.sram[o] = value;
       if (this.code[o >>> 12] !== 0) this.parts.codeWritten(o);
-    } else this.slowWrite(a, value, 1);
+    } else if (this.kind[p] === K_PSRAM) this.parts.psramBytes()[this.base[p] + (a & 0xffff)] = value;
+    else this.slowWrite(a, value, 1);
   }
 
   write16(addr: number, value: number): void {
@@ -217,6 +232,11 @@ export class S2Bus implements XtensaBus, CodeBus {
       this.sram[o] = value;
       this.sram[o + 1] = value >>> 8;
       if (this.code[o >>> 12] !== 0) this.parts.codeWritten(o);
+    } else if ((a & 1) === 0 && this.kind[p] === K_PSRAM) {
+      const m = this.parts.psramBytes();
+      const o = this.base[p] + (a & 0xffff);
+      m[o] = value;
+      m[o + 1] = value >>> 8;
     } else this.slowWrite(a, value, 2);
   }
 
@@ -227,7 +247,8 @@ export class S2Bus implements XtensaBus, CodeBus {
       const o = this.base[p] + (a & 0xffff);
       this.sramWords[o >>> 2] = value;
       if (this.code[o >>> 12] !== 0) this.parts.codeWritten(o);
-    } else this.slowWrite(a, value, 4);
+    } else if ((a & 3) === 0 && this.kind[p] === K_PSRAM) this.parts.psramWords()[(this.base[p] + (a & 0xffff)) >>> 2] = value;
+    else this.slowWrite(a, value, 4);
   }
 
   fetch(addr: number): number {
@@ -254,23 +275,48 @@ export class S2Bus implements XtensaBus, CodeBus {
     const entry = s2MmuEntryOf(a);
     if (entry < 0) return -1;
     const page = this.parts.mmuPage(entry);
-    if (page < 0 || page + 0x10000 > this.flash.length) {
-      if (this.parts.mmuPsram(entry)) this.parts.problems.report('error', CODE_S2_PSRAM, a, `PSRAM access at ${hex(a)} (PC ${hex(this.pc())}): PSRAM isn't modeled on the ESP32-S2`);
-      return -1;
-    }
+    if (page < 0 || page + 0x10000 > this.flash.length) return -1;
     const p = a >>> 16;
     this.kind[p] = K_FLASH;
     this.base[p] = page;
     return page + (a & 0xffff);
   }
 
-  /** Byte `a` outside the fast pages: RTC memory, flash, or −1. */
+  /** BT154: the PSRAM offset of data-bus address `a` (arming its page), or −1 (an unanswered SPIRAM entry is a Problem). */
+  private psramOffset(a: number): number {
+    if (a >= 0x40000000) return -1;
+    const entry = s2MmuEntryOf(a);
+    if (entry < 0) return -1;
+    const page = this.parts.mmuPsramPage(entry);
+    if (page < 0) {
+      if (this.parts.mmuPsram(entry)) this.parts.problems.report('error', CODE_S2_PSRAM, a, `PSRAM access at ${hex(a)} (PC ${hex(this.pc())}): no PSRAM answers there (a module without PSRAM, or past its size)`);
+      return -1;
+    }
+    const p = a >>> 16;
+    this.kind[p] = K_PSRAM;
+    this.base[p] = page;
+    return page + (a & 0xffff);
+  }
+
+  /**
+   * Byte `a` for the slow path: an armed page's (an unaligned or sub-word access to SRAM, ROM, flash
+   * or PSRAM — BT157: the S2's core does unaligned loads in hardware, XCHAL_UNALIGNED_LOAD_HW),
+   * RTC memory, a flash or PSRAM window page not armed yet, or −1.
+   */
   private memoryByte(a: number): number {
+    const p = a >>> 16;
+    const k = this.kind[p];
+    if (k === K_SRAM) return this.sram[this.base[p] + (a & 0xffff)];
+    if (k === K_ROM) return this.rom[this.base[p] + (a & 0xffff)];
+    if (k === K_FLASH) return this.flash[this.base[p] + (a & 0xffff)];
+    if (k === K_PSRAM) return this.parts.psramBytes()[this.base[p] + (a & 0xffff)];
     if (a >= RTC_FAST_BASE && a < RTC_FAST_BASE + RTC_FAST_SIZE) return this.parts.memory.rtcFast[a - RTC_FAST_BASE];
     if (a >= RTC_FAST_IBASE && a < RTC_FAST_IBASE + RTC_FAST_SIZE) return this.parts.memory.rtcFast[a - RTC_FAST_IBASE];
     if (a >= RTC_SLOW_BASE && a < RTC_SLOW_BASE + RTC_SLOW_SIZE) return this.parts.memory.rtcSlow[a - RTC_SLOW_BASE];
     const o = this.flashOffset(a);
-    return o >= 0 ? this.flash[o] : -1;
+    if (o >= 0) return this.flash[o];
+    const q = this.psramOffset(a);
+    return q >= 0 ? this.parts.psramBytes()[q] : -1;
   }
 
   private isPeripheral(a: number): boolean {
@@ -301,9 +347,16 @@ export class S2Bus implements XtensaBus, CodeBus {
     for (let i = 0; i < size; i++) {
       const b = (a + i) >>> 0;
       const byte = (value >>> (8 * i)) & 0xff;
-      if (b >= RTC_FAST_BASE && b < RTC_FAST_BASE + RTC_FAST_SIZE) this.parts.memory.rtcFast[b - RTC_FAST_BASE] = byte;
+      const page = b >>> 16;
+      if (this.kind[page] === K_SRAM) {
+        // BT157: an unaligned store to SRAM (XCHAL_UNALIGNED_STORE_HW), byte by byte.
+        const o = this.base[page] + (b & 0xffff);
+        this.sram[o] = byte;
+        if (this.code[o >>> 12] !== 0) this.parts.codeWritten(o);
+      } else if (b >= RTC_FAST_BASE && b < RTC_FAST_BASE + RTC_FAST_SIZE) this.parts.memory.rtcFast[b - RTC_FAST_BASE] = byte;
       else if (b >= RTC_FAST_IBASE && b < RTC_FAST_IBASE + RTC_FAST_SIZE) this.parts.memory.rtcFast[b - RTC_FAST_IBASE] = byte;
       else if (b >= RTC_SLOW_BASE && b < RTC_SLOW_BASE + RTC_SLOW_SIZE) this.parts.memory.rtcSlow[b - RTC_SLOW_BASE] = byte;
+      else if (this.psramOffset(b) >= 0) this.parts.psramBytes()[this.base[b >>> 16] + (b & 0xffff)] = byte;
       else if ((b >= ROM_BASE && b < ROM_BASE + ROM_SIZE) || (b >= DROM_BASE && b < DROM_BASE + DROM_SIZE)) {
         if (this.parts.problems.admit(CODE_S2_ROM_WRITE, a)) this.parts.problems.add('warning', CODE_S2_ROM_WRITE, a, `write to ROM at ${hex(a)} (PC ${hex(this.pc())}) ignored`);
         return;
@@ -414,7 +467,13 @@ export class S2Bus implements XtensaBus, CodeBus {
       const o = b >= IRAM_BASE ? b - IRAM_BASE : b - DRAM_BASE;
       this.sram[o] = byte;
       if (this.code[o >>> 12] !== 0) this.parts.codeWritten(o);
-    } else return false;
+    } else {
+      // BT154: PSRAM through the MMU's SPIRAM pages.
+      const entry = b < 0x40000000 ? s2MmuEntryOf(b) : -1;
+      const page = entry < 0 ? -1 : this.parts.mmuPsramPage(entry);
+      if (page < 0) return false;
+      this.parts.psramBytes()[page + (b & 0xffff)] = byte;
+    }
     return true;
   }
 
@@ -426,11 +485,14 @@ export class S2Bus implements XtensaBus, CodeBus {
     if (k === K_SRAM) return this.sram[this.base[p] + (a & 0xffff)];
     if (k === K_ROM) return this.rom[this.base[p] + (a & 0xffff)];
     if (k === K_FLASH) return this.flash[this.base[p] + (a & 0xffff)];
+    if (k === K_PSRAM) return this.parts.psramBytes()[this.base[p] + (a & 0xffff)];
     if (a >= RTC_FAST_BASE && a < RTC_FAST_BASE + RTC_FAST_SIZE) return this.parts.memory.rtcFast[a - RTC_FAST_BASE];
     if (a >= RTC_FAST_IBASE && a < RTC_FAST_IBASE + RTC_FAST_SIZE) return this.parts.memory.rtcFast[a - RTC_FAST_IBASE];
     if (a >= RTC_SLOW_BASE && a < RTC_SLOW_BASE + RTC_SLOW_SIZE) return this.parts.memory.rtcSlow[a - RTC_SLOW_BASE];
     const entry = s2MmuEntryOf(a);
     const page = entry < 0 ? -1 : this.parts.mmuPage(entry);
-    return page < 0 ? 0 : (this.flash[page + (a & 0xffff)] ?? 0);
+    if (page >= 0) return this.flash[page + (a & 0xffff)] ?? 0;
+    const ram = entry < 0 || a >= 0x40000000 ? -1 : this.parts.mmuPsramPage(entry);
+    return ram < 0 ? 0 : this.parts.psramBytes()[ram + (a & 0xffff)];
   }
 }

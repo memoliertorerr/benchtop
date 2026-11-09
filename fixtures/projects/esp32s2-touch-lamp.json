@@ -1,0 +1,44 @@
+{
+  "format": 1,
+  "name": "esp32s2-touch-lamp",
+  "parts": [
+    {
+      "id": "s2",
+      "type": "esp32-s2-devkitm-1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "pad",
+      "type": "touch-pad",
+      "x": -30,
+      "y": 2,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "pad",
+        "pin": "PAD"
+      },
+      "to": {
+        "part": "s2",
+        "pin": "IO5"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    }
+  ],
+  "firmware": {
+    "s2": {
+      "kind": "file",
+      "name": "touch-lamp.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

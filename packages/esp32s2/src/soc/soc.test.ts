@@ -112,7 +112,7 @@ describe('the S2 flash through its MMU windows (BT148)', () => {
     expect(soc.bus.fetch(0x40080000) & 0xffffff).toBe(0x3cf00f);
   });
 
-  it('refuses a read through an invalid entry; a remap shows the new page at once; a PSRAM entry is a Problem', () => {
+  it('refuses a read through an invalid entry; a remap shows the new page at once; a PSRAM entry past the chip is a Problem', () => {
     const { soc, w } = idleSoc();
     const bus = soc.bus;
     expect(() => bus.read32(0x3f070000)).toThrow(XtensaBusError);
@@ -124,13 +124,32 @@ describe('the S2 flash through its MMU windows (BT148)', () => {
     expect(bus.read8(0x3f070000)).toBe(0xbb);
     w(MMU_TABLE_BASE + 135 * 4, 0x4000);
     expect(() => bus.read8(0x3f070000)).toThrow(XtensaBusError);
-    w(MMU_TABLE_BASE + 256 * 4, MMU_ACCESS_SPIRAM | 0);
+    w(MMU_TABLE_BASE + 256 * 4, MMU_ACCESS_SPIRAM | 40); // BT154: 2.5 MB into a 2 MB chip
     expect(() => bus.read8(0x3f800000)).toThrow(XtensaBusError);
     expect(soc.problems.problems.map((p) => p.code)).toContain('esp32s2-psram');
     // SRAM next to the DRAM0 window is never a window page (its last entry is below 0x3FF8_0000).
     w(MMU_TABLE_BASE + 255 * 4, MMU_ACCESS_FLASH | 2);
     bus.write32(0x3ffffd3c, 0x12345678);
     expect(bus.read32(0x3ffffd3c)).toBe(0x12345678);
+  });
+});
+
+describe('the S2 bus (BT157)', () => {
+  it('does unaligned loads and stores on SRAM and ROM in hardware (XCHAL_UNALIGNED_*_HW), as the ESP32 and S3', () => {
+    const { soc } = idleSoc();
+    const bus = soc.bus;
+    bus.write32(0x3ffc9b40, 0x44332211);
+    bus.write32(0x3ffc9b44, 0x88776655);
+    expect(bus.read32(0x3ffc9b43)).toBe(0x77665544);
+    expect(bus.read16(0x3ffc9b45)).toBe(0x7766);
+    bus.write32(0x3ffc9b41, 0xddccbbaa);
+    expect(bus.read32(0x3ffc9b40)).toBe(0xccbbaa11);
+    expect(bus.read8(0x3ffc9b44)).toBe(0xdd);
+    bus.write16(0x3ffc9b47, 0xeeff);
+    expect(bus.read32(0x3ffc9b44)).toBe(0xff7766dd);
+    expect(bus.read8(0x3ffc9b48)).toBe(0xee);
+    const romWord = bus.read32(0x40000000);
+    expect(bus.read32(0x40000001)).toBe(((romWord >>> 8) | (bus.read8(0x40000004) << 24)) >>> 0);
   });
 });
 

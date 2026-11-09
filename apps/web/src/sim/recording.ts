@@ -2,7 +2,8 @@
  * Recording a test in the worker (BT50). "Record test" resets the bench and starts one of these;
  * every input the UI sends (button presses, knob and slider values, keypad keys) and every text
  * typed into a serial monitor is logged with the bench's simulated time — exact to the
- * nanosecond, so the CLI replays it at the same instants. BT144: so is every file the Inspector
+ * nanosecond, so the CLI replays it at the same instants. BT156: each board's EEPROM or flash
+ * data as the recording starts (a reset keeps it) goes with it, so the replay starts from it. BT144: so is every file the Inspector
  * writes or removes on a card or a USB drive, and (BT146) the MIDI and lock keys it sends a
  * board's USB device. Microphone samples are not recorded (a
  * stream, not a step). Stop ends the recording on the next whole millisecond and proposes
@@ -13,7 +14,7 @@
 
 import { type Nanos, NS_PER_MS, type PartInput, type ProjectDoc, type UsbLocks, type VisualState } from '@benchtop/core';
 import { base64Encode, parseCardFiles, utf8Text } from '@benchtop/parts';
-import type { RecordedStep, RecordedTest } from './protocol.ts';
+import type { MemorySector, RecordedSector, RecordedStep, RecordedTest } from './protocol.ts';
 
 /** Serial lines proposed per board (the most recent distinct ones). */
 export const MAX_PROPOSED_LINES = 8;
@@ -21,6 +22,8 @@ export const MAX_PROPOSED_LINES = 8;
 export const MAX_RECORDED_STEPS = 10_000;
 /** BT144: bytes one recorded file write may hold — the CLI's MAX_FILE_STEP (a test checks they match). */
 export const MAX_RECORDED_FILE = 256 * 1024;
+/** BT156: bytes of a board's data (trailing erased bytes trimmed) a recording keeps; more → not kept. */
+export const MAX_RECORDED_MEMORY = 256 * 1024;
 /** Serial text kept per board for proposals. */
 const MAX_SERIAL_TEXT = 256 * 1024;
 
@@ -46,6 +49,27 @@ export function quoted(text: string): string {
   return `"${text.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`;
 }
 
+/** BT156: a sector's bytes without their trailing erased (0xFF) bytes. */
+export function trimErased(bytes: Uint8Array): Uint8Array {
+  let end = bytes.length;
+  while (end > 0 && bytes[end - 1] === 0xff) end--;
+  return bytes.subarray(0, end);
+}
+
+/** BT156: a board's data sectors as a recording keeps them, or null when they hold more than MAX_RECORDED_MEMORY. */
+export function recordedSectors(sectors: readonly MemorySector[]): RecordedSector[] | null {
+  const out: RecordedSector[] = [];
+  let total = 0;
+  for (const sector of sectors) {
+    const bytes = trimErased(sector.bytes);
+    if (bytes.length === 0) continue;
+    total += bytes.length;
+    if (total > MAX_RECORDED_MEMORY) return null;
+    out.push({ offset: sector.offset, base64: base64Encode(bytes) });
+  }
+  return out;
+}
+
 /** BT144: a card's files when a recording starts: its `files` prop value, or null when they don't fit one. */
 export interface CardAtStart {
   part: string;
@@ -61,9 +85,12 @@ export class TestRecording {
 
   /** Each microSD card's files as the recording started (a bench reset keeps them). */
   private readonly cards: readonly CardAtStart[];
+  /** BT156: each board's data sectors as the recording started (a bench reset keeps them). */
+  private readonly memory: Readonly<Record<string, readonly MemorySector[]>>;
 
-  constructor(cards: readonly CardAtStart[] = []) {
+  constructor(cards: readonly CardAtStart[] = [], memory: Readonly<Record<string, readonly MemorySector[]>> = {}) {
     this.cards = cards;
+    this.memory = memory;
   }
 
   input(at: Nanos, part: string, event: PartInput): void {
@@ -169,7 +196,16 @@ export class TestRecording {
       if (card.files === null) cardsNotKept.push(card.part);
       else if (!sameFiles(card.files, typeof part.props.files === 'string' ? part.props.files : '')) cards[card.part] = card.files;
     }
-    return { durationNs: end, steps: this.steps, proposals, dropped: this.dropped, droppedFiles: this.droppedFiles, cards, cardsNotKept };
+    const memory: Record<string, RecordedSector[]> = {};
+    const memoryNotKept: string[] = [];
+    for (const board of boards) {
+      const sectors = this.memory[board];
+      if (sectors === undefined) continue;
+      const kept = recordedSectors(sectors);
+      if (kept === null) memoryNotKept.push(board);
+      else if (kept.length > 0) memory[board] = kept;
+    }
+    return { durationNs: end, steps: this.steps, proposals, dropped: this.dropped, droppedFiles: this.droppedFiles, cards, cardsNotKept, memory, memoryNotKept };
   }
 
   private full(): boolean {

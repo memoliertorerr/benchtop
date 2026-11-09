@@ -15,6 +15,11 @@
  * GNDs are one bus. RST (CHIP_PU) isn't modeled and maps to no GPIO. GPIO46 is input-only on the
  * chip (the model doesn't refuse driving it).
  *
+ * BT154: prop `module` — `auto` (the default), `N4` or `N4R2` (boards/modules.ts) — tells the MCU
+ * factory whether the board's module has PSRAM (an N4R2's 2 MB, whose chip select is GPIO26: the
+ * IO26 header pin is then the module's, `pin-reserved` if wired). The DevKitM-1 has shipped with
+ * both (ESP32-S2-MINI-1/-MINI-2, N4 and N4R2 variants).
+ *
  * Model: the board's RGB LED is a WS2812 on GPIO18 (Arduino-ESP32 2.0.17's `esp32s2` variant:
  * `RGB_BUILTIN`, which `neopixelWrite` drives through the RMT): its DIN edges on IO18 are decoded
  * like a NeoPixel's (Ws2812Decoder) and the color shows as `pixels[0]` (0xRRGGBB) in the board's
@@ -63,9 +68,9 @@ export const esp32S2DevkitM1 = definePart({
   size: { w: WIDTH, h: HEIGHT },
   pins,
   buses: [pins.filter((p) => p.name.startsWith('GND')).map((p) => p.name)],
-  defaults: { usbPowered: true },
+  defaults: { usbPowered: true, module: 'auto' },
   board: { mcu: 'esp32s2', pinMap },
-  createModel(ctx: PartContext, props: { usbPowered: boolean }) {
+  createModel(ctx: PartContext, props: { usbPowered: boolean; module: string }) {
     if (props.usbPowered !== false) ctx.pin('5V').driveVolts(5, Strength.supply);
     // The RGB LED: a WS2812 whose DIN is GPIO18 (the board's IO18 header pin is the same net).
     const din = ctx.pin(`IO${S2_DEVKITM1_RGB_GPIO}`);

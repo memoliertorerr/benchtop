@@ -291,6 +291,15 @@ rotations and BGR, 16- and 18-bit color, SWRESET/RST, sleep and display on/off, 
 aren't modeled (MISO stays 0xFF), so the bench attaches an SPI device whose MISO is unwired by
 SCK and MOSI alone. The view draws into the element's own 240×320 canvas.
 
+**Touch pads and capacitive touch**. The `touch-pad` part (a copper electrode, one pin
+`PAD`) drives nothing: its model carries `touchLoad` (`bench/touch.ts`, not a contract, as
+`storage` is): the picofarads it adds to its pin's net — the electrode's `padPf` (2 by default)
+plus `fingerPf` (10) times the contact (press 1, release 0, a value 0–1). An MCU with touch
+channels opts in with `TouchSensing` (`touchPins()`, `setTouchSource()`, found by `usesTouch`):
+after every build (kept MCUs too) the bench gives it a source that sums the touch loads on each
+touch pin's net — breadboard strips and wires included, as nets are — and the MCU asks once per
+measurement and adds its own pad. Only the ESP32-S2 has touch channels so far (its section).
+
 **IR remote and receiver, HX711**. The `ir-receiver` turns input `{ kind: 'key', key:
 'ir:<command>', down }` into a demodulated NEC frame on DAT (active low, address 0x00, 9 ms +
 4.5 ms leader, 562.5 µs marks, 562.5/1,687.5 µs spaces, LSB first; a repeat code every 108 ms
@@ -3020,10 +3029,72 @@ sequence, files matched by basename or trailing path.
   that takes them (`usesSymbols`, `usesWifi`, the bench's `Sleeper` seam). MCP's `sim_wifi` takes
   S2 boards (`WIFI_MCUS`), `sim_state` shows one asleep (`sessions.test.ts`).
 
+  **PSRAM** is the ESP32's and S3's: soc.ts puts `@benchtop/esp32`'s `QuadPsram` on SPI1's
+  CS1 (`SpiMem.cs1`: a user command with MISC's CS0_DIS set and CS1_DIS clear, as IDF 4.4's esp32s2
+  spiram_psram.c sends them), with a 16 Mbit ID (MFID 0x0D, KGD 0x5D, EID 0): 2 MB, an
+  ESP32-S2FN4R2's or a WROVER's. MMU entries with ACCESS_SPIRAM (bit 16) map its 64 KB pages; the
+  bus (`bus.ts`) arms them on the data side (below 0x4000_0000) as `K_PSRAM` pages, read and
+  written like SRAM — IDF maps the chip at the top of DBUS0, 0x3FD8_0000–0x3FF7_FFFF (entries
+  216–247). An ACCESS_SPIRAM entry nothing answers (no chip, a page past it) is unmapped with
+  `esp32s2-psram`; fetching from PSRAM isn't modeled. The bytes are allocated on first use, and
+  every reset or deep-sleep wake builds a fresh chip (the adapter boots a new SoC), so PSRAM is lost
+  there, as on the board. The board's `module` prop (`S2_MODULES`: `auto`, `N4` — no PSRAM, the
+  S2FH4 —, `N4R2`) reaches the factory through `BenchEnv.createMcu`'s props; GPIO26 (SPICS1, on the
+  DevKitM-1's header) is the PSRAM's chip select: `pinClaims()` holds it for an N4R2 always and on
+  `auto` once a build has read the chip's ID, and the IO_MUX model reports the firmware taking it
+  from a running PSRAM (`GpioChip.psramCsPad`, `S3IoMux.psramCs`; `pin-reserved`). The compile
+  step: `// benchtop: psram` → `PSRAM=enabled`; `N4R2` → `PSRAM=enabled`, `N4` → none
+  (`SKETCH_OPTIONS`, `MODULE_OPTIONS`). Fixture `esp32s2/psram` (`soc/psram.test.ts`,
+  `module-pins.test.ts`).
+
+  **Touch** — `soc/touch.ts` (`S2Touch`), written from IDF 4.4's register interface
+  (touch_sensor_ll.h and the RTC_CNTL, SENS and RTC_IO headers): TOUCH1–14 on GPIO1–14 and the
+  internal denoise channel 0. Its controls are RTC_CNTL's TOUCH_CTRL1/CTRL2/SCAN_CTRL/FILTER_CTRL/
+  TIMEOUT_CTRL (the shared `S3RtcCntl` tells it about writes: `onWrite`) and RTC_IO's TOUCH_PADn
+  slope; its data are SENS's SAR_TOUCH_CONF … STATUS14 (0x5C–0x118 in SENS: the S2's SENS block
+  hands those offsets to it, the rest to the ADC). The FSM scans the channels in SCAN_PAD_MAP — in
+  timer mode SLEEP_CYCLES slow-clock cycles after each scan while SLP_TIMER_EN is set, or once per
+  START_EN edge in software mode —, the denoise channel first with DENOISE_EN. A measurement takes
+  XPD_WAIT + MEAS_NUM charge-discharge cycles of the RTC fast clock (8 MHz), each 2·C·ΔV / I: C is
+  `PAD_PF` (10 pF, the chip's pad and trace) plus what the bench's touch source gives (a touch pad,
+  a finger), ΔV the reference voltages' swing (DREFH less DRANGE, minus DREFL) and I the slope ×
+  `SLOPE_UA` (1 µA) — so the reading is the measurement's length in ticks and a touch raises it, as
+  on the chip; slope 0 reads 0. Denoise subtracts channel 0's reading of REFC (5 + 1.4·code pF),
+  clipped to DENOISE_RES's bits. The benchmark is a channel's first reading after a clear
+  (CHANNEL_CLR, RESET); with FILTER_EN the smoothed value follows by SMOOTH_LVL's IIR and the
+  benchmark follows it while inactive (FILTER_MODE's IIR or JITTER_STEP), DEBOUNCE delaying a
+  change. A channel with OUTEN goes active while smooth − benchmark exceeds its threshold. Each
+  reading raises DONE (SAR_TOUCH_STATUS0's SCAN_CURR names the channel just read), a change ACTIVE
+  or INACTIVE, a scan's end SCAN_DONE, a reading over TIMEOUT_NUM TIMEOUT (dropped); RTC_CNTL's
+  INT_ST is now INT_RAW & INT_ENA, and its line drives ETS_RTC_CORE_INTR_SOURCE (49), where IDF's
+  rtc_isr dispatches to the touch handler. A touch channel in the scan map reads as an analog pad
+  (`S3Pads.analogPad`), so the bench doesn't call it a floating input. With Arduino's settings
+  (500 cycles, 2.7 V / 0.5 V less 0.5 V, slope 7, 4-bit denoise at 10.6 pF) a bare pin reads
+  ≈ 19,400, a touch pad's electrode ≈ 23,300 and a finger on it ≈ 42,700 — model constants, chosen
+  to land in the tens of thousands an S2 reads, not measurements. The Mcu is the bench's
+  `TouchSensing` (`touchPins()`: GPIO1–14). Not modeled: noise, the waterproof shield, proximity
+  mode, touch wake from sleep. Fixtures `touch-read` (touchRead on T1 and T5) and
+  `touch-interrupt` (touchAttachInterrupt on T5, threshold 1500): `soc/touch.test.ts`,
+  `packages/parts/src/integration/esp32s2-touch.test.ts`.
+
+  **Touch and PSRAM in the gallery:** the gallery's S2 touch lamp (`esp32s2-touch-lamp`: a touch pad on T5
+  switches the RGB LED warm white and off, touchRead printed) and S2 PSRAM frame buffer
+  (`esp32s2-psram-frame`: the ESP32's sketch on FSPI — SCK 36, MOSI 35, CS 34, D/C 33, RST 38 — on
+  an N4R2 board), each with a spec and a check in `examples-run-esp32s2.test.ts`; MCP's
+  `describe_part` lists the touch pad's inputs and `sim_input` touches it (`sessions.test.ts`). In
+  the app the touch pad is our own drawing (`views/touch-pad.ts`): while running, holding the
+  pointer on it is a finger (press, release), the Inspector's Contact slider a partial touch (the
+  part's `contact` prop while stopped); the registry's `isInteractive` covers it beside the element
+  library's parts. The frame buffer found a bus gap: the S2's core does unaligned loads and stores
+  in hardware (core-isa.h's XCHAL_UNALIGNED_LOAD_HW/STORE_HW, as the ESP32's and S3's), and Arduino's
+  `spiWriteNL` reads its bytes as words from wherever they lie; the S2 bus's slow path now reads and
+  writes any armed page byte by byte (SRAM, ROM, flash, PSRAM), where it had only RTC memory and the
+  windows.
+
 ## Worker protocol
 
 `apps/web/src/sim/protocol.ts` defines `ToSim` (UI → worker) and `FromSim` (worker → UI)
-messages, versioned by `PROTOCOL_VERSION` (20: `usbSend`/`usbSent`; recorded file steps and cards; `usb`; `memory` and the saved memory beside `load`/`edit`; the debug ELF beside a load's images and the MCU
+messages, versioned by `PROTOCOL_VERSION` (21: a recording's `memory`; `usbSend`/`usbSent`; recorded file steps and cards; `usb`; `memory` and the saved memory beside `load`/`edit`; the debug ELF beside a load's images and the MCU
 kind and register names in `debugInfo`, then `edit`/`edited`, then `busWatch` and a frame's `bus`
 chunk, then `storage`, then `debugSyms`: a board's symbol table as `nm` text beside `load`, `edit`
 and `setFirmware` when it has no ELF — a gallery example's `.syms.tsv`, which the ESP32's WiFi
@@ -3546,7 +3617,7 @@ nothing from `apps/web`.
   board's UART 0 as the serial monitor would (`board` optional with one board; ≤ 64 Ki
   characters), or `{ at, reset: <board> }`: that board reset (`Bench.resetBoard` — a power cycle;
   its EEPROM or flash keeps what it stored, and the rest of the bench runs on). Runs start with
-  erased memory. `{ at, part, write: <path>, text | base64 }` creates or replaces a file on a
+  erased memory, or with a spec's `memory`. `{ at, part, write: <path>, text | base64 }` creates or replaces a file on a
   part's storage (`Bench.storage`: a microSD card, or an ESP32-S3 board's USB drive), making
   directories on the way — at most 256 KB a step — and `{ at, part, remove: <path> }` deletes a
   file or a directory with what is in it; a file step that can't apply then (no volume, the drive
@@ -3641,8 +3712,20 @@ requests that succeed) are recorded as `write` steps (`text` when the bytes are 
 reset keeps a microSD card's files, so `recordStart` snapshots each card's files and, when they
 differ from the project's power-up files, the spec's inline circuit gives the card them as its
 `files` prop (a card holding more than that prop takes, 256 KB, starts from the project's files
-and the dialog says the replay may differ). Boards' EEPROM and flash aren't carried: a replay
-starts them erased.
+and the dialog says the replay may differ).
+
+a bench reset keeps each board's EEPROM or flash data too, so `recordStart` snapshots it
+(`Bench.nonVolatileOf(board).snapshot()`: data sectors only — the program's are the firmware's)
+and `finish` keeps each board's sectors with their trailing erased bytes (0xFF) trimmed, in base64
+(`RecordedTest.memory`; more than `MAX_RECORDED_MEMORY`, 256 KB, of a board's data → `memoryNotKept`,
+and the dialog says the replay starts that board erased). The spec carries it as
+`"memory": { "<board>": [{ "offset": "0x9000", "base64": "…" }] }`; the CLI (`parseSpecMemory`)
+checks every field, and `runHeadless` pads each sector back to its size and restores it right after
+building the bench — where the worker restores saved data, before the firmware runs a step
+(`restoreSpecMemory`: a board the project lacks, one without memory, a sector off its memory,
+misaligned, too long or on the program's sectors is a usage error, exit 2). A stored counter
+records and replays the same (`recording.test.ts`); `fixtures/specs/memory/` starts the Uno's EEPROM
+counter at 41 and the ESP32's Preferences LED on.
 
 ### The examples as a regression suite
 

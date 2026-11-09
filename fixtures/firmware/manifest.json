@@ -3150,6 +3150,78 @@
     },
     {
       "board": "esp32s2",
+      "name": "psram-frame",
+      "fqbn": "esp32:esp32:esp32s2:PSRAM=enabled",
+      "file": "esp32s2/psram-frame.bin",
+      "sha256": "9a3546a9ddf921d265aca973b6d3794b80c12bb4900d872361b956ff39cf2a86",
+      "bytes": 250080,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "SPI": "2.0.0"
+      },
+      "source": "dc473f133ca89b5ac9eb9c6ddad5715b61c30b1105725043b5302ad9ba7b8431"
+    },
+    {
+      "board": "esp32s2",
+      "name": "psram-frame",
+      "fqbn": "esp32:esp32:esp32s2:PSRAM=enabled",
+      "file": "esp32s2/psram-frame.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "SPI": "2.0.0"
+      },
+      "source": "dc473f133ca89b5ac9eb9c6ddad5715b61c30b1105725043b5302ad9ba7b8431"
+    },
+    {
+      "board": "esp32s2",
+      "name": "psram-frame",
+      "fqbn": "esp32:esp32:esp32s2:PSRAM=enabled",
+      "file": "esp32s2/psram-frame.syms.tsv",
+      "sha256": "f104b264122a243f3c5263987f7bccff3cceba91d97fe6c072a55525d347e1ab",
+      "bytes": 105423,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "SPI": "2.0.0"
+      },
+      "source": "dc473f133ca89b5ac9eb9c6ddad5715b61c30b1105725043b5302ad9ba7b8431"
+    },
+    {
+      "board": "esp32s2",
+      "name": "psram",
+      "fqbn": "esp32:esp32:esp32s2:PSRAM=enabled",
+      "file": "esp32s2/psram.bin",
+      "sha256": "dcfcdd229371c23993aede456efb4d7868e9abc7c097a1890933e64a34646ad1",
+      "bytes": 237344,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "0af1f760a833c94b196551af94bc3fe1f07a564bec2c6014fc5fddefb5c50cf5"
+    },
+    {
+      "board": "esp32s2",
+      "name": "psram",
+      "fqbn": "esp32:esp32:esp32s2:PSRAM=enabled",
+      "file": "esp32s2/psram.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "0af1f760a833c94b196551af94bc3fe1f07a564bec2c6014fc5fddefb5c50cf5"
+    },
+    {
+      "board": "esp32s2",
+      "name": "psram",
+      "fqbn": "esp32:esp32:esp32s2:PSRAM=enabled",
+      "file": "esp32s2/psram.syms.tsv",
+      "sha256": "2c918f7e2ef4320885c63255ace002eef340bd613b6a34ce4b8d47dc278a06a7",
+      "bytes": 101636,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "0af1f760a833c94b196551af94bc3fe1f07a564bec2c6014fc5fddefb5c50cf5"
+    },
+    {
+      "board": "esp32s2",
       "name": "rgb-blink",
       "fqbn": "esp32:esp32:esp32s2",
       "file": "esp32s2/rgb-blink.bin",
@@ -3252,6 +3324,105 @@
         "SPI": "2.0.0"
       },
       "source": "312ab490b9494dba603db84d68c11a1b57e0cd3ab5535016762f98f9eb4a4af6"
+    },
+    {
+      "board": "esp32s2",
+      "name": "touch-interrupt",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/touch-interrupt.bin",
+      "sha256": "fc26f25deafb8170e5d1045e11120eafa476404ae199f2f4cdf2126b71a76c4e",
+      "bytes": 238928,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "441e3d325a0f374222ca346661c06e87d44844b4afc40ffdb0b508295e56876e"
+    },
+    {
+      "board": "esp32s2",
+      "name": "touch-interrupt",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/touch-interrupt.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "441e3d325a0f374222ca346661c06e87d44844b4afc40ffdb0b508295e56876e"
+    },
+    {
+      "board": "esp32s2",
+      "name": "touch-interrupt",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/touch-interrupt.syms.tsv",
+      "sha256": "50bdf2bded2c5971d492f001778f9581bcae3c1d7c1131632cdaf745fb65e450",
+      "bytes": 103116,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "441e3d325a0f374222ca346661c06e87d44844b4afc40ffdb0b508295e56876e"
+    },
+    {
+      "board": "esp32s2",
+      "name": "touch-lamp",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/touch-lamp.bin",
+      "sha256": "d30c987fc3a3fe16275cf5b9541d8747c32e7c60d2af3f5989f5602ace9d9bc8",
+      "bytes": 246976,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "03e44db149205df11d1af390720167f4044816aeb72557612fdbb0b46145eabc"
+    },
+    {
+      "board": "esp32s2",
+      "name": "touch-lamp",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/touch-lamp.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "03e44db149205df11d1af390720167f4044816aeb72557612fdbb0b46145eabc"
+    },
+    {
+      "board": "esp32s2",
+      "name": "touch-lamp",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/touch-lamp.syms.tsv",
+      "sha256": "5220411888c490d160f7d30e4daf0adbf2cef6691d01454506ad038ebe90f1bd",
+      "bytes": 104877,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "03e44db149205df11d1af390720167f4044816aeb72557612fdbb0b46145eabc"
+    },
+    {
+      "board": "esp32s2",
+      "name": "touch-read",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/touch-read.bin",
+      "sha256": "a73c7f89b7fd7f9c50d235a95a2464126922cc755f11eb292e5d16c85467fdd7",
+      "bytes": 238944,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "8e39346db5dadbfbb85bc89825ef35bf368968bbb610d90ef87ad2bc33619e18"
+    },
+    {
+      "board": "esp32s2",
+      "name": "touch-read",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/touch-read.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "8e39346db5dadbfbb85bc89825ef35bf368968bbb610d90ef87ad2bc33619e18"
+    },
+    {
+      "board": "esp32s2",
+      "name": "touch-read",
+      "fqbn": "esp32:esp32:esp32s2",
+      "file": "esp32s2/touch-read.syms.tsv",
+      "sha256": "f899a7e5fc382ea5a8a40340d732c928c71102fe9a322c51120807223ff63a32",
+      "bytes": 102919,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "8e39346db5dadbfbb85bc89825ef35bf368968bbb610d90ef87ad2bc33619e18"
     },
     {
       "board": "esp32s2",

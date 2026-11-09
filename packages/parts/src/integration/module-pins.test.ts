@@ -1,9 +1,11 @@
 import { Bench, type BenchEnv, NS_PER_MS, parseProject, type ProjectDoc } from '@benchtop/core';
 import { esp32McuFactory } from '@benchtop/esp32';
+import { esp32s2McuFactory } from '@benchtop/esp32s2';
 import { esp32s3McuFactory } from '@benchtop/esp32s3';
 import { describe, expect, it } from 'vitest';
 import { readFixture } from '../../../core/src/firmware/fixtures.test-helper.ts';
 import { loadCachedRom } from '../../../esp32/src/test-support/rom.test-helper.ts';
+import { loadCachedS2Rom } from '../../../esp32s2/src/test-support/rom.test-helper.ts';
 import { loadCachedS3Rom } from '../../../esp32s3/src/test-support/rom.test-helper.ts';
 import { benchEnvParts } from '../catalog.ts';
 
@@ -13,10 +15,11 @@ import { benchEnvParts } from '../catalog.ts';
 
 const esp32 = esp32McuFactory(loadCachedRom());
 const esp32s3 = esp32s3McuFactory(loadCachedS3Rom());
-const env: BenchEnv = { part: benchEnvParts, createMcu: (board, id, report, props) => esp32(board, id, report, props) ?? esp32s3(board, id, report, props) };
+const esp32s2 = esp32s2McuFactory(loadCachedS2Rom());
+const env: BenchEnv = { part: benchEnvParts, createMcu: (board, id, report, props) => esp32(board, id, report, props) ?? esp32s3(board, id, report, props) ?? esp32s2(board, id, report, props) };
 
 /** A board (`b`) with `module`, an LED from `header` to GND, or only a breadboard strip there. */
-function bench(type: 'esp32-devkit-v1' | 'esp32-s3-devkitc-1', module: string, header: string, firmware: string | null, breadboardOnly = false): Bench {
+function bench(type: 'esp32-devkit-v1' | 'esp32-s3-devkitc-1' | 'esp32-s2-devkitm-1', module: string, header: string, firmware: string | null, breadboardOnly = false): Bench {
   const doc: ProjectDoc = {
     format: 1,
     name: 'module-pins',
@@ -36,7 +39,7 @@ function bench(type: 'esp32-devkit-v1' | 'esp32-s3-devkitc-1', module: string, h
   if (!parsed.ok) throw new Error(JSON.stringify(parsed.errors));
   const created = new Bench(parsed.doc, env);
   if (firmware !== null) {
-    const dir = type === 'esp32-devkit-v1' ? 'esp32' : 'esp32s3';
+    const dir = type === 'esp32-devkit-v1' ? 'esp32' : type === 'esp32-s3-devkitc-1' ? 'esp32s3' : 'esp32s2';
     created.attachFirmware('b', { format: 'esp32-bin', app: readFixture(`fixtures/firmware/${dir}/${firmware}.bin`), partitions: readFixture(`fixtures/firmware/${dir}/${firmware}.partitions.bin`) });
   }
   created.reset();
@@ -111,5 +114,22 @@ describe('the pins a module takes (BT136)', () => {
     const quad = bench('esp32-s3-devkitc-1', 'auto', 'IO36', 'psram-quad');
     quad.runUntil(500 * NS_PER_MS);
     expect(reserved(quad)).toEqual([]);
+  });
+
+  it('BT154: an S2 N4R2 holds IO26 (its PSRAM’s chip select); an N4 none; auto once a PSRAM build runs', () => {
+    const r2 = bench('esp32-s2-devkitm-1', 'N4R2', 'IO26', null);
+    r2.runUntil(20 * NS_PER_MS);
+    const found = reserved(r2);
+    expect(found).toHaveLength(1);
+    expect(found[0].message).toContain("b:IO26 is wired to led1, but GPIO26 is the N4R2 module's PSRAM (its chip select, SPICS1)");
+    const n4 = bench('esp32-s2-devkitm-1', 'N4', 'IO26', 'psram');
+    n4.runUntil(400 * NS_PER_MS);
+    expect(reserved(n4)).toEqual([]);
+    const auto = bench('esp32-s2-devkitm-1', 'auto', 'IO26', 'psram');
+    auto.runUntil(400 * NS_PER_MS);
+    expect(reserved(auto).map((p) => p.message).join()).toContain("GPIO26 is the PSRAM's chip select (this build uses PSRAM, as on an N4R2 module)");
+    const plain = bench('esp32-s2-devkitm-1', 'auto', 'IO26', 'serial-hello');
+    plain.runUntil(400 * NS_PER_MS);
+    expect(reserved(plain)).toEqual([]);
   });
 });

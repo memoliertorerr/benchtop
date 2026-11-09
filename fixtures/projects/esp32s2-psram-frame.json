@@ -1,0 +1,137 @@
+{
+  "format": 1,
+  "name": "esp32s2-psram-frame",
+  "parts": [
+    {
+      "id": "s2",
+      "type": "esp32-s2-devkitm-1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {
+        "module": "N4R2"
+      }
+    },
+    {
+      "id": "tft",
+      "type": "ili9341",
+      "x": 45,
+      "y": -20,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "tft",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "s2",
+        "pin": "3V3"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "tft",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "s2",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "tft",
+        "pin": "CS"
+      },
+      "to": {
+        "part": "s2",
+        "pin": "IO34"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "tft",
+        "pin": "RST"
+      },
+      "to": {
+        "part": "s2",
+        "pin": "IO38"
+      },
+      "waypoints": [],
+      "color": "purple"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "tft",
+        "pin": "D/C"
+      },
+      "to": {
+        "part": "s2",
+        "pin": "IO33"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "tft",
+        "pin": "MOSI"
+      },
+      "to": {
+        "part": "s2",
+        "pin": "IO35"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "tft",
+        "pin": "SCK"
+      },
+      "to": {
+        "part": "s2",
+        "pin": "IO36"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w8",
+      "from": {
+        "part": "tft",
+        "pin": "LED"
+      },
+      "to": {
+        "part": "s2",
+        "pin": "3V3"
+      },
+      "waypoints": [],
+      "color": "red"
+    }
+  ],
+  "firmware": {
+    "s2": {
+      "kind": "file",
+      "name": "psram-frame.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

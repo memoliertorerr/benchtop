@@ -88,6 +88,7 @@ import { usesWifi } from '../net/radio.ts';
 import { type NvMemory, usesNonVolatile } from './nonvolatile.ts';
 import { type BoardSleep, usesSleep } from './sleep.ts';
 import { type PinClaim, usesPinClaims } from './claims.ts';
+import { type TouchLoad, touchLoadOf, usesTouch } from './touch.ts';
 import { type BoardUsb, type UsbLocks, usesUsbHost, usesUsbSending, usesUsbStorage } from './usb.ts';
 import { NetRuntime } from '../net/runtime.ts';
 import type { NetSpecFor } from '../net/spec.ts';
@@ -788,6 +789,7 @@ export class Bench {
     }
 
     this.building = false;
+    this.linkTouch();
     for (const attachment of this.i2c) this.attachI2cDevice(attachment);
     for (const attachment of this.spi) this.attachSpiDevice(attachment);
     for (const slot of this.mcus) this.checkBusPins(slot, false); // the pins those attachments saw
@@ -1439,6 +1441,44 @@ export class Bench {
   }
 
   /** BT78: a model from the previous bench, on this one's nets: handles, links and bus devices follow. */
+  /**
+   * BT155: each MCU with touch channels (TouchSensing) gets this bench's source — for a touch pin,
+   * the picofarads of the touch loads (touchLoadOf: a touch pad) on its net. Kept MCUs get it too.
+   */
+  private linkTouch(): void {
+    const byNet = new Map<number, TouchLoad[]>();
+    for (const slot of this.partList) {
+      const load = touchLoadOf(slot.model);
+      if (load === undefined) continue;
+      const nets = new Set<number>();
+      for (const pin of slot.def.pins) {
+        const net = this.netlist.netOf(slot.id, pin.name);
+        if (net < 0 || nets.has(net)) continue;
+        nets.add(net);
+        const list = byNet.get(net);
+        if (list === undefined) byNet.set(net, [load]);
+        else list.push(load);
+      }
+    }
+    for (const slot of this.mcus) {
+      const mcu = slot.mcu;
+      if (!usesTouch(mcu)) continue;
+      const byPin = new Map<string, readonly TouchLoad[]>();
+      for (const pin of mcu.touchPins()) {
+        const net = slot.netOfPin.get(pin);
+        const loads = net === undefined ? undefined : byNet.get(net);
+        if (loads !== undefined) byPin.set(pin, loads);
+      }
+      mcu.setTouchSource((pin) => {
+        const loads = byPin.get(pin);
+        if (loads === undefined) return 0;
+        let pf = 0;
+        for (let i = 0; i < loads.length; i++) pf += loads[i].pf();
+        return pf;
+      });
+    }
+  }
+
   private rebindPart(binding: PartBinding, slot: PartSlot): void {
     slot.model = binding.slot.model;
     slot.binding = binding;

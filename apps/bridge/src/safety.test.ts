@@ -109,9 +109,10 @@ describe('request guards', () => {
     expect(sketchFqbn('esp32:esp32:esp32', '// benchtop: usb-otg\n')).toBe('esp32:esp32:esp32');
     expect(sketchFqbn('esp32:esp32:esp32s3', '// benchtop: usb-otg\n')).toBe('esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=cdc');
     expect(sketchFqbn('esp32:esp32:esp32s3', '// benchtop: usb-otg, psram\n')).toBe('esp32:esp32:esp32s3:PSRAM=opi,USBMode=default,CDCOnBoot=cdc');
-    // BT150: the S2's own USB is the OTG controller: CDC On Boot alone; it has no PSRAM option here.
+    // BT150: the S2's own USB is the OTG controller: CDC On Boot alone. BT154: its PSRAM (an N4R2's) is the menu's "Enabled".
     expect(sketchFqbn('esp32:esp32:esp32s2', '// benchtop: usb-otg\n')).toBe('esp32:esp32:esp32s2:CDCOnBoot=cdc');
-    expect(sketchFqbn('esp32:esp32:esp32s2', '// benchtop: psram\n')).toBe('esp32:esp32:esp32s2');
+    expect(sketchFqbn('esp32:esp32:esp32s2', '// benchtop: psram\n')).toBe('esp32:esp32:esp32s2:PSRAM=enabled');
+    expect(sketchFqbn('esp32:esp32:esp32s2', '// benchtop: psram usb-otg\n')).toBe('esp32:esp32:esp32s2:PSRAM=enabled,CDCOnBoot=cdc');
     expect(sketchFqbn('esp32:esp32:esp32s3', '// benchtop: usb-otg\n// benchtop: psram\n')).toBe('esp32:esp32:esp32s3:PSRAM=opi,USBMode=default,CDCOnBoot=cdc');
     expect(sketchFqbn('esp32:esp32:esp32s3', '// benchtop: usb-otg=1 PSRAM=opi;x\n')).toBe('esp32:esp32:esp32s3');
     expect(sketchFqbn('esp32:esp32:esp32c3', '// benchtop: psram\n')).toBe('esp32:esp32:esp32c3');
@@ -132,6 +133,9 @@ describe('request guards', () => {
     expect(sketchFqbn('esp32:esp32:esp32', '// benchtop: psram\n', 'WROVER-E-N16R8')).toBe('esp32:esp32:esp32:PSRAM=enabled,FlashSize=16M');
     expect(sketchFqbn('esp32:esp32:esp32s3', '// benchtop: psram\n')).toBe('esp32:esp32:esp32s3:PSRAM=opi');
     expect(sketchFqbn('arduino:avr:uno', '// benchtop: psram\n', 'WROVER-E')).toBe('arduino:avr:uno');
+    // BT154: the S2's N4 builds without PSRAM whatever the comment says; its N4R2 with it.
+    expect(sketchFqbn('esp32:esp32:esp32s2', '// benchtop: psram\n', 'N4')).toBe('esp32:esp32:esp32s2');
+    expect(sketchFqbn('esp32:esp32:esp32s2', '// benchtop: usb-otg\n', 'N4R2')).toBe('esp32:esp32:esp32s2:PSRAM=enabled,CDCOnBoot=cdc');
   });
 
   it('BT137: a module must be absent, auto, or one its FQBN knows', () => {

@@ -1106,6 +1106,32 @@
     "description": "An ESP32-S2 joins the access point as \"s2-web\" and serves /led?color=red, green, blue, white, off or an rrggbb hex color, which sets the DevKitM-1's RGB LED; press Send on the HTTP client parts."
   },
   {
+    "id": "esp32s2-touch-lamp",
+    "title": "ESP32-S2 touch lamp",
+    "category": "ESP32-S2",
+    "project": "esp32s2-touch-lamp",
+    "boards": {
+      "s2": {
+        "firmware": "esp32s2/touch-lamp.bin",
+        "sketch": "esp32s2/touch-lamp"
+      }
+    },
+    "description": "Touch the pad (hold the mouse on it while running) and the DevKitM-1's RGB LED turns warm white; touch it again and it goes off. The S2's touch sensor reads the pad on T5 (GPIO5) — touchAttachInterrupt fires on each touch and release — and the sketch prints its touchRead value, which rises while a finger is on it."
+  },
+  {
+    "id": "esp32s2-psram-frame",
+    "title": "ESP32-S2 PSRAM frame buffer",
+    "category": "ESP32-S2",
+    "project": "esp32s2-psram-frame",
+    "boards": {
+      "s2": {
+        "firmware": "esp32s2/psram-frame.bin",
+        "sketch": "esp32s2/psram-frame"
+      }
+    },
+    "description": "An ESP32-S2 on an N4R2 module (the board's module prop: 2 MB of PSRAM in the package) keeps a whole 240×320 frame (150 KB) in its PSRAM, redraws it — color bands and a sliding square — and pushes it to an ILI9341 in one go. Its `// benchtop: psram` line builds it with PSRAM."
+  },
+  {
     "id": "picow-wifi-webserver",
     "title": "Pico W web server",
     "category": "WiFi",

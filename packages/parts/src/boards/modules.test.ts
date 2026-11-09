@@ -1,4 +1,5 @@
 import { ESP32_MODULES } from '@benchtop/esp32';
+import { S2_MODULES } from '@benchtop/esp32s2';
 import { S3_MODULES } from '@benchtop/esp32s3';
 import { describe, expect, it } from 'vitest';
 import { CATALOG } from '../catalog.ts';
@@ -12,6 +13,7 @@ describe('board modules (BT135)', () => {
   it('the ESP32 DevKit V1 and the S3 DevKitC-1 offer exactly their factories\u2019 modules, auto by default', () => {
     expect(BOARD_MODULES['esp32-devkit-v1'].map((m) => m.id)).toEqual([...ESP32_MODULES]);
     expect(BOARD_MODULES['esp32-s3-devkitc-1'].map((m) => m.id)).toEqual(Object.keys(S3_MODULES));
+    expect(BOARD_MODULES['esp32-s2-devkitm-1'].map((m) => m.id)).toEqual(Object.keys(S2_MODULES));
     for (const type of Object.keys(BOARD_MODULES)) {
       const def = CATALOG.get(type);
       expect(def?.defaults.module).toBe('auto');
@@ -21,5 +23,6 @@ describe('board modules (BT135)', () => {
   it('BT137: the compile step knows every module but auto, by the board\u2019s FQBN', () => {
     expect(Object.keys(MODULE_OPTIONS['esp32:esp32:esp32'])).toEqual(BOARD_MODULES['esp32-devkit-v1'].map((m) => m.id).filter((id) => id !== 'auto'));
     expect(Object.keys(MODULE_OPTIONS['esp32:esp32:esp32s3'])).toEqual(BOARD_MODULES['esp32-s3-devkitc-1'].map((m) => m.id).filter((id) => id !== 'auto'));
+    expect(Object.keys(MODULE_OPTIONS['esp32:esp32:esp32s2'])).toEqual(BOARD_MODULES['esp32-s2-devkitm-1'].map((m) => m.id).filter((id) => id !== 'auto'));
   });
 });

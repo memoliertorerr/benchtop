@@ -131,7 +131,8 @@ describe('test specs (BT48)', () => {
 
   it('runs the fixture suite in-process: every spec passes, and the reports match the golden files', async () => {
     const io = filesIo();
-    // The five top-level specs (fixtures/specs/examples/ — every gallery example — runs in verify).
+    // The five top-level specs and (BT156) memory/'s two (fixtures/specs/examples/ — every gallery
+    // example — runs in verify).
     const files = discoverSpecs(['fixtures/specs'], { ...io, isDirectory: (p) => nodeIo.isDirectory(join(REPO_ROOT, p)), list: (d) => nodeIo.list(join(REPO_ROOT, d)) }).filter(
       (f) => !f.includes('/examples/'),
     );
@@ -139,6 +140,8 @@ describe('test specs (BT48)', () => {
       'fixtures/specs/blink.bench.json',
       'fixtures/specs/button.bench.json',
       'fixtures/specs/dht22.bench.json',
+      'fixtures/specs/memory/eeprom-counter.bench.json',
+      'fixtures/specs/memory/esp32-prefs-led.bench.json',
       'fixtures/specs/serial-echo.bench.json',
       'fixtures/specs/two-boards.bench.json',
     ]);

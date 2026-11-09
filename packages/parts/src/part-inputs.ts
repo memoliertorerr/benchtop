@@ -64,6 +64,7 @@ export const PART_INPUTS: Readonly<Record<string, readonly PartInputSpec[]>> = {
   'ky-040': [{ kind: 'key', does: 'down: true turns one detent clockwise or counterclockwise', keys: ['cw', 'ccw'] }, press('presses the shaft button'), release('releases it')],
   'membrane-keypad': [{ kind: 'key', does: 'down: true presses the key, false releases it', keys: KEYPAD_KEYS }],
   'tilt-switch': [press('toggles tilted'), value('tilted when ≥ 0.5', 'boolean', 0, 1)],
+  'touch-pad': [press('puts a finger on the pad'), release('lifts it'), value('how much of a finger touches it (0 none, 1 a full touch)', 'fraction', 0, 1)],
   'ir-receiver': [
     {
       kind: 'key',

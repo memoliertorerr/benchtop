@@ -333,6 +333,24 @@ describe('live sessions', () => {
     expect(asleep.sleeping?.s2.timerWakesAt).toMatch(/^5\d{3}ms$/);
   }, 120_000);
 
+  it('BT157: describe_part names the touch pad’s inputs; sim_input touches it on the S2 touch lamp example', async () => {
+    const server = testServer({ maxWallMs: 60_000 });
+    const pad = (await tool(server, 'describe_part', { type: 'touch-pad' })).value as { pins: { name: string }[]; inputs: { kind: string }[]; props: Record<string, unknown> };
+    expect(pad.pins.map((p) => p.name)).toEqual(['PAD']);
+    expect(pad.inputs.map((i) => i.kind)).toEqual(['press', 'release', 'value']);
+    expect(pad.props).toMatchObject({ padPf: 2, fingerPf: 10, contact: 0 });
+    const { session } = (await tool(server, 'open_example', { id: 'esp32s2-touch-lamp' })).value as { session: string };
+    await tool(server, 'sim_run', { session, untilSerial: 'touch lamp ready', duration: '2s' });
+    await tool(server, 'sim_input', { session, part: 'pad', input: { kind: 'press' } });
+    const touched = (await tool(server, 'sim_run', { session, untilSerial: 'lamp on', duration: '1s' })).value as Run;
+    expect(touched.serial.s2).toContain('lamp on');
+    await tool(server, 'sim_input', { session, part: 'pad', input: { kind: 'release' } });
+    await tool(server, 'sim_run', { session, duration: '200ms' });
+    const state = (await tool(server, 'sim_state', { session, parts: ['s2', 'pad'] })).value as { parts: Record<string, { pixels?: number[]; contact?: number }> };
+    expect(state.parts.s2.pixels?.[0]).toBe(0xffa03c);
+    expect(state.parts.pad.contact).toBe(0);
+  }, 60_000);
+
   it('sim_usb (BT146): MIDI by note and by bytes to the synth, the lock keys to a keyboard; sim_state says what the device takes', async () => {
     const server = testServer({ maxWallMs: 120_000 });
     const synth = ((await tool(server, 'sim_open', { project: 'fixtures/projects/esp32s3-usb-synth.json', firmware: { s3: 'fixtures/firmware/esp32s3/usb-synth.bin' } })).value as { session: string }).session;

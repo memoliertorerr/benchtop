@@ -3,7 +3,8 @@
  * S3Pads), whose registers the S2 has at the same offsets (gpio_reg.h: 397 of 397), over the S2's
  * 47 pads — GPIO0–21 and 26–46; 27–32 are the module's flash (refused, as on the S3; BT150: GPIO26,
  * SPICS1 — the PSRAM's chip select — is a GPIO here: the DevKitM-1's S2FH4 has no PSRAM and breaks
- * it out) — with the S2's signal numbers (gpio_sig_map.h) and interrupt sources. IO_MUX's functions sit where the
+ * it out; BT154: an N4R2's PSRAM holds it, and the firmware taking it from a running PSRAM is
+ * `pin-reserved`) — with the S2's signal numbers (gpio_sig_map.h) and interrupt sources. IO_MUX's functions sit where the
  * S3's do: U0TXD/U0RXD on 43/44 (function 0), U1TXD/U1RXD on 17/18 (2), FSPI on 10–13 (4) and
  * 34–37 (2).
  */
@@ -36,7 +37,7 @@ export const S2_SIG = {
 } as const;
 export const CODE_S2_FLASH_PIN = 'esp32s2-flash-pin';
 
-export const S2_GPIO_CHIP: GpioChip = { pads: S2_PADS, sig: S2_SIG, gpioSource: S2_SRC.GPIO, nmiSource: S2_SRC.GPIO_NMI, gpioBase: S2_GPIO_BASE, ioMuxBase: S2_IO_MUX_BASE, flashPinCode: CODE_S2_FLASH_PIN, firstFlashPad: 27 };
+export const S2_GPIO_CHIP: GpioChip = { pads: S2_PADS, sig: S2_SIG, gpioSource: S2_SRC.GPIO, nmiSource: S2_SRC.GPIO_NMI, gpioBase: S2_GPIO_BASE, ioMuxBase: S2_IO_MUX_BASE, flashPinCode: CODE_S2_FLASH_PIN, firstFlashPad: 27, psramCsPad: 26 };
 
 /** Is `g` a pad (GPIO0–21, 26–46)? */
 export const isS2Pad = (g: number): boolean => g >= 0 && g < S2_PADS && (g < 22 || g > 25);

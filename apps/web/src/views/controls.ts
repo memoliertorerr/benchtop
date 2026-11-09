@@ -78,6 +78,8 @@ export const CONTROLS: Readonly<Record<string, readonly Control[]>> = {
   ],
   'pir-motion-sensor': [{ kind: 'button', label: 'Motion', input: press }],
   'tilt-switch': [{ kind: 'button', label: 'Tilt', input: press, toggleProp: 'tilted' }],
+  // BT157: how much of a finger is on the pad (holding the pointer on it is a full touch).
+  'touch-pad': [{ kind: 'slider', label: 'Contact', unit: '', min: 0, max: 1, step: 0.05, prop: 'contact' }],
   dht22: [
     { kind: 'slider', label: 'Temperature', unit: '°C', min: -40, max: 80, step: 0.1, prop: 'temperature', channel: 'temperature' },
     { kind: 'slider', label: 'Humidity', unit: '%', min: 0, max: 100, step: 0.1, prop: 'humidity', channel: 'humidity' },

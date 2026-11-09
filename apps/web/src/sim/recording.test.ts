@@ -8,7 +8,7 @@ import { MAX_FILE_STEP, runHeadless } from '../../../cli/src/run.ts';
 import { parseSpec } from '../../../cli/src/spec.ts';
 import { buildSpec, specFileName, timeText } from '../editor/test-spec.ts';
 import { type FromSim, PROTOCOL_VERSION, type RecordedTest } from './protocol.ts';
-import { MAX_RECORDED_FILE, quoted } from './recording.ts';
+import { MAX_RECORDED_FILE, MAX_RECORDED_MEMORY, quoted, recordedSectors, TestRecording } from './recording.ts';
 import { SimSession } from './session.ts';
 
 // BT50: a test recorded in the worker session — running in real time, inputs arriving between
@@ -188,6 +188,32 @@ describe('recording a test (BT50)', () => {
     expect(rec.report.assertions.filter((a) => !a.ok)).toEqual([]);
     expect(rec.report.assertions.slice(-2).map((a) => a.ok)).toEqual([true, true]);
     expect(rec.report.serial.uno).toBe(rec.shown);
+  });
+
+  it('a board’s stored data at the recording’s start goes with the spec, so a stored counter replays the same (BT156)', () => {
+    // The counter boots once in the 137 ms before Record (EEPROM 0 = 1); Record resets the bench,
+    // which keeps the EEPROM, so the recording prints "boot 2" — and so must the replay.
+    const rec = recordAndReplay('uno-eeprom-counter', 'eeprom-counter', (h) => h.advance(300));
+    expect(rec.shown).toContain('boot 2');
+    expect(rec.test.memory).toEqual({ uno: [{ offset: 0, base64: 'AQ==' }] }); // one byte; the erased rest trimmed
+    expect(rec.test.memoryNotKept).toEqual([]);
+    expect(rec.spec.memory).toEqual({ uno: [{ offset: '0x0', base64: 'AQ==' }] });
+    expect(rec.test.proposals.some((p) => p.startsWith('serial contains "boot 2" by '))).toBe(true);
+    expect(rec.report.error).toBeNull();
+    expect(rec.report.assertions.filter((a) => !a.ok)).toEqual([]);
+    expect(rec.report.serial.uno).toBe(rec.shown);
+  });
+
+  it('memory over the cap isn’t kept, and says so; erased sectors and boards without data add nothing (BT156)', () => {
+    expect(recordedSectors([{ offset: 0x9000, bytes: new Uint8Array(4096).fill(0xff) }])).toEqual([]);
+    expect(recordedSectors([{ offset: 0x9000, bytes: Uint8Array.of(1, 2, 0xff, 3, 0xff, 0xff) }])).toEqual([{ offset: 0x9000, base64: 'AQL/Aw==' }]);
+    const big = Array.from({ length: MAX_RECORDED_MEMORY / 4096 + 1 }, (_, i) => ({ offset: i * 4096, bytes: new Uint8Array(4096) }));
+    expect(recordedSectors(big)).toBeNull();
+    const recording = new TestRecording([], { esp: big, uno: [{ offset: 0, bytes: Uint8Array.of(7) }], off: [] });
+    const doc = { format: 1, name: 'x', parts: [], wires: [], firmware: {} } as unknown as ProjectDoc;
+    const test = recording.finish(0, doc, new Map(), ['esp', 'uno', 'off']);
+    expect(test.memoryNotKept).toEqual(['esp']);
+    expect(test.memory).toEqual({ uno: [{ offset: 0, base64: 'Bw==' }] });
   });
 
   it('a reset or a new load ends a recording; stop without one posts nothing', () => {

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="benchtop" tests="13" failures="0" errors="0" time="0">
+<testsuites name="benchtop" tests="17" failures="0" errors="0" time="0">
   <testsuite name="blink: D13 toggles every 500 ms" file="fixtures/specs/blink.bench.json" tests="6" failures="0" errors="0" time="0">
     <properties>
       <property name="simulated" value="2 s"/>
@@ -32,6 +32,28 @@ hello
     <system-out>--- uno ---
 T=23.40 H=45.60
 </system-out>
+  </testsuite>
+  <testsuite name="memory: the EEPROM boot counter starts from a stored 41" file="fixtures/specs/memory/eeprom-counter.bench.json" tests="2" failures="0" errors="0" time="0">
+    <properties>
+      <property name="simulated" value="700 ms"/>
+    </properties>
+    <testcase name="serial contains &quot;boot 42&quot; by 200ms" classname="memory: the EEPROM boot counter starts from a stored 41" time="0"/>
+    <testcase name="serial contains &quot;boot 43&quot; by 700ms" classname="memory: the EEPROM boot counter starts from a stored 41" time="0"/>
+    <system-out>--- uno ---
+boot 42
+boot 43
+</system-out>
+  </testsuite>
+  <testsuite name="memory: the Preferences LED starts on, as stored" file="fixtures/specs/memory/esp32-prefs-led.bench.json" tests="2" failures="0" errors="0" time="0">
+    <properties>
+      <property name="simulated" value="1.5 s"/>
+    </properties>
+    <testcase name="serial contains &quot;start: led on&quot; by 1s" classname="memory: the Preferences LED starts on, as stored" time="0"/>
+    <testcase name="led led1 is lit at 1500ms" classname="memory: the Preferences LED starts on, as stored" time="0"/>
+    <system-out>--- esp ---
+start: led on
+</system-out>
+    <system-err>info esp32-unimplemented-register [esp]: read 0x3FF00468 (DPORT+0x468) = 0x00000100 at PC 0x40083D9F · read 0x3FF005A0 (DPORT+0x5A0) = 0x00000000 at PC 0x40083D9F · read 0x3FF48030 (RTC_CNTL+0x030) = 0x00800000 at PC 0x400F2780 (+15 more)</system-err>
   </testsuite>
   <testsuite name="serial echo: typed text comes back" file="fixtures/specs/serial-echo.bench.json" tests="1" failures="0" errors="0" time="0">
     <properties>

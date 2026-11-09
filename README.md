@@ -98,8 +98,13 @@ I2C controllers, SPI, the board's RGB LED (a WS2812 on GPIO18 through the RMT), 
 "USB CDC On Boot" build's `Serial` (or a sketch with a `// benchtop: usb-otg` line) is enumerated by
 the bench's USB host, as on the S3, with the same USB section in the Inspector. The debugger
 shows its core. WiFi and sleep work as on the ESP32 (below): scans, station, soft access point,
-HTTP client and server; deep and light sleep woken by the timer or pins. Its ROM comes from the
-same download as the ESP32's.
+HTTP client and server; deep and light sleep woken by the timer or pins. PSRAM as on an N4R2
+module (the ESP32-S2FN4R2 of a MINI-2-N4R2 or a Lolin S2 Mini): a build with the board menu's PSRAM
+enabled (or a `// benchtop: psram` line) finds 2 MB; the board's module (Inspector: auto, N4 or
+N4R2) says whether it has any, and on an N4R2 a wire on IO26 (the PSRAM's chip select) gets a
+warning. Capacitive touch on T1–T14 (GPIO1–14): wire a touch pad part to one and touch it —
+`touchRead` rises, `touchAttachInterrupt` fires on the touch and on the release. Its ROM comes
+from the same download as the ESP32's.
 
 **ESP32 DevKit V1** — an Xtensa LX6 dual-core emulator written in TypeScript for this project,
 running the real `.bin` image Arduino-ESP32 2.0.17 builds, on Espressif's real mask ROM:
@@ -228,7 +233,7 @@ hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, an 
 rainbow ring, an OLED clock, a color TFT, a WROVER's frame buffer in PSRAM, the DAC, the microphone, an I2C scan; ESP32-C3: the RGB LED,
 serial, a potentiometer dimmer, an OLED clock; ESP32-S3: the RGB LED, serial, a potentiometer dimmer, an OLED clock, a deep sleep wake counter, a
 frame buffer in PSRAM on a color TFT, an RGB LED set over USB serial, a USB macro keypad, a USB MIDI controller, a USB MIDI synth, a USB flash drive; ESP32-S2: the RGB
-LED, serial, a potentiometer dimmer, an OLED clock, a deep sleep wake counter; WiFi: an ESP32 web server switched by HTTP client
+LED, serial, a potentiometer dimmer, an OLED clock, a deep sleep wake counter, a touch lamp, a frame buffer in PSRAM on a color TFT; WiFi: an ESP32 web server switched by HTTP client
 parts, an ESP32 hosting its own access point and web server, an ESP32-C3, an ESP32-S3 and an ESP32-S2 web server that set their RGB LED, a Pico W and a Pico 2 W web server switching their onboard LEDs, a Pico W and an ESP32 HTTP client talking to a server part, two ESP32s over TCP, an NTP clock on an OLED;
 Raspberry Pi Pico:
 blink, a potentiometer, PWM steps, an OLED, a color TFT, both cores at once; Raspberry Pi Pico 2: the same, NeoPixels
@@ -457,7 +462,9 @@ It exits 0 when every spec passes, 1 when an expectation fails and 2 when a spec
 You can also record a test by using the app: **Record test** in the toolbar restarts the bench
 and records every button press, knob turn, keypad key, serial input and file you write or remove
 in the Inspector at its exact simulated time; **Stop** proposes expectations from where it ended (serial lines, lit LEDs, LCD rows,
-servo angles) — tick the ones you want, name the firmware files, and download the spec. Every
+servo angles) — tick the ones you want, name the firmware files, and download the spec. What the
+boards had stored when you pressed Record (EEPROM, Preferences, files in flash) goes into the spec
+too, so a sketch that reads a stored counter replays the same. Every
 example in the gallery has such a spec in `fixtures/specs/examples/`.
 
 This repository's own CI, [.github/workflows/verify.yml](.github/workflows/verify.yml), runs the

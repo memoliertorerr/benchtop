@@ -72,7 +72,11 @@ fixtures/firmware/esp32s2/<name>.bin|.partitions.bin|.syms.tsv  the same for the
                                               the C3's, as "s2-web" with the LED on GPIO18;
                                               deep-sleep-timer, deep-sleep-pins (ext0 GPIO4,
                                               ext1 GPIO5), light-sleep and deep-sleep-counter
-                                              — the S3's)
+                                              — the S3's; psram, PSRAM=enabled — an N4R2's 2 MB;
+                                              touch-read (touchRead on T1, T5) and
+                                              touch-interrupt (touchAttachInterrupt on T5);
+                                              touch-lamp and psram-frame (PSRAM=enabled), the
+                                              gallery's)
 fixtures/firmware/pico*/debug-demo.syms.tsv   the same for the Pico and Pico 2 debug-demos only (the
                                               debugger's tests; `SYMBOL_SKETCHES` in fixture-boards.ts)
 fixtures/firmware/pico/<name>.uf2             Raspberry Pi Pico firmware (arduino-pico 6.2.0; the
@@ -239,6 +243,10 @@ against them. After changing a spec or what its firmware prints, regenerate them
 `specs/examples/<id>.bench.json` runs each gallery example with what its card claims;
 `npm run verify` runs the whole `specs/` tree. A new example needs its spec (examples.test.ts
 says so); a spec whose example is gone fails too.
+
+`specs/memory/` holds specs that start boards from stored data, as a recorded spec does — the
+Uno's EEPROM counter at 41, the ESP32's Preferences LED switched on (its NVS page, taken from a run
+of the example). They are part of the suite the golden reports cover.
 
 `examples.json` is the gallery's list — id, title, category, project, each board's
 firmware and sketch (or MicroPython folder), an optional PCB, the card's description. The web

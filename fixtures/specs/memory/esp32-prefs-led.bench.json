@@ -1,0 +1,20 @@
+{
+  "name": "memory: the Preferences LED starts on, as stored",
+  "project": "../../projects/esp32-prefs-led.json",
+  "firmware": {
+    "esp": "../../firmware/esp32/prefs-led.bin"
+  },
+  "memory": {
+    "esp": [
+      {
+        "offset": "0x9000",
+        "base64": "/v///wAAAAD+/////////////////////////4Qturn6/////////////////////////////////////////wABAf8GMv0lbGVkAAAAAAAAAAAAAAAAAAH/////////AQEB/yw+ehRvbgAAAAAAAAAAAAAAAAAAAQ=="
+      }
+    ]
+  },
+  "duration": "1500ms",
+  "expect": [
+    "serial contains \"start: led on\" by 1s",
+    "led led1 is lit at 1500ms"
+  ]
+}

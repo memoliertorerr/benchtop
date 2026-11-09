@@ -16,7 +16,8 @@ import { httpClientView, httpServerView, networkView } from './network.ts';
 import { POWER_VIEW_TYPES, powerView } from './power.ts';
 import { raspberryPiPicoView } from './raspberry-pi-pico.ts';
 import { stepper28byj48View } from './stepper-28byj48.ts';
-import { hasWokwiView, wokwiView } from './wokwi.ts';
+import { TOUCH_PAD_VIEW_TYPES, touchPadView } from './touch-pad.ts';
+import { hasWokwiView, isInteractive as isWokwiInteractive, wokwiView } from './wokwi.ts';
 
 export interface ViewFactory {
   /** Builds the element (loading its code on first use). Sized in mm by its own SVG. */
@@ -31,6 +32,11 @@ export interface ViewFactory {
    * Returns the unbind function.
    */
   bindInput?(el: HTMLElement, send: (input: PartInput) => void): () => void;
+}
+
+/** Whether a part's element takes the pointer while the bench runs (buttons, knobs, BT157: a touch pad). */
+export function isInteractive(type: string): boolean {
+  return isWokwiInteractive(type) || TOUCH_PAD_VIEW_TYPES.has(type);
 }
 
 export function viewFor(type: string): ViewFactory {
@@ -48,6 +54,7 @@ export function viewFor(type: string): ViewFactory {
   if (type === 'wifi-ap') return networkView;
   if (type === 'http-server') return httpServerView;
   if (type === 'http-client') return httpClientView;
+  if (TOUCH_PAD_VIEW_TYPES.has(type)) return touchPadView;
   if (hasWokwiView(type)) return wokwiView;
   return fallbackView;
 }

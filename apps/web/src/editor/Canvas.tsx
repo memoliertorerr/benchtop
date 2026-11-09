@@ -21,7 +21,7 @@ import { liveViews } from '../sim/live-views.ts';
 import { sim, simRunning, simStats, simTime } from '../sim/host.ts';
 import { inputTargets } from '../views/ir-remote.ts';
 import { viewFor } from '../views/registry.ts';
-import { isInteractive } from '../views/wokwi.ts';
+import { isInteractive } from '../views/registry.ts';
 import { editor, editorMessage } from './app-store.ts';
 import { attachFirmwareFile } from './firmware-actions.ts';
 import { type Camera, DEFAULT_CAMERA, fitRect, pan, type Point, PX_PER_MM, scale, screenToWorld, worldToScreen, zoomAt } from './camera.ts';

@@ -43,9 +43,15 @@
  *   chip sleeps and what wakes it.
  * - `mac`: the eFuse's factory MAC; the factory gives each board one from its part id (Espressif's
  *   7C:DF:A1 and three bytes of a hash), so two boards differ.
+ * - Touch (BT155): soc/touch.ts measures TOUCH1–14 (GPIO1–14); the bench's `TouchSensing` source
+ *   gives each pin's net capacitance (a touch pad, a finger), asked once per measurement.
+ * - PSRAM (BT154): soc.ts's 2 MB quad chip answers a PSRAM build's driver on SPI1's CS1, as an
+ *   N4R2 module's (ESP32-S2FN4R2) or a WROVER's does. The board's `module` prop (S2_MODULES) says
+ *   whether it has one: `N4` leaves CS1 unanswered (a PSRAM build finds none). GPIO26 is the PSRAM's
+ *   chip select: an N4R2 claims it always (`pinClaims`), `auto` once a build has read the chip's ID.
  */
 
-import type { BoardSpec, Debuggable, FirmwareImage, I2cController, I2cDevice, Level, Mcu, McuDebug, McuPin, McuSleep, McuUsbHost, NetState, NonVolatile, NvMemory, PartProps, PartStorage, PinMode, Problem, RunResult, Sleeper, SpiController, SpiDevice, SymbolTable, UartPort, UsbHosting, UsbLocks, UsbSending, UsbStorageHosting, WifiRadio, WifiStation } from '@benchtop/core';
+import type { BoardSpec, Debuggable, FirmwareImage, I2cController, I2cDevice, Level, Mcu, McuDebug, McuPin, McuSleep, McuUsbHost, NetState, NonVolatile, NvMemory, PartProps, PartStorage, PinClaim, PinClaims, PinMode, Problem, RunResult, Sleeper, SpiController, SpiDevice, SymbolTable, TouchSensing, UartPort, UsbHosting, UsbLocks, UsbSending, UsbStorageHosting, WifiRadio, WifiStation } from '@benchtop/core';
 import { describeFirmwareFormat, macFromName, SectorMemory } from '@benchtop/core';
 import { Hle, sha256Hex, type SocProblem, WifiDriver } from '@benchtop/esp32';
 import type { SpiAttachment } from '@benchtop/esp32c3';
@@ -90,11 +96,33 @@ export const S2_MCU_GPIOS: readonly number[] = Object.freeze(Array.from({ length
 
 const MODES: readonly PinMode[] = ['input', 'input-pullup', 'input-pulldown', 'output', 'analog', 'peripheral'];
 
+/**
+ * BT154: the modules an ESP32-S2 board can carry (its `module` prop) and whether each has PSRAM:
+ * `auto` — the build decides, as a module with PSRAM answers any PSRAM build —, `N4` (4 MB flash,
+ * no PSRAM: an ESP32-S2-MINI-1/-MINI-2-N4, the DevKitM-1's ESP32-S2FH4), `N4R2` (4 MB flash and
+ * 2 MB PSRAM in the package, the ESP32-S2FN4R2 of a MINI-2-N4R2 or a Lolin S2 Mini).
+ */
+export const S2_MODULES = { auto: true, N4: false, N4R2: true } as const;
+export type S2Module = keyof typeof S2_MODULES;
+/** BT154: each module's flash chip (auto: as the build says). */
+export const S2_MODULE_FLASH: Readonly<Record<S2Module, number | null>> = { auto: null, N4: 4 * 1024 * 1024, N4R2: 4 * 1024 * 1024 };
+export const CODE_S2_MODULE = 'esp32s2-module';
+const NO_CLAIMS: readonly PinClaim[] = Object.freeze([]);
+const N4R2_CLAIMS: readonly PinClaim[] = Object.freeze([{ pin: 'GPIO26', by: "the N4R2 module's PSRAM (its chip select, SPICS1)" }]);
+/** BT155: the touch channels' pins, TOUCH1–14 on GPIO1–14 (by GPIO number; index 0 unused). */
+export const S2_TOUCH_PINS: readonly string[] = Object.freeze(Array.from({ length: 14 }, (_, i) => `GPIO${i + 1}`));
+const TOUCH_PIN_BY_GPIO: readonly string[] = ['', ...S2_TOUCH_PINS];
+const PSRAM_BUILD_CLAIMS: readonly PinClaim[] = Object.freeze([{ pin: 'GPIO26', by: "the PSRAM's chip select (this build uses PSRAM, as on an N4R2 module)" }]);
+
 export interface Esp32s2McuOptions {
   /** `esp32s2_rev0_rom.elf` (rom-manifest). Missing or wrong: the Mcu reports it and won't run. */
   rom?: Uint8Array;
   /** The eFuse's factory MAC (7C:DF:A1:00:52:01 by default). */
   mac?: readonly number[];
+  /** BT154: the board's module (`auto` by default): whether it has PSRAM, and what it claims. */
+  module?: S2Module;
+  /** BT154: the flash chip's size as its ID says (the module's); default: the image's. */
+  flashChipBytes?: number;
 }
 
 const parsedRoms = new WeakMap<Uint8Array, S2Rom | string>();
@@ -268,7 +296,7 @@ class S2Uart implements UartPort {
   }
 }
 
-export class Esp32s2Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sleeper, UsbHosting, UsbStorageHosting, UsbSending {
+export class Esp32s2Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sleeper, PinClaims, TouchSensing, UsbHosting, UsbStorageHosting, UsbSending {
   readonly kind = 'esp32s2' as const;
   readonly clockHz = REF_HZ;
   readonly pins: ReadonlyMap<string, McuPin>;
@@ -296,6 +324,11 @@ export class Esp32s2Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sl
   /** BT151: the bench's radio (joinWifi). */
   private radio: WifiRadio | null = null;
   private readonly mac: readonly number[] | undefined;
+  /** BT155: the bench's touch source (setTouchSource), outliving the SoCs. */
+  private touchSource: ((pin: string) => number) | null = null;
+  /** BT154: the board's module and its flash chip's size. */
+  private readonly module: S2Module;
+  private readonly flashChipBytes: number | undefined;
   /** The board's SPI flash, kept across resets (null until an image boots), and the view hosts get of it. */
   private flashBytes: Uint8Array | null = null;
   private nvm: SectorMemory | null = null;
@@ -310,6 +343,8 @@ export class Esp32s2Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sl
   constructor(options: Esp32s2McuOptions = {}) {
     this.rom = romFrom(options.rom);
     this.mac = options.mac;
+    this.module = options.module ?? 'auto';
+    this.flashChipBytes = options.flashChipBytes;
     const pins = new Map<string, McuPin>();
     for (let g = 0; g < S2_PADS; g++) this.byGpio.push(undefined);
     for (const g of S2_MCU_GPIOS) {
@@ -508,6 +543,25 @@ export class Esp32s2Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sl
     return otg.active && otg.host.drive !== null ? otg.host.drive.storage : null;
   }
 
+  /** BT155: the pins with a touch channel. */
+  touchPins(): readonly string[] {
+    return S2_TOUCH_PINS;
+  }
+
+  /** BT155: the bench's capacitance on each touch pin's net (null: nothing wired). */
+  setTouchSource(source: ((pin: string) => number) | null): void {
+    this.touchSource = source;
+  }
+
+  /**
+   * BT154: the pins the module holds — an N4R2's GPIO26 (its PSRAM's chip select) always; on
+   * `auto`, the same once the build's PSRAM driver has read the chip's ID.
+   */
+  pinClaims(): readonly PinClaim[] {
+    if (this.module === 'N4R2') return N4R2_CLAIMS;
+    return this.module === 'auto' && this.soc.psram.identified ? PSRAM_BUILD_CLAIMS : NO_CLAIMS;
+  }
+
   /** BT152: the chip's light or deep sleep and what wakes it (the timer in ns from now), or null awake. */
   sleepState(): McuSleep | null {
     const wakes = this.soc.sleepWakes();
@@ -552,7 +606,7 @@ export class Esp32s2Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sl
   }
 
   private buildSoc(time?: number): Esp32s2Soc {
-    const soc = new Esp32s2Soc({ ...(this.mac === undefined ? {} : { mac: this.mac }), ...(time === undefined ? {} : { time }) });
+    const soc = new Esp32s2Soc({ ...(this.mac === undefined ? {} : { mac: this.mac }), ...(time === undefined ? {} : { time }), psram: S2_MODULES[this.module], ...(this.flashChipBytes === undefined ? {} : { flashChipBytes: this.flashChipBytes }) });
     soc.core.breakpoints = this.breakpoints;
     soc.uarts[0].onTx = (byte) => this.uarts[0].emit(byte);
     soc.uarts[1].onTx = (byte) => this.uarts[1].emit(byte);
@@ -567,6 +621,7 @@ export class Esp32s2Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sl
     soc.pads.onPin = (g) => this.pinChanged(g);
     soc.gpio.onFloatingRead = (g) => this.floatingRead(g);
     soc.padVolts = (g) => this.byGpio[g]?.volts ?? 0;
+    soc.touch.source = (g) => (this.touchSource === null || g < 1 || g > 14 ? 0 : this.touchSource(TOUCH_PIN_BY_GPIO[g]));
     // The bus devices outlive the SoC; during construction the lists are empty.
     if (this.i2cs !== undefined) {
       soc.i2c[0].devices = this.i2cs[0].devices;
@@ -634,10 +689,17 @@ export class Esp32s2Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sl
 
 /** The bench's MCU factory for ESP32-S2 boards (`BenchEnv.createMcu`), as esp32s3McuFactory is for the S3. */
 export function esp32s2McuFactory(rom: Uint8Array | undefined): (board: BoardSpec, partId: string, report?: (problem: Problem) => void, props?: PartProps) => Mcu | undefined {
-  return (board, partId, report) => {
+  return (board, partId, report, props) => {
     if (board.mcu !== 'esp32s2') return undefined;
     const mac = macFromName(partId, [0x7c, 0xdf, 0xa1]);
-    const mcu = createEsp32s2Mcu(rom === undefined ? { mac } : { rom, mac });
+    // BT154: the board's module says whether it has PSRAM (an unknown one runs as auto).
+    const module = props?.module ?? 'auto';
+    const known = typeof module === 'string' && Object.hasOwn(S2_MODULES, module) ? (module as S2Module) : undefined;
+    if (known === undefined) report?.({ severity: 'warning', code: CODE_S2_MODULE, message: `Unknown ESP32-S2 module ${JSON.stringify(module)}: one of ${Object.keys(S2_MODULES).join(', ')}. Running as auto.`, parts: [partId] });
+    const chosen = known ?? 'auto';
+    const flash = S2_MODULE_FLASH[chosen];
+    const options = { mac, module: chosen, ...(flash === null ? {} : { flashChipBytes: flash }) };
+    const mcu = createEsp32s2Mcu(rom === undefined ? options : { rom, ...options });
     if (report !== undefined) {
       const seen = new Map<string, { messages: string[]; count: number }>();
       let soc = mcu.soc;

@@ -116,7 +116,7 @@ export const FIXTURE_BOARDS: Readonly<Record<string, FixtureBoard>> = {
     ],
     symbols: 'xtensa-esp32s2-elf-nm',
     // BT149: USB CDC On Boot — `Serial` on the USB-OTG controller (TinyUSB), the S2's only USB.
-    options: { 'usb-cdc': 'CDCOnBoot=cdc' },
+    options: { 'usb-cdc': 'CDCOnBoot=cdc', psram: 'PSRAM=enabled', 'psram-frame': 'PSRAM=enabled' },
   },
   // BT60: the Raspberry Pi Pico with the arduino-pico core (6.2.0). The UF2 is what a user drops
   // on the board; the ELF (1.3 MB, mostly DWARF) isn't committed.

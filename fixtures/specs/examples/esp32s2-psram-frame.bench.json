@@ -1,0 +1,11 @@
+{
+  "name": "example: esp32s2-psram-frame",
+  "project": "../../projects/esp32s2-psram-frame.json",
+  "firmware": {
+    "s2": "../../firmware/esp32s2/psram-frame.bin"
+  },
+  "expect": [
+    "serial contains \"frame buffer 153600 in psram 1\" by 1s",
+    "serial contains \"frame 2\" by 2s"
+  ]
+}

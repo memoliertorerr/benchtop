@@ -71,6 +71,8 @@ export function RecordDialog() {
           {test.droppedFiles > 0 ? ` ${test.droppedFiles} file write${test.droppedFiles === 1 ? '' : 's'} over 256 KB weren't kept.` : ''}
           {Object.keys(test.cards).length > 0 ? ` The spec's circuit starts ${Object.keys(test.cards).join(', ')} with the files ${Object.keys(test.cards).length === 1 ? 'it' : 'they'} held when recording began.` : ''}
           {test.cardsNotKept.length > 0 ? ` ${test.cardsNotKept.join(', ')} held more than 256 KB of files when recording began, so the replay starts ${test.cardsNotKept.length === 1 ? 'it' : 'them'} from the project's files and may differ.` : ''}
+          {Object.keys(test.memory).length > 0 ? ` The spec starts ${Object.keys(test.memory).join(', ')} with the EEPROM or flash data ${Object.keys(test.memory).length === 1 ? 'it' : 'they'} held when recording began.` : ''}
+          {test.memoryNotKept.length > 0 ? ` ${test.memoryNotKept.join(', ')} held more than 256 KB of stored data when recording began, so the replay starts ${test.memoryNotKept.length === 1 ? 'it' : 'them'} erased and may differ.` : ''}
         </p>
         <label class="record-field">
           <span>Name</span>

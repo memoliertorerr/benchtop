@@ -41,6 +41,7 @@ import { ky040 } from './inputs/ky-040.ts';
 import { membraneKeypad } from './inputs/membrane-keypad.ts';
 import { slidePotentiometer } from './inputs/slide-potentiometer.ts';
 import { tiltSwitch } from './inputs/tilt-switch.ts';
+import { touchPad } from './inputs/touch-pad.ts';
 import { dht22 } from './sensors/dht22.ts';
 import { ds1307 } from './sensors/ds1307.ts';
 import { microsdCard } from './storage/microsd-card.ts';
@@ -99,6 +100,7 @@ const ALL: readonly PartDefinition[] = [
   membraneKeypad,
   dipSwitch8,
   tiltSwitch,
+  touchPad,
   pirMotionSensor,
   photoresistorSensor,
   ntcTemperatureSensor,

@@ -82,7 +82,9 @@ const SLP_TIMER0 = 0x04;
 const SLP_TIMER1 = 0x08;
 const STATE0 = 0x18;
 const WAKEUP_STATE = 0x3c;
+const INT_ENA = 0x40;
 const INT_RAW = 0x44;
+const INT_ST = 0x48;
 const INT_CLR = 0x4c;
 const EXT_WAKEUP_CONF = 0x64;
 const SLEEP_EN = 1 << 31;
@@ -120,6 +122,11 @@ export class S3RtcCntl implements Peripheral {
   onSoftwareReset: (() => void) | null = null;
   /** BT125: SENS, at +0x800 in this page. */
   sens: Peripheral | null = null;
+  /** BT155: RTC_CNTL's interrupt (INT_RAW & INT_ENA ≠ 0) changed — the S2 routes it to its matrix. */
+  onInterrupt: ((on: boolean) => void) | null = null;
+  /** BT155: after a write to RTC_CNTL or RTC_IO (not SENS): the S2's touch sensor reads its controls. */
+  onWrite: ((offset: number, value: number, before: number) => void) | null = null;
+  private line = false;
 
   constructor(now: () => number, chip: RtcChip = S3_RTC_CHIP) {
     this.now = now;
@@ -138,7 +145,8 @@ export class S3RtcCntl implements Peripheral {
     this.origin = this.now();
   }
 
-  private slowHz(): number {
+  /** The RTC slow clock's frequency (ANA_CLK_RTC_SEL), Hz. */
+  slowHz(): number {
     const sel = this.regs[CLK_CONF >>> 2] >>> 30;
     const hz = this.chip.slowHz;
     return sel === 1 ? hz[1] : sel === 2 ? hz[2] : hz[0];
@@ -226,7 +234,20 @@ export class S3RtcCntl implements Peripheral {
   woke(cause: number): void {
     this.regs[this.SLP_WAKEUP_CAUSE >>> 2] = cause & 0x1ffff;
     this.regs[STATE0 >>> 2] &= ~SLEEP_EN;
-    this.regs[INT_RAW >>> 2] |= 1; // SLP_WAKEUP_INT_RAW
+    this.raise(1); // SLP_WAKEUP_INT_RAW
+  }
+
+  /** BT155: sets INT_RAW bits (the S2's touch sensor's), updating the interrupt. */
+  raise(bits: number): void {
+    this.regs[INT_RAW >>> 2] |= bits;
+    this.updateLine();
+  }
+
+  private updateLine(): void {
+    const on = (this.regs[INT_RAW >>> 2] & this.regs[INT_ENA >>> 2]) !== 0;
+    if (on === this.line) return;
+    this.line = on;
+    this.onInterrupt?.(on);
   }
 
   /** −1 when GPIO `g` isn't routed to the RTC; else its RTC pulls: 0 none, 1 up, 2 down. */
@@ -264,6 +285,8 @@ export class S3RtcCntl implements Peripheral {
         return this.regs[TIME_UPDATE >>> 2] & 0x7fffffff;
       case RESET_STATE:
         return ((this.regs[RESET_STATE >>> 2] & ~0xfff) | (this.resetCause << 6) | this.resetCause) >>> 0;
+      case INT_ST:
+        return (this.regs[INT_RAW >>> 2] & this.regs[INT_ENA >>> 2]) >>> 0;
     }
     return this.regs[offset >>> 2];
   }
@@ -281,6 +304,7 @@ export class S3RtcCntl implements Peripheral {
     }
     if (offset === INT_CLR) {
       this.regs[INT_RAW >>> 2] &= ~value;
+      this.updateLine();
       return;
     }
     if (offset === INT_RAW || offset === this.SLP_WAKEUP_CAUSE) return; // read-only
@@ -292,6 +316,8 @@ export class S3RtcCntl implements Peripheral {
     this.regs[offset >>> 2] = value;
     if (offset === STATE0 && (value & SLEEP_EN) !== 0 && (before & SLEEP_EN) === 0) this.onSleep?.((this.regs[this.DIG_PWC >>> 2] & (1 << 31)) !== 0);
     if (offset >= RTC_PAD0 && offset < RTC_PAD0 + RTC_PADS * 4 && ((before ^ value) & (PAD_MUX_SEL | PAD_RUE | PAD_RDE)) !== 0) this.onRtcPads?.();
+    if (offset === INT_ENA) this.updateLine();
+    this.onWrite?.(offset, value, before);
   }
 }
 

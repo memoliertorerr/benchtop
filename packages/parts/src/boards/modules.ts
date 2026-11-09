@@ -1,7 +1,8 @@
 /**
  * BT135: the modules a board can carry — its `module` prop's choices, for the Inspector and the
  * catalog's readers. The MCU factories read the same ids (@benchtop/esp32's ESP32_MODULES,
- * @benchtop/esp32s3's S3_MODULES; boards/modules.test.ts holds them to this table) and give the
+ * @benchtop/esp32s3's S3_MODULES, BT154: @benchtop/esp32s2's S2_MODULES; boards/modules.test.ts
+ * holds them to this table) and give the
  * chip the PSRAM the module has. `auto` lets the build decide, as before the prop existed.
  */
 
@@ -25,5 +26,10 @@ export const BOARD_MODULES: Readonly<Record<string, readonly ModuleChoice[]>> = 
     { id: 'N8R2', label: 'N8R2 — 8 MB flash, 2 MB quad PSRAM' },
     { id: 'N8R8', label: 'N8R8 — 8 MB flash, 8 MB octal PSRAM (IO35–37 are its)' },
     { id: 'N16R8', label: 'N16R8 — 16 MB flash, 8 MB octal PSRAM (IO35–37 are its)' },
+  ],
+  'esp32-s2-devkitm-1': [
+    { id: 'auto', label: 'auto — the build decides (PSRAM)' },
+    { id: 'N4', label: 'N4 — 4 MB flash, no PSRAM (ESP32-S2FH4)' },
+    { id: 'N4R2', label: 'N4R2 — 4 MB flash, 2 MB PSRAM (ESP32-S2FN4R2; IO26 is its)' },
   ],
 };

@@ -1,0 +1,44 @@
+{
+  "name": "example: esp32s2-touch-lamp",
+  "project": "../../projects/esp32s2-touch-lamp.json",
+  "firmware": {
+    "s2": "../../firmware/esp32s2/touch-lamp.bin"
+  },
+  "steps": [
+    {
+      "at": "1s",
+      "part": "pad",
+      "input": {
+        "kind": "press"
+      }
+    },
+    {
+      "at": "1200ms",
+      "part": "pad",
+      "input": {
+        "kind": "release"
+      }
+    },
+    {
+      "at": "2s",
+      "part": "pad",
+      "input": {
+        "kind": "press"
+      }
+    },
+    {
+      "at": "2200ms",
+      "part": "pad",
+      "input": {
+        "kind": "release"
+      }
+    }
+  ],
+  "expect": [
+    "serial contains \"touch lamp ready\" by 1s",
+    "serial contains \"lamp on\" by 1100ms",
+    "pixel s2[0] is #ffa03c at 1500ms",
+    "serial contains \"lamp off\" by 2100ms",
+    "pixel s2[0] is #000000 at 2500ms"
+  ]
+}
