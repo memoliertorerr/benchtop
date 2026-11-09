@@ -181,7 +181,10 @@ describe('Uno debugger', () => {
       const { mcu, debug } = boot();
       if (mode === 'one') debug.setBreakpoint(0x7ffe); // never reached
       const target = UNO_CLOCK_HZ / 5; // 0.2 s
-      const start = performance.now();
+      // This process's CPU time, not wall time (as logic-analyzer.test.ts): other processes on the
+      // machine preempt a run without costing it CPU time (2026-11-09: GitHub CI's runner read
+      // 18.0 MHz against a floor of 19.14 once; its rerun passed with the same code).
+      const start = process.cpuUsage();
       if (mode === 'raw') {
         // The loop runUntil had before this step.
         const cpu = mcu.core.cpu;
@@ -192,7 +195,8 @@ describe('Uno debugger', () => {
       } else {
         expect(mcu.runUntil(target)).toEqual({ reason: 'target' });
       }
-      return target / ((performance.now() - start) * 1000);
+      const used = process.cpuUsage(start);
+      return target / (used.user + used.system); // cycles per µs: MHz
     };
     mhz('none'); // warm up
     // Best of many short alternating runs: machine load only ever slows a run down, and the
