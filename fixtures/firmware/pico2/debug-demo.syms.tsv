@@ -502,28 +502,28 @@
 10010e80		t	__fini_array_end
 10010e80		t	__fini_array_start
 10010e80		t	__init_array_end
-10011278	00000034	V	_ZTV9SerialUSB
-10011344	000000a0	r	_usbd_driver
-100114b8	00000014	r	fpi.1
-100114cc	00000014	r	fpinan.0
-100114e0	00000028	r	tinytens
-10011508	00000100	R	__hexdig
-10011608	00000101	R	_ctype_
-100118e0	0000000c	r	p05.0
-100118f0	000000c8	R	__mprec_tens
-100119b8	00000028	R	__mprec_tinytens
-100119e0	00000028	R	__mprec_bigtens
-10011a08	00000008	r	_ZL14ccount_program
-10011a10	00000004	r	_ZL27ccount_program_instructions
-10011aa8		R	__binary_info_end
-10011aa8		R	__binary_info_start
-10011aa8		A	__etext
-10011aa8		R	__exidx_end
-10011aa8		R	__exidx_start
-100162f8		A	__scratch_x_source__
-100162f8		A	__scratch_y_source__
-100162f8		r	embedded_end_block
-1001630c		r	embedded_end_block_end
+1001126c	00000034	V	_ZTV9SerialUSB
+10011338	000000a0	r	_usbd_driver
+100114a8	00000014	r	fpi.1
+100114bc	00000014	r	fpinan.0
+100114d0	00000028	r	tinytens
+100114f8	00000100	R	__hexdig
+100115f8	00000101	R	_ctype_
+100118d0	0000000c	r	p05.0
+100118e0	000000c8	R	__mprec_tens
+100119a8	00000028	R	__mprec_tinytens
+100119d0	00000028	R	__mprec_bigtens
+100119f8	00000008	r	_ZL14ccount_program
+10011a00	00000004	r	_ZL27ccount_program_instructions
+10011a98		R	__binary_info_end
+10011a98		R	__binary_info_start
+10011a98		A	__etext
+10011a98		R	__exidx_end
+10011a98		R	__exidx_start
+100162e8		A	__scratch_x_source__
+100162e8		A	__scratch_y_source__
+100162e8		r	embedded_end_block
+100162fc		r	embedded_end_block_end
 11000000		?	__psram_heap_start__
 11000000		?	__psram_start__
 20000000	0000004c	W	_ZN6_MFIFO4_irqEv

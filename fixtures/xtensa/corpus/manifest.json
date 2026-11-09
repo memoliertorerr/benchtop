@@ -33,7 +33,7 @@
     },
     {
       "name": "serial-hello",
-      "rows": 22105,
+      "rows": 22103,
       "raw": [
         {
           "file": "serial-hello.iram0.vectors.bin.gz",

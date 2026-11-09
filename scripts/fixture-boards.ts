@@ -208,3 +208,18 @@ export function fixtureFqbn(board: string, name: string): string {
   const options = b.options?.[name];
   return options === undefined ? b.fqbn : `${b.fqbn}:${options}`;
 }
+
+/**
+ * BT175: build properties that keep the build machine's paths out of a fixture: the home folder
+ * becomes `~` and the repository `.` in `__FILE__` and debug info (the repository's mapping comes
+ * last: GCC tries the last matching one first). GCC 8 and later take `-ffile-prefix-map` (macros
+ * and debug info: the ESP32 family's and the Pico's toolchains); the AVR's GCC 7.3 only
+ * `-fdebug-prefix-map` — its outputs' only paths are DWARF — on the link step too, which writes the
+ * debug info under LTO. A path with a space would split the flag (the recipes split on spaces).
+ */
+export function prefixMapProperties(fqbn: string, home: string, root: string): string[] {
+  for (const path of [home, root]) if (/\s/.test(path)) throw new Error(`can't map a path with a space: ${path}`);
+  const flag = fqbn.startsWith('arduino:avr:') ? '-fdebug-prefix-map' : '-ffile-prefix-map';
+  const maps = `${flag}=${home}=~ ${flag}=${root}=.`;
+  return ['compiler.c.extra_flags', 'compiler.cpp.extra_flags', 'compiler.S.extra_flags', 'compiler.c.elf.extra_flags'].flatMap((key) => ['--build-property', `${key}=${maps}`]);
+}

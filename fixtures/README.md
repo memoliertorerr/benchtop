@@ -279,6 +279,11 @@ committed files against the manifest. The compiler runs only through `npm run fi
 ## Determinism
 
 Each sketch builds in a fixed folder, `fixtures/.build/<board>/<name>`, so rebuilding gives
-byte-identical outputs (`--check` proves it). The ELF's debug info embeds the absolute path of
-that folder on the machine that built it (the checkout's absolute path), so a
-build at another checkout path changes the ELF hashes (the HEX has no debug info).
+byte-identical outputs (`--check` proves it). Every compile maps the home folder to `~` and the
+checkout to `.` — `-ffile-prefix-map`, or `-fdebug-prefix-map` on the AVR's GCC 7.3, as arduino-cli
+build properties (`prefixMapProperties` in scripts/fixture-boards.ts) — so no output carries the
+build machine's paths: not the `__FILE__` strings the ESP32 family's and the Pico's asserts keep,
+nor the AVR ELFs' debug info, which reads `./fixtures/sketches/…` and `~/Library/Arduino15/…`.
+A build at another checkout path gives the same bytes. Espressif's precompiled IDF libraries keep
+their own build machine's paths. The public snapshot refuses any firmware that still contains the
+home folder.

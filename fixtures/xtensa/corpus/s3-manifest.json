@@ -3,7 +3,7 @@
   "corpora": [
     {
       "name": "s3-serial-hello",
-      "rows": 20934,
+      "rows": 20932,
       "raw": [
         {
           "file": "s3-serial-hello.iram0.vectors.bin.gz",

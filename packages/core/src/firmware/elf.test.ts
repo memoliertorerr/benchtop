@@ -28,7 +28,8 @@ describe('parseElf32', () => {
     const bss = findSection(elf, '.bss');
     expect(bss).toMatchObject({ type: SHT_NOBITS, addr: 0x80011c, size: 0xa6 });
     expect(bss?.data.length).toBe(0);
-    expect(findSection(elf, '.debug_line')?.data.length).toBe(0xa98);
+    // BT175: its directory table holds the remapped paths (./fixtures/…, ~/Library/…): 0xa98 before.
+    expect(findSection(elf, '.debug_line')?.data.length).toBe(0xa3c);
 
     expect(findSymbol(elf, 'main')).toMatchObject({ value: 0x5b2, size: 0x170, type: 'FUNC', bind: 'GLOBAL' });
     // TIMER0_OVF, which millis() needs.

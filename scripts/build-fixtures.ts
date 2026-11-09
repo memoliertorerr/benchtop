@@ -12,7 +12,10 @@
  *                                                  with the manifest; writes nothing
  *
  * Each sketch builds in a FIXED build path (fixtures/.build/<board>/<name>), because the ELF's
- * debug info embeds it: the same path gives byte-identical outputs on every run.
+ * debug info embeds it: the same path gives byte-identical outputs on every run. BT175: and every
+ * compile maps the home folder to `~` and the repository to `.` (`prefixMapProperties`), so no
+ * output carries the build machine's paths — `__FILE__` in the ESP32 family's and the Pico's
+ * asserts, the AVR's DWARF.
  *
  * Sketches in ADDR2LINE_ORACLES also get <name>.addr2line.txt from the local avr-addr2line:
  * one "0x<addr> <basename>:<line>" line per FUNC symbol start and per 64th byte of .text.
@@ -30,12 +33,12 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findSection, parseElf32 } from '../packages/core/src/firmware/elf.ts';
 import { arduinoCliCandidates, findArduinoCli, findArmTool, findAvrTool, findRiscvTool, findXtensaTool, runArduinoCli } from './arduino-cli.ts';
-import { ADDR2LINE_ORACLES, FIXTURE_BOARDS, fixtureFqbn, type Manifest, type ManifestOutput, sketchSourceSha256, symbolsTool } from './fixture-boards.ts';
+import { ADDR2LINE_ORACLES, FIXTURE_BOARDS, fixtureFqbn, type Manifest, type ManifestOutput, prefixMapProperties, sketchSourceSha256, symbolsTool } from './fixture-boards.ts';
 import { writeRiscvCorpora } from './riscv-corpus.ts';
 import { buildRiscvPrograms } from './riscv-programs.ts';
 import { writeCorpora, writeS2Corpus, writeS3Corpus } from './xtensa-corpus.ts';
@@ -113,6 +116,7 @@ async function main(): Promise<number> {
         'compile',
         '--fqbn',
         fqbn,
+        ...prefixMapProperties(fqbn, homedir(), ROOT),
         '--build-path',
         join(BUILD, sketch.board, sketch.name),
         '--output-dir',
