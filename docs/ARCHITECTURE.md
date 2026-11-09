@@ -2870,8 +2870,8 @@ sequence, files matched by basename or trailing path.
   waits it out through the timeout, as the C3's model learned for the S3); its UARTs the C3's
   model with `S2_UART_FIELDS` (MEM_CONF, FSM_STATUS and ID 4–8 bytes earlier, RX_TOUT_EN at bit
   31, the baud clock APB with CONF0.TICK_REF_ALWAYS_ON or else the 1 MHz REF_TICK); SPI0/1 and
-  the flash chip, the RNG (WDEV 0x3F43_507C) and the analog I2C master (`S3AnalogI2c`, 0x6000_E000
-  on PeriBus2) shared too. Its own (`packages/esp32s2/src/soc`): SYSTEM (`system.ts`: SYSCLK_CONF
+  the flash chip, the RNG (WDEV_RND_REG at 0x3F43_5110 — not the S3's +0x7C) and the analog I2C
+  master (`S3AnalogI2c`, 0x6000_E000 on PeriBus2) shared too. Its own (`packages/esp32s2/src/soc`): SYSTEM (`system.ts`: SYSCLK_CONF
   0x8C and CPU_PER_CONF 0x18 — 240 MHz on the PLL —, FROM_CPU 0x58–0x64, the RTC memory CRC
   unit at 0x78), EXTMEM (0x6180_0000: PRO_DCACHE_CTRL and PRO_ICACHE_CTRL's ENA/DONE pairs done at
   once, PRO_CACHE_STATE idle — `Cache_Suspend_ICache` waits for it), RTC_CNTL (the RTC timer,
@@ -2963,11 +2963,8 @@ sequence, files matched by basename or trailing path.
   else UART0), `uart(1)`, `i2c(0/1)`, `spi(2)` with the variant's default pins (SDA 8, SCL 9; SCK
   36, MOSI 35, MISO 37), the kept flash (`nonVolatile`), resets and the reboot-loop guard, the
   debugger (`Esp32s2Debug`), and the bench's USB host as the S3's (`usbHost`, `usbStorage`,
-  `usbMidi`, `usbLocks` — HID, MIDI and mass-storage builds work as there). Not yet: WiFi — the
-  radio's registers touched outside the power-down controls are `esp32s2-wifi-unsupported` (once
-  a boot, through `S2PeripheralMap.onRadio`) — and sleep — RTC_CNTL STATE0.SLEEP_EN calls
-  `S2RtcCntl.onSleep`, and the SoC halts (`halt(reason)`, which also ends the core's slice) after
-  `esp32s2-sleep-unsupported`. `esp32s2McuFactory` gives each board a MAC from its part id
+  `usbMidi`, `usbLocks` — HID, MIDI and mass-storage builds work as there). `esp32s2McuFactory`
+  gives each board a MAC from its part id
   (7C:DF:A1 and a hash) and folds Problems per code. The board, `esp32-s2-devkitm-1`
   (packages/parts, our own pin table from the user guide: J1 3V3, 0–17, 5V, G; J3 G, RST, 46, 45,
   RX, TX, 42–33, 26, 21–18; 21 pins each, 0.9" apart), decodes its WS2812 on GPIO18 into
@@ -2982,6 +2979,46 @@ sequence, files matched by basename or trailing path.
   (category ESP32-S2): the RGB LED, serial hello, a potentiometer dimmer, an OLED clock — specs in
   fixtures/specs/examples, `examples-run-esp32s2.test.ts`; the MCP debug tools run on the S2's
   debug-demo (`build-debug.test.ts`).
+
+  **WiFi** is the S3's: `useSymbols` hands the adapter the firmware's symbols, and
+  `@benchtop/esp32`'s `WifiDriver` answers the WiFi driver's API by name through its Xtensa `Hle`
+  on the S2's core, rebuilt on every SoC a reset builds; `joinWifi` gives it the bench's radio.
+  The HLE's resume and return ops and the driver task's entry are 0x4001_C400/04/08, in the S2
+  ROM's gap between .text (ends 0x4001_BED4) and .rodata (0x4001_C600) — zeros, outside every
+  section, in RETW's 1 GB region (`wifi.test.ts` checks). The S2's toolchain lays out every WiFi
+  struct as the ESP32's (`esp32s2/wifi-layout`), `wifi_sta_list_t` too, so the driver runs on its
+  defaults. Without symbols the closed driver reaches the radio's registers
+  (`S2PeripheralMap.onRadio`): `esp32s2-wifi-no-symbols`, once a boot. Found on the way: the S2's
+  RNG is WDEV_RND_REG at 0x6003_5110, not the S3's +0x7C — reading 0 there, lwIP's DNS looped
+  forever choosing a source port ≥ 1024. Fixtures `wifi-scan`, `wifi-http-get`, `wifi-webserver`
+  (the ESP32's), `wifi-rgb-server` (the C3's as "s2-web", the LED on GPIO18) and `wifi-softap`
+  (the ESP32's) run on the bench in `packages/parts/src/integration/esp32s2-wifi.test.ts`.
+
+  **Sleep** is the S3's: the S2's RTC_CNTL is now `@benchtop/esp32s3`'s
+  `S3RtcCntl` with an `RtcChip` (`S2_RTC_CHIP`: base 0x3F40_8000, the S2's reset values and slow
+  clocks — RC_SLOW 90 kHz, XTAL32K, RC_FAST/256 31.25 kHz — and the five offsets that differ:
+  DIG_PWC 0x8C, EXT_WAKEUP1 0xDC, its STATUS 0xE0, SLP_WAKEUP_CAUSE 0x12C, STORE4–7 0xBC–0xC8; RTC_IO
+  is the S3's exactly). STATE0.SLEEP_EN stops the core until the timer, ext0, ext1 or (light) a
+  GPIO level wakes it (`soc.ts`: `sleeping`, `enterSleep`, `checkPinWake`, `wake`; the run loop
+  leaves the core still and skip-ahead jumps the time asleep without its CCOMPARE timer); deep
+  sleep clears the events and wakes as a DEEPSLEEP reset — the adapter keeps the RTC domain and RTC
+  memory, the direct boot leaves RTC segments alone, the reboot guard ignores it —; light sleep
+  gates the timer groups. `sleepState()` is the bench's `Sleeper`. Two timer-group fixes the S2
+  needed (the ESP32's `Timg`): its calibration measures the chip's own slow clocks (`slowClocks`,
+  so IDF's calibrated period matches the RTC timer — sleeps were 150/90 too long), and the cycling
+  calibration light sleep uses (`rtc_clk_cal_internal_cycling`: START_CYCLING, then
+  CYCLING_DATA_VLD in RTCCALICFG1 bit 0 — before, the interrupt watchdog fired while IDF waited).
+  Fixtures `deep-sleep-timer`, `deep-sleep-pins` (ext0 GPIO4, ext1 GPIO5), `light-sleep`,
+  `deep-sleep-counter` — the S3's — on `fixtures/projects/esp32s2-sleep.json` and
+  `esp32s2-deep-sleep-pins.json` (`packages/parts/src/integration/sleep.test.ts`, QUIET).
+
+  **End to end:** the gallery's S2 RGB web server (`esp32s2-wifi-rgb-server`, category
+  WiFi: the C3's sketch as "s2-web") and S2 deep-sleep counter (`esp32s2-deep-sleep`: the timer every
+  5 s and the button on GPIO4 by ext0), each with a spec in fixtures/specs/examples and a check in
+  `examples-run-esp32s2.test.ts`; the app gives the web server its symbols through the examples
+  manifest's SYMS glob, and the hosts pass symbols, the radio and sleep to the S2 as to any Mcu
+  that takes them (`usesSymbols`, `usesWifi`, the bench's `Sleeper` seam). MCP's `sim_wifi` takes
+  S2 boards (`WIFI_MCUS`), `sim_state` shows one asleep (`sessions.test.ts`).
 
 ## Worker protocol
 

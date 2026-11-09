@@ -2,7 +2,7 @@ import type { McuPin, NetState } from '@benchtop/core';
 import { Strength } from '@benchtop/core';
 import type { SocProblem } from '@benchtop/esp32';
 import { describe, expect, it } from 'vitest';
-import { CODE_S2_REBOOT, CODE_S2_ROM_MISSING, CODE_S2_SLEEP_UNSUPPORTED, CODE_S2_WIFI_UNSUPPORTED, createEsp32s2Mcu, type Esp32s2Mcu, S2_MCU_GPIOS } from './esp32s2-mcu.ts';
+import { CODE_S2_REBOOT, CODE_S2_ROM_MISSING, CODE_S2_WIFI_NO_SYMBOLS, createEsp32s2Mcu, type Esp32s2Mcu, S2_MCU_GPIOS } from './esp32s2-mcu.ts';
 import { REF_HZ } from './soc/rtc-cntl.ts';
 import { s2FixtureImage } from './test-support/boot.test-helper.ts';
 import { loadCachedS2Rom } from './test-support/rom.test-helper.ts';
@@ -43,7 +43,7 @@ describe('the ESP32-S2 Mcu (BT150)', () => {
     for (const g of [0, 21, 26, 33, 46]) expect(ids).toContain(`GPIO${g}`);
     for (const g of [22, 25, 27, 32, 47]) expect(ids).not.toContain(`GPIO${g}`);
     expect(S2_MCU_GPIOS[22]).toBe(26);
-    run(mcu, 1.3, () => serial().includes('tick 1'));
+    run(mcu, 1.3, () => serial().includes('tick 1\n'));
     expect(serial()).toBe('hello from esp32s2\r\ntick 1\n');
     expect(mcu.uart(0)?.pins?.()).toEqual({ tx: 'GPIO43', rx: 'GPIO44' });
     expect(Math.abs((mcu.uart(0)?.baud?.() ?? 0) / 115200 - 1)).toBeLessThan(0.0005);
@@ -144,17 +144,42 @@ describe('the ESP32-S2 Mcu (BT150)', () => {
     expect(serial().split('hello from esp32s2').length).toBe(3);
   });
 
-  it('not modeled yet, and said so: sleep halts the run; the radio\'s registers report WiFi once per boot', () => {
+  it('the radio\'s registers without symbols report it once per boot; BT152: SLEEP_EN sleeps the chip, sleepState says how, and the run goes on', () => {
     const { mcu, problems, serial } = boot('serial-hello');
     run(mcu, 0.6, () => serial().includes('hello from esp32s2\r\n'));
     mcu.soc.periph.write32(0x3f41d100, 1, 0); // BB, not a power-down control
     mcu.soc.periph.write32(0x3f41d104, 1, 0);
-    expect(problems.filter((p) => p.code === CODE_S2_WIFI_UNSUPPORTED)).toHaveLength(1);
-    mcu.soc.rtc.write32(0x18, 1 << 31); // STATE0.SLEEP_EN, as esp_deep_sleep_start does
-    expect(problems.filter((p) => p.code === CODE_S2_SLEEP_UNSUPPORTED)).toHaveLength(1);
-    const result = mcu.runUntil(mcu.cycles + REF_HZ / 100);
-    expect(result.reason).toBe('halted');
-    expect(result.detail).toMatch(/sleep isn't modeled on the ESP32-S2 yet/);
+    expect(problems.filter((p) => p.code === CODE_S2_WIFI_NO_SYMBOLS)).toHaveLength(1); // BT151: no symbols given
+    expect(mcu.sleepState()).toBeNull();
+    mcu.soc.rtc.write32(0x3c, 0); // WAKEUP_STATE: no wake source (its reset value enables the timer)
+    mcu.soc.rtc.write32(0x18, 1 << 31); // STATE0.SLEEP_EN: light sleep for good
+    expect(mcu.sleepState()).toEqual({ deep: false, wakeIn: null, pins: [] });
+    const before = serial().length;
+    expect(mcu.runUntil(mcu.cycles + REF_HZ).reason).toBe('target');
+    expect(serial().length).toBe(before); // asleep: no ticks
+    expect(problems.filter((p) => p.severity === 'error' && p.code !== CODE_S2_WIFI_NO_SYMBOLS)).toEqual([]);
+  });
+
+  it('BT152: sleepState says how it sleeps and what wakes it; the ext pins hold their RTC pulls', () => {
+    const { mcu, serial } = boot('deep-sleep-pins');
+    // No bench here to apply the RTC pulls to the nets: the pins read as those pulls would hold them.
+    (mcu.pins.get('GPIO4') as McuPin).setInput(net(3.3));
+    (mcu.pins.get('GPIO5') as McuPin).setInput(net(0));
+    run(mcu, 0.8);
+    expect(serial()).toContain('boot 1 cause 0');
+    expect(mcu.sleepState()).toEqual({ deep: true, wakeIn: null, pins: ['GPIO4 low', 'GPIO5 high (any)'] });
+    expect(mcu.pins.get('GPIO4')?.mode()).toBe('input-pullup');
+    expect(mcu.pins.get('GPIO5')?.mode()).toBe('input-pulldown');
+    const timer = boot('deep-sleep-timer');
+    run(timer.mcu, 0.8);
+    const state = timer.mcu.sleepState();
+    expect(state?.deep).toBe(true);
+    expect(state?.pins).toEqual([]);
+    expect(state?.wakeIn ?? 0).toBeGreaterThan(1.2e9);
+    expect(state?.wakeIn ?? 0).toBeLessThanOrEqual(2e9);
+    const awake = boot('serial-hello');
+    run(awake.mcu, 0.5);
+    expect(awake.mcu.sleepState()).toBeNull();
   });
 
   it('without the ROM it exists, says how to get it, and won’t run', () => {

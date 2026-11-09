@@ -31,15 +31,23 @@
  *   second apart end the run (a reboot loop), as on the S3.
  * - `debug()` is Esp32s2Debug; breakpoints outlive resets. Outside the contract: `onProblem` hears
  *   the SoC's Problems one by one; `esp32s2McuFactory` folds them into one bench Problem per code.
- * - Not yet (the next phase): WiFi — a firmware driving the radio gets `esp32s2-wifi-unsupported`
- *   once per boot — and sleep — a firmware entering it gets `esp32s2-sleep-unsupported`.
+ * - WiFi (BT151), as the S3's (@benchtop/esp32s3's esp32s3-mcu.ts): `useSymbols(table)` gives the
+ *   Mcu the firmware's symbols, and the WiFi driver's API is answered by @benchtop/esp32's
+ *   WifiDriver through its Xtensa Hle on the core (on every SoC a reset builds); `wifi` is that
+ *   driver. `joinWifi(radio)` is what the station sees. A firmware that drives the radio's
+ *   registers without symbols gets `esp32s2-wifi-no-symbols` (once per boot). The HLE's resume and
+ *   return ops and the WiFi task's entry sit in the S2 ROM's unused gap between .text and .rodata.
+ * - Sleep (BT152), as the S3's: deep and light sleep run as IDF drives RTC_CNTL (soc.ts); a deep
+ *   sleep's wake boots a fresh chip like a system reset, keeping the RTC domain and RTC memory, and
+ *   doesn't count toward the reboot-loop guard. `sleepState()` (the bench's `Sleeper`) says how the
+ *   chip sleeps and what wakes it.
  * - `mac`: the eFuse's factory MAC; the factory gives each board one from its part id (Espressif's
  *   7C:DF:A1 and three bytes of a hash), so two boards differ.
  */
 
-import type { BoardSpec, Debuggable, FirmwareImage, I2cController, I2cDevice, Level, Mcu, McuDebug, McuPin, McuUsbHost, NetState, NonVolatile, NvMemory, PartProps, PartStorage, PinMode, Problem, RunResult, SpiController, SpiDevice, UartPort, UsbHosting, UsbLocks, UsbSending, UsbStorageHosting } from '@benchtop/core';
+import type { BoardSpec, Debuggable, FirmwareImage, I2cController, I2cDevice, Level, Mcu, McuDebug, McuPin, McuSleep, McuUsbHost, NetState, NonVolatile, NvMemory, PartProps, PartStorage, PinMode, Problem, RunResult, Sleeper, SpiController, SpiDevice, SymbolTable, UartPort, UsbHosting, UsbLocks, UsbSending, UsbStorageHosting, WifiRadio, WifiStation } from '@benchtop/core';
 import { describeFirmwareFormat, macFromName, SectorMemory } from '@benchtop/core';
-import { sha256Hex, type SocProblem } from '@benchtop/esp32';
+import { Hle, sha256Hex, type SocProblem, WifiDriver } from '@benchtop/esp32';
 import type { SpiAttachment } from '@benchtop/esp32c3';
 import { S3_PAD_MODE } from '@benchtop/esp32s3';
 import { directBootS2 } from './boot/direct-boot.ts';
@@ -56,8 +64,19 @@ export const CODE_S2_FLOATING_INPUT = 'esp32s2-floating-input';
 export const CODE_S2_REBOOT = 'esp32s2-reboot';
 /** The bench's USB host on the OTG port — an interface it doesn't drive, a failed enumeration. */
 export const CODE_S2_USB_DEVICE = 'esp32s2-usb-device';
+/** BT151: a firmware drives the radio's registers without the symbols the simulated driver needs. */
+export const CODE_S2_WIFI_NO_SYMBOLS = 'esp32s2-wifi-no-symbols';
 export const CODE_S2_WIFI_UNSUPPORTED = 'esp32s2-wifi-unsupported';
-export const CODE_S2_SLEEP_UNSUPPORTED = 'esp32s2-sleep-unsupported';
+
+/**
+ * BT151: where the WiFi HLE's generators run (Hle's resumePc), where their RETW is (returnPc), and
+ * the simulated WiFi driver's task entry — in the S2 ROM's unused gap after .text (which ends at
+ * 0x4001BED4), before .rodata (0x4001C600 on the instruction bus): zeros the firmware never
+ * executes, in the 1 GB region RETW needs.
+ */
+export const S2_HLE_RESUME_PC = 0x4001c400;
+export const S2_HLE_RETURN_PC = 0x4001c404;
+export const S2_WIFI_TASK_PC = 0x4001c408;
 
 /** Reboots less than a second apart that end the run (a crash loop), as the other ESP32s' guard. */
 const RAPID_REBOOT_LIMIT = 5;
@@ -249,7 +268,7 @@ class S2Uart implements UartPort {
   }
 }
 
-export class Esp32s2Mcu implements Mcu, Debuggable, NonVolatile, UsbHosting, UsbStorageHosting, UsbSending {
+export class Esp32s2Mcu implements Mcu, Debuggable, NonVolatile, WifiStation, Sleeper, UsbHosting, UsbStorageHosting, UsbSending {
   readonly kind = 'esp32s2' as const;
   readonly clockHz = REF_HZ;
   readonly pins: ReadonlyMap<string, McuPin>;
@@ -270,6 +289,12 @@ export class Esp32s2Mcu implements Mcu, Debuggable, NonVolatile, UsbHosting, Usb
   /** Breakpoints, handed to the core of every SoC built (they outlive resets). */
   private readonly breakpoints = new Set<number>();
   private debugView: Esp32s2Debug | null = null;
+  /** BT151: the firmware's symbols by exact name (useSymbols; functions win over objects). */
+  private symbols: Map<string, number> | null = null;
+  /** BT151: the simulated WiFi driver of the current SoC, when the firmware's symbols name its API. */
+  wifi: WifiDriver | null = null;
+  /** BT151: the bench's radio (joinWifi). */
+  private radio: WifiRadio | null = null;
   private readonly mac: readonly number[] | undefined;
   /** The board's SPI flash, kept across resets (null until an image boots), and the view hosts get of it. */
   private flashBytes: Uint8Array | null = null;
@@ -399,6 +424,29 @@ export class Esp32s2Mcu implements Mcu, Debuggable, NonVolatile, UsbHosting, Usb
   }
 
   /**
+   * BT151: the firmware's symbols, for what the simulator answers by function name (WiFi). Hosts
+   * call it after `load` and before running; it applies to the current SoC and every later one.
+   */
+  useSymbols(table: SymbolTable | null): void {
+    if (table === null) this.symbols = null;
+    else {
+      const byName = new Map<string, number>();
+      for (let i = 0; i < table.size; i++) {
+        const entry = table.entry(i);
+        if (!byName.has(entry.name) || entry.kind === 'func') byName.set(entry.name, entry.address);
+      }
+      this.symbols = byName;
+    }
+    this.installHle(this.soc);
+  }
+
+  /** BT151: the bench's access points and LANs (null: none); an association moves to a rebuilt bench's. */
+  joinWifi(radio: WifiRadio | null): void {
+    this.radio = radio;
+    this.wifi?.radioChanged();
+  }
+
+  /**
    * The board's flash as hosts keep it (NVS, file systems, the EEPROM library's partition): every
    * reset keeps it, a load writes only the partition table and the app. Null until an image boots.
    */
@@ -460,6 +508,13 @@ export class Esp32s2Mcu implements Mcu, Debuggable, NonVolatile, UsbHosting, Usb
     return otg.active && otg.host.drive !== null ? otg.host.drive.storage : null;
   }
 
+  /** BT152: the chip's light or deep sleep and what wakes it (the timer in ns from now), or null awake. */
+  sleepState(): McuSleep | null {
+    const wakes = this.soc.sleepWakes();
+    if (wakes === null || this.soc.sleeping === null) return null;
+    return { deep: this.soc.sleeping.deep, wakeIn: wakes.at < 0 ? null : (Math.max(0, wakes.at - this.soc.now()) / REF_HZ) * 1e9, pins: wakes.pins };
+  }
+
   /** The flash a boot ran from becomes the board's; what it wrote is the program's. */
   private keepFlash(flash: Uint8Array, written: readonly { offset: number; length: number }[]): void {
     if (this.flashBytes !== flash || this.nvm === null) {
@@ -478,17 +533,20 @@ export class Esp32s2Mcu implements Mcu, Debuggable, NonVolatile, UsbHosting, Usb
   private softwareReset(reason: number): boolean {
     const old = this.soc;
     const now = old.time;
-    this.rapidReboots = now - this.bootTime < REF_HZ ? this.rapidReboots + 1 : 0;
+    const deepSleep = reason === S2_RESET_REASON.DEEPSLEEP;
+    this.rapidReboots = deepSleep ? 0 : now - this.bootTime < REF_HZ ? this.rapidReboots + 1 : 0;
     if (this.rapidReboots >= RAPID_REBOOT_LIMIT) {
       this.rebootLoop = `reboot loop: ${RAPID_REBOOT_LIMIT} system resets in a row less than 1 s apart`;
       return false;
     }
+    const rtcDomain = old.rtc.rtcDomain();
     this.soc = this.buildSoc(now);
     this.soc.rtc.origin = old.rtc.origin;
+    this.soc.rtc.keepRtcDomain(rtcDomain);
     this.soc.memory.rtcFast.set(old.memory.rtcFast);
     this.soc.memory.rtcSlow.set(old.memory.rtcSlow);
     this.boot(reason);
-    const why = reason === S2_RESET_REASON.TG0WDT_SYS || reason === S2_RESET_REASON.TG1WDT_SYS ? `a timer group's watchdog (TG${reason === S2_RESET_REASON.TG0WDT_SYS ? 0 : 1}WDT_SYS)` : 'a software reset (SW_SYS)';
+    const why = deepSleep ? "a deep sleep's wake (DEEPSLEEP)" : reason === S2_RESET_REASON.TG0WDT_SYS || reason === S2_RESET_REASON.TG1WDT_SYS ? `a timer group's watchdog (TG${reason === S2_RESET_REASON.TG0WDT_SYS ? 0 : 1}WDT_SYS)` : 'a software reset (SW_SYS)';
     this.report('info', CODE_S2_REBOOT, 0, `reboot after ${why} at ${(now / REF_HZ).toFixed(6)} s`);
     return true;
   }
@@ -516,20 +574,37 @@ export class Esp32s2Mcu implements Mcu, Debuggable, NonVolatile, UsbHosting, Usb
       soc.spi2.devices = this.spi2.devices;
     }
     soc.periph.onRadio = (address, pc) => this.radioAccess(address, pc);
-    const halt = soc.halt.bind(soc);
-    soc.rtc.onSleep = () => {
-      this.report('error', CODE_S2_SLEEP_UNSUPPORTED, 0, 'The firmware put the ESP32-S2 to sleep (light or deep sleep), which the simulator doesn\'t model on the S2 yet: the chip stops here.');
-      halt('the firmware put the chip to sleep (light or deep sleep isn\'t modeled on the ESP32-S2 yet)');
-    };
+    this.installHle(soc);
     return soc;
   }
 
-  /** The firmware touched the radio's registers: WiFi isn't modeled on the S2 yet. */
+  /** BT151: answers the firmware's WiFi calls on `soc` when its symbols name them. */
+  private installHle(soc: Esp32s2Soc): void {
+    // The old driver's association and soft-AP end with it (a reset: the firmware starts again).
+    this.wifi?.dispose();
+    this.wifi = null;
+    soc.core.setHle(null);
+    const table = this.symbols;
+    if (table === null || table === undefined) return;
+    const hle = new Hle({ resumePc: S2_HLE_RESUME_PC, returnPc: S2_HLE_RETURN_PC });
+    const wifi = new WifiDriver({ now: () => soc.now(), refHz: REF_HZ, mac: soc.efuse.mac, radio: () => this.radio, taskPc: S2_WIFI_TASK_PC });
+    const { installed, missing } = wifi.install(hle, (name) => table.get(name));
+    if (missing.length > 0) this.report('error', CODE_S2_WIFI_UNSUPPORTED, 0, `This firmware uses WiFi, but it lacks ${missing.join(', ')}, which the simulated WiFi driver calls: WiFi won't run.`);
+    if (!installed) return;
+    soc.core.setHle(hle);
+    this.wifi = wifi;
+  }
+
+  /** BT151: the firmware touched the radio's registers (the closed WiFi driver is running). */
   private radioAccess(address: number, pc: number): void {
     if (this.radioReported) return;
     this.radioReported = true;
     const where = `0x${address.toString(16).toUpperCase()} at PC 0x${pc.toString(16).toUpperCase()}`;
-    this.report('error', CODE_S2_WIFI_UNSUPPORTED, address, `This firmware drives the WiFi radio (${where}), which the simulator doesn't model on the ESP32-S2 yet: WiFi won't run (the ESP32, the C3 and the S3 have it).`);
+    if (this.wifi === null) {
+      this.report('error', CODE_S2_WIFI_NO_SYMBOLS, address, `This firmware drives the WiFi radio (${where}). The simulator answers WiFi at the driver's API by function name, so it needs the firmware's symbols: run the sketch's .elf beside its .bin (arduino-cli builds both; Compile & Run passes it), or a .syms.tsv as the fixtures keep.`);
+    } else {
+      this.report('warning', CODE_S2_WIFI_UNSUPPORTED, address, `The firmware touched the radio's registers (${where}) outside the WiFi API the simulator answers: that part of it doesn't run.`);
+    }
   }
 
   private pinChanged(g: number): void {

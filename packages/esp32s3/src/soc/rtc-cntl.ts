@@ -23,6 +23,11 @@
  * `keepRtcDomain`). RTC_IO (0x400–0x7FF here): a pad routed to the RTC (TOUCH_PADn/…/RTC_PAD21 at
  * 0x484 + 4·n, MUX_SEL 19) takes its pulls from RUE (27) / RDE (28) — `rtcPad`.
  *
+ * BT152: the ESP32-S2 runs this model too, through an `RtcChip`: its RTC_CNTL is the S3's for
+ * everything here but five offsets (DIG_PWC 0x8C, EXT_WAKEUP1 0xDC, its STATUS 0xE0,
+ * SLP_WAKEUP_CAUSE 0x12C, STORE4–7 0xBC–0xC8), its base and reset values, and its slow clocks; its
+ * RTC_IO is the S3's exactly.
+ *
  * EFUSE: rev 0 (WAFER_VERSION 0 — the S3 ROM in the pinned release is rev 0) with Espressif's MAC
  * 34:85:18:00:53:01 (or the one the SoC is built with) in BLK1; CMD's READ/PGM bits complete at
  * once.
@@ -39,6 +44,32 @@ export const SLOW_CLOCK_HZ = [136_000, 32_768, 68_359] as const;
 
 const SENS_OFFSET = 0x800;
 const SENS_SIZE = 0x100;
+
+/** BT152: where a chip keeps what this model reads (the S3's, or the S2's). */
+export interface RtcChip {
+  base: number;
+  defaults: (address: number) => number;
+  /** RTC slow clock sources (ANA_CLK_RTC_SEL 0, 1, 2) in Hz. */
+  slowHz: readonly [number, number, number];
+  digPwc: number;
+  extWakeup1: number;
+  extWakeup1Status: number;
+  slpWakeupCause: number;
+  /** STORE0–7. */
+  stores: readonly number[];
+}
+
+export const S3_RTC_CHIP: RtcChip = {
+  base: RTC_CNTL_BASE,
+  defaults: registerDefault,
+  slowHz: SLOW_CLOCK_HZ,
+  digPwc: 0x90,
+  extWakeup1: 0xe0,
+  extWakeup1Status: 0xe4,
+  slpWakeupCause: 0x130,
+  stores: [0x50, 0x54, 0x58, 0x5c, 0xc0, 0xc4, 0xc8, 0xcc],
+};
+
 const OPTIONS0 = 0x00;
 const TIME_UPDATE = 0x0c;
 const TIME_LOW0 = 0x10;
@@ -54,10 +85,6 @@ const WAKEUP_STATE = 0x3c;
 const INT_RAW = 0x44;
 const INT_CLR = 0x4c;
 const EXT_WAKEUP_CONF = 0x64;
-const DIG_PWC = 0x90;
-const EXT_WAKEUP1 = 0xe0;
-const EXT_WAKEUP1_STATUS = 0xe4;
-const SLP_WAKEUP_CAUSE = 0x130;
 const SLEEP_EN = 1 << 31;
 const EXT_WAKEUP0_LV = 1 << 30;
 const EXT_WAKEUP1_LV = 1 << 31;
@@ -72,8 +99,6 @@ const PAD_RUE = 1 << 27;
 const PAD_RDE = 1 << 28;
 /** BT128: wake sources (WAKEUP_STATE ENA, SLP_WAKEUP_CAUSE; esp32s3 rtc.h). */
 export const S3_WAKE = { EXT0: 1 << 0, EXT1: 1 << 1, GPIO: 1 << 2, TIMER: 1 << 3 } as const;
-/** Registers the RTC domain keeps through a system reset: the sleep and wake ones, STORE0–7. */
-const RTC_DOMAIN = [SLP_TIMER0, SLP_TIMER1, WAKEUP_STATE, EXT_WAKEUP_CONF, DIG_PWC, EXT_WAKEUP1, EXT_WAKEUP1_STATUS, SLP_WAKEUP_CAUSE, 0x50, 0x54, 0x58, 0x5c, 0xc0, 0xc4, 0xc8, 0xcc];
 
 /** Reset causes (RESET_STATE's PROCPU and APPCPU fields; esp_rom reset_reasons.h). */
 export const S3_RESET_REASON = { POWERON: 1, SW_SYS: 3, DEEPSLEEP: 5, TG0WDT_SYS: 7, TG1WDT_SYS: 8, RTCWDT_SYS: 9, TG0WDT_CPU: 11, SW_CPU: 12, RTCWDT_CPU: 13 } as const;
@@ -81,6 +106,13 @@ export const S3_RESET_REASON = { POWERON: 1, SW_SYS: 3, DEEPSLEEP: 5, TG0WDT_SYS
 export class S3RtcCntl implements Peripheral {
   private readonly now: () => number;
   private readonly regs = new Uint32Array(1024);
+  private readonly chip: RtcChip;
+  private readonly DIG_PWC: number;
+  private readonly EXT_WAKEUP1: number;
+  private readonly EXT_WAKEUP1_STATUS: number;
+  private readonly SLP_WAKEUP_CAUSE: number;
+  /** Registers the RTC domain keeps through a system reset: the sleep and wake ones, STORE0–7. */
+  private readonly RTC_DOMAIN: readonly number[];
   private latched = 0;
   resetCause: number = S3_RESET_REASON.POWERON;
   /** Reference time of the last power-on (the RTC timer counts from it). */
@@ -89,20 +121,27 @@ export class S3RtcCntl implements Peripheral {
   /** BT125: SENS, at +0x800 in this page. */
   sens: Peripheral | null = null;
 
-  constructor(now: () => number) {
+  constructor(now: () => number, chip: RtcChip = S3_RTC_CHIP) {
     this.now = now;
+    this.chip = chip;
+    this.DIG_PWC = chip.digPwc;
+    this.EXT_WAKEUP1 = chip.extWakeup1;
+    this.EXT_WAKEUP1_STATUS = chip.extWakeup1Status;
+    this.SLP_WAKEUP_CAUSE = chip.slpWakeupCause;
+    this.RTC_DOMAIN = [SLP_TIMER0, SLP_TIMER1, WAKEUP_STATE, EXT_WAKEUP_CONF, chip.digPwc, chip.extWakeup1, chip.extWakeup1Status, chip.slpWakeupCause, ...chip.stores];
     this.systemReset(true);
   }
 
   systemReset(rtcDomain: boolean): void {
     if (!rtcDomain) return;
-    for (let i = 0; i < this.regs.length; i++) this.regs[i] = registerDefault(RTC_CNTL_BASE + i * 4);
+    for (let i = 0; i < this.regs.length; i++) this.regs[i] = this.chip.defaults(this.chip.base + i * 4);
     this.origin = this.now();
   }
 
   private slowHz(): number {
     const sel = this.regs[CLK_CONF >>> 2] >>> 30;
-    return sel === 1 ? SLOW_CLOCK_HZ[1] : sel === 2 ? SLOW_CLOCK_HZ[2] : SLOW_CLOCK_HZ[0];
+    const hz = this.chip.slowHz;
+    return sel === 1 ? hz[1] : sel === 2 ? hz[2] : hz[0];
   }
 
   /** BT134: USB_CONF (0x120) — which controller has the internal USB PHY (bits 20 and 19). */
@@ -152,14 +191,14 @@ export class S3RtcCntl implements Peripheral {
       if (g >= 0 && level(g) === ((conf & EXT_WAKEUP0_LV) !== 0 ? 1 : 0)) cause |= S3_WAKE.EXT0;
     }
     if ((sources & S3_WAKE.EXT1) !== 0) {
-      const sel = this.regs[EXT_WAKEUP1 >>> 2] & 0x3fffff;
+      const sel = this.regs[this.EXT_WAKEUP1 >>> 2] & 0x3fffff;
       if (sel !== 0) {
         let high = 0;
         for (let n = 0; n < RTC_PADS; n++) if (((sel >>> n) & 1) !== 0 && level(n) === 1) high |= 1 << n;
         const anyHigh = (conf & EXT_WAKEUP1_LV) !== 0;
         if (anyHigh ? high !== 0 : high === 0) {
           cause |= S3_WAKE.EXT1;
-          this.regs[EXT_WAKEUP1_STATUS >>> 2] = anyHigh ? high : sel;
+          this.regs[this.EXT_WAKEUP1_STATUS >>> 2] = anyHigh ? high : sel;
         }
       }
     }
@@ -176,7 +215,7 @@ export class S3RtcCntl implements Peripheral {
       if (g >= 0) pins.push(`GPIO${g} ${(conf & EXT_WAKEUP0_LV) !== 0 ? 'high' : 'low'}`);
     }
     if ((sources & S3_WAKE.EXT1) !== 0) {
-      const sel = this.regs[EXT_WAKEUP1 >>> 2] & 0x3fffff;
+      const sel = this.regs[this.EXT_WAKEUP1 >>> 2] & 0x3fffff;
       const mode = (conf & EXT_WAKEUP1_LV) !== 0 ? 'high (any)' : 'low (all)';
       for (let n = 0; n < RTC_PADS; n++) if (((sel >>> n) & 1) !== 0) pins.push(`GPIO${n} ${mode}`);
     }
@@ -185,7 +224,7 @@ export class S3RtcCntl implements Peripheral {
 
   /** The chip woke for `cause` (S3_WAKE bits). */
   woke(cause: number): void {
-    this.regs[SLP_WAKEUP_CAUSE >>> 2] = cause & 0x1ffff;
+    this.regs[this.SLP_WAKEUP_CAUSE >>> 2] = cause & 0x1ffff;
     this.regs[STATE0 >>> 2] &= ~SLEEP_EN;
     this.regs[INT_RAW >>> 2] |= 1; // SLP_WAKEUP_INT_RAW
   }
@@ -200,15 +239,17 @@ export class S3RtcCntl implements Peripheral {
 
   /** What the RTC domain keeps through a system reset (a deep sleep's wake). */
   rtcDomain(): Uint32Array {
-    const kept = new Uint32Array(RTC_DOMAIN.length + 256);
-    RTC_DOMAIN.forEach((offset, i) => (kept[i] = this.regs[offset >>> 2]));
-    kept.set(this.regs.subarray(RTC_IO >>> 2, (RTC_IO >>> 2) + 256), RTC_DOMAIN.length);
+    const domain = this.RTC_DOMAIN;
+    const kept = new Uint32Array(domain.length + 256);
+    domain.forEach((offset, i) => (kept[i] = this.regs[offset >>> 2]));
+    kept.set(this.regs.subarray(RTC_IO >>> 2, (RTC_IO >>> 2) + 256), domain.length);
     return kept;
   }
 
   keepRtcDomain(kept: Uint32Array): void {
-    RTC_DOMAIN.forEach((offset, i) => (this.regs[offset >>> 2] = kept[i]));
-    this.regs.set(kept.subarray(RTC_DOMAIN.length, RTC_DOMAIN.length + 256), RTC_IO >>> 2);
+    const domain = this.RTC_DOMAIN;
+    domain.forEach((offset, i) => (this.regs[offset >>> 2] = kept[i]));
+    this.regs.set(kept.subarray(domain.length, domain.length + 256), RTC_IO >>> 2);
     this.onRtcPads?.();
   }
 
@@ -242,14 +283,14 @@ export class S3RtcCntl implements Peripheral {
       this.regs[INT_RAW >>> 2] &= ~value;
       return;
     }
-    if (offset === INT_RAW || offset === SLP_WAKEUP_CAUSE) return; // read-only
-    if (offset === EXT_WAKEUP1 && (value & EXT_WAKEUP1_STATUS_CLR) !== 0) {
-      this.regs[EXT_WAKEUP1_STATUS >>> 2] = 0;
+    if (offset === INT_RAW || offset === this.SLP_WAKEUP_CAUSE) return; // read-only
+    if (offset === this.EXT_WAKEUP1 && (value & EXT_WAKEUP1_STATUS_CLR) !== 0) {
+      this.regs[this.EXT_WAKEUP1_STATUS >>> 2] = 0;
       value &= ~EXT_WAKEUP1_STATUS_CLR;
     }
     const before = this.regs[offset >>> 2];
     this.regs[offset >>> 2] = value;
-    if (offset === STATE0 && (value & SLEEP_EN) !== 0 && (before & SLEEP_EN) === 0) this.onSleep?.((this.regs[DIG_PWC >>> 2] & (1 << 31)) !== 0);
+    if (offset === STATE0 && (value & SLEEP_EN) !== 0 && (before & SLEEP_EN) === 0) this.onSleep?.((this.regs[this.DIG_PWC >>> 2] & (1 << 31)) !== 0);
     if (offset >= RTC_PAD0 && offset < RTC_PAD0 + RTC_PADS * 4 && ((before ^ value) & (PAD_MUX_SEL | PAD_RUE | PAD_RDE)) !== 0) this.onRtcPads?.();
   }
 }

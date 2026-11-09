@@ -311,6 +311,28 @@ describe('live sessions', () => {
     expect(asleep.sleeping?.s3.timerWakesAt).toMatch(/^5\d{3}ms$/);
   }, 120_000);
 
+  it('BT153: an ESP32-S2 web server on sim_wifi and sim_http, and the S2 asleep in sim_state', async () => {
+    const server = testServer({ maxWallMs: 120_000 });
+    const open = (await tool(server, 'sim_open', { project: 'fixtures/projects/esp32s2-wifi-rgb-server.json', firmware: { s2: 'fixtures/firmware/esp32s2/wifi-rgb-server.bin' } })).value as { session: string };
+    const session = open.session;
+    type Wifi = { accessPoints: { stations: { board: string; ip: string | null; hostname?: string; mac: string }[] }[]; boards: Record<string, string> };
+    expect(((await tool(server, 'sim_wifi', { session })).value as Wifi).boards).toEqual({ s2: 'not connected' });
+    await tool(server, 'sim_run', { session, untilSerial: 'server at', duration: '5s' });
+    const wifi = (await tool(server, 'sim_wifi', { session })).value as Wifi;
+    expect(wifi.boards).toEqual({ s2: 'connected to "benchtop" as 192.168.4.2' });
+    expect(wifi.accessPoints[0].stations[0]).toMatchObject({ board: 's2', ip: '192.168.4.2', hostname: 's2-web', mac: expect.stringMatching(/^7c:df:a1:/) });
+    expect((await tool(server, 'sim_http', { session, url: 'http://s2-web/led?color=12ab34' })).value).toMatchObject({ status: 200, body: 'led 12ab34' });
+    const state = (await tool(server, 'sim_state', { session, parts: ['s2'] })).value as { parts: Record<string, { pixels: number[] }> };
+    expect(state.parts.s2.pixels[0]).toBe(0x12ab34);
+    // The S2's deep sleep.
+    const sleeper = ((await tool(server, 'sim_open', { project: 'fixtures/projects/esp32s2-deep-sleep.json', firmware: { s2: 'fixtures/firmware/esp32s2/deep-sleep-counter.bin' } })).value as { session: string }).session;
+    type State = { sleeping?: Record<string, { sleep: string; timerWakesAt?: string; wakePins: string[] }> };
+    await tool(server, 'sim_run', { session: sleeper, duration: '1s' });
+    const asleep = (await tool(server, 'sim_state', { session: sleeper, parts: [] })).value as State;
+    expect(asleep.sleeping?.s2).toMatchObject({ sleep: 'deep', wakePins: ['GPIO4 low'] });
+    expect(asleep.sleeping?.s2.timerWakesAt).toMatch(/^5\d{3}ms$/);
+  }, 120_000);
+
   it('sim_usb (BT146): MIDI by note and by bytes to the synth, the lock keys to a keyboard; sim_state says what the device takes', async () => {
     const server = testServer({ maxWallMs: 120_000 });
     const synth = ((await tool(server, 'sim_open', { project: 'fixtures/projects/esp32s3-usb-synth.json', firmware: { s3: 'fixtures/firmware/esp32s3/usb-synth.bin' } })).value as { session: string }).session;

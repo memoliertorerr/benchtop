@@ -32,7 +32,10 @@
  * 256, 2: 32 kHz crystal — absent, so it never completes) and sets RDY (bit 15) and RTCCALICFG1
  * VALUE (bits 31:7) after that much simulated time. BT148: the ESP32-S2's group adds RTCCALICFG2
  * (0xA8), whose TIMEOUT (0) sets at once when a threshold is written during a periodic
- * calibration (START_CYCLING, 12), as the C3's.
+ * calibration (START_CYCLING, 12), as the C3's. BT152: and its own slow clocks (`slowClocks`: the
+ * S2's RC_SLOW is 90 kHz, so IDF's calibrated sleep and RTC times match its RTC timer), and the
+ * cycling mode its light sleep uses: a write that leaves START_CYCLING (12) on without START
+ * measures again, and RTCCALICFG1's CYCLING_DATA_VLD (0) rises with the value a period later.
  */
 
 import type { SocContext } from './context.ts';
@@ -109,16 +112,22 @@ export class Timg extends RegisterFile {
    * WDT, LACT) — the ESP32's 14 + 4·index and 58 + 4·index unless given (the ESP32-S2's group
    * has the same registers at its own sources).
    */
-  constructor(context: SocContext, index: number, sources?: { level: number; edge: number }) {
+  /** The slow clocks CLK_SEL 0–2 measure (Hz; 0: absent). */
+  private readonly slowClocks: readonly number[];
+
+  constructor(context: SocContext, index: number, sources?: { level: number; edge: number; slowClocks?: readonly number[] }) {
     super(TIMG_BASES[index]);
     this.index = index;
     this.context = context;
+    this.slowClocks = sources?.slowClocks ?? SLOW_CLOCKS;
     this.levelBase = sources?.level ?? 14 + 4 * index;
     this.edgeBase = sources?.edge ?? 58 + 4 * index;
     for (let c = 0; c < 3; c++) this.alarmSlots.push(context.events.add(() => this.alarm(c)));
     this.calibrationSlot = context.events.add(() => {
       this.regs[RTCCALICFG >>> 2] |= CALI_RDY;
-      this.regs[RTCCALICFG1 >>> 2] = (this.calibrationValue & 0x1ffffff) << 7;
+      // BT152: in cycling mode RTCCALICFG1's CYCLING_DATA_VLD (0) says the value is there.
+      const cycling = (this.regs[RTCCALICFG >>> 2] & (CALI_START_CYCLING | CALI_START)) === CALI_START_CYCLING;
+      this.regs[RTCCALICFG1 >>> 2] = (((this.calibrationValue & 0x1ffffff) << 7) | (cycling ? 1 : 0)) >>> 0;
     });
     this.watchdog = new Watchdog(
       context,
@@ -329,7 +338,15 @@ export class Timg extends RegisterFile {
       if ((value & CALI_START) !== 0 && (before & CALI_START) === 0) {
         this.regs[RTCCALICFG2 >>> 2] &= ~1; // a new calibration: no timeout
         this.startCalibration(value);
-      } else if ((value & CALI_START) === 0) this.context.events.cancel(this.calibrationSlot);
+      } else if ((value & CALI_START) === 0) {
+        this.context.events.cancel(this.calibrationSlot);
+        // BT152: the S2's light sleep reconfigures a cycling calibration (START_CYCLING, 12) and
+        // polls CYCLING_DATA_VLD: each such write measures again, valid a period later.
+        if ((value & CALI_START_CYCLING) !== 0) {
+          this.regs[RTCCALICFG1 >>> 2] &= ~1;
+          this.startCalibration(value);
+        }
+      }
       return;
     }
     if (offset === RTCCALICFG2) {
@@ -360,7 +377,7 @@ export class Timg extends RegisterFile {
 
   private startCalibration(cfg: number): void {
     const cycles = (cfg >>> 16) & 0x7fff;
-    const slowHz = SLOW_CLOCKS[(cfg >>> 13) & 3] ?? 0;
+    const slowHz = this.slowClocks[(cfg >>> 13) & 3] ?? 0;
     if (slowHz === 0) return; // no 32 kHz crystal: never ready
     // 0 cycles (rtc_clk_wait_for_slow_cycle) completes at the next slow-clock edge.
     const seconds = cycles === 0 ? 1 / slowHz : cycles / slowHz;

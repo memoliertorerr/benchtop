@@ -1,0 +1,44 @@
+{
+  "format": 1,
+  "name": "esp32s2-softap",
+  "parts": [
+    {
+      "id": "s2",
+      "type": "esp32-s2-devkitm-1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "page",
+      "type": "http-client",
+      "x": 90,
+      "y": 0,
+      "rotation": 0,
+      "props": {
+        "network": "benchtop-ap",
+        "url": "http://192.168.4.1/"
+      }
+    },
+    {
+      "id": "count",
+      "type": "http-client",
+      "x": 124,
+      "y": 0,
+      "rotation": 0,
+      "props": {
+        "network": "benchtop-ap",
+        "url": "http://192.168.4.1/stations"
+      }
+    }
+  ],
+  "wires": [],
+  "firmware": {
+    "s2": {
+      "kind": "file",
+      "name": "wifi-softap.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

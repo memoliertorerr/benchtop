@@ -270,7 +270,7 @@ export const simState: Tool<SimContext> = {
   name: 'sim_state',
   title: 'Read a live simulation\'s state',
   description:
-    'What an open session shows now: each part\'s visual state (an LED\'s brightness, a servo\'s angle, an LCD\'s text, a NeoPixel\'s colors, a display\'s framebuffer summarized unless "full"), the level and volts of the pins asked for ("part:pin"), and the boards asleep (an ESP32\'s or ESP32-C3\'s light or deep sleep: "sleeping", with what wakes it — the timer\'s time, the wake pins), and for an ESP32-S3 or ESP32-S2 whose sketch uses its own USB (USB-OTG) what the bench\'s USB host received ("usb": the device, what it uses, the text a keyboard typed, the last 50 events — mouse, media keys, MIDI messages). Filter parts with "parts".',
+    'What an open session shows now: each part\'s visual state (an LED\'s brightness, a servo\'s angle, an LCD\'s text, a NeoPixel\'s colors, a display\'s framebuffer summarized unless "full"), the level and volts of the pins asked for ("part:pin"), and the boards asleep (an ESP32\'s, ESP32-C3\'s, ESP32-S3\'s or ESP32-S2\'s light or deep sleep: "sleeping", with what wakes it — the timer\'s time, the wake pins), and for an ESP32-S3 or ESP32-S2 whose sketch uses its own USB (USB-OTG) what the bench\'s USB host received ("usb": the device, what it uses, the text a keyboard typed, the last 50 events — mouse, media keys, MIDI messages). Filter parts with "parts".',
   inputSchema: {
     type: 'object',
     properties: {
@@ -553,10 +553,10 @@ export const simFiles: Tool<SimContext> = {
 
 const SINCE = (ns: number): string => timeText(Math.round(ns / 1e6) * 1e6);
 
-/** BT108: the MCUs with WiFi (the ESP32's driver answered at its API; the C3 runs it too, BT127 the S3). */
-const WIFI_MCUS = new Set(['esp32', 'esp32c3', 'esp32s3']);
+/** BT108: the MCUs with WiFi (the ESP32's driver answered at its API; the C3 runs it too, BT127 the S3, BT151 the S2). */
+const WIFI_MCUS = new Set(['esp32', 'esp32c3', 'esp32s3', 'esp32s2']);
 
-/** BT112: a board with WiFi: an ESP32, ESP32-C3 or ESP32-S3, or a board whose pin map has the CYW43's WL_GPIO0 (a Pico W). */
+/** BT112: a board with WiFi: an ESP32, ESP32-C3, ESP32-S3 or ESP32-S2, or a board whose pin map has the CYW43's WL_GPIO0 (a Pico W). */
 function hasWifi(type: string): boolean {
   const board = CATALOG.get(type)?.board;
   return board !== undefined && (WIFI_MCUS.has(board.mcu) || Object.values(board.pinMap).includes('WL_GPIO0'));

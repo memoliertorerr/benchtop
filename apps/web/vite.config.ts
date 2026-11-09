@@ -16,7 +16,7 @@ const repoRoot = decodeURIComponent(new URL('../..', import.meta.url).pathname);
 
 /**
  * Dev only (BT34, BT63, BT66, BT94, BT126; one plugin since BT147): the simulation worker fetches
- * the downloads scripts/downloads.ts lists — the ESP32, ESP32-C3 and ESP32-S3 ROMs, the RP2350
+ * the downloads scripts/downloads.ts lists — the ESP32, ESP32-C3, ESP32-S3 and ESP32-S2 ROMs, the RP2350
  * bootrom, the MicroPython UF2s — from the git-ignored .cache their fetch scripts fill. Never part
  * of the build: the bridge serves the same table for `npm start`. A missing file is a 404 the
  * worker turns into a Problem.

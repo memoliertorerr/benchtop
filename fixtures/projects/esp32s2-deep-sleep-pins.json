@@ -1,0 +1,95 @@
+{
+  "format": 1,
+  "name": "esp32s2-deep-sleep-pins",
+  "parts": [
+    {
+      "id": "s2",
+      "type": "esp32-s2-devkitm-1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "wake0",
+      "type": "pushbutton",
+      "x": 40,
+      "y": 10,
+      "rotation": 0,
+      "props": {
+        "color": "green"
+      }
+    },
+    {
+      "id": "wake1",
+      "type": "pushbutton",
+      "x": 40,
+      "y": 40,
+      "rotation": 0,
+      "props": {
+        "color": "blue"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "s2",
+        "pin": "IO4"
+      },
+      "to": {
+        "part": "wake0",
+        "pin": "1.l"
+      },
+      "color": "green",
+      "waypoints": []
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "wake0",
+        "pin": "2.l"
+      },
+      "to": {
+        "part": "s2",
+        "pin": "GND.1"
+      },
+      "color": "black",
+      "waypoints": []
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "s2",
+        "pin": "IO5"
+      },
+      "to": {
+        "part": "wake1",
+        "pin": "1.l"
+      },
+      "color": "blue",
+      "waypoints": []
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "wake1",
+        "pin": "2.l"
+      },
+      "to": {
+        "part": "s2",
+        "pin": "3V3"
+      },
+      "color": "red",
+      "waypoints": []
+    }
+  ],
+  "firmware": {
+    "s2": {
+      "kind": "file",
+      "name": "deep-sleep-pins.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

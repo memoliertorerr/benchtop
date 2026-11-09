@@ -65,7 +65,14 @@ fixtures/firmware/esp32s2/<name>.bin|.partitions.bin|.syms.tsv  the same for the
                                               DevKitM-1's WS2812 on GPIO18), debug-demo — the
                                               S3's sketches on the S2's pins —, usb-cdc,
                                               CDCOnBoot=cdc: Serial on TinyUSB's CDC port over
-                                              USB-OTG; pot-led and oled-clock, the gallery's)
+                                              USB-OTG; pot-led and oled-clock, the gallery's;
+                                              wifi-layout (the WiFi API's struct layouts),
+                                              wifi-scan, wifi-http-get, wifi-webserver,
+                                              wifi-softap — the ESP32's — and wifi-rgb-server,
+                                              the C3's, as "s2-web" with the LED on GPIO18;
+                                              deep-sleep-timer, deep-sleep-pins (ext0 GPIO4,
+                                              ext1 GPIO5), light-sleep and deep-sleep-counter
+                                              — the S3's)
 fixtures/firmware/pico*/debug-demo.syms.tsv   the same for the Pico and Pico 2 debug-demos only (the
                                               debugger's tests; `SYMBOL_SKETCHES` in fixture-boards.ts)
 fixtures/firmware/pico/<name>.uf2             Raspberry Pi Pico firmware (arduino-pico 6.2.0; the

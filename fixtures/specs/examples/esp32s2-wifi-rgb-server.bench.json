@@ -1,0 +1,40 @@
+{
+  "name": "example: esp32s2-wifi-rgb-server",
+  "project": "../../projects/esp32s2-wifi-rgb-server.json",
+  "firmware": {
+    "s2": "../../firmware/esp32s2/wifi-rgb-server.bin"
+  },
+  "steps": [
+    {
+      "at": "2500ms",
+      "part": "red",
+      "input": {
+        "kind": "press"
+      }
+    },
+    {
+      "at": "3s",
+      "part": "blue",
+      "input": {
+        "kind": "press"
+      }
+    },
+    {
+      "at": "3500ms",
+      "part": "off",
+      "input": {
+        "kind": "press"
+      }
+    }
+  ],
+  "expect": [
+    "wifi s2 connected by 2500ms",
+    "serial contains \"server at 192.168.4.2\" by 2500ms",
+    "http red got 200 with \"led red\" by 3s",
+    "pixel s2[0] is #ff0000 at 3s",
+    "http blue got 200 with \"led blue\" by 3500ms",
+    "pixel s2[0] is #0000ff at 3500ms",
+    "http off got 200 with \"led off\" by 4s",
+    "pixel s2[0] is #000000 at 4s"
+  ]
+}

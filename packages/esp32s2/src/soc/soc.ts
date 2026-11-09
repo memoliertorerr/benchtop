@@ -27,7 +27,7 @@ import { S2Bus, type S2BusParts } from './bus.ts';
 import { INTERRUPT_BASE, S2_SRC, S2InterruptMatrix } from './intmatrix.ts';
 import { IRAM_BASE, IRAM_END, S2Memory } from './memory.ts';
 import { registerDefault, S2PeripheralMap } from './periph.ts';
-import { EFUSE_BASE, REF_HZ, RTC_CNTL_BASE, S2_RESET_REASON, S2Efuse, S2RtcCntl } from './rtc-cntl.ts';
+import { EFUSE_BASE, REF_HZ, RTC_CNTL_BASE, S2_RESET_REASON, S2_WAKE, S2Efuse, S2RtcCntl, SLOW_CLOCK_HZ } from './rtc-cntl.ts';
 import { S2Systimer, SYSTIMER_BASE } from './systimer.ts';
 import { S2Extmem, S2SystemRegs, SYSTEM_BASE, XTAL_HZ } from './system.ts';
 
@@ -157,6 +157,10 @@ export class Esp32s2Soc implements SocContext, Esp32SocContext, S2BusParts {
   readonly efuse: S2Efuse;
   readonly systimer: S2Systimer;
   readonly timg: readonly [Timg, Timg];
+  /** BT152: the chip sleeps (RTC_CNTL STATE0.SLEEP_EN) until a wake source; `deep`: the wake is a reset. Null awake. */
+  sleeping: { deep: boolean } | null = null;
+  private wakeSlot = -1;
+  private pinCause = 0;
   readonly uarts: readonly [Uart, Uart];
   readonly spi1: SpiMem;
   /** BT149: GPIO, the matrix, IO_MUX and what each pad is doing (the S3's model over the S2's pads). */
@@ -211,7 +215,9 @@ export class Esp32s2Soc implements SocContext, Esp32SocContext, S2BusParts {
     this.system.onClock = (cpu, apb) => this.setClock(cpu, apb);
     this.rtc = new S2RtcCntl(() => this.now());
     this.rtc.onSoftwareReset = () => this.requestReset(S2_RESET_REASON.SW_SYS);
-    this.rtc.onSleep = () => this.halt('the firmware put the chip to sleep (light or deep sleep isn\'t modeled on the ESP32-S2 yet)');
+    // BT152: sleep — the timer and pins wake the chip (RTC pads take the RTC's pulls: below).
+    this.rtc.onSleep = (deep) => this.enterSleep(deep);
+    this.wakeSlot = this.events.add(() => this.wake(S2_WAKE.TIMER));
     this.efuse = options.mac === undefined ? new S2Efuse() : new S2Efuse(options.mac);
     this.systimer = new S2Systimer(this);
     this.resets = {
@@ -220,7 +226,9 @@ export class Esp32s2Soc implements SocContext, Esp32SocContext, S2BusParts {
       appCpuReset: () => {},
       stallChanged: () => {},
     };
-    this.timg = [new Timg(this, 0, { level: S2_SRC.TG0_T0, edge: S2_SRC.TG0_T0_EDGE }), new Timg(this, 1, { level: S2_SRC.TG1_T0, edge: S2_SRC.TG1_T0_EDGE })];
+    // BT152: calibration measures the S2's slow clocks (RTC_MUX = RC_SLOW 90 kHz, RC_FAST/256; no 32 kHz crystal).
+    const slowClocks = [SLOW_CLOCK_HZ[0], SLOW_CLOCK_HZ[2], 0];
+    this.timg = [new Timg(this, 0, { level: S2_SRC.TG0_T0, edge: S2_SRC.TG0_T0_EDGE, slowClocks }), new Timg(this, 1, { level: S2_SRC.TG1_T0, edge: S2_SRC.TG1_T0_EDGE, slowClocks })];
     this.uarts = [new Uart(this, 0, S2_SRC.UART0, UART_BASES_S2[0], S2_UART_FIELDS), new Uart(this, 1, S2_SRC.UART1, UART_BASES_S2[1], S2_UART_FIELDS)];
     this.spi1 = new SpiMem(SPI1_BASE_S2, this.flash, registerDefault);
     this.iomux = new S3IoMux(this.problems, S2_GPIO_CHIP);
@@ -228,6 +236,11 @@ export class Esp32s2Soc implements SocContext, Esp32SocContext, S2BusParts {
     this.pads = new S3Pads(this.gpio, this.iomux);
     this.pads.signalLevel = (signal) => this.signalLevel(signal);
     this.gpio.onConfig = () => this.pads.update();
+    this.pads.rtcPad = (g) => this.rtc.rtcPad(g);
+    this.rtc.onRtcPads = () => this.pads.update();
+    this.gpio.onInputs = () => {
+      if (this.sleeping !== null) this.checkPinWake();
+    };
     this.iomux.onConfig = () => {
       this.gpio.inputsChanged();
       this.pads.update();
@@ -258,7 +271,8 @@ export class Esp32s2Soc implements SocContext, Esp32SocContext, S2BusParts {
     periph.register(SPI1_BASE_S2, this.spi1);
     periph.register(SPI0_BASE_S2, new SpiMem(SPI0_BASE_S2, null, registerDefault));
     periph.register(ANA_I2C_BASE_S2, new S3AnalogI2c());
-    periph.register(S2_WDEV_BASE, new ApbCtrl(0x2545f491, S2_WDEV_BASE, 0x7c, registerDefault));
+    // BT151: the S2's RNG is WDEV_RND_REG 0x6003_5110 (wdev_reg.h), not the S3's +0x7C.
+    periph.register(S2_WDEV_BASE, new ApbCtrl(0x2545f491, S2_WDEV_BASE, 0x110, registerDefault));
     // Memory protection (esp_memprot_set_prot) isn't enforced; its registers read back. APB_CTRL's
     // radio and memory power controls are storage, as on the S3.
     periph.register(S2_GPIO_BASE, this.gpio);
@@ -368,12 +382,51 @@ export class Esp32s2Soc implements SocContext, Esp32SocContext, S2BusParts {
     return signal === S2_SIG.U0TXD || signal === S2_SIG.U1TXD || signal === S2_SIG.I2C0_SCL || signal === S2_SIG.I2C0_SDA || signal === S2_SIG.I2C1_SCL || signal === S2_SIG.I2C1_SDA ? 1 : 0;
   }
 
-  /** BT150: stops the run for good with `reason` (what the chip did that isn't modeled). */
-  halt(reason: string): void {
-    if (this.stopped) return;
-    this.stopped = true;
-    this.stopReason = reason;
+  // ── Sleep (BT152) ───────────────────────────────────────────────────────────────────────
+
+  /** What wakes the sleeping chip — the timer's wake time (reference cycles, −1: none) and the pin wakes in words — or null awake. */
+  sleepWakes(): { at: number; pins: string[] } | null {
+    const sleep = this.sleeping;
+    if (sleep === null) return null;
+    const pins = this.rtc.wakePins();
+    if (!sleep.deep && (this.rtc.wakeSources() & S2_WAKE.GPIO) !== 0) for (const pin of this.gpio.wakePins()) if (!pins.includes(pin)) pins.push(pin);
+    return { at: this.rtc.wakeTime(), pins };
+  }
+
+  /**
+   * STATE0.SLEEP_EN: the core stops until a wake. Deep: the digital domain is off, its timers with
+   * it. Light: APB is gated, the timer groups wait.
+   */
+  private enterSleep(deep: boolean): void {
+    if (this.sleeping !== null) return;
+    this.sleeping = { deep };
     if (this.running) this.core.requestStop();
+    if (deep) this.events.clear();
+    else for (const timg of this.timg) timg.gate();
+    const at = this.rtc.wakeTime();
+    if (at >= 0) this.events.schedule(this.wakeSlot, Math.max(this.now(), at));
+    this.checkPinWake();
+  }
+
+  private checkPinWake(): void {
+    const sleep = this.sleeping;
+    if (sleep === null) return;
+    let cause = this.rtc.pinWake((g) => this.gpio.padInput(g));
+    if (!sleep.deep && (this.rtc.wakeSources() & S2_WAKE.GPIO) !== 0 && this.gpio.wakeLevel()) cause |= S2_WAKE.GPIO;
+    if (cause === 0) return;
+    this.pinCause = cause;
+    this.events.schedule(this.wakeSlot, this.now());
+  }
+
+  private wake(timerCause: number): void {
+    const sleep = this.sleeping;
+    if (sleep === null) return;
+    const cause = this.pinCause !== 0 ? this.pinCause : timerCause;
+    this.pinCause = 0;
+    this.sleeping = null;
+    this.rtc.woke(cause);
+    if (sleep.deep) this.requestReset(S2_RESET_REASON.DEEPSLEEP);
+    else for (const timg of this.timg) timg.ungate();
   }
 
   private requestReset(reason: number): void {
@@ -404,7 +457,7 @@ export class Esp32s2Soc implements SocContext, Esp32SocContext, S2BusParts {
     while (this.time < end && !this.stopped && !this.resetRequested) {
       this.events.fireDue(this.time);
       if (this.stopped || this.resetRequested) break;
-      if (this.skipIdle && this.core.asleep && this.skipAhead(end)) {
+      if (this.skipIdle && (this.core.asleep || this.sleeping !== null) && this.skipAhead(end)) {
         if (this.breakpointStop) return this.stopAtBreakpoint(end);
         continue;
       }
@@ -446,11 +499,13 @@ export class Esp32s2Soc implements SocContext, Esp32SocContext, S2BusParts {
     return { reason: 'target' };
   }
 
-  /** The core asleep: jumps over the whole slices before the next thing that can wake it. */
+  /** The core asleep (WAITI, or the chip sleeping): jumps over the whole slices before the next thing that can wake it. */
   private skipAhead(end: number): boolean {
     let limit = Math.min(end, this.events.next);
-    const wake = this.coreTime + (this.core.nextTimer - this.core.cycles) * this.cost;
-    if (wake < limit) limit = wake;
+    if (this.sleeping === null) {
+      const wake = this.coreTime + (this.core.nextTimer - this.core.cycles) * this.cost;
+      if (wake < limit) limit = wake;
+    }
     const slices = Math.floor((limit - this.time) / S2_SLICE);
     if (slices < 1) return false;
     const to = this.time + slices * S2_SLICE;
@@ -461,10 +516,10 @@ export class Esp32s2Soc implements SocContext, Esp32SocContext, S2BusParts {
     return true;
   }
 
-  /** Runs the core up to the slice's end (which `hurry` may pull in), a breakpoint or a stop. */
+  /** Runs the core up to the slice's end (which `hurry` may pull in), a breakpoint or a stop; a sleeping chip's core waits it out (BT152). */
   private runCore(): void {
     const core = this.core;
-    while (this.coreTime < this.sliceEnd && core.halt === HALT.RUNNING && !this.resetRequested && !this.stopped) {
+    while (this.coreTime < this.sliceEnd && core.halt === HALT.RUNNING && !this.resetRequested && !this.stopped && this.sleeping === null) {
       const n = Math.max(1, Math.ceil((this.sliceEnd - this.coreTime) / this.cost));
       this.running = true;
       this.runCycles = core.cycles;
@@ -476,6 +531,7 @@ export class Esp32s2Soc implements SocContext, Esp32SocContext, S2BusParts {
         break;
       }
     }
+    if (this.sleeping !== null && this.coreTime < this.sliceEnd) this.coreTime = this.sliceEnd;
     if (core.halt !== HALT.RUNNING && !this.stopped) {
       this.stopped = true;
       this.stopReason = `CPU at 0x${core.pc.toString(16)}: ${core.haltReason}`;
