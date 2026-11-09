@@ -144,6 +144,8 @@ describe('grammar of the new forms', () => {
     expect(parseAssertion('digits d show " 1.2" at 1s')).toMatchObject({ kind: 'digits', expected: ' 1.2' });
     expect(parseAssertion('pin uno:9 frequency is 490 ±1% between 1ms and 2ms')).toMatchObject({ kind: 'frequency', hz: 490, percent: 1, from: 1e6, to: 2e6 });
     expect(parseAssertion('pin uno:9 duty is 25% +/- 2% between 1ms and 2ms')).toMatchObject({ kind: 'duty', percent: 25, tolerance: 2 });
+    // BT174: a DC motor's speed.
+    expect(parseAssertion('motor m1 rpm is -113 ±6 at 3s')).toMatchObject({ kind: 'motor', part: 'm1', rpm: -113, tolerance: 6, at: 3e9 });
     // BT170: a net's volts.
     expect(parseAssertion('pin c1:1 volts is 2.5 ±0.1 at 1s')).toMatchObject({ kind: 'volts', part: 'c1', pin: '1', volts: 2.5, tolerance: 0.1, at: 1e9 });
     expect(parseAssertion('pin q1:C volts is 0.22 V +/- 0.02 V at 250ms')).toMatchObject({ kind: 'volts', volts: 0.22, tolerance: 0.02 });

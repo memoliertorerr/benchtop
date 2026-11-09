@@ -170,4 +170,30 @@ describe('transistor parts on a bench (BT169)', () => {
     expect(Math.abs(weakDrain - rds * ((9 - 2.8) / (470 + 10 + rds))) / weakDrain).toBeLessThan(0.15);
     expect(b.problems().filter((p) => p.code === 'analog-no-convergence')).toEqual([]);
   }, 60_000);
+
+  it('BT171: a 2N2222A switching a 4.7 Ω load from 5 V is over its 600 mA and says so; the report goes while it is off', () => {
+    const doc = circuit(
+      { id: 'uno', type: 'arduino-uno' },
+      [
+        { id: 'rb', type: 'resistor', props: { ohms: 220 } },
+        { id: 'q1', type: 'npn-transistor', props: { model: '2N2222A' } },
+        { id: 'load', type: 'resistor', props: { ohms: 4.7 } },
+      ],
+      [
+        ['uno:13', 'rb:1'],
+        ['rb:2', 'q1:B'],
+        ['q1:E', 'uno:GND.1'],
+        ['uno:5V', 'load:1'],
+        ['load:2', 'q1:C'],
+      ],
+    );
+    const b = bench(doc);
+    b.runUntil(250 * NS_PER_MS); // D13 high
+    const over = b.problems().find((p) => p.code === 'transistor-overcurrent');
+    expect(over?.severity).toBe('error');
+    expect(over?.parts).toEqual(['q1']);
+    expect(over?.message).toMatch(/About 9\d\d mA through it; it is rated for 600 mA continuous/);
+    b.runUntil(750 * NS_PER_MS); // D13 low: off
+    expect(b.problems().some((p) => p.code === 'transistor-overcurrent')).toBe(false);
+  }, 60_000);
 });

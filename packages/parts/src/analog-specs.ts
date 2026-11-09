@@ -3,10 +3,11 @@
  * goes into `BenchOptions.analogSpecFor`. Piecewise-linear LEDs: knee voltage by color (decided:
  * red 1.8, orange 1.9, yellow 1.9, green 2.0, blue 2.8, white 2.8, purple 2.8 V; anything else
  * 2.0 V) and 10 Ω above it. BT167: capacitors (their `farads`) and the diode part (its model's
- * knee and resistance). BT169: transistors (their models).
+ * knee and resistance). BT169: transistors (their models). BT172: a DC motor (dc-motor.ts).
  */
 
 import type { AnalogSpec, DiodeSpec, PartProps } from '@benchtop/core';
+import { motorParams } from './actuators/dc-motor.ts';
 import { DIODE_MODELS } from './basic/diode.ts';
 import { BJT_MODELS, BJT_RB, BJT_VBE, MOSFET_MODELS } from './basic/transistors.ts';
 
@@ -77,13 +78,18 @@ export function analogSpecFor(type: string, props: PartProps): AnalogSpec | unde
     case 'pnp-transistor': {
       const npn = type === 'npn-transistor';
       const m = BJT_MODELS[String(props.model)] ?? BJT_MODELS[npn ? '2N2222A' : '2N3906'];
-      return { diodes: [], transistors: [{ kind: npn ? 'npn' : 'pnp', c: 'C', b: 'B', e: 'E', beta: m.beta, vbe: BJT_VBE, rb: BJT_RB, vceSat: m.vceSat, rsat: m.rsat }] };
+      return { diodes: [], transistors: [{ kind: npn ? 'npn' : 'pnp', c: 'C', b: 'B', e: 'E', beta: m.beta, vbe: BJT_VBE, rb: BJT_RB, vceSat: m.vceSat, rsat: m.rsat, iMax: m.iMax }] };
+    }
+    case 'dc-motor': {
+      // BT172: the winding in series with the back-EMF's capacitor and the friction's leak.
+      const m = motorParams(props);
+      return { diodes: [], capacitors: [{ a: '+', b: '-', farads: m.c, seriesOhms: m.rw, parallelOhms: m.rm }] };
     }
     case 'n-mosfet':
     case 'p-mosfet': {
       const n = type === 'n-mosfet';
       const m = MOSFET_MODELS[String(props.model)] ?? MOSFET_MODELS[n ? 'IRLZ44N' : 'IRF9540N'];
-      return { diodes: [], transistors: [{ kind: n ? 'nmos' : 'pmos', d: 'D', g: 'G', s: 'S', vth: m.vth, rdsOn: m.rdsOn, vgsOn: m.vgsOn }] };
+      return { diodes: [], transistors: [{ kind: n ? 'nmos' : 'pmos', d: 'D', g: 'G', s: 'S', vth: m.vth, rdsOn: m.rdsOn, vgsOn: m.vgsOn, iMax: m.iMax }] };
     }
     default:
       return undefined;

@@ -19,12 +19,18 @@ export interface DiodeSpec {
   rs: number;
 }
 
-/** BT166: a capacitor between two pins. */
+/**
+ * BT166: a capacitor between two pins. BT172: optionally in series with `seriesOhms` and shunted by
+ * `parallelOhms` (a leak) — a DC motor is its winding in series with the back-EMF's capacitor and
+ * the friction's leak.
+ */
 export interface CapacitorSpec {
   a: string;
   b: string;
   /** Capacitance, farads. */
   farads: number;
+  seriesOhms?: number;
+  parallelOhms?: number;
 }
 
 /**
@@ -42,6 +48,8 @@ export interface BjtSpec {
   rb: number;
   vceSat: number;
   rsat: number;
+  /** BT171: the continuous collector current it is rated for, amps (none when absent). */
+  iMax?: number;
 }
 
 /**
@@ -56,6 +64,8 @@ export interface MosfetSpec {
   vth: number;
   rdsOn: number;
   vgsOn: number;
+  /** BT171: the continuous drain current it is rated for, amps (none when absent). */
+  iMax?: number;
 }
 
 export type TransistorSpec = BjtSpec | MosfetSpec;

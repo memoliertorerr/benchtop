@@ -163,6 +163,45 @@ describe('capacitors in the analog layer (BT166)', () => {
   });
 });
 
+describe('a capacitor with series and parallel resistance (BT172)', () => {
+  it('charges to V·Rp/(Rsrc + Rs + Rp) with τ = C·((Rsrc + Rs) ∥ Rp), and leaks away through Rp alone once released', () => {
+    // net 1 driven through 25 Ω; the element from net 1 to GND: 1 mF behind 10 Ω, 90 Ω across it.
+    const links: { a: number; b: number; kind: 'resistive' }[] = [];
+    const capacitors = [{ a: 1, b: 0, farads: 1e-3, seriesOhms: 10, parallelOhms: 90 }];
+    const { islands, netIsland } = buildIslands({ netCount: 2, links, diodes: [], capacitors, fixed: (net) => net === 0 });
+    const layer = new AnalogLayer(2, islands, netIsland, links, [], capacitors);
+    const { h, drivers } = host(new Map([[0, 0]]));
+    let now = 0;
+    let planned = Number.POSITIVE_INFINITY;
+    layer.clock = () => now;
+    layer.plan = (_i, at) => (planned = at);
+    const runTo = (t: number, check: (t: number) => void): void => {
+      while (planned <= t) {
+        now = planned;
+        planned = Number.POSITIVE_INFINITY;
+        layer.step(0, h);
+        check(now);
+      }
+      now = t;
+    };
+    drivers.set(1, [1 / 25, 5 / 25]);
+    layer.markDirty(0);
+    layer.solveDirty(h);
+    expect(layer.capacitorVolts(0)).toBeCloseTo(0, 4); // its own voltage can't jump: only the series resistor takes the edge
+    const final = (5 * 90) / (35 + 90);
+    const tau = 1e-3 * ((35 * 90) / (35 + 90)) * 1e9;
+    runTo(10 * tau, (t) => expect(Math.abs(layer.capacitorVolts(0) - final * (1 - Math.exp(-t / tau)))).toBeLessThanOrEqual(0.005 * 5));
+    runTo(40 * tau, () => {});
+    const start = now;
+    const e0 = layer.capacitorVolts(0);
+    drivers.delete(1);
+    layer.markDirty(0);
+    layer.solveDirty(h);
+    const leak = 1e-3 * 90 * 1e9;
+    runTo(start + 5 * leak, (t) => expect(Math.abs(layer.capacitorVolts(0) - e0 * Math.exp(-(t - start) / leak))).toBeLessThanOrEqual(0.005 * 5));
+  });
+});
+
 describe('capacitors on a bench (BT166)', () => {
   const BOARD_PINS = ['D1', 'D2'];
   const board = fakeBoard('fake-board', BOARD_PINS);

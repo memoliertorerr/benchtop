@@ -5,7 +5,7 @@ import { PART_CATEGORIES } from './categories.ts';
 const categories = new Set<string>(PART_CATEGORIES.map((c) => c.id));
 
 describe('part catalog', () => {
-  it('lists the BT9, BT16–BT20, BT34, BT41, BT45, BT47, BT51–BT53, BT55, BT61, BT83, BT84, BT89, BT94, BT98, BT99, BT126, BT150, BT155, BT167 and BT169 parts', () => {
+  it('lists the BT9, BT16–BT20, BT34, BT41, BT45, BT47, BT51–BT53, BT55, BT61, BT83, BT84, BT89, BT94, BT98, BT99, BT126, BT150, BT155, BT167, BT169, BT172 and BT173 parts', () => {
     expect([...CATALOG.keys()].sort()).toEqual(
       [
         'speaker',
@@ -37,6 +37,8 @@ describe('part catalog', () => {
         'pnp-transistor',
         'n-mosfet',
         'p-mosfet',
+        'dc-motor',
+        'l298n',
         'rgb-led',
         'slide-switch',
         'lcd1602',

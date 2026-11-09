@@ -222,6 +222,19 @@ export const ESP32_CHECKS: Record<string, (r: ExampleRun) => void> = {
     expect(dim).toBeLessThan(half * 0.7);
     expect(dim).toBeGreaterThan(0);
   },
+  // BT174: a button switching a motor through an IRLZ44N (GPIO2), a flyback diode across it.
+  'esp32-motor-switch'(r) {
+    const rpm = (): number => (r.visual('m1')?.rpm as number | undefined) ?? 0;
+    r.runTo(250);
+    expect(rpm()).toBe(0);
+    r.input('btn', { kind: 'press' });
+    r.runTo(1250);
+    expect(Math.abs(rpm() - 200)).toBeLessThanOrEqual(6);
+    r.input('btn', { kind: 'release' });
+    r.runTo(1450);
+    // Coasting for 200 ms with τ = C·Rm ≈ 0.54 s: 200 · e^(−0.2/0.54) ≈ 138.
+    expect(Math.abs(rpm() - 200 * Math.exp(-0.2 / 0.54))).toBeLessThanOrEqual(8);
+  },
   'esp32-mic-level'(r) {
     r.listen('mic1', 440, 2000);
     const readings = r.serial('esp').split('\r\n').filter(Boolean).map(Number);

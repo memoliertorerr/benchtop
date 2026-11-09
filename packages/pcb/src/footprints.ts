@@ -266,6 +266,8 @@ const PREFIX: Readonly<Record<string, string>> = {
   servo: 'M',
   'stepper-28byj48': 'M',
   'stepper-bipolar': 'M',
+  'dc-motor': 'M',
+  l298n: 'U',
   'membrane-keypad': 'J',
   'analog-joystick': 'J',
   'neopixel-strip': 'J',

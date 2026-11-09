@@ -319,6 +319,12 @@ BJT's base) count as reached through it. Tested on hand-built islands
 (`analog/transistor.test.ts`): an NPN cut off, saturated at 0.2 V + rsat·Ic and active at
 Ic = β·Ib; a PNP high-side switch; MOSFET on-resistance against Vgs, the gate's net untouched; an
 NPN with an LED on its collector and a capacitor on its base settling as the base charges.
+Each transistor may carry a rating (`iMax`, the datasheet's continuous collector/drain
+current); after each solve the layer computes the current from the transistor's state (active
+β·Ib, saturated (Vce − Vce(sat))/rsat, a MOSFET g·Vds) and calls `onTransistorCurrent` when one
+crosses its rating either way, and the bench reports `transistor-overcurrent` (error, on the part)
+while it is over — "About 923 mA through it; it is rated for 600 mA continuous" for a 2N2222A on a
+4.7 Ω load — withdrawn when it drops.
 
 **Capacitor and diode parts.** `capacitor` (ceramic, `farads` 100 nF, legs 1 and 2),
 `capacitor-electrolytic` (10 µF, `+` and `-`; its model reports `capacitor-reversed` while more than
@@ -358,6 +364,59 @@ LEDs on a 9 V battery) — specs with the runner's new `pin … volts is …` an
 (QUIET) holds the RC filter with its capacitor to 1.3× the CPU time of the same circuit without it,
 the best of three alternating runs; the 100 µs quanta every moving island got before cost about
 half of a 30 % overhead there, so only islands with a time constant under 5 ms get them now.
+
+**A DC motor.** A capacitor may sit behind a series resistance and beside a leak
+(`CapacitorSpec.seriesOhms`, `parallelOhms`): in companion form the capacitor and its leak are a
+conductance Gc = k + gp (k = C/h, 2C/h trapezoidal) with a history current, and in series with gs
+the branch is gs·Gc/(gs + Gc) carrying gs/(gs + Gc) of that current — still two terminals, no
+internal node; after the solve the capacitor's own voltage comes back from the terminals',
+(gs·Vab + history)/(gs + Gc), and τ counts the series resistance and the leak. A permanent-magnet
+DC motor (without its inductance) is exactly that: its winding Rw in series with C = J/(ke·kt),
+whose voltage is the back-EMF E = ke·ω, shunted by Rm = ke·kt/b for friction. So stall current,
+spin-up, braking (terminals driven together: E drains through Rw) and coasting (terminals floating:
+through Rm, the terminals showing the generated voltage) all come out of the circuit.
+`dc-motor` (`actuators/dc-motor.ts`; pins `+` and `-`; props `volts`, `rpm` no-load at rated
+volts, `ohms`, `msTau`, `noLoadPct` — defaults the geared "TT" hobby motor of starter kits at its
+output shaft: 6 V, 200 rpm, 4 Ω, 60 ms, 10 %): `motorParams` with f = noLoadPct/100 sets ke = kt =
+V·(1 − f)/ω0, C = msTau/Rw, Rm = Rw·(1 − f)/f. The winding's inductance isn't modeled, which
+shows under PWM: coasting between pulses (an L298N's ENA) E settles where D·(V − E)/Rw = E/Rm —
+91 % of full speed at half duty with the defaults (a real motor's inductance keeps its current
+from building in short pulses, so it slows more) — while braking between pulses (an IN pin PWM'd
+with ENA on) gives E = D·V·Rm/(Rw + Rm), proportional to the duty, as on a real bridge. The part model can't read the layer, so it integrates the same
+equation from its terminal volts, exactly while they hold: E tends to V·Rm/(Rw + Rm) with
+τ = C·(Rw ∥ Rm) — with its terminals floating the layer publishes V = E, so the pull vanishes and
+it coasts through Rm as the layer does, with no need to tell driven from floating (a net reached
+only through a transistor has no switch-level driver). Visual `rpm`, `angle` (the shaft's,
+unbounded), `milliamps`; a 20 ms timer keeps frames coming while it turns. Our own view
+(`views/motors.ts`): an end bell with its tabs, a silver can printing the speed and the way it turns,
+a hub that turns with `angle` and blurs above 300 rpm. Tested (`integration/dc-motor.test.ts`): on
+a 6 V pack 1.5 A at the start, 63 % of 200 rpm at τ, 200 ±2 % and 150 mA at speed, backwards
+when turned round; through an IRLZ44N from blink's D13 with a 1N4007 across it, 200 rpm while on
+and the coast's e^(−t/C·Rm) while off (±5 %).
+
+**An L298N H-bridge.** `l298n` (`actuators/l298n.ts`), the common red module: OUT1–OUT4,
++12V, GND, +5V, ENA, IN1–IN4, ENB; props `enaJumper`, `enbJumper`, `regulator` (all on, as shipped).
+A channel is enabled by its jumper or its EN pin reading high (TTL, 2.3 V over GND); enabled and
+powered (VS ≥ 4.5 V), each output is driven at supply strength — VS − 1.4 V for a high IN, 0.8 V
+for a low one (the L298's typical drops at 1 A) — so IN1 ≠ IN2 turns a motor and IN1 = IN2 brakes
+it; disabled, the outputs are released and it coasts. The regulator drives +5V at VS ≥ 7 V. A
+motor between two supply-driven outputs is an element between two fixed nets: it stamps nothing,
+and its capacitor's voltage still follows from theirs. Outputs are only re-driven when what they
+should do changes. Not modeled: the module's flyback diodes, current sensing, the 2 A limit. Its
+visual (`outs` 0 off/1 high/2 low, `enabled`, `powered`, `regulator`) drives our own view in
+`views/motors.ts`: the red board, the heatsink, blue terminals, jumper caps per the props, a power
+LED and a status line per channel (▶, ◀, brake, off). Tests (`integration/l298n.test.ts`):
+`uno/l298n-motor` — the pot's duty PWM'd on IN1/IN2 (ENA on 8), so the bridge brakes between pulses
+and the speed follows the duty (full 227 rpm from 9 V less the drops, half duty half the speed
+±5 %), the button brakes (20 % left after 150 ms) and reverses, a duty under 10 coasts — and
+`uno/l298n-stepper`: the Stepper library turns a bipolar stepper on both channels a turn and back
+(199 steps the first time: its first coil state is the reference).
+
+**Motors end to end:** the gallery's DC motor on an L298N (`uno-l298n-motor`: the pot's duty
+PWM'd on IN1/IN2, a button that brakes and reverses, a pot near zero to coast) and ESP32 motor
+switch (`esp32-motor-switch`: `esp32/gpio-input`'s button → GPIO2 on an IRLZ44N's gate, a geared
+motor on a 6 V pack, a 1N4007 across it) — specs with the runner's new `motor <part> rpm is …` and
+checks in `examples-run-uno.test.ts` and `examples-run-esp32.test.ts`.
 
 ### Parts
 
@@ -3819,6 +3878,7 @@ nothing from `apps/web`.
   | `pin <p>:<pin> volts is <v> [V] ±<v> [V] at <t>` | the net's volts then within the tolerance — an analog net's solved volts (a capacitor's charge, a transistor's drop) | `0.221 V`, or `no net` |
   | `led <p> is lit\|dark at <t>` | brightness ≥ 0.3 (lit) / ≤ 0.05 (dark); never reported = dark; also a Pico, Pico 2 or Pico W part by its onboard LED (its visual's `led`) | `brightness 0.91` |
   | `servo <p> angle is <deg> ±<deg> at <t>` | the horn's angle within the tolerance | `angle 45.2°` |
+  | `motor <p> rpm is <rpm> ±<rpm> at <t>` | a DC motor's signed speed (forward while + is the higher) within the tolerance; never reported = stopped | `-113 rpm` |
   | `lcd <p> row <n> is "<text>" at <t>` | row n (from 0) equals the text, trailing spaces ignored; display off = blank | `row 1 is "t=1"` |
   | `pixel <p>[<i>] is #rrggbb at <t>` | the pixel's 0xRRGGBB | `#38b748`, or the pixel count |
   | `digits <p> show "<text>" at <t>` | the digits (`sevenSegmentText` from @benchtop/parts: 0–9, '-', ' ' dark, '?' other) | `shows "1234"` |

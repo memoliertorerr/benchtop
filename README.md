@@ -179,7 +179,7 @@ MPU-6050, a microSD card module, a load cell with an HX711, flame and MQ-2 gas m
 driver (microstepping),
 NeoPixel strips/rings/matrices, buzzers, a speaker and a microphone, a relay, capacitors (ceramic and
 electrolytic), diodes, transistors (2N2222A/BC547 NPN, 2N3906/BC557 PNP, IRLZ44N/IRF540N and IRF9540N
-MOSFETs), and power parts —
+MOSFETs), a DC motor that spins up, brakes and coasts like one, an L298N motor driver, and power parts —
 9 V, AA, LiPo and coin-cell batteries, a bench supply you turn while it runs, a ground symbol and
 7805, AMS1117 and MCP1700 regulators that drop out like the real ones.
 Sound goes
@@ -234,11 +234,11 @@ counter, a Nano on a breadboard, an RC filter turning PWM into a steady voltage;
 an LCD thermometer, OLED and an OLED clock, a color TFT, 7-segment, bar graph, NeoPixels; Sensors: DHT22,
 HC-SR04 and a distance meter, DS1307, MPU-6050, an IR remote, a kitchen scale, a flame alarm, a
 gas meter, keypad, rotary encoder; Motors: servo sweep, a
-servo knob, a keypad lock, a stepper, an A4988 stepper driver, a relay, a relay switched by a transistor; Sound: buzzers, a speaker melody, PCM through PWM,
+servo knob, a keypad lock, a stepper, an A4988 stepper driver, a relay, a relay switched by a transistor, a DC motor on an L298N; Sound: buzzers, a speaker melody, PCM through PWM,
 a microphone pitch meter, a VU meter; Power: a regulator meter (turn the bench supply and watch a
 7805 drop out); Storage: an SD card datalogger; Environment: a gas alarm with an extractor fan, a PIR
 hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, an LED Preferences remember, a deep sleep wake counter, a touch LED, a touch wake from deep sleep, a PWM fader, NeoPixel, a
-rainbow ring, an OLED clock, a color TFT, a WROVER's frame buffer in PSRAM, the DAC, a joystick on ADC2, a MOSFET dimmer, the microphone, an I2C scan; ESP32-C3: the RGB LED,
+rainbow ring, an OLED clock, a color TFT, a WROVER's frame buffer in PSRAM, the DAC, a joystick on ADC2, a MOSFET dimmer, a motor switched by a MOSFET, the microphone, an I2C scan; ESP32-C3: the RGB LED,
 serial, a potentiometer dimmer, an OLED clock; ESP32-S3: the RGB LED, serial, a potentiometer dimmer, an OLED clock, a deep sleep wake counter, a
 frame buffer in PSRAM on a color TFT, an RGB LED set over USB serial, a USB macro keypad, a USB MIDI controller, a USB MIDI synth, a USB flash drive, a touch lamp; ESP32-S2: the RGB
 LED, serial, a potentiometer dimmer, an OLED clock, a deep sleep wake counter, a touch lamp, a frame buffer in PSRAM on a color TFT, the DAC; WiFi: an ESP32 web server switched by HTTP client
@@ -447,6 +447,7 @@ Expectations can also read what parts show and how pins move: `led led1 is lit a
 `servo servo angle is 90 ±3 at 2s`, `lcd lcd1 row 0 is "Hello" at 1s`, `pixel ring[0] is
 #ff0000 at 1s`, `digits disp show "1234" at 2s`, `pin uno:9 frequency is 490 ±1% between 100ms
 and 1s`, `pin uno:9 duty is 25% ±1 between 100ms and 1s`, `pin c1:+ volts is 2.5 ±0.05 at 2s`,
+`motor m1 rpm is 114 ±6 at 2s`,
 `serial matches /T=\d+/ by 3s`.
 With an environment part, a step can switch or tune a source — `{ "at": "1s", "part": "leak",
 "set": { "rate": 5, "on": true } }` — and `env gas at mq2 > 300 at 4s` (or `is 22 ±0.5`; gas,

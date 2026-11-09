@@ -13,6 +13,7 @@ import { esp32S2DevkitM1View } from './esp32-s2-devkitm-1.ts';
 import { esp32S3DevkitC1View } from './esp32-s3-devkitc-1.ts';
 import { fallbackView } from './fallback.ts';
 import { httpClientView, httpServerView, networkView } from './network.ts';
+import { l298nView, MOTOR_VIEW_TYPES, motorView } from './motors.ts';
 import { PASSIVE_VIEW_TYPES, passiveView } from './passives.ts';
 import { POWER_VIEW_TYPES, powerView } from './power.ts';
 import { raspberryPiPicoView } from './raspberry-pi-pico.ts';
@@ -57,6 +58,8 @@ export function viewFor(type: string): ViewFactory {
   if (type === 'http-client') return httpClientView;
   if (TOUCH_PAD_VIEW_TYPES.has(type)) return touchPadView;
   if (PASSIVE_VIEW_TYPES.has(type)) return passiveView;
+  if (MOTOR_VIEW_TYPES.has(type)) return motorView;
+  if (type === 'l298n') return l298nView;
   if (hasWokwiView(type)) return wokwiView;
   return fallbackView;
 }

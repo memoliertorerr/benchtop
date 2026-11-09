@@ -230,6 +230,11 @@ export const MCU_INPUT_THRESHOLDS: Readonly<Record<BoardSpec['mcu'], readonly [n
   rp2040: [2.0, 0.8],
   rp2350: [2.0, 0.8],
 };
+/** BT171: 0.85 → "850 mA", 1.234 → "1.2 A". */
+function formatAmps(amps: number): string {
+  return amps < 1 ? `${Math.round(amps * 1000)} mA` : `${Number(amps.toPrecision(2))} A`;
+}
+
 /** Logic supply assumed for a part whose power pin isn't on a powered net. */
 export const DEFAULT_PART_VOLTS = 5;
 /** I2C/SPI controller indexes probed per MCU when attaching devices. */
@@ -675,6 +680,8 @@ export class Bench {
       const diodes: DiodeInstance[] = [];
       const capacitors: CapacitorInstance[] = [];
       const transistors: TransistorInstance[] = [];
+      /** BT171: each transistor's part. */
+      const transistorParts: string[] = [];
       for (const part of doc.parts) {
         const def = defOf(part.type);
         if (def === undefined) continue;
@@ -689,7 +696,7 @@ export class Bench {
         for (const capacitor of spec.capacitors ?? []) {
           const a = netlist.netOf(part.id, capacitor.a);
           const b = netlist.netOf(part.id, capacitor.b);
-          if (a >= 0 && b >= 0 && capacitor.farads > 0) capacitors.push({ a, b, farads: capacitor.farads });
+          if (a >= 0 && b >= 0 && capacitor.farads > 0) capacitors.push({ a, b, farads: capacitor.farads, seriesOhms: capacitor.seriesOhms ?? 0, parallelOhms: capacitor.parallelOhms ?? 0 });
         }
         // BT168: transistors — collector/drain, base/gate, emitter/source.
         for (const t of spec.transistors ?? []) {
@@ -699,14 +706,16 @@ export class Bench {
             const ref = netlist.netOf(part.id, t.e);
             if (x < 0 || ctl < 0 || ref < 0) continue;
             const kind = t.kind === 'npn' ? TRANSISTOR.NPN : TRANSISTOR.PNP;
-            transistors.push({ kind, x, ctl, ref, beta: t.beta, vbe: t.vbe, rb: t.rb, vceSat: t.vceSat, rsat: t.rsat, vth: 0, rdsOn: 0, vgsOn: 0 });
+            transistors.push({ kind, x, ctl, ref, beta: t.beta, vbe: t.vbe, rb: t.rb, vceSat: t.vceSat, rsat: t.rsat, vth: 0, rdsOn: 0, vgsOn: 0, iMax: t.iMax ?? 0 });
+            transistorParts.push(part.id);
           } else {
             const x = netlist.netOf(part.id, t.d);
             const ctl = netlist.netOf(part.id, t.g);
             const ref = netlist.netOf(part.id, t.s);
             if (x < 0 || ctl < 0 || ref < 0) continue;
             const kind = t.kind === 'nmos' ? TRANSISTOR.NMOS : TRANSISTOR.PMOS;
-            transistors.push({ kind, x, ctl, ref, beta: 0, vbe: 0, rb: 1, vceSat: 0, rsat: 1, vth: t.vth, rdsOn: t.rdsOn, vgsOn: t.vgsOn });
+            transistors.push({ kind, x, ctl, ref, beta: 0, vbe: 0, rb: 1, vceSat: 0, rsat: 1, vth: t.vth, rdsOn: t.rdsOn, vgsOn: t.vgsOn, iMax: t.iMax ?? 0 });
+            transistorParts.push(part.id);
           }
         }
       }
@@ -760,6 +769,13 @@ export class Bench {
           const shown = pins.slice(0, 3).map((p) => `${p.part}:${p.pin}`).join(', ');
           this.report(problem('info', 'analog-undefined-level', `${shown} sits at ${volts.toFixed(2)} V, between a clear 0 and 1; the input keeps its last level.`, partsOf(pins)));
           return true;
+        };
+        // BT171: a transistor over its rating, live (withdrawn when it drops back).
+        layer.onTransistorCurrent = (t, over, amps) => {
+          const part = transistorParts[t];
+          const max = transistors[t].iMax ?? 0;
+          const message = over ? `About ${formatAmps(amps)} through it; it is rated for ${formatAmps(max)} continuous — use a bigger transistor or a MOSFET, or limit the current.` : '';
+          this.report(problem('error', 'transistor-overcurrent', message, [part]));
         };
         layer.onNoConvergence = (island) => {
           const pins = Array.from(islands[island].nets).flatMap((net) => netlist.pinsOfNet(net));

@@ -41,6 +41,8 @@ function build(c: Circuit) {
   const published = new Map<number, number>();
   let noConvergence = 0;
   layer.onNoConvergence = () => noConvergence++;
+  const ratings: [number, boolean, number][] = [];
+  layer.onTransistorCurrent = (t, over, amps) => ratings.push([t, over, amps]);
   let now = 0;
   let planned = Number.POSITIVE_INFINITY;
   layer.clock = () => now;
@@ -77,6 +79,7 @@ function build(c: Circuit) {
     },
     v: (net: number): number => (net === 9 ? c.supply : net === 0 ? 0 : (published.get(net) ?? Number.NaN)),
     noConvergence: () => noConvergence,
+    ratings,
   };
 }
 
@@ -157,5 +160,22 @@ describe('transistors in the analog layer (BT168)', () => {
     const led = (5 - c.v(4)) / 220;
     expect(led).toBeCloseTo((5 - 1.8 - 0.2) / (220 + 10 + 0.5), 3);
     expect(c.noConvergence()).toBe(0);
+  });
+
+  it('BT171: a transistor over its rating is reported once, and again when it drops back under', () => {
+    // pin 1 → 220 Ω → base 2; 5 V → 4 Ω load → collector 3: saturated, ≈ 1.2 A through a 0.6 A part.
+    const sw = build({ netCount: 10, supply: 5, resistors: [[1, 2, 220], [9, 3, 4]], transistors: [{ kind: TRANSISTOR.NPN, x: 3, ctl: 2, ref: 0, ...NPN, iMax: 0.6 }] });
+    sw.pin(1, 5);
+    expect(sw.ratings).toHaveLength(1);
+    expect(sw.ratings[0][1]).toBe(true);
+    expect(sw.ratings[0][2]).toBeCloseTo((5 - 0.2) / 4.5, 2);
+    sw.pin(1, 5); // the same state: no new report
+    expect(sw.ratings).toHaveLength(1);
+    sw.pin(1, 0);
+    expect(sw.ratings[1]).toEqual([0, false, 0]);
+    // A MOSFET within its rating says nothing.
+    const fet = build({ netCount: 10, supply: 9, resistors: [[9, 3, 10]], transistors: [{ kind: TRANSISTOR.NMOS, x: 3, ctl: 1, ref: 0, ...IRLZ44N, iMax: 47 }] });
+    fet.pin(1, 5);
+    expect(fet.ratings).toEqual([]);
   });
 });

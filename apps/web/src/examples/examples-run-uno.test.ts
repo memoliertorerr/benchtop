@@ -334,6 +334,22 @@ export const UNO_CHECKS: Record<string, (r: ExampleRun) => void> = {
     expect(contacts).toContain(false);
     expect(flips(r, 'led1')).toBeGreaterThanOrEqual(2);
   },
+  // BT174: a DC motor on an L298N — speed from the pot, a button reversing it.
+  'uno-l298n-motor'(r) {
+    const rpm = (): number => (r.visual('m1')?.rpm as number | undefined) ?? 0;
+    r.runTo(900);
+    expect(rpm()).toBeGreaterThan(215);
+    r.input('pot', { kind: 'value', value: 0.5 });
+    r.runTo(1700);
+    expect(Math.abs(rpm() - 114)).toBeLessThanOrEqual(8);
+    r.input('btn', { kind: 'press' });
+    r.runTo(1800);
+    r.input('btn', { kind: 'release' });
+    r.runTo(2000);
+    expect(r.serial('uno')).toContain('brake');
+    expect(rpm()).toBeLessThan(-80);
+    expect(r.visual('drv')?.powered).toBe(true);
+  },
   buzzer(r) {
     r.runTo(2000);
     expect(r.history('bz1').some(({ visual }) => visual.frequency === 440)).toBe(true);

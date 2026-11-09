@@ -89,13 +89,17 @@ export interface TransistorInstance {
   vth: number;
   rdsOn: number;
   vgsOn: number;
+  /** BT171: its current rating, amps (0: none). */
+  iMax?: number;
 }
 
-/** BT166: a capacitor between nets `a` and `b`. */
+/** BT166: a capacitor between nets `a` and `b`; BT172: in series with `seriesOhms`, shunted by `parallelOhms`. */
 export interface CapacitorInstance {
   a: number;
   b: number;
   farads: number;
+  seriesOhms?: number;
+  parallelOhms?: number;
 }
 
 export const STRONG_OHMS = 25;
@@ -161,6 +165,11 @@ export class AnalogLayer {
    * late. A slower island's steps come later than a quantum's end anyway.
    */
   fast = 0;
+  /**
+   * BT171: transistor `t`'s collector/drain current went over its rating (`over`) or back under;
+   * `amps` its magnitude now.
+   */
+  onTransistorCurrent: ((t: number, over: boolean, amps: number) => void) | null = null;
   /** BT166: transient solves so far (instants and steps), for tests and budgets. */
   transientSolves = 0;
   /** BT166: the islands that have capacitors. */
@@ -187,6 +196,9 @@ export class AnalogLayer {
   private readonly capF: Float64Array;
   private readonly capV: Float64Array;
   private readonly capI: Float64Array;
+  /** BT172: the series conductance (Infinity: none) and the leak's (0: none). */
+  private readonly capGs: Float64Array;
+  private readonly capGp: Float64Array;
   private readonly isMoving: Uint8Array;
   private readonly isFast: Uint8Array;
   /** The time (ns) an island's capacitor state holds for. */
@@ -218,6 +230,8 @@ export class AnalogLayer {
   private readonly tVgsOn: Float64Array;
   private readonly tState: Uint8Array;
   private readonly tG: Float64Array;
+  private readonly tIMax: Float64Array;
+  private readonly tOver: Uint8Array;
   /** The current assembly reads the kept inputs instead of the host's. */
   private kept = false;
   /** The current assembly's capacitor stamps: mode and step (seconds). */
@@ -263,6 +277,8 @@ export class AnalogLayer {
     this.capF = Float64Array.from(capacitors.map((c) => c.farads));
     this.capV = new Float64Array(capacitors.length);
     this.capI = new Float64Array(capacitors.length);
+    this.capGs = Float64Array.from(capacitors.map((c) => (c.seriesOhms !== undefined && c.seriesOhms > 0 ? 1 / c.seriesOhms : Number.POSITIVE_INFINITY)));
+    this.capGp = Float64Array.from(capacitors.map((c) => (c.parallelOhms !== undefined && c.parallelOhms > 0 ? 1 / c.parallelOhms : 0)));
     this.isMoving = new Uint8Array(islands.length);
     this.isFast = new Uint8Array(islands.length);
     this.tAt = new Float64Array(islands.length);
@@ -287,6 +303,8 @@ export class AnalogLayer {
     this.tVgsOn = Float64Array.from(transistors.map((t) => t.vgsOn));
     this.tState = new Uint8Array(transistors.length);
     this.tG = new Float64Array(transistors.length);
+    this.tIMax = Float64Array.from(transistors.map((t) => t.iMax ?? 0));
+    this.tOver = new Uint8Array(transistors.length);
     this.capacitorIslands = Int32Array.from(islands.flatMap((island, i) => (island.capacitors.length > 0 ? [i] : [])));
     for (const island of islands) this.orderNodes(island);
     this.reportedUndefined = new Uint8Array(netCount);
@@ -349,6 +367,7 @@ export class AnalogLayer {
     this.diodeOn.fill(0);
     this.tState.fill(0);
     this.tG.fill(0);
+    this.tOver.fill(0);
     this.capV.fill(0);
     this.capI.fill(0);
     this.isMoving.fill(0);
@@ -692,7 +711,10 @@ export class AnalogLayer {
       const lb = this.node(this.capB[c], host);
       const ga = la >= 0 ? this.solver.diag(la) : Number.POSITIVE_INFINITY;
       const gb = lb >= 0 ? this.solver.diag(lb) : Number.POSITIVE_INFINITY;
-      const g = ga === Number.POSITIVE_INFINITY ? gb : gb === Number.POSITIVE_INFINITY ? ga : (ga * gb) / (ga + gb);
+      const outside = ga === Number.POSITIVE_INFINITY ? gb : gb === Number.POSITIVE_INFINITY ? ga : (ga * gb) / (ga + gb);
+      // BT172: through its series resistance, plus its own leak.
+      const gs = this.capGs[c];
+      const g = (gs === Number.POSITIVE_INFINITY ? outside : outside === Number.POSITIVE_INFINITY ? gs : (outside * gs) / (outside + gs)) + this.capGp[c];
       if (!(g > 1e-6)) continue; // nothing (but leaks) charges it
       const t = this.capF[c] / g;
       if (t < tau) tau = t;
@@ -823,14 +845,22 @@ export class AnalogLayer {
     return changed;
   }
 
-  /** BT166: each capacitor's companion: a conductance and the current its history injects. */
+  /**
+   * BT166: each capacitor's companion: a conductance and the current its history injects. BT172:
+   * with its leak beside it (Gc = k + gp) and its series conductance gs in front, the branch is
+   * gs·Gc/(gs + Gc) carrying gs/(gs + Gc) of the history current — no internal node.
+   */
   private stampCapacitors(island: Island, host: AnalogHost): void {
     const solver = this.solver;
     const tr = this.mode === MODE_TR;
     for (let k = 0; k < island.capacitors.length; k++) {
       const c = island.capacitors[k];
-      const g = (tr ? 2 : 1) * (this.capF[c] / this.hS);
-      const amps = g * this.capV[c] + (tr ? this.capI[c] : 0);
+      const kc = (tr ? 2 : 1) * (this.capF[c] / this.hS);
+      const gc = kc + this.capGp[c];
+      const hist = kc * this.capV[c] + (tr ? this.capI[c] : 0);
+      const gs = this.capGs[c];
+      const g = gs === Number.POSITIVE_INFINITY ? gc : (gs * gc) / (gs + gc);
+      const amps = gs === Number.POSITIVE_INFINITY ? hist : (gs * hist) / (gs + gc);
       const a = this.capA[c];
       const b = this.capB[c];
       this.stamp(a, b, g, host);
@@ -846,10 +876,14 @@ export class AnalogLayer {
     let moved = 0;
     for (let k = 0; k < island.capacitors.length; k++) {
       const c = island.capacitors[k];
-      const v = this.volts(this.capA[c], host) - this.volts(this.capB[c], host);
+      const vab = this.volts(this.capA[c], host) - this.volts(this.capB[c], host);
+      const kc = (tr ? 2 : 1) * (this.capF[c] / this.hS);
+      const gs = this.capGs[c];
+      // BT172: behind a series resistance, the capacitor's own voltage from the terminals'.
+      let v = vab;
+      if (gs !== Number.POSITIVE_INFINITY) v = (gs * vab + kc * this.capV[c] + (tr ? this.capI[c] : 0)) / (gs + kc + this.capGp[c]);
       const dv = v - this.capV[c];
-      const g = (tr ? 2 : 1) * (this.capF[c] / this.hS);
-      this.capI[c] = g * dv - (tr ? this.capI[c] : 0);
+      this.capI[c] = kc * dv - (tr ? this.capI[c] : 0);
       this.capV[c] = v;
       const m = dv < 0 ? -dv : dv;
       if (m > moved) moved = m;
@@ -858,9 +892,38 @@ export class AnalogLayer {
     return moved;
   }
 
-  /** Publishes the solved island: volts, levels from the readers' thresholds. */
+  /** BT171: transistor `t`'s collector/drain current (magnitude) from the solution in its present state. */
+  transistorAmps(t: number, host: AnalogHost): number {
+    const kind = this.tKind[t];
+    const state = this.tState[t];
+    if (state === 0) return 0;
+    const s = kind === TRANSISTOR.NPN || kind === TRANSISTOR.NMOS ? 1 : -1;
+    const vRef = this.volts(this.tRef[t], host);
+    let amps: number;
+    if (kind === TRANSISTOR.NMOS || kind === TRANSISTOR.PMOS) amps = this.tG[t] * (this.volts(this.tX[t], host) - vRef);
+    else if (state === 1) amps = this.tBeta[t] * ((s * (this.volts(this.tCtl[t], host) - vRef) - this.tVbe[t]) / this.tRb[t]);
+    else amps = (s * (this.volts(this.tX[t], host) - vRef) - this.tVceSat[t]) / this.tRsat[t];
+    return amps < 0 ? -amps : amps;
+  }
+
+  /** BT171: reports the island's transistors that crossed their ratings either way. */
+  private checkRatings(island: Island, host: AnalogHost): void {
+    for (let k = 0; k < island.transistors.length; k++) {
+      const t = island.transistors[k];
+      const max = this.tIMax[t];
+      if (!(max > 0)) continue;
+      const amps = this.transistorAmps(t, host);
+      const over = amps > max ? 1 : 0;
+      if (over === this.tOver[t]) continue;
+      this.tOver[t] = over;
+      this.onTransistorCurrent?.(t, over === 1, amps);
+    }
+  }
+
+  /** Publishes the solved island: volts, levels from the readers' thresholds; BT171: its transistors' ratings. */
   private publishIsland(index: number, host: AnalogHost): void {
     const island = this.islands[index];
+    if (island.transistors.length > 0) this.checkRatings(island, host);
     const n = island.nets.length;
     const solver = this.solver;
     for (let i = 0; i < n; i++) {

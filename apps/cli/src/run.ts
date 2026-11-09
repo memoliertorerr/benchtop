@@ -15,7 +15,8 @@
  *   timed by when its last character arrived); `pin … frequency is <hz> [Hz] ±<pct>% between
  *   <t1> and <t2>` (rising edges in the window) and `pin … duty is <pct>% ±<points> between …`
  *   (time high over the window), both from a probe; and what parts show at a time: `led <part> is
- *   <lit|dark>` (brightness ≥ 0.3 / ≤ 0.05; BT110: a Pico's onboard LED too), `servo <part> angle is <deg> ±<deg>`, `lcd <part>
+ *   <lit|dark>` (brightness ≥ 0.3 / ≤ 0.05; BT110: a Pico's onboard LED too), `servo <part> angle is <deg> ±<deg>`,
+ *   BT174: `motor <part> rpm is <rpm> ±<rpm>` (a DC motor's signed speed), `lcd <part>
  *   row <n> is "<text>"` (rows from 0, trailing spaces ignored), `pixel <part>[<i>] is #rrggbb`
  *   (a NeoPixel part, or the ESP32-C3-DevKitM-1's RGB LED as pixel 0),
  *   `digits <part> show "<text>"`. ± may be written +- or +/-.
@@ -161,6 +162,7 @@ export type Assertion =
   | { kind: 'volts'; text: string; part: string; pin: string; volts: number; tolerance: number; at: number }
   | { kind: 'led'; text: string; part: string; lit: boolean; at: number }
   | { kind: 'servo'; text: string; part: string; angle: number; tolerance: number; at: number }
+  | { kind: 'motor'; text: string; part: string; rpm: number; tolerance: number; at: number }
   | { kind: 'lcd'; text: string; part: string; row: number; expected: string; at: number }
   | { kind: 'pixel'; text: string; part: string; index: number; rgb: number; at: number }
   | { kind: 'digits'; text: string; part: string; expected: string; at: number }
@@ -209,6 +211,7 @@ const FORMS = [
   'pin <part>:<pin> duty is <pct>% ±<pct>% between <time> and <time>',
   'led <part> is <lit|dark> at <time>',
   'servo <part> angle is <deg> ±<deg> at <time>',
+  'motor <part> rpm is <rpm> ±<rpm> at <time>',
   'lcd <part> row <n> is "<text>" at <time>',
   'pixel <part>[<i>] is #rrggbb at <time>',
   'digits <part> show "<text>" at <time>',
@@ -235,6 +238,7 @@ const GRAMMAR = {
   duty: re(String.raw`pin\s+([^\s:]+):(\S+)\s+duty\s+is\s+${NUM}\s*%${PM}${NUM}\s*%?\s+between\s+(\S+)\s+and\s+(\S+)`),
   led: re(String.raw`led\s+(\S+)\s+is\s+(lit|dark)\s+at\s+(\S+)`),
   servo: re(String.raw`servo\s+(\S+)\s+angle\s+is\s+(-?\d+(?:\.\d+)?)\s*°?${PM}${NUM}\s*°?\s+at\s+(\S+)`),
+  motor: re(String.raw`motor\s+(\S+)\s+rpm\s+is\s+(-?\d+(?:\.\d+)?)${PM}${NUM}\s+at\s+(\S+)`),
   lcd: re(String.raw`lcd\s+(\S+)\s+row\s+(\d+)\s+is\s+${QUOTED}\s+at\s+(\S+)`),
   pixel: re(String.raw`pixel\s+([^\s[]+)\[(\d+)\]\s+is\s+#([0-9a-fA-F]{6})\s+at\s+(\S+)`),
   digits: re(String.raw`digits\s+(\S+)\s+shows?\s+${QUOTED}\s+at\s+(\S+)`),
@@ -286,6 +290,7 @@ export function parseAssertion(text: string): Assertion {
   }
   if ((m = GRAMMAR.led.exec(t)) !== null) return { kind: 'led', text: t, part: m[1], lit: m[2] === 'lit', at: parseTime(m[3]) };
   if ((m = GRAMMAR.servo.exec(t)) !== null) return { kind: 'servo', text: t, part: m[1], angle: Number(m[2]), tolerance: Number(m[3]), at: parseTime(m[4]) };
+  if ((m = GRAMMAR.motor.exec(t)) !== null) return { kind: 'motor', text: t, part: m[1], rpm: Number(m[2]), tolerance: Number(m[3]), at: parseTime(m[4]) };
   if ((m = GRAMMAR.lcd.exec(t)) !== null) return { kind: 'lcd', text: t, part: m[1], row: Number(m[2]), expected: unescape(m[3], t), at: parseTime(m[4]) };
   if ((m = GRAMMAR.pixel.exec(t)) !== null) return { kind: 'pixel', text: t, part: m[1], index: Number(m[2]), rgb: Number.parseInt(m[3], 16), at: parseTime(m[4]) };
   if ((m = GRAMMAR.digits.exec(t)) !== null) return { kind: 'digits', text: t, part: m[1], expected: unescape(m[2], t), at: parseTime(m[3]) };
@@ -554,10 +559,12 @@ const LCD_SIZES: Readonly<Record<string, { cols: number; rows: number }>> = {
 const BOARD_LEDS = new Set(['raspberry-pi-pico', 'raspberry-pi-pico-2', 'raspberry-pi-pico-w', 'raspberry-pi-pico-2w']);
 
 /** Which part types each visual expectation reads, for usage errors. */
-const VISUAL_TYPES: Readonly<Record<'led' | 'servo' | 'lcd' | 'pixel' | 'digits', { test: (type: string) => boolean; what: string }>> = {
+const VISUAL_TYPES: Readonly<Record<'led' | 'servo' | 'motor' | 'lcd' | 'pixel' | 'digits', { test: (type: string) => boolean; what: string }>> = {
   // BT110: the Picos' onboard LED too (their visual's `led`; the Pico W's sits on the CYW43).
   led: { test: (t) => t === 'led' || BOARD_LEDS.has(t), what: 'an LED (or a Pico, by its onboard LED)' },
   servo: { test: (t) => t === 'servo', what: 'a servo' },
+  // BT174: a DC motor's visual `rpm` (signed: forward while + is the higher).
+  motor: { test: (t) => t === 'dc-motor', what: 'a DC motor' },
   lcd: { test: (t) => Object.hasOwn(LCD_SIZES, t), what: 'a character LCD' },
   // BT94: the ESP32-C3-DevKitM-1's own RGB LED is a WS2812 too (its pixels[0]).
   pixel: { test: (t) => t.startsWith('neopixel-') || t === 'esp32-c3-devkitm-1' || t === 'esp32-s3-devkitc-1' || t === 'esp32-s2-devkitm-1', what: 'a NeoPixel strip, ring or matrix (or a board with one)' },
@@ -626,7 +633,7 @@ const num = (v: unknown): number | undefined => (typeof v === 'number' ? v : und
 
 /** A visual expectation against the part's latest visual state. */
 function checkVisual(
-  a: Extract<Assertion, { kind: 'led' | 'servo' | 'lcd' | 'pixel' | 'digits' }>,
+  a: Extract<Assertion, { kind: 'led' | 'servo' | 'motor' | 'lcd' | 'pixel' | 'digits' }>,
   visual: VisualState | undefined,
   type: string,
 ): { ok: boolean; detail: string } {
@@ -639,6 +646,10 @@ function checkVisual(
       const angle = num(visual?.angle);
       if (angle === undefined) return { ok: false, detail: 'no angle reported' };
       return { ok: Math.abs(angle - a.angle) <= a.tolerance, detail: `angle ${angle}°` };
+    }
+    case 'motor': {
+      const rpm = num(visual?.rpm) ?? 0; // a motor that never reported is stopped
+      return { ok: Math.abs(rpm - a.rpm) <= a.tolerance, detail: `${rpm} rpm` };
     }
     case 'lcd': {
       const { cols } = LCD_SIZES[type];

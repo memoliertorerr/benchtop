@@ -1,0 +1,236 @@
+{
+  "format": 1,
+  "name": "uno-l298n-motor",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "drv",
+      "type": "l298n",
+      "x": 80,
+      "y": -12,
+      "rotation": 0,
+      "props": {
+        "enaJumper": false
+      }
+    },
+    {
+      "id": "m1",
+      "type": "dc-motor",
+      "x": 82,
+      "y": -40,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "bat",
+      "type": "battery-9v",
+      "x": 132,
+      "y": -8,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "pot",
+      "type": "potentiometer",
+      "x": 6,
+      "y": -40,
+      "rotation": 0,
+      "props": {
+        "value": 1
+      }
+    },
+    {
+      "id": "btn",
+      "type": "pushbutton",
+      "x": 36,
+      "y": -36,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "uno",
+        "pin": "8"
+      },
+      "to": {
+        "part": "drv",
+        "pin": "ENA"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "uno",
+        "pin": "9"
+      },
+      "to": {
+        "part": "drv",
+        "pin": "IN1"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "uno",
+        "pin": "10"
+      },
+      "to": {
+        "part": "drv",
+        "pin": "IN2"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "drv",
+        "pin": "OUT1"
+      },
+      "to": {
+        "part": "m1",
+        "pin": "+"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "drv",
+        "pin": "OUT2"
+      },
+      "to": {
+        "part": "m1",
+        "pin": "-"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "bat",
+        "pin": "+"
+      },
+      "to": {
+        "part": "drv",
+        "pin": "+12V"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "bat",
+        "pin": "-"
+      },
+      "to": {
+        "part": "drv",
+        "pin": "GND"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w8",
+      "from": {
+        "part": "drv",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w9",
+      "from": {
+        "part": "pot",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w10",
+      "from": {
+        "part": "pot",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w11",
+      "from": {
+        "part": "pot",
+        "pin": "SIG"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "A0"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w12",
+      "from": {
+        "part": "btn",
+        "pin": "1.l"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "purple"
+    },
+    {
+      "id": "w13",
+      "from": {
+        "part": "btn",
+        "pin": "2.l"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.3"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "l298n-motor.hex",
+      "format": "hex"
+    }
+  }
+}

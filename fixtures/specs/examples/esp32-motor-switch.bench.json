@@ -1,0 +1,28 @@
+{
+  "name": "example: esp32-motor-switch",
+  "project": "../../projects/esp32-motor-switch.json",
+  "firmware": {
+    "esp": "../../firmware/esp32/gpio-input.bin"
+  },
+  "steps": [
+    {
+      "at": "300ms",
+      "part": "btn",
+      "input": {
+        "kind": "press"
+      }
+    },
+    {
+      "at": "1300ms",
+      "part": "btn",
+      "input": {
+        "kind": "release"
+      }
+    }
+  ],
+  "expect": [
+    "motor m1 rpm is 0 ±1 at 250ms",
+    "motor m1 rpm is 200 ±6 at 1250ms",
+    "motor m1 rpm is 152 ±10 at 1450ms"
+  ]
+}

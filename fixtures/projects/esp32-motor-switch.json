@@ -1,0 +1,220 @@
+{
+  "format": 1,
+  "name": "esp32-motor-switch",
+  "parts": [
+    {
+      "id": "esp",
+      "type": "esp32-devkit-v1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "btn",
+      "type": "pushbutton",
+      "x": -34,
+      "y": 8,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "q1",
+      "type": "n-mosfet",
+      "x": 42,
+      "y": 8,
+      "rotation": 0,
+      "props": {
+        "model": "IRLZ44N"
+      }
+    },
+    {
+      "id": "rg",
+      "type": "resistor",
+      "x": 36,
+      "y": 36,
+      "rotation": 0,
+      "props": {
+        "ohms": 10000
+      }
+    },
+    {
+      "id": "m1",
+      "type": "dc-motor",
+      "x": 58,
+      "y": -30,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "d1",
+      "type": "diode",
+      "x": 62,
+      "y": -42,
+      "rotation": 0,
+      "props": {
+        "model": "1N4007"
+      }
+    },
+    {
+      "id": "bat",
+      "type": "battery-4aa",
+      "x": 96,
+      "y": -6,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "btn",
+        "pin": "1.l"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "D4"
+      },
+      "waypoints": [],
+      "color": "purple"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "btn",
+        "pin": "2.l"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "esp",
+        "pin": "D2"
+      },
+      "to": {
+        "part": "q1",
+        "pin": "G"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "q1",
+        "pin": "G"
+      },
+      "to": {
+        "part": "rg",
+        "pin": "1"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "rg",
+        "pin": "2"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "q1",
+        "pin": "S"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "bat",
+        "pin": "-"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w8",
+      "from": {
+        "part": "bat",
+        "pin": "+"
+      },
+      "to": {
+        "part": "m1",
+        "pin": "+"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w9",
+      "from": {
+        "part": "m1",
+        "pin": "-"
+      },
+      "to": {
+        "part": "q1",
+        "pin": "D"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w10",
+      "from": {
+        "part": "d1",
+        "pin": "A"
+      },
+      "to": {
+        "part": "q1",
+        "pin": "D"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w11",
+      "from": {
+        "part": "d1",
+        "pin": "C"
+      },
+      "to": {
+        "part": "m1",
+        "pin": "+"
+      },
+      "waypoints": [],
+      "color": "red"
+    }
+  ],
+  "firmware": {
+    "esp": {
+      "kind": "file",
+      "name": "gpio-input.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

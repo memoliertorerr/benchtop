@@ -1,0 +1,47 @@
+{
+  "name": "example: uno-l298n-motor",
+  "project": "../../projects/uno-l298n-motor.json",
+  "firmware": {
+    "uno": "../../firmware/uno/l298n-motor.hex"
+  },
+  "steps": [
+    {
+      "at": "1s",
+      "part": "pot",
+      "input": {
+        "kind": "value",
+        "value": 0.5
+      }
+    },
+    {
+      "at": "2s",
+      "part": "btn",
+      "input": {
+        "kind": "press"
+      }
+    },
+    {
+      "at": "2050ms",
+      "part": "btn",
+      "input": {
+        "kind": "release"
+      }
+    },
+    {
+      "at": "3s",
+      "part": "pot",
+      "input": {
+        "kind": "value",
+        "value": 0
+      }
+    }
+  ],
+  "expect": [
+    "motor m1 rpm is 227 ±7 at 900ms",
+    "motor m1 rpm is 114 ±6 at 1900ms",
+    "serial contains \"brake\" by 2100ms",
+    "motor m1 rpm is -114 ±6 at 2900ms",
+    "serial contains \"coast\" by 3300ms",
+    "motor m1 rpm is -54 ±10 at 3400ms"
+  ]
+}

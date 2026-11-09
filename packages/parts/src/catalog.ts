@@ -8,6 +8,8 @@ import { led } from './basic/led.ts';
 import { potentiometer } from './basic/potentiometer.ts';
 import { pushbutton } from './basic/pushbutton.ts';
 import { capacitor, capacitorElectrolytic } from './basic/capacitor.ts';
+import { dcMotor } from './actuators/dc-motor.ts';
+import { l298n } from './actuators/l298n.ts';
 import { diode } from './basic/diode.ts';
 import { nMosfet, npnTransistor, pMosfet, pnpTransistor } from './basic/transistors.ts';
 import { resistor } from './basic/resistor.ts';
@@ -129,6 +131,8 @@ const ALL: readonly PartDefinition[] = [
   neopixelRing,
   neopixelMatrix,
   relayKs2e,
+  dcMotor,
+  l298n,
   ...POWER_SOURCES,
   ...POWER_REGULATORS,
   ...ENVIRONMENT_PARTS,

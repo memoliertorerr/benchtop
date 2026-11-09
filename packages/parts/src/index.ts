@@ -8,6 +8,7 @@ export { BOARD_MODULES, type ModuleChoice } from './boards/modules.ts';
 export { PART_MODELS, type ModelChoice } from './models.ts';
 export { DIODE_MODELS } from './basic/diode.ts';
 export { BJT_MODELS, MOSFET_MODELS } from './basic/transistors.ts';
+export { motorParams } from './actuators/dc-motor.ts';
 export { REVERSE_LIMIT_V } from './basic/capacitor.ts';
 export { BREADBOARD_SPECS, breadboardGeometry, PITCH } from './breadboards/breadboard.ts';
 export { DUTY_HOLD_NS, DUTY_WINDOW_NS, DutyChannel, DutyIntegrator } from './shared/duty.ts';

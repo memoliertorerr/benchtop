@@ -7028,6 +7028,54 @@
     },
     {
       "board": "uno",
+      "name": "l298n-motor",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/l298n-motor.elf",
+      "sha256": "003f59e0d70b614965bb1ca504099f89b31fe2d1c9cbe23499f8a8aad85ec7e1",
+      "bytes": 31948,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "6b5d9a41da7e8c89681f1f6f3fc0b81ef6a54e8b0e95636e27b6d69fedbe5a05"
+    },
+    {
+      "board": "uno",
+      "name": "l298n-motor",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/l298n-motor.hex",
+      "sha256": "250bc9acb7d750a6a5f10ca042b29ce4de0ddeb86035b3e1e9e650ba5e1802a6",
+      "bytes": 8003,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "6b5d9a41da7e8c89681f1f6f3fc0b81ef6a54e8b0e95636e27b6d69fedbe5a05"
+    },
+    {
+      "board": "uno",
+      "name": "l298n-stepper",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/l298n-stepper.elf",
+      "sha256": "2bb48bf39d3ccca52f36877d1f694df87438b0f3108b3f63bca0b0a59c3f21d6",
+      "bytes": 31644,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Stepper": "1.1.3"
+      },
+      "source": "0db9e444fc8763c0b65570beec47dfcafcee09604489637891deee4d6a13b3b7"
+    },
+    {
+      "board": "uno",
+      "name": "l298n-stepper",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/l298n-stepper.hex",
+      "sha256": "11e9f3a667c200e6d3cb0dc3dd35f2206743fab1cf843e349ca0f6d36465fb44",
+      "bytes": 8801,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Stepper": "1.1.3"
+      },
+      "source": "0db9e444fc8763c0b65570beec47dfcafcee09604489637891deee4d6a13b3b7"
+    },
+    {
+      "board": "uno",
       "name": "lcd-4bit",
       "fqbn": "arduino:avr:uno",
       "file": "uno/lcd-4bit.elf",

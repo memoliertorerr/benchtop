@@ -495,6 +495,19 @@
     "description": "Blink's D13 drives a 2N2222A through 1 kΩ; the transistor switches the relay's coil and the relay's contact lights the LED, twice a second. The 1N4007 across the coil is the flyback diode a real coil needs (the bench doesn't model the coil's kick)."
   },
   {
+    "id": "uno-l298n-motor",
+    "title": "DC motor on an L298N",
+    "category": "Motors",
+    "project": "uno-l298n-motor",
+    "boards": {
+      "uno": {
+        "firmware": "uno/l298n-motor.hex",
+        "sketch": "uno/l298n-motor"
+      }
+    },
+    "description": "Turn the pot to set the motor's speed and press the button to reverse it. The sketch PWMs the L298N's IN1 (or IN2) with ENA on, so the bridge brakes the motor between pulses and its speed follows the duty; reversing brakes it for 200 ms first, and a pot near zero lets it coast. Watch the board's status line and the motor's rpm."
+  },
+  {
     "id": "gas-fan",
     "title": "Gas alarm with a fan",
     "category": "Environment",
@@ -805,6 +818,19 @@
       }
     },
     "description": "Turn the pot (GPIO34): the ESP32's 1 kHz PWM on GPIO25 drives an IRLZ44N's gate, and the MOSFET switches two LEDs on a 9 V battery — dimmer or brighter with the pot. An IRLZ44N is fully on from a 3.3 V pin; set its model to IRF540N in the Inspector and it barely conducts."
+  },
+  {
+    "id": "esp32-motor-switch",
+    "title": "ESP32 motor switch",
+    "category": "ESP32",
+    "project": "esp32-motor-switch",
+    "boards": {
+      "esp": {
+        "firmware": "esp32/gpio-input.bin",
+        "sketch": "esp32/gpio-input"
+      }
+    },
+    "description": "Hold the button (GPIO4): GPIO2 — the DevKit's blue LED — turns an IRLZ44N on and the geared motor spins up from a 6 V pack; let go and it coasts down. The 1N4007 across the motor is the flyback diode a real motor needs."
   },
   {
     "id": "esp32-mic-level",
