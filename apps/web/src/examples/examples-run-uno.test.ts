@@ -196,12 +196,19 @@ export const UNO_CHECKS: Record<string, (r: ExampleRun) => void> = {
     expect(r.serial('uno')).toContain('t1 27.6250');
   },
   'uno-tm1637'(r) {
-    // BT189: every byte ACKed, "1234", then the count.
+    // BT189, BT190: TM1637Display — "12:34", then later "0042" at 2/16.
     r.runTo(300);
-    expect(r.serial('uno')).toContain('acks 7/7');
     expect(sevenSegmentText(r.visual('tm'))).toBe('1234');
+    expect(r.visual('tm')?.colon).toBe(14 / 16);
+    r.runTo(1800);
+    expect(sevenSegmentText(r.visual('tm'))).toBe('0042');
+    expect(r.visual('tm')?.level).toBe(2 / 16);
+  },
+  'uno-tm1637-thermometer'(r) {
+    // BT190: the DS18B20's 21.3125 °C as "21°C".
     r.runTo(2000);
-    expect(r.serial('uno')).toContain('n=3');
+    expect(r.serial('uno')).toContain('t 21.31');
+    expect(sevenSegmentText(r.visual('tm'))).toBe('21°C');
   },
   'uno-sh1106'(r) {
     // BT183: the SH1106's circle and corners under Adafruit_SH110X, the counter going.

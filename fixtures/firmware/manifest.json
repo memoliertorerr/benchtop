@@ -21,6 +21,7 @@
     "HTTPClient": "2.0.0",
     "LedControl": "1.0.6",
     "OneWire": "2.3.8",
+    "TM1637": "1.2.0",
     "arduinoFFT": "2.0.4",
     "audio-tools": "0.9.3"
   },
@@ -8372,6 +8373,62 @@
       "core": "arduino:avr@1.8.7",
       "libraries": {},
       "source": "9865e5634e4a88a9d5d9214bf2cd59a901739bddd102b78d11ca2be3cc0a5bdd"
+    },
+    {
+      "board": "uno",
+      "name": "tm1637-display",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/tm1637-display.elf",
+      "sha256": "b2b636aa5372d817038385bc71e9feedb0ac43e5b5f0a2c01dd78ceb0577a659",
+      "bytes": 37784,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "TM1637": "1.2.0"
+      },
+      "source": "3bc11c3f3dca97c387d9ac2840546a6683b16108d10d4d2464fc8285f7404527"
+    },
+    {
+      "board": "uno",
+      "name": "tm1637-display",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/tm1637-display.hex",
+      "sha256": "4c191b2075c079bf2ae71335b6728a667a617b709c140749fe2c0a5123edcfa2",
+      "bytes": 9226,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "TM1637": "1.2.0"
+      },
+      "source": "3bc11c3f3dca97c387d9ac2840546a6683b16108d10d4d2464fc8285f7404527"
+    },
+    {
+      "board": "uno",
+      "name": "tm1637-thermometer",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/tm1637-thermometer.elf",
+      "sha256": "a331855d4d3d9ea3b072ce4fbd4803f48b91f2c335e6694dd1b133783a54491c",
+      "bytes": 56752,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "DallasTemperature": "4.0.6",
+        "OneWire": "2.3.8",
+        "TM1637": "1.2.0"
+      },
+      "source": "29bae04296ba41312aefce20a7c9fb1d0ea7cda75877e14a20b68980578c11e2"
+    },
+    {
+      "board": "uno",
+      "name": "tm1637-thermometer",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/tm1637-thermometer.hex",
+      "sha256": "44162f186286d08ca206cedcd92a843c6dd896421f925835069eb1649218a2c0",
+      "bytes": 18496,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "DallasTemperature": "4.0.6",
+        "OneWire": "2.3.8",
+        "TM1637": "1.2.0"
+      },
+      "source": "29bae04296ba41312aefce20a7c9fb1d0ea7cda75877e14a20b68980578c11e2"
     },
     {
       "board": "uno",

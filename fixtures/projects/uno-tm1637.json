@@ -76,7 +76,7 @@
   "firmware": {
     "uno": {
       "kind": "file",
-      "name": "tm1637.hex",
+      "name": "tm1637-display.hex",
       "format": "hex"
     }
   }

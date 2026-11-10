@@ -1,0 +1,11 @@
+{
+  "name": "example: uno-tm1637-thermometer",
+  "project": "../../projects/uno-tm1637-thermometer.json",
+  "firmware": {
+    "uno": "../../firmware/uno/tm1637-thermometer.hex"
+  },
+  "expect": [
+    "serial contains \"t 21.31\" by 2s",
+    "digits tm show \"21°C\" at 1500ms"
+  ]
+}

@@ -681,8 +681,9 @@ rightmost). MCP's sim_state adds `screen` to a matrix (its rows as '#'/'.' lines
 7-segment display (its digits). Gallery: a 595 counting on eight LEDs (`uno-shift-register`), the
 FC-16's pictures (`uno-max7219`), LedControl's digits and matrix (`uno-ledcontrol`), an ESP32 8-digit
 module (`esp32-max7219-7seg`), two DS18B20s under DallasTemperature (`uno-ds18b20`), a Pico TM1637
-clock (`pico-tm1637-clock`) and an Uno TM1637 counter (`uno-tm1637`), each with a spec in
-fixtures/specs/examples and a run check.
+clock (`pico-tm1637-clock`), an Uno TM1637 under TM1637Display (`uno-tm1637`) and a DS18B20
+thermometer on a TM1637 (`uno-tm1637-thermometer`), each with a spec in fixtures/specs/examples and a
+run check.
 
 **Chips** (`packages/parts/src/ics/`). `74hc595` is a DIP-16 (`dipPins`: pin 1 bottom left,
 rows 7.62 mm apart, so it straddles a breadboard's gap) with NXP's pin names (DS, SHCP, STCP, MR,
@@ -746,7 +747,9 @@ DallasTemperature 4.0.6 (uno/dallas-temperature: two sensors counted, addressed,
 alarm-searched — a sensor left at its power-up TL of 70 °C alarms at room temperature, as a real
 one does; esp32/dallas-temperature: 9 and 12 bits, polled to the conversion's end) and LedControl
 1.0.6 (uno/ledcontrol: bit-banged, its own no-decode font, a 7-segment module chained into an 8×8
-through DOUT). The sketch-local fixtures stay: they cover hardware SPI, the 595 and the Pico.
+through DOUT); TM1637 1.2.0's TM1637Display (uno/tm1637-display: the colon, raw
+segments, the display off, leading zeros; uno/tm1637-thermometer: a DS18B20 under DallasTemperature
+shown as "21°C"). The sketch-local fixtures stay: they cover hardware SPI, the 595 and the Pico.
 
 Actuators (`packages/parts/src/actuators/`) decode their drive from exact edge timestamps
 or coil levels and never allocate per edge. The servo measures pulse widths (Servo.h's 544–2400
@@ -4093,7 +4096,7 @@ nothing from `apps/web`.
   | `motor <p> rpm is <rpm> ±<rpm> at <t>` | a DC motor's signed speed (forward while + is the higher) within the tolerance; never reported = stopped | `-113 rpm` |
   | `lcd <p> row <n> is "<text>" at <t>` | row n (from 0) equals the text, trailing spaces ignored; display off = blank | `row 1 is "t=1"` |
   | `pixel <p>[<i>] is #rrggbb at <t>` | the pixel's 0xRRGGBB | `#38b748`, or the pixel count |
-  | `digits <p> show "<text>" at <t>` | the digits (`displayText` from @benchtop/parts: 0–9, '-', E H L P, ' ' dark, '?' other; the MAX7219's 8-digit and the TM1637's modules by their lit segments, so a dim digit reads) | `shows "1234"` |
+  | `digits <p> show "<text>" at <t>` | the digits (`displayText` from @benchtop/parts: 0–9, '-', E H L P, '°' and C, ' ' dark, '?' other; the MAX7219's 8-digit and the TM1637's modules by their lit segments, so a dim digit reads) | `shows "1234"` |
   | `oled <p> pixel <x>,<y> is on\|off at <t>` | an OLED's pixel as shown (`oledPixel`: off while the display is; `invert`, `allOn`); never reported = dark | `pixel 64,32 is on` |
   | `matrix <p> row <r> shows "<#.…>" at <t>` | a MAX7219 matrix module's row r from the top, left to right (`matrixText`; '#' or 1 lit, '.' or 0 dark; 8 dots, or 32 on the FC-16) | `row 2 shows "#.#..#.#"` |
   | `env <gas\|temperature\|humidity\|light\|sound> at <p> is <v> ±<tol> at <t>` (or `>`, `<`, `>=`, `<=` `<v>`) | the room's value at a part placed in it (`bench.envSample`); a usage error without an environment part or on a part with no place in it | `gas 812.40 ppm` |

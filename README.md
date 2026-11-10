@@ -233,7 +233,7 @@ npm run dev          # the editor at http://localhost:5173
 **Examples…** opens 96 ready-to-run circuits, each with its sketch, which you can change and
 run again (Basics: blink, button, fade, traffic light, a Simon game, serial echo, an EEPROM boot
 counter, a Nano on a breadboard, an RC filter turning PWM into a steady voltage; Displays: LCDs,
-an LCD thermometer, OLED and an OLED clock, a 128×32 OLED's hardware scroll, a 1.3″ SH1106 OLED, a color TFT, 7-segment, bar graph, NeoPixels, a 74HC595 counting on eight LEDs, MAX7219 matrices and digits (with LedControl), a TM1637 counter; Sensors: DHT22, two DS18B20s on one 1-Wire line,
+an LCD thermometer, OLED and an OLED clock, a 128×32 OLED's hardware scroll, a 1.3″ SH1106 OLED, a color TFT, 7-segment, bar graph, NeoPixels, a 74HC595 counting on eight LEDs, MAX7219 matrices and digits (with LedControl), a TM1637 counter; Sensors: DHT22, two DS18B20s on one 1-Wire line, a DS18B20 thermometer on a TM1637,
 HC-SR04 and a distance meter, DS1307, MPU-6050, an IR remote, a kitchen scale, a flame alarm, a
 gas meter, keypad, rotary encoder; Motors: servo sweep, a
 servo knob, a keypad lock, a stepper, an A4988 stepper driver, a relay, a relay switched by a transistor, a DC motor on an L298N, two relays with and without a flyback diode; Sound: buzzers, a speaker melody, PCM through PWM,

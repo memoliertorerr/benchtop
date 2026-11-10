@@ -99,9 +99,10 @@ in `fixtures/firmware/manifest.json`. Linked into them, under their own licenses
 | DHT sensor library 1.4.6 | Uno `dht22-adafruit` and `lcd-thermometer` | MIT | <https://github.com/adafruit/DHT-sensor-library> |
 | Adafruit Unified Sensor 1.1.15 | Uno `dht22-adafruit` and `lcd-thermometer` | Apache-2.0 | <https://github.com/adafruit/Adafruit_Sensor> |
 | DHTlib 0.1.37 | Uno `dht22-dhtlib` | MIT | <https://github.com/RobTillaart/DHTlib> |
-| OneWire 2.3.8 (Jim Studt, Paul Stoffregen and contributors; portions © 2000 Dallas Semiconductor) | Uno and ESP32 `dallas-temperature` | MIT-style (the notice in OneWire.cpp) | <https://github.com/PaulStoffregen/OneWire> |
-| DallasTemperature 4.0.6 (Miles Burton and contributors) | Uno and ESP32 `dallas-temperature` | MIT | <https://github.com/milesburton/Arduino-Temperature-Control-Library> |
+| OneWire 2.3.8 (Jim Studt, Paul Stoffregen and contributors; portions © 2000 Dallas Semiconductor) | Uno `dallas-temperature` and `tm1637-thermometer`; ESP32 `dallas-temperature` | MIT-style (the notice in OneWire.cpp) | <https://github.com/PaulStoffregen/OneWire> |
+| DallasTemperature 4.0.6 (Miles Burton and contributors) | Uno `dallas-temperature` and `tm1637-thermometer`; ESP32 `dallas-temperature` | MIT | <https://github.com/milesburton/Arduino-Temperature-Control-Library> |
 | LedControl 1.0.6 (© 2007–2015 Eberhard Fahle) | Uno `ledcontrol` | MIT | <https://github.com/wayoda/LedControl> |
+| TM1637 1.2.0 (TM1637Display; Avishay Orpaz) | Uno `tm1637-display` and `tm1637-thermometer` | LGPL-2.1-or-later (its sources; the archive's LICENSE file is the LGPL-3.0 text) — the sketches are in fixtures/sketches/ and `npm run fixtures` relinks them, as for the cores | <https://github.com/avishorp/TM1637> |
 | Arduino-ESP32 core 2.0.17 | ESP32, ESP32-C3, ESP32-S3 and ESP32-S2 fixtures | LGPL-2.1-or-later | <https://github.com/espressif/arduino-esp32/tree/2.0.17> |
 | ESP-IDF v4.4.7 libraries (incl. FreeRTOS, MIT; newlib, BSD-style) | ESP32, ESP32-C3, ESP32-S3 and ESP32-S2 fixtures | Apache-2.0 and others | <https://github.com/espressif/esp-idf/tree/v4.4.7> |
 | Arduino-Pico core 6.2.0 (Earle F. Philhower III) | Pico fixtures | LGPL-2.1-or-later | <https://github.com/earlephilhower/arduino-pico> |

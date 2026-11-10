@@ -6,12 +6,12 @@ import { readFixture, readFixtureText } from '../../../core/src/firmware/fixture
 import { loadCachedRom } from '../../../esp32/src/test-support/rom.test-helper.ts';
 import { analogSpecFor } from '../analog-specs.ts';
 import { benchEnvParts } from '../catalog.ts';
-import { sevenSegmentText } from '../displays/seven-segment.ts';
+import { displayText, sevenSegmentText } from '../displays/seven-segment.ts';
 import { rawCelsius, temperatureRaw } from '../sensors/ds18b20.ts';
 
 // BT188: the kit chips under the libraries people use — OneWire 2.3.8 + DallasTemperature 4.0.6 on
 // an Uno (two sensors) and an ESP32, LedControl 1.0.6 on an Uno (a 7-segment module chained into
-// an 8×8 matrix through DOUT).
+// an 8×8 matrix through DOUT); BT190: TM1637Display 1.2.0 alone and in a DS18B20 thermometer.
 
 const esp32 = esp32McuFactory(loadCachedRom());
 const env: BenchEnv = { part: benchEnvParts, createMcu: (board, id, report) => avrMcuFactory(board) ?? esp32(board, id, report) };
@@ -156,5 +156,69 @@ describe('kit chips under their libraries (BT188)', () => {
     expect(until((l) => l === 'n=37', 6000)).toBe('n=37');
     expect(sevenSegmentText(latest.get('seg')?.values as number[])).toBe('HELP0037');
     expect((latest.get('m')?.rows as number[])[0]).toBe(37);
+  }, 60_000);
+
+  it('uno/tm1637-display: TM1637Display’s number with the colon, raw segments, off, leading zeros, then the count', () => {
+    const doc = circuit({ id: 'uno', type: 'arduino-uno' }, [{ id: 'tm', type: 'tm1637-4digit', props: {} }], [
+      ['uno:2', 'tm:CLK'],
+      ['uno:3', 'tm:DIO'],
+      ['uno:5V', 'tm:VCC'],
+      ['uno:GND.1', 'tm:GND'],
+    ]);
+    const { until, latest } = load(doc, 'tm1637-display');
+    const tm = (): VisualState => latest.get('tm') ?? {};
+    expect(until((l) => l === '1234:', 500)).toBe('1234:');
+    expect(displayText(tm())).toBe('1234');
+    expect([tm().colon, tm().level]).toEqual([14 / 16, 14 / 16]);
+    expect(until((l) => l === 'done', 1000)).toBe('done');
+    expect(tm().segments).toEqual([0x5e, 0x3f, 0x54, 0x79]); // d O n E
+    expect(tm().colon).toBe(0);
+    expect(until((l) => l === 'off', 1500)).toBe('off');
+    expect([tm().level, displayText(tm())]).toEqual([0, '    ']);
+    expect(until((l) => l === '0042', 2000)).toBe('0042');
+    expect([displayText(tm()), tm().level]).toEqual(['0042', 2 / 16]);
+    expect(until((l) => l === 'n=23', 6000)).toBe('n=23');
+    expect(displayText(tm())).toBe('  23');
+  }, 60_000);
+
+  it('uno/tm1637-thermometer: a DS18B20 under DallasTemperature shown on the TM1637 as "21°C", following the sensor', () => {
+    const doc = circuit(
+      { id: 'uno', type: 'arduino-uno' },
+      [
+        { id: 'ow', type: 'ds18b20', props: { serial: '0000075a1b2c', temperature: 21.3 } },
+        { id: 'r', type: 'resistor', props: { ohms: 4700 } },
+        { id: 'tm', type: 'tm1637-4digit', props: {} },
+      ],
+      [
+        ['uno:2', 'ow:DQ'],
+        ['uno:2', 'r:1'],
+        ['r:2', 'uno:5V'],
+        ['ow:VDD', 'uno:5V'],
+        ['ow:GND', 'uno:GND.1'],
+        ['uno:3', 'tm:CLK'],
+        ['uno:4', 'tm:DIO'],
+        ['tm:VCC', 'uno:5V'],
+        ['tm:GND', 'uno:GND.1'],
+      ],
+    );
+    const { bench, lines, until, latest } = load(doc, 'tm1637-thermometer');
+    expect(until((l) => l.startsWith('t '), 2000)).toBe('t 21.31'); // 12 bits: 21.3125
+    until(() => false, Math.floor(bench.now() / NS_PER_MS) + 50);
+    expect(displayText(latest.get('tm'))).toBe('21°C');
+    expect(latest.get('tm')?.level).toBe(12 / 16); // brightness 5
+    for (const [celsius, shown] of [
+      [-4.6, '-5°C'],
+      [7, ' 7°C'],
+      [-12.2, '-12C'],
+      [125, '125C'],
+    ] as const) {
+      bench.input('ow', { kind: 'key', key: `set:temperature=${celsius}`, down: true });
+      const seen = lines.length;
+      // The next conversion samples it; the one after shows it for sure.
+      until((l) => lines.indexOf(l) >= seen + 1 && l.startsWith('t '), Math.floor(bench.now() / NS_PER_MS) + 4000);
+      until(() => false, Math.floor(bench.now() / NS_PER_MS) + 50);
+      expect(displayText(latest.get('tm')), `${celsius} °C`).toBe(shown);
+    }
+    expect(lines).not.toContain('t no sensor');
   }, 60_000);
 });

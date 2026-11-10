@@ -904,11 +904,24 @@
     "project": "uno-tm1637",
     "boards": {
       "uno": {
-        "firmware": "uno/tm1637.hex",
-        "sketch": "uno/tm1637"
+        "firmware": "uno/tm1637-display.hex",
+        "sketch": "uno/tm1637-display"
       }
     },
-    "description": "A TM1637 4-digit module driven as TM1637Display does: “1234”, then a count with the colon on odd numbers."
+    "description": "TM1637Display on a TM1637 4-digit module: “12:34”, then “dOnE”, the display off, “0042”, and a count."
+  },
+  {
+    "id": "uno-tm1637-thermometer",
+    "title": "DS18B20 thermometer on a TM1637",
+    "category": "Sensors",
+    "project": "uno-tm1637-thermometer",
+    "boards": {
+      "uno": {
+        "firmware": "uno/tm1637-thermometer.hex",
+        "sketch": "uno/tm1637-thermometer"
+      }
+    },
+    "description": "A DS18B20 read by DallasTemperature, shown on a TM1637 by TM1637Display as “21°C”. Drag its temperature in the Inspector: the display follows within two seconds."
   },
   {
     "id": "esp32-tft",

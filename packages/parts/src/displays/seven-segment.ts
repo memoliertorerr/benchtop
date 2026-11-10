@@ -198,13 +198,16 @@ const GLYPHS: Readonly<Record<number, string>> = {
   0x76: 'H',
   0x38: 'L',
   0x73: 'P',
+  // BT190: a thermometer's degree sign and C.
+  0x63: '°',
+  0x39: 'C',
 };
 
 /**
  * What a 7-segment visual shows, one character per digit (BT49; the examples' tests and the CLI's
  * `digits` expectation): a segment counts as lit above 0.05 brightness (multiplexing divides it
  * by the digit count), DP and the colon are ignored, ' ' is a dark digit, '?' a pattern that
- * isn't a digit, '-' or (BT185) E, H, L, P.
+ * isn't a digit, '-', (BT185) E, H, L, P or (BT190) '°' and C.
  */
 /**
  * BT189: what a display shows from its lit segments (bit 0 A … bit 6 G; the point ignored), one
