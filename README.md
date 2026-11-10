@@ -8,8 +8,8 @@ without hardware. Place a board, a breadboard and parts, wire them, drop a `.hex
 Run.
 
 > **Status: work in progress.** All eleven boards run their real compiled firmware — with the
-> peripherals their sketches use, WiFi on the ESP32s and the Pico Ws, sleep, USB on the S3 and S2,
-> and MicroPython on the Picos — next to about 95 parts and 149 ready-to-run examples (see
+> peripherals their sketches use, WiFi and sleep on the ESP32s (WiFi on the Pico Ws too), USB on
+> the S3 and S2, and MicroPython on the Pico and Pico 2 — next to about 95 parts and 149 ready-to-run examples (see
 > [What works](#what-works)). Expect rough edges.
 
 ![An Arduino Uno driving a 16-pixel NeoPixel ring chained to an 8-pixel strip](docs/images/uno-neopixel.png)
