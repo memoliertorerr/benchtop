@@ -1,0 +1,35 @@
+{
+  "name": "example: esp32-rfid-logger",
+  "project": "../../projects/esp32-rfid-logger.json",
+  "firmware": {
+    "esp": "../../firmware/esp32/mfrc522-logger.bin"
+  },
+  "steps": [
+    {
+      "at": "300ms",
+      "part": "rfid",
+      "input": {
+        "kind": "press"
+      }
+    },
+    {
+      "at": "450ms",
+      "part": "rfid",
+      "input": {
+        "kind": "release"
+      }
+    },
+    {
+      "at": "500ms",
+      "part": "rfid",
+      "input": {
+        "kind": "press"
+      }
+    }
+  ],
+  "expect": [
+    "serial contains \"ready\" by 300ms",
+    "serial matches /card A3 F1 C5 2E visit 1 at 3\\d\\d ms/ by 450ms",
+    "serial matches /card A3 F1 C5 2E visit 2 at 5\\d\\d ms/ by 650ms"
+  ]
+}

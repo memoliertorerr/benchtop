@@ -59,6 +59,7 @@ const ID_PREFIX: Readonly<Record<string, string>> = {
   bme280: 'env',
   bmp280: 'env',
   ds3231: 'rtc',
+  rc522: 'rfid',
   'slide-potentiometer': 'pot',
   'analog-joystick': 'joy',
   'ky-040': 'enc',

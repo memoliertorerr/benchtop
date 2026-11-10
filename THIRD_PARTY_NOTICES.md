@@ -90,7 +90,7 @@ in `fixtures/firmware/manifest.json`. Linked into them, under their own licenses
 |---|---|---|---|
 | Arduino AVR core 1.8.7 (incl. Wire, SPI, EEPROM, SoftwareSerial) | Uno fixtures | LGPL-2.1-or-later | <https://github.com/arduino/ArduinoCore-avr> |
 | avr-libc | Uno fixtures | BSD-3-Clause | <https://github.com/avrdudes/avr-libc> |
-| LiquidCrystal 1.0.7, Servo 1.3.0, Stepper 1.1.3 | Uno `lcd-4bit` and `lcd-8bit-2004` (LiquidCrystal); `servo-sweep`, `servo-knob` and `keypad-lock` (Servo); `stepper-28byj48`, `stepper-bipolar` and `l298n-stepper` (Stepper) | LGPL-2.1-or-later | <https://github.com/arduino-libraries> |
+| LiquidCrystal 1.0.7, Servo 1.3.0, Stepper 1.1.3 | Uno `lcd-4bit` and `lcd-8bit-2004` (LiquidCrystal); `servo-sweep`, `servo-knob`, `keypad-lock` and `rfid-door` (Servo); `stepper-28byj48`, `stepper-bipolar` and `l298n-stepper` (Stepper) | LGPL-2.1-or-later | <https://github.com/arduino-libraries> |
 | SD 1.3.0 (Arduino, SparkFun; after Bill Greiman's sdfatlib) | Uno `sd-log` and `sd-datalogger` | GPL-3.0-or-later | <https://github.com/arduino-libraries/SD> |
 | Adafruit GFX Library 1.12.4 | Uno `ssd1306-adafruit`, `oled-clock`, `oled-scroll`, `oled-128x32`, `oled-spi` and `sh1106`; ESP32 `oled-clock`, `ntp-clock` and `oled-spi`; ESP32-C3, ESP32-S3 and ESP32-S2 `oled-clock`; Pico and Pico 2 `i2c-oled` | BSD | <https://github.com/adafruit/Adafruit-GFX-Library> |
 | Adafruit SSD1306 2.5.16 | Uno `ssd1306-adafruit`, `oled-clock`, `oled-scroll`, `oled-128x32` and `oled-spi`; ESP32 `oled-clock`, `ntp-clock` and `oled-spi`; ESP32-C3, ESP32-S3 and ESP32-S2 `oled-clock`; Pico and Pico 2 `i2c-oled` | BSD | <https://github.com/adafruit/Adafruit_SSD1306> |
@@ -106,6 +106,7 @@ in `fixtures/firmware/manifest.json`. Linked into them, under their own licenses
 | Adafruit BME280 Library 2.3.0 (© 2015 Limor Fried & Kevin Townsend, Adafruit Industries) | Uno `bme280-adafruit` | BSD-3-Clause | <https://github.com/adafruit/Adafruit_BME280_Library> |
 | Adafruit BMP280 Library 3.0.0 (Adafruit Industries) | ESP32 `bmp280-adafruit` | MIT | <https://github.com/adafruit/Adafruit_BMP280_Library> |
 | RTClib 2.1.4 (Adafruit Industries; after JeeLabs' RTClib) | Uno `rtclib-ds3231` | MIT | <https://github.com/adafruit/RTClib> |
+| MFRC522 1.4.12 (Miguel Balboa and the GitHub community; require_cpp11.h and deprecated.h © 2016 Ludwig Grill) | Uno `mfrc522-dump` and `rfid-door`; ESP32 `mfrc522-logger` | Unlicense (public domain dedication, its UNLICENSE file) | <https://github.com/miguelbalboa/rfid> |
 | Arduino-ESP32 core 2.0.17 | ESP32, ESP32-C3, ESP32-S3 and ESP32-S2 fixtures | LGPL-2.1-or-later | <https://github.com/espressif/arduino-esp32/tree/2.0.17> |
 | ESP-IDF v4.4.7 libraries (incl. FreeRTOS, MIT; newlib, BSD-style) | ESP32, ESP32-C3, ESP32-S3 and ESP32-S2 fixtures | Apache-2.0 and others | <https://github.com/espressif/esp-idf/tree/v4.4.7> |
 | Arduino-Pico core 6.2.0 (Earle F. Philhower III) | Pico fixtures | LGPL-2.1-or-later | <https://github.com/earlephilhower/arduino-pico> |

@@ -181,7 +181,8 @@ NeoPixel strips/rings/matrices, buzzers, a speaker and a microphone, a relay, ca
 electrolytic), diodes, transistors (2N2222A/BC547 NPN, 2N3906/BC557 PNP, IRLZ44N/IRF540N and IRF9540N
 MOSFETs) that break down when an inductive load kicks them (so the flyback diode matters), a DC
 motor that spins up, brakes and coasts like one, an L298N motor driver, a 74HC595 shift register
-(chained, bit-banged or on SPI) and a 74HC165 to read many buttons, a 1-channel relay module, and power parts —
+(chained, bit-banged or on SPI) and a 74HC165 to read many buttons, a 1-channel relay module, an RC522 RFID
+reader with its MIFARE Classic card and key fob (or an NTAG213 tag), and power parts —
 9 V, AA, LiPo and coin-cell batteries, a bench supply you turn while it runs, a ground symbol and
 7805, AMS1117 and MCP1700 regulators that drop out like the real ones.
 Sound goes
@@ -233,14 +234,14 @@ npm run dev          # the editor at http://localhost:5173
 **Examples…** opens 96 ready-to-run circuits, each with its sketch, which you can change and
 run again (Basics: blink, button, fade, traffic light, a Simon game, serial echo, an EEPROM boot
 counter, a Nano on a breadboard, an RC filter turning PWM into a steady voltage; Displays: LCDs,
-an LCD thermometer, OLED and an OLED clock, a 128×32 OLED's hardware scroll, a 1.3″ SH1106 OLED, a color TFT, 7-segment, bar graph, NeoPixels, a 74HC595 counting on eight LEDs, MAX7219 matrices and digits (with LedControl), a TM1637 counter; Sensors: DHT22, two DS18B20s on one 1-Wire line, a DS18B20 thermometer on a TM1637, a BME280 weather readout, a DS3231 clock and alarm,
+an LCD thermometer, OLED and an OLED clock, a 128×32 OLED's hardware scroll, a 1.3″ SH1106 OLED, a color TFT, 7-segment, bar graph, NeoPixels, a 74HC595 counting on eight LEDs, MAX7219 matrices and digits (with LedControl), a TM1637 counter; Sensors: DHT22, two DS18B20s on one 1-Wire line, a DS18B20 thermometer on a TM1637, a BME280 weather readout, a DS3231 clock and alarm, an RFID door lock,
 HC-SR04 and a distance meter, DS1307, MPU-6050, an IR remote, a kitchen scale, a flame alarm, a
 gas meter, keypad, rotary encoder; Motors: servo sweep, a
 servo knob, a keypad lock, a stepper, an A4988 stepper driver, a relay, a relay switched by a transistor, a DC motor on an L298N, two relays with and without a flyback diode; Sound: buzzers, a speaker melody, PCM through PWM,
 a microphone pitch meter, a VU meter; Power: a regulator meter (turn the bench supply and watch a
 7805 drop out); Storage: an SD card datalogger; Environment: a gas alarm with an extractor fan, a PIR
 hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, an LED Preferences remember, a deep sleep wake counter, a touch LED, a touch wake from deep sleep, a PWM fader, NeoPixel, a
-rainbow ring, an OLED clock, an SPI OLED, a color TFT, a WROVER's frame buffer in PSRAM, the DAC, a joystick on ADC2, a MOSFET dimmer, a motor switched by a MOSFET and one speed-controlled through it, the microphone, an I2C scan; ESP32-C3: the RGB LED,
+rainbow ring, an OLED clock, an SPI OLED, a color TFT, a WROVER's frame buffer in PSRAM, the DAC, a joystick on ADC2, a MOSFET dimmer, a motor switched by a MOSFET and one speed-controlled through it, the microphone, an I2C scan, an RFID visit counter kept on the card; ESP32-C3: the RGB LED,
 serial, a potentiometer dimmer, an OLED clock; ESP32-S3: the RGB LED, serial, a potentiometer dimmer, an OLED clock, a deep sleep wake counter, a
 frame buffer in PSRAM on a color TFT, an RGB LED set over USB serial, a USB macro keypad, a USB MIDI controller, a USB MIDI synth, a USB flash drive, a touch lamp; ESP32-S2: the RGB
 LED, serial, a potentiometer dimmer, an OLED clock, a deep sleep wake counter, a touch lamp, a frame buffer in PSRAM on a color TFT, the DAC; WiFi: an ESP32 web server switched by HTTP client

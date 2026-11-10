@@ -19,6 +19,7 @@ import { MAX7219_VIEW_TYPES, max7219View } from './max7219.ts';
 import { TM1637_VIEW_TYPES, tm1637View } from './tm1637.ts';
 import { SENSOR_MODULE_VIEW_TYPES, sensorModuleView } from './sensor-modules.ts';
 import { RELAY_MODULE_VIEW_TYPES, relayModuleView } from './relay-module.ts';
+import { RFID_VIEW_TYPES, rfidView } from './rfid.ts';
 import { OLED_VIEW_TYPES, oledView } from './oled.ts';
 import { PASSIVE_VIEW_TYPES, passiveView } from './passives.ts';
 import { POWER_VIEW_TYPES, powerView } from './power.ts';
@@ -42,9 +43,9 @@ export interface ViewFactory {
   bindInput?(el: HTMLElement, send: (input: PartInput) => void): () => void;
 }
 
-/** Whether a part's element takes the pointer while the bench runs (buttons, knobs, BT157: a touch pad). */
+/** Whether a part's element takes the pointer while the bench runs (buttons, knobs, BT157: a touch pad, BT199: an RFID reader). */
 export function isInteractive(type: string): boolean {
-  return isWokwiInteractive(type) || TOUCH_PAD_VIEW_TYPES.has(type);
+  return isWokwiInteractive(type) || TOUCH_PAD_VIEW_TYPES.has(type) || RFID_VIEW_TYPES.has(type);
 }
 
 export function viewFor(type: string): ViewFactory {
@@ -72,6 +73,7 @@ export function viewFor(type: string): ViewFactory {
   if (TM1637_VIEW_TYPES.has(type)) return tm1637View;
   if (SENSOR_MODULE_VIEW_TYPES.has(type)) return sensorModuleView;
   if (RELAY_MODULE_VIEW_TYPES.has(type)) return relayModuleView;
+  if (RFID_VIEW_TYPES.has(type)) return rfidView;
   if (hasWokwiView(type)) return wokwiView;
   return fallbackView;
 }

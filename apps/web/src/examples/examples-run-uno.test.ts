@@ -233,6 +233,18 @@ export const UNO_CHECKS: Record<string, (r: ExampleRun) => void> = {
     r.runTo(950);
     expect(r.visual('k')?.closed).toBe(false);
   },
+  'uno-rfid-door'(r) {
+    // BT199: the card opens the door under the MFRC522 library; the fob is refused.
+    r.runTo(200);
+    r.input('rfid', { kind: 'press' });
+    r.runTo(900);
+    expect(r.serial('uno')).toContain('granted A3 F1 C5 2E');
+    expect(r.lit('green')).toBe(true);
+    expect(r.visual('lock')?.angle as number).toBeCloseTo(90, 0);
+    r.input('rfid', { kind: 'key', key: 'fob', down: true });
+    r.runTo(2000);
+    expect(r.visual('rfid')).toMatchObject({ card: 'fob', uid: '5B 7E 0D 19' });
+  },
   'uno-tm1637-thermometer'(r) {
     // BT190: the DS18B20's 21.3125 °C as "21°C".
     r.runTo(2000);

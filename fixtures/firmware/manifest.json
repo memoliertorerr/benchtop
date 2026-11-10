@@ -22,6 +22,7 @@
     "ESP32 BLE Mouse": "0.3.1",
     "HTTPClient": "2.0.0",
     "LedControl": "1.0.6",
+    "MFRC522": "1.4.12",
     "OneWire": "2.3.8",
     "RTClib": "2.1.4",
     "TM1637": "1.2.0",
@@ -988,6 +989,48 @@
       "core": "esp32:esp32@2.0.17",
       "libraries": {},
       "source": "52675612b8cc6aa33d75cfc94a0377360de8e3cddbd3aa2289fd5c15f9422b9f"
+    },
+    {
+      "board": "esp32",
+      "name": "mfrc522-logger",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/mfrc522-logger.bin",
+      "sha256": "1017490f93a53efed406298615b2150d0f8600e69325b943ac21d31a448acdb4",
+      "bytes": 273824,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "MFRC522": "1.4.12",
+        "SPI": "2.0.0"
+      },
+      "source": "f09565ac77112d075463ec7784e1c38ffc59e7c6db979dd6dc5e203a4154c29e"
+    },
+    {
+      "board": "esp32",
+      "name": "mfrc522-logger",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/mfrc522-logger.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "MFRC522": "1.4.12",
+        "SPI": "2.0.0"
+      },
+      "source": "f09565ac77112d075463ec7784e1c38ffc59e7c6db979dd6dc5e203a4154c29e"
+    },
+    {
+      "board": "esp32",
+      "name": "mfrc522-logger",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/mfrc522-logger.syms.tsv",
+      "sha256": "075ba9618fa8ae8f44d9de24f647f61d15d0d0d06e559c4887672367aa6d5eae",
+      "bytes": 120466,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "MFRC522": "1.4.12",
+        "SPI": "2.0.0"
+      },
+      "source": "f09565ac77112d075463ec7784e1c38ffc59e7c6db979dd6dc5e203a4154c29e"
     },
     {
       "board": "esp32",
@@ -7665,6 +7708,34 @@
     },
     {
       "board": "uno",
+      "name": "mfrc522-dump",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/mfrc522-dump.elf",
+      "sha256": "e122d936b0db00a02bb7721f99b2f285aff170cffc0af4b31b686f338f4bea61",
+      "bytes": 77508,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "MFRC522": "1.4.12",
+        "SPI": "1.0"
+      },
+      "source": "76ea56950b4f6361f5d98d1563f14e8ad46b1277b88a4d442d105f6b46125637"
+    },
+    {
+      "board": "uno",
+      "name": "mfrc522-dump",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/mfrc522-dump.hex",
+      "sha256": "4fd56fd959cd6b4b407950e126240df141eea60e899c423b9c8aaf7611320ec3",
+      "bytes": 22906,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "MFRC522": "1.4.12",
+        "SPI": "1.0"
+      },
+      "source": "76ea56950b4f6361f5d98d1563f14e8ad46b1277b88a4d442d105f6b46125637"
+    },
+    {
+      "board": "uno",
       "name": "mic-level",
       "fqbn": "arduino:avr:uno",
       "file": "uno/mic-level.elf",
@@ -8092,6 +8163,62 @@
       "core": "arduino:avr@1.8.7",
       "libraries": {},
       "source": "ddbf29557278e556a0997f82784f095db0e9ba9f54c46dfe8e59ecf4af6980d0"
+    },
+    {
+      "board": "uno",
+      "name": "rfid-door",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/rfid-door.elf",
+      "sha256": "ecd6b1d443e607c00babc5373f0cddbdf1744acbd0d2846cfd58ee84f745b186",
+      "bytes": 59756,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "MFRC522": "1.4.12",
+        "SPI": "1.0",
+        "Servo": "1.3.0"
+      },
+      "source": "1bb534dc2081e9f352d776f5563d5810d5a9173d1e9e585345b04a17b6291eb0"
+    },
+    {
+      "board": "uno",
+      "name": "rfid-door",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/rfid-door.hex",
+      "sha256": "0f44cd7c3c0effba279ef402d3e2a2929fdfb7971a0fe350d7c1577df97dbb3c",
+      "bytes": 17171,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "MFRC522": "1.4.12",
+        "SPI": "1.0",
+        "Servo": "1.3.0"
+      },
+      "source": "1bb534dc2081e9f352d776f5563d5810d5a9173d1e9e585345b04a17b6291eb0"
+    },
+    {
+      "board": "uno",
+      "name": "rfid-uid",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/rfid-uid.elf",
+      "sha256": "fe2547487ef5a96c1005a9ecd84ae7d7321ae634e2fc2e3b470ae7e6b11d01f8",
+      "bytes": 41420,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "SPI": "1.0"
+      },
+      "source": "679c334061fcc61cc70c68feecc9e748258b73a417f25ee83d2d20fd564d14b5"
+    },
+    {
+      "board": "uno",
+      "name": "rfid-uid",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/rfid-uid.hex",
+      "sha256": "a9755cf1c4dd386505ac313c32e140c46a51bad4fa5ec83f945ae5b5d81dde97",
+      "bytes": 11816,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "SPI": "1.0"
+      },
+      "source": "679c334061fcc61cc70c68feecc9e748258b73a417f25ee83d2d20fd564d14b5"
     },
     {
       "board": "uno",

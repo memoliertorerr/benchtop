@@ -58,6 +58,7 @@ import { ds18b20 } from './sensors/ds18b20.ts';
 import { bme280, bmp280 } from './sensors/bme280.ts';
 import { ds1307 } from './sensors/ds1307.ts';
 import { ds3231 } from './sensors/ds3231.ts';
+import { rc522 } from './rfid/rc522.ts';
 import { microsdCard } from './storage/microsd-card.ts';
 import { hcSr04 } from './sensors/hc-sr04.ts';
 import { microphone } from './sensors/microphone.ts';
@@ -144,6 +145,7 @@ const ALL: readonly PartDefinition[] = [
   hcSr04,
   ds1307,
   ds3231,
+  rc522,
   mpu6050,
   microsdCard,
   servo,

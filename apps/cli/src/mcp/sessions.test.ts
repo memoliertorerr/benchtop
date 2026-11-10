@@ -351,6 +351,27 @@ describe('live sessions', () => {
     expect(state.parts.pad.contact).toBe(0);
   }, 60_000);
 
+  it('BT199: describe_part names the RC522’s inputs; sim_input puts the card and the fob on the reader, sim_state shows which (rfid-uid)', async () => {
+    const server = testServer();
+    const reader = (await tool(server, 'describe_part', { type: 'rc522' })).value as { pins: { name: string }[]; inputs: { kind: string; keys?: string[] }[]; props: Record<string, unknown> };
+    expect(reader.pins.map((p) => p.name)).toEqual(['SDA', 'SCK', 'MOSI', 'MISO', 'IRQ', 'GND', 'RST', '3.3V']);
+    expect(reader.inputs.map((i) => i.kind)).toEqual(['press', 'release', 'key']);
+    expect(reader.inputs[2].keys).toEqual(['card', 'fob', 'none']);
+    expect(reader.props).toMatchObject({ card: 'mifare-1k', present: 'none' });
+    const { session } = (await tool(server, 'sim_open', { project: 'fixtures/projects/rfid-uid.json', firmware: { uno: 'fixtures/firmware/uno/rfid-uid.hex' } })).value as { session: string };
+    await tool(server, 'sim_run', { session, untilSerial: 'no card', duration: '1s' });
+    const empty = (await tool(server, 'sim_state', { session, parts: ['rfid'] })).value as { parts: { rfid: Record<string, unknown> } };
+    expect(empty.parts.rfid).toMatchObject({ powered: true, field: true, card: '' });
+    await tool(server, 'sim_input', { session, part: 'rfid', input: { kind: 'press' } });
+    const card = (await tool(server, 'sim_run', { session, untilSerial: 'halted', duration: '1s' })).value as Run;
+    expect(card.serial.uno).toContain('uid A3 F1 C5 2E sak 08');
+    await tool(server, 'sim_input', { session, part: 'rfid', input: { kind: 'key', key: 'fob', down: true } });
+    const fob = (await tool(server, 'sim_run', { session, untilSerial: 'halted', duration: '1s' })).value as Run;
+    expect(fob.serial.uno).toContain('uid 5B 7E 0D 19 sak 08');
+    const state = (await tool(server, 'sim_state', { session, parts: ['rfid'] })).value as { parts: { rfid: Record<string, unknown> } };
+    expect(state.parts.rfid).toMatchObject({ card: 'fob', uid: '5B 7E 0D 19', kind: 'mifare-1k' });
+  }, 30_000);
+
   it('BT183: sim_state reads an OLED as braille lines (uno-sh1106: the circle, a corner pixel)', async () => {
     const server = testServer();
     const { session } = (await tool(server, 'open_example', { id: 'uno-sh1106' })).value as { session: string };

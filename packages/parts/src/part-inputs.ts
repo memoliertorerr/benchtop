@@ -82,6 +82,12 @@ export const PART_INPUTS: Readonly<Record<string, readonly PartInputSpec[]>> = {
   ds3231: [channel('temperature', 'the chip’s temperature (converted every 64 s and on CONV)', '°C', -40, 85)], // BT192
   'hc-sr04': [value('distance to the object (≤ 0 or > 400: no echo)', 'cm'), channel('distance', 'the same, as a channel', 'cm')],
   mpu6050: MPU_CHANNELS.map((c) => (c === 'temp' ? channel(c, 'die temperature', '°C') : c.startsWith('a') ? channel(c, `acceleration along ${c[1]}`, 'g') : channel(c, `rotation rate about ${c[1]}`, '°/s'))),
+  // BT197: one tag at a time on the antenna.
+  rc522: [
+    press('puts the card on the reader (taking the fob off)'),
+    release('takes the tag off the reader'),
+    { kind: 'key', does: 'down: true puts that tag on the reader (none: takes it off)', keys: ['card', 'fob', 'none'] },
+  ],
   'microsd-card': [value('the card in the socket: 1 inserted, 0 removed (it loses power)', 'boolean', 0, 1)],
   'ntc-temperature-sensor': [value('temperature', '°C', -55, 150)],
   'photoresistor-sensor': [value('illuminance', 'lux', 0)],

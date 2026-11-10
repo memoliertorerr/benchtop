@@ -1,0 +1,122 @@
+{
+  "format": 1,
+  "name": "esp32-rfid-logger",
+  "parts": [
+    {
+      "id": "esp",
+      "type": "esp32-devkit-v1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "rfid",
+      "type": "rc522",
+      "x": 45,
+      "y": -30,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w0",
+      "from": {
+        "part": "esp",
+        "pin": "D5"
+      },
+      "to": {
+        "part": "rfid",
+        "pin": "SDA"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w1",
+      "from": {
+        "part": "esp",
+        "pin": "D18"
+      },
+      "to": {
+        "part": "rfid",
+        "pin": "SCK"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "esp",
+        "pin": "D23"
+      },
+      "to": {
+        "part": "rfid",
+        "pin": "MOSI"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "esp",
+        "pin": "D19"
+      },
+      "to": {
+        "part": "rfid",
+        "pin": "MISO"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "esp",
+        "pin": "D22"
+      },
+      "to": {
+        "part": "rfid",
+        "pin": "RST"
+      },
+      "waypoints": [],
+      "color": "white"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "esp",
+        "pin": "GND.1"
+      },
+      "to": {
+        "part": "rfid",
+        "pin": "GND"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "esp",
+        "pin": "3V3"
+      },
+      "to": {
+        "part": "rfid",
+        "pin": "3.3V"
+      },
+      "waypoints": [],
+      "color": "red"
+    }
+  ],
+  "firmware": {
+    "esp": {
+      "kind": "file",
+      "name": "mfrc522-logger.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

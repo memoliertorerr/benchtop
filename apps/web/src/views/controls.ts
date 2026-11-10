@@ -119,6 +119,12 @@ export const CONTROLS: Readonly<Record<string, readonly Control[]>> = {
   fan: [slider('Flow', 'm³/min', 0, 20, 0.1, 'flow'), toggle('On')],
   'wifi-ap': [slider('Signal (RSSI)', 'dBm', -100, -20, 1, 'rssi'), toggle('Power')], // BT98
   'http-client': [{ kind: 'button', label: 'Send', input: press }], // BT100
+  // BT199: the tags on and off the reader.
+  rc522: [
+    { kind: 'button', label: 'Card on', input: { kind: 'key', key: 'card', down: true } },
+    { kind: 'button', label: 'Fob on', input: { kind: 'key', key: 'fob', down: true } },
+    { kind: 'button', label: 'Take off', input: { kind: 'key', key: 'none', down: true } },
+  ],
   person: [slider('Speed', 'm/s', 0, 3, 0.05, 'speed'), toggle('Walking')],
   object: [slider('Speed', 'm/s', 0, 3, 0.05, 'speed'), toggle('Moving')],
   mpu6050: [

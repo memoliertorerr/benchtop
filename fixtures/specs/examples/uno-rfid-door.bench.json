@@ -1,0 +1,35 @@
+{
+  "name": "example: uno-rfid-door",
+  "project": "../../projects/uno-rfid-door.json",
+  "firmware": {
+    "uno": "../../firmware/uno/rfid-door.hex"
+  },
+  "steps": [
+    {
+      "at": "200ms",
+      "part": "rfid",
+      "input": {
+        "kind": "press"
+      }
+    },
+    {
+      "at": "2800ms",
+      "part": "rfid",
+      "input": {
+        "kind": "key",
+        "key": "fob",
+        "down": true
+      }
+    }
+  ],
+  "expect": [
+    "serial contains \"granted A3 F1 C5 2E\" by 400ms",
+    "led green is lit at 600ms",
+    "led red is dark at 600ms",
+    "servo lock angle is 90 \u00b13 at 1s",
+    "servo lock angle is 0 \u00b13 at 2.7s",
+    "serial contains \"denied 5B 7E 0D 19\" by 3.1s",
+    "led red is lit at 3.2s",
+    "led green is dark at 3.2s"
+  ]
+}

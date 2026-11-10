@@ -149,6 +149,18 @@ export const ESP32_CHECKS: Record<string, (r: ExampleRun) => void> = {
     expect(r.serial('esp')).toContain('begin ok');
     expect(r.serial('esp')).toMatch(/t 18\.[12]\d p 950\.0\d/);
   },
+  'esp32-rfid-logger'(r) {
+    // BT199: a visit counter kept on the card, one more each time it's laid on the reader.
+    r.runTo(300);
+    r.input('rfid', { kind: 'press' });
+    r.runTo(450);
+    expect(r.serial('esp')).toMatch(/card A3 F1 C5 2E visit 1 at \d+ ms/);
+    r.input('rfid', { kind: 'release' });
+    r.runTo(500);
+    r.input('rfid', { kind: 'press' });
+    r.runTo(650);
+    expect(r.serial('esp')).toMatch(/visit 2 at/);
+  },
   'esp32-max7219-7seg'(r) {
     // BT189: "-HELP-01." in Code B, then the count.
     r.runTo(400);

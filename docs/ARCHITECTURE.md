@@ -806,6 +806,70 @@ Adafruit BMP280 3.0.0 (esp32/bmp280-adafruit: hardware SPI, normal mode, the fil
 power-up conversion ends, as on the chip). The sketch-local fixtures stay: they cover hardware SPI,
 the 595 and the Pico.
 
+**The RFID reader** (`packages/parts/src/rfid/`, NXP's MFRC522 datasheet rev 3.9).
+`mfrc522.ts` is the chip, bench-free (`Mfrc522` over a `Mfrc522Host`: time, timers, a nudge when
+the IRQ output or the field changed), the transfer path allocation-free. SPI as the datasheet frames
+it: an address byte (bit 7 read), reads returning the previous address's data (FIFODataReg read out
+by repeating its address, 00h ending), writes all to the one address. The registers at their reset
+values, VersionReg 92h; the 64-byte FIFO with its level, FlushBuffer, WaterLevel's HiAlert/LoAlert
+and their latched IRq bits, BufferOvfl; ComIrqReg/DivIrqReg through Set1/Set2, Status1's IRq from
+the enables, the IRQ pin from IRqInv and IRQPushPull (open-drain, active low out of reset); the
+timer at 13.56 MHz / (2·TPrescaler + 1), TimerIRq after TReload + 1 ticks, TAutoRestart,
+TStartNow/TStopNow, TAuto (starting at each transmission's end, stopping at an answer's fifth bit),
+TCounterVal. Commands: Idle, Mem, GenerateRandomID (a seeded generator: runs repeat), CalcCRC
+(CRC_A from ModeReg's preset, bytes written while it runs included, CRCIRq), Transmit, Receive,
+Transceive (StartSend, TxLastBits, RxAlign, RxLastBits; TxCRCEn appends CRC_A, RxCRCEn checks and
+strips it), MFAuthent (12 FIFO bytes to the card; MFCrypto1On and IdleIRq on success, a silent card
+left to the timer, a non-answer ProtocolErr; Tx/RxIRq blocked), SoftReset (the internal buffer
+kept); RcvOff and soft power-down kept, wake-up immediate. On air: 106 kbit/s, a frame 1 + 9 bits
+per byte + the last byte's bits + 1 ETUs (128/fc), the card's answer 100 µs after the reader's last
+bit (ISO 14443's 86–91 µs, rounded up) plus its own delay. **No Crypto1**: both ends are simulated
+and the host only ever sees plaintext in the FIFO, so MFAuthent asks the card (`Picc.authenticate`)
+and frames after it carry an `encrypted` flag instead. `picc.ts` is the card's side (`Picc`:
+`field`, `frame`, `authenticate`) and CRC_A. `rc522.ts` is the module (`rc522`: SDA (NSS), SCK,
+MOSI, MISO, IRQ, GND, RST, 3.3V on a 40 × 60 mm board): runs from 2.5 V; above 4.0 V
+`rc522-overvoltage` (error) and silence until the supply is back in range; RST pulled up on the
+board, low the chip's hard power-down, rising a hard reset. Our own view (apps/web views/rfid.ts:
+the antenna's copper lit while the field is on, the power LED). Not modelled: MSBFirst CRCs, the
+self test, speeds above 106 kbit/s, collisions (one card at a time).
+
+**The tags** (`rfid/cards.ts`). `Iso14443Card` is ISO/IEC 14443-3 type A: off without the
+field, IDLE, READY after REQA or WUPA (only WUPA wakes a HALT card) answering ATQA, anticollision and
+SELECT per cascade level (93h/95h; NVB 20h answers the level's 4 bytes and BCC — the cascade tag 88h
+first for a 7-byte UID —, a partial NVB the bits after the reader's known ones, NVB 70h with CRC_A
+selects and answers SAK, 04h while the UID goes on), ACTIVE, HLTA to HALT. Anything unexpected sends
+a card back to IDLE (HALT if WUPA found it there) silently — so a card left ACTIVE ignores the next
+REQA and answers the one after, as real ones do under the MFRC522 examples. `MifareClassic1k`
+(NXP's MF1S50): 64 blocks — block 0 the read-only manufacturer block (UID, BCC, SAK 08h, ATQA,
+"BENCHTOP" for NXP's data), each trailer key A, access bits, a general-purpose byte and key B as
+shipped (FFFFFFFFFFFFh, FF 07 80 69); MFAuthent (key A/B, the UID's last four bytes) opens a sector
+or meets silence and IDLE; then, encrypted only, READ, the two-step WRITE (4-bit ACKs, the second
+after a 2.5 ms EEPROM write, taken), INCREMENT/DECREMENT/RESTORE and TRANSFER on value blocks, each
+checked against the sector's access conditions for the key used (key B unusable where readable;
+access bits whose complements disagree block the sector), refusals the 4-bit NAK and IDLE.
+`Ntag213`: 45 pages — UID, BCC0/BCC1, static locks, the one-time-programmable capability container
+E1 10 12 00, 144 user bytes (an empty NDEF message), dynamic locks and configuration (AUTH0 FFh);
+READ rolling over, FAST_READ, WRITE (4.1 ms), COMPATIBILITY_WRITE, GET_VERSION; locks and read-only
+pages NAK. On the module: a card (`card`: `mifare-1k` or `ntag213`, `uid`) and the key fob (MIFARE
+Classic 1K, `fobUid`); `present` puts one on at power-up and after a reset; press/release and the
+keys `card`/`fob`/`none` move them while running. Tags keep what was written across resets; a bad
+UID is `rfid-uid` (warning) and the default. The editor gives each new reader's tags their own UIDs
+(`initialProps`). Fixture uno/rfid-uid: the sketch's own few functions — the version, the 25 ms
+timeout, a MIFARE Classic authenticated and its block 0 read, an NTAG's pages, HLTA. MISO is only
+carried inside SPI frames (the bench passes those bytes), so between frames the MCU's MISO input
+reports floating, as with the ILI9341. Under the MFRC522 library 1.4.12 (the Unlicense),
+installed from the Arduino library index and recorded in the manifest, unchanged: uno/mfrc522-dump
+(PCD_Init, the version, PICC_DumpToSerial — every sector authenticated with key A and read, the
+trailers' access bits, an NTAG's pages as "MIFARE Ultralight or Ultralight C") and
+esp32/mfrc522-logger (on VSPI: a visit counter in block 4 authenticated, read, written and read
+back — kept on the card across a bench reset). The reader takes the pointer while running
+(views/rfid.ts: a click puts the card on, or takes the tag off; registry `isInteractive`) and the
+Inspector has Card on, Fob on and Take off (views/controls.ts, the `card`/`fob`/`none` keys);
+`describe_part` lists those inputs and `sim_state` shows `card`, `uid` and `kind`. The gallery's
+RFID door lock (uno/rfid-door: the card opens a servo lock, the fob is refused) and ESP32 RFID
+visit counter (esp32/mfrc522-logger), each with a spec and a run check;
+fixtures/projects/rfid-uid.json runs uno/rfid-uid for the MCP server's test.
+
 Actuators (`packages/parts/src/actuators/`) decode their drive from exact edge timestamps
 or coil levels and never allocate per edge. The servo measures pulse widths (Servo.h's 544–2400
 µs ↔ 0–180°) and moves its horn lazily at 600 °/s. Steppers read their coils once they have been

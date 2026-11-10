@@ -989,6 +989,32 @@
     "description": "A 1-channel relay module, active low, changing two lamps over twice a second — after a 3 ms pulse too short to move it."
   },
   {
+    "id": "uno-rfid-door",
+    "title": "RFID door lock",
+    "category": "Sensors",
+    "project": "uno-rfid-door",
+    "boards": {
+      "uno": {
+        "firmware": "uno/rfid-door.hex",
+        "sketch": "uno/rfid-door"
+      }
+    },
+    "description": "An RC522 reader under the MFRC522 library: the white card opens the door — the servo unlocks, the green LED lights — and the blue key fob is refused. Put a tag on by clicking the reader."
+  },
+  {
+    "id": "esp32-rfid-logger",
+    "title": "ESP32 RFID visit counter",
+    "category": "ESP32",
+    "project": "esp32-rfid-logger",
+    "boards": {
+      "esp": {
+        "firmware": "esp32/mfrc522-logger.bin",
+        "sketch": "esp32/mfrc522-logger"
+      }
+    },
+    "description": "An RC522 on the ESP32’s VSPI: each time the card is laid on the reader, the sketch authenticates its sector, reads a visit counter from block 4, adds one and writes it back — the count lives on the card."
+  },
+  {
     "id": "esp32-tft",
     "title": "ESP32 color TFT",
     "category": "ESP32",

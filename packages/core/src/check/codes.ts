@@ -42,6 +42,14 @@ export const PROBLEM_CODES: Readonly<Record<string, ProblemCodeInfo>> = {
     title: 'Regulator input too low',
     hint: 'A linear regulator needs its input above its output by its dropout (2 V for a 7805, 1.1 V for an AMS1117); below that the output sags with the input. Use a higher input or a low-dropout regulator.',
   },
+  'rc522-overvoltage': {
+    title: 'RC522 on more than 4 V',
+    hint: 'The RC522 module\'s MFRC522 runs on 2.5–3.6 V and is damaged above 4 V: wire its 3.3V pin to the board\'s 3.3 V, not 5 V. Its signal pins are usually wired straight to an Uno\'s 5 V pins anyway.',
+  },
+  'rfid-uid': {
+    title: 'RFID tag UID not valid',
+    hint: 'A tag\'s UID is 4 or 7 bytes in hex ("A3 F1 C5 2E"; an NTAG213\'s is 7, and a 4-byte one can\'t start with 88). The tag uses its default until it\'s fixed in the Inspector.',
+  },
   'regulator-overvoltage': {
     title: 'Regulator input too high',
     hint: 'The input is above the regulator\'s maximum rating; a real one would be damaged. Lower the input or pick a regulator rated for it.',
