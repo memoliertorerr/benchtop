@@ -1,12 +1,15 @@
 # Benchtop
 
-A fast, visual **Arduino Uno + ESP32** circuit simulator that runs the exact firmware the
-Arduino IDE builds — in the browser, so sketches can be debugged and tested without hardware.
-Place a board, a breadboard and parts, wire them, drop a `.hex` / `.elf` / `.bin` on the board
-(or let the local compile bridge build your sketch on save), and press Run.
+A fast, visual circuit simulator for the **Arduino Uno, Nano and Mega**, the **ESP32, ESP32-C3,
+ESP32-S3 and ESP32-S2** and the **Raspberry Pi Pico, Pico W, Pico 2 and Pico 2 W** that runs the
+exact firmware the Arduino IDE builds — in the browser, so sketches can be debugged and tested
+without hardware. Place a board, a breadboard and parts, wire them, drop a `.hex` / `.elf` /
+`.bin` / `.uf2` on the board (or let the local compile bridge build your sketch on save), and press
+Run.
 
-> **Status: work in progress.** The Arduino Uno side is complete; the ESP32 boots real
-> firmware and runs GPIO, timers, serial, PWM, ADC, I2C, SPI and NeoPixels (see
+> **Status: work in progress.** All eleven boards run their real compiled firmware — with the
+> peripherals their sketches use, WiFi on the ESP32s and the Pico Ws, sleep, USB on the S3 and S2,
+> and MicroPython on the Picos — next to about 95 parts and 149 ready-to-run examples (see
 > [What works](#what-works)). Expect rough edges.
 
 ![An Arduino Uno driving a 16-pixel NeoPixel ring chained to an 8-pixel strip](docs/images/uno-neopixel.png)
@@ -19,6 +22,10 @@ Place a board, a breadboard and parts, wire them, drop a `.hex` / `.elf` / `.bin
 ![The logic analyzer capturing SoftwareSerial, PWM and a 1 kHz square wave from an Uno](docs/images/logic-analyzer.png)
 *The logic analyzer: probes on three pins of a running Uno — SoftwareSerial at 9600 baud, 490 Hz
 PWM and a 1 kHz toggle — with cursors and VCD export.*
+
+![An Uno drawing a heart, a smiley, an arrow and a checkerboard on a four-matrix MAX7219 module](docs/images/uno-max7219.png)
+*Kit parts: a MAX7219 4-in-1 LED matrix module (FC-16) on an Uno's hardware SPI, a picture per
+chip — one of the gallery's 149 examples.*
 
 ## What works
 
@@ -172,7 +179,7 @@ once. A sleeping board costs nothing to simulate — an hour asleep passes in an
 bench shows it asleep and what will wake it.
 
 **The bench** — breadboards (full, half, mini) where parts snap into holes, wires you draw,
-and ~40 parts: LEDs, RGB LEDs, buttons, switches, potentiometers, LCD1602/2004 (parallel and
+and about 95 parts: LEDs, RGB LEDs, buttons, switches, potentiometers, LCD1602/2004 (parallel and
 I2C), SSD1306 OLEDs (0.96″ and 0.91″ on I2C, 0.96″ on SPI, with the hardware scroll), a 1.3″ SH1106 OLED, an ILI9341 color TFT (SPI), 7-segment displays, MAX7219 LED matrices (8×8 and the 4-in-1) and an 8-digit MAX7219 module, a TM1637 4-digit clock display, LED bar graph, keypad, rotary encoder, joystick, DIP
 switches, an IR remote and receiver, PIR/LDR/NTC/sound sensors, DHT22, DS18B20 (1-Wire, several on one line), BME280 and BMP280 (I2C or SPI), HC-SR04, DS1307, a DS3231 module (alarms, its EEPROM),
 MPU-6050, a microSD card module, a load cell with an HX711, flame and MQ-2 gas modules, servo, steppers and an A4988
@@ -211,11 +218,11 @@ divider) carries the bytes, and a baud mismatch is reported.
 
 **Debugging** — a serial monitor and a serial plotter (numbers or `label:value` lines, graphed
 live); a Problems panel (shorts, drive fights, floating inputs, LED, pin and pin-group
-overcurrent, unpowered parts, 5 V on 3.3 V pins); a logic analyzer with VCD export; a Bus tab
+overcurrent, unpowered parts and boards, 5 V on 3.3 V pins); a logic analyzer with VCD export; a Bus tab
 that decodes every I2C, SPI and UART transaction the sketch makes with a part (addresses, bytes,
 ACKs, chip-select frames, timestamps); a CPU
-debugger for every board — the Uno, Nano and Mega, the Pico's core 0, the Pico 2's RISC-V hart
-and the ESP32's APP_CPU (breakpoints, stepping, registers, memory, source lines from DWARF); a GDB
+debugger for every board — the Uno, Nano and Mega, the Pico's core 0, the Pico 2's RISC-V hart,
+the ESP32's APP_CPU and the ESP32-C3's, ESP32-S3's and ESP32-S2's cores (breakpoints, stepping, registers, memory, source lines from DWARF); a GDB
 remote stub for the Uno; and a headless runner for CI that runs a circuit with scripted inputs
 and asserts on serial output and pins.
 
@@ -233,7 +240,7 @@ npm install
 npm run dev          # the editor at http://localhost:5173
 ```
 
-**Examples…** opens 96 ready-to-run circuits, each with its sketch, which you can change and
+**Examples…** opens 149 ready-to-run circuits, each with its sketch, which you can change and
 run again (Basics: blink, button, fade, traffic light, a Simon game, serial echo, an EEPROM boot
 counter, a Nano on a breadboard, an RC filter turning PWM into a steady voltage; Displays: LCDs,
 an LCD thermometer, OLED and an OLED clock, a 128×32 OLED's hardware scroll, a 1.3″ SH1106 OLED, a color TFT, 7-segment, bar graph, NeoPixels, a 74HC595 counting on eight LEDs, MAX7219 matrices and digits (with LedControl), a TM1637 counter; Sensors: DHT22, two DS18B20s on one 1-Wire line, a DS18B20 thermometer on a TM1637, a BME280 weather readout, a DS3231 clock and alarm, an RFID door lock,
@@ -259,7 +266,7 @@ and press Run — or write the sketch in the app: the **Code** tab edits the boa
 (highlighting, find, multiple files), and **Compile & Run** (⌘/Ctrl-Enter) builds it through
 the local compile bridge (`npm run bridge`, below) and runs it; errors show on their lines. The
 sketch is saved in the project. Edit the circuit while it runs: add a part, rewire, change a
-value — the boards keep running and the other parts keep their state. **Examples…** opens a gallery of ready-to-run circuits (Uno, Nano, Mega and ESP32), and
+value — the boards keep running and the other parts keep their state. **Examples…** opens a gallery of ready-to-run circuits (for every board), and
 **Open…** also imports a [Wokwi](https://wokwi.com) `diagram.json` — the circuit comes over
 (the ESP32-C3, ESP32-S3 and ESP32-S2 boards included), anything it can't map is listed in the Problems tab,
 and you drop the firmware on the board.
@@ -553,9 +560,17 @@ ESP32 tests need the ROM (`npm run fetch:esp32-rom`), the MicroPython tests the 
 ## Accuracy and limitations
 
 Benchtop aims for behavior you can trust while debugging, not cycle accuracy everywhere. The
-Uno is cycle-accurate through avr8js. The ESP32 counts one cycle per instruction plus flash
-cache stalls, interleaves its two cores in ~1 µs slices, and models only the peripherals listed
-above; registers without a model read their documented reset values and are reported. Analog
+Uno, Nano and Mega are cycle-accurate through avr8js. The ESP32 counts one cycle per instruction
+plus flash cache stalls, interleaves its two cores in ~1 µs slices, and models only the
+peripherals listed above (the C3, S3 and S2 likewise); registers without a model read their
+documented reset values and are reported. Buses are modelled as the transactions a sketch makes
+(I2C and SPI bytes, not the edges on SDA/SCL/SCK). The WiFi chips' own firmware isn't run: their
+drivers are answered at their lowest layer. An RFID card's MIFARE Classic authentication checks
+the key without running Crypto1 — both ends are simulated, so a sketch sees what it would on
+hardware — and one tag lies on a reader at a time. A board runs while its supply rail is above
+its chip's brown-out level and resets when power returns; batteries and supplies are ideal (no
+internal resistance, discharge or current limits), regulators have fixed dropouts, and a board's
+pins keep their nominal logic level on a sagging rail. Analog
 behavior comes from a resistive-network solver with piecewise-linear diodes and capacitors stepped
 in time (trapezoidal rule; networks of up to
 256 nets — 100 LEDs with their resistors on one pin solve, and the pin sags under them as a real
@@ -570,12 +585,17 @@ backed by tests (for example, ESP32 blink toggles every 500.000 ms of simulated 
   the Raspberry Pi Pico; the bootrom it runs is Benchtop's own.
 - [@wokwi/elements](https://github.com/wokwi/wokwi-elements) (MIT) — the part drawings, and
   the pin positions the part catalog copies from them.
+- [Preact](https://github.com/preactjs/preact) and
+  [@preact/signals](https://github.com/preactjs/signals) (MIT) — the app's UI.
 - [esp-rom-elfs](https://github.com/espressif/esp-rom-elfs) (Apache-2.0) — Espressif's ESP32,
   ESP32-C3, ESP32-S3 and ESP32-S2 ROMs, which you download yourself (above).
 - [pico-bootrom-rp2350](https://github.com/raspberrypi/pico-bootrom-rp2350) (BSD-3-Clause) —
   the RP2350's bootrom the Pico 2 boots through, which you download yourself (above).
 - [MicroPython](https://micropython.org) (MIT) — the stock Pico firmware MicroPython sketches
   run on, which you download yourself (above).
+- The Arduino cores (AVR, Arduino-ESP32 with ESP-IDF, Arduino-Pico) and the Arduino libraries
+  the test firmware and examples are built from, under their own licenses — each listed, with
+  the sketches that link it, in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Disclosures
 

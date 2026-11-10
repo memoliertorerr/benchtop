@@ -9,6 +9,6 @@ describe('screenshots script', () => {
   });
 
   it('has a README scene for every image the README shows', () => {
-    expect(README_SCENES.map((s) => s.name).sort()).toEqual(['esp32-neopixel', 'logic-analyzer', 'uno-neopixel', 'uno-oled']);
+    expect(README_SCENES.map((s) => s.name).sort()).toEqual(['esp32-neopixel', 'logic-analyzer', 'uno-max7219', 'uno-neopixel', 'uno-oled']);
   });
 });

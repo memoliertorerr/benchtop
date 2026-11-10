@@ -1,7 +1,7 @@
 {
   "name": "Benchtop",
   "short_name": "Benchtop",
-  "description": "Arduino Uno and ESP32 circuit simulator that runs real firmware in the browser.",
+  "description": "Arduino, ESP32 and Raspberry Pi Pico circuit simulator that runs real firmware in the browser.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

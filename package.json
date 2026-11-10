@@ -2,7 +2,7 @@
   "name": "benchtop",
   "version": "0.0.0",
   "private": true,
-  "description": "Fast, visual Arduino Uno + ESP32 circuit simulator for debugging sketches without hardware.",
+  "description": "Fast, visual Arduino, ESP32 and Raspberry Pi Pico circuit simulator that runs real firmware, for debugging sketches without hardware.",
   "type": "module",
   "license": "MIT",
   "engines": {

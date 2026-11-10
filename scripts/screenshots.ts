@@ -44,6 +44,7 @@ export const README_SCENES: Scene[] = [
   { name: 'esp32-neopixel', project: 'esp32-neopixel', firmware: 'fixtures/firmware/esp32/neopixel.bin', wait: 1800 },
   { name: 'uno-oled', project: 'ssd1306-adafruit', firmware: 'fixtures/firmware/uno/ssd1306-adafruit.hex', wait: 2500 },
   { name: 'logic-analyzer', project: 'logic-demo', firmware: 'fixtures/firmware/uno/logic-demo.hex', wait: 2500, probes: ['3', '9', '7'], tab: 'Logic analyzer' },
+  { name: 'uno-max7219', project: 'uno-max7219', firmware: 'fixtures/firmware/uno/max7219.hex', wait: 2500 },
 ];
 
 const REPO = resolve(new URL('..', import.meta.url).pathname);

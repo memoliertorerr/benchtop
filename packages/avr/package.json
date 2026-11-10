@@ -2,7 +2,7 @@
   "name": "@benchtop/avr",
   "version": "0.0.0",
   "private": true,
-  "description": "Arduino Uno (ATmega328P) MCU adapter built on avr8js. DOM-free.",
+  "description": "Arduino Uno, Nano and Mega (ATmega328P, ATmega2560) MCU adapter built on avr8js. DOM-free.",
   "type": "module",
   "sideEffects": false,
   "exports": {
