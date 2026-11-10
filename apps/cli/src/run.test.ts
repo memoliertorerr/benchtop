@@ -79,6 +79,24 @@ describe('runHeadless', () => {
     expect(report.problems.filter((p) => p.code.startsWith('esp32-wifi'))).toEqual([]);
   });
 
+  it('BT203: `board <id> is on|off` — an Uno off USB with nothing on VIN never runs; with USB it does', () => {
+    const project = (usbPowered: boolean) => ({ format: 1, name: 'power', parts: [{ id: 'uno', type: 'arduino-uno', x: 0, y: 0, rotation: 0, props: { usbPowered } }, { id: 'led1', type: 'led', x: 40, y: 0, rotation: 0, props: {} }], wires: [], firmware: {} });
+    const options = { project: 'p.json', firmware: { uno: 'fixtures/firmware/uno/eeprom-counter.hex' }, expect: ['board uno is off at 100ms', 'serial contains "boot" by 200ms'] };
+    const off = runHeadless(options, io({ 'p.json': JSON.stringify(project(false)) }));
+    expect(off.assertions.map((a) => [a.text, a.ok, a.detail])).toEqual([
+      ['board uno is off at 100ms', true, 'off (no power)'],
+      ['serial contains "boot" by 200ms', false, 'not seen by 200 ms'],
+    ]);
+    const on = runHeadless(options, io({ 'p.json': JSON.stringify(project(true)) }));
+    expect(on.assertions.map((a) => [a.ok, a.detail])).toEqual([
+      [false, 'on'],
+      [true, expect.stringMatching(/^seen at /)],
+    ]);
+    expect(parseAssertion('board uno is on at 2s')).toMatchObject({ kind: 'board', part: 'uno', on: true, at: 2e9 });
+    const notBoard = runHeadless({ ...options, expect: ['board led1 is on at 1s'] }, io({ 'p.json': JSON.stringify(project(true)) }));
+    expect(notBoard).toMatchObject({ exitCode: 2, error: expect.stringMatching(/"led1" is a led, not a board/) });
+  });
+
   it('a failing assertion → exit 1 with the level it saw', () => {
     const report = run({ expect: ['pin uno:13 is 1 at 500ms', 'serial contains "pressed" by 1s'] });
     expect(report).toMatchObject({ ok: false, exitCode: 1, error: null });

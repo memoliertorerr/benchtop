@@ -6,12 +6,14 @@
  * Header pins '0'–'13' and 'A0'–'A5' map to the ATmega328P's ports; 'A4.2'/'A5.2' are the
  * SDA/SCL header next to AREF, joined to A4/A5 by buses, and the three GND pins share a bus.
  *
- * Model: the onboard L, power, TX and RX LEDs (arduino-leds.ts, shared with the Nano).
+ * Model: the onboard L, power, TX and RX LEDs (arduino-leds.ts, shared with the Nano). BT201: its
+ * power (arduino-power.ts) — `usbPowered` (default true), else VIN through the 5 V regulator or the
+ * 5V pin; IOREF follows the 5V rail, as on the board.
  */
 
 import type { PinDef, PinRole } from '@benchtop/core';
 import { definePart } from '../define.ts';
-import { arduinoLedsModel } from './arduino-leds.ts';
+import { arduinoBoardModel } from './arduino-leds.ts';
 
 /** [name, x mm, y mm] from the element, top header then bottom header. */
 const PIN_TABLE: readonly (readonly [string, number, number])[] = [
@@ -48,8 +50,8 @@ const PIN_TABLE: readonly (readonly [string, number, number])[] = [
   ['A5', 67.601, 50.668],
 ];
 
-/** Supply pins: defined volts make them sources (see PinDef.volts). */
-const SUPPLY: Readonly<Record<string, number>> = { '5V': 5, '3.3V': 3.3, IOREF: 5, 'GND.1': 0, 'GND.2': 0, 'GND.3': 0 };
+/** Ground pins: defined volts make them sources (see PinDef.volts). BT201: the rails are the model's. */
+const SUPPLY: Readonly<Record<string, number>> = { 'GND.1': 0, 'GND.2': 0, 'GND.3': 0 };
 
 function role(name: string): PinRole {
   if (name.startsWith('GND')) return 'ground';
@@ -81,7 +83,7 @@ export const arduinoUno = definePart({
     ['A4', 'A4.2'],
     ['A5', 'A5.2'],
   ],
-  defaults: {},
+  defaults: { usbPowered: true },
   board: { mcu: 'atmega328p', pinMap },
-  createModel: arduinoLedsModel,
+  createModel: arduinoBoardModel({ board: 'Uno', ground: 'GND.1', usbCutoff: 6.6, rail3v3: 'ldo', clockMin: 3.78, ioref: true }),
 });

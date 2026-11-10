@@ -233,6 +233,19 @@ export const UNO_CHECKS: Record<string, (r: ExampleRun) => void> = {
     r.runTo(950);
     expect(r.visual('k')?.closed).toBe(false);
   },
+  'uno-brown-out'(r) {
+    // BT203: the supply turned down browns the Uno out; back up, it boots again (its EEPROM counts).
+    r.runTo(300);
+    expect(r.serial('uno')).toContain('boot 1');
+    r.input('psu', { kind: 'value', value: 3 });
+    r.runTo(600);
+    expect(r.bench.boardPowered('uno')).toBe(false);
+    expect(r.visual('uno')).toMatchObject({ ledPower: true }); // the ON LED glows on 1.9 V
+    r.input('psu', { kind: 'value', value: 9 });
+    r.runTo(1000);
+    expect(r.bench.boardPowered('uno')).toBe(true);
+    expect(r.serial('uno')).toContain('boot 2');
+  },
   'uno-rfid-door'(r) {
     // BT199: the card opens the door under the MFRC522 library; the fob is refused.
     r.runTo(200);

@@ -10,12 +10,13 @@
  * 'A0'–'A15' are PF0–PF7 and PK0–PK7. 'SCL'/'SDA' (the header by AREF) are joined to D21/D20 by
  * buses; the five GND pins share a bus, as do 5V, 5V.1 and 5V.2. VIN is an input like the Uno's.
  *
- * Model: the Uno's onboard L, power, TX and RX LEDs (arduino-leds.ts; L follows D13).
+ * Model: the Uno's onboard L, power, TX and RX LEDs (arduino-leds.ts; L follows D13). BT201: its
+ * power (arduino-power.ts) as the Uno's; IOREF follows the 5V rail.
  */
 
 import type { PinDef, PinRole } from '@benchtop/core';
 import { definePart } from '../define.ts';
-import { arduinoLedsModel } from './arduino-leds.ts';
+import { arduinoBoardModel } from './arduino-leds.ts';
 
 const PX = 25.4 / 96;
 
@@ -120,13 +121,8 @@ const DIGITAL: readonly string[] = [
   'PB3', 'PB2', 'PB1', 'PB0',
 ];
 
-/** Supply pins: defined volts make them sources (see PinDef.volts). */
+/** Ground pins: defined volts make them sources (see PinDef.volts). BT201: the rails are the model's. */
 const SUPPLY: Readonly<Record<string, number>> = {
-  '5V': 5,
-  '5V.1': 5,
-  '5V.2': 5,
-  '3.3V': 3.3,
-  IOREF: 5,
   'GND.1': 0,
   'GND.2': 0,
   'GND.3': 0,
@@ -169,7 +165,7 @@ export const arduinoMega = definePart({
     ['SCL', '21'],
     ['SDA', '20'],
   ],
-  defaults: {},
+  defaults: { usbPowered: true },
   board: { mcu: 'atmega2560', pinMap },
-  createModel: arduinoLedsModel,
+  createModel: arduinoBoardModel({ board: 'Mega', ground: 'GND.1', usbCutoff: 6.6, rail3v3: 'ldo', clockMin: 4.5, ioref: true }),
 });

@@ -9,7 +9,7 @@
  * views/esp32-s3-devkitc-1.ts. GPIO26–32 (the module's flash) and 33–34 aren't on the headers.
  *
  * Header pins map to GPIOs: IO<n> → GPIO<n>, TX/RX → GPIO43/GPIO44 (UART0, which the board's
- * USB-UART bridge carries to the serial monitor). 3V3 is the 3.3 V supply; 5V is USB's 5 V while
+ * USB-UART bridge carries to the serial monitor). 3V3 is the 3.3 V rail; 5V is USB's 5 V while
  * prop `usbPowered` is true (the default), else an input; the GNDs and the 3V3s are each one bus.
  * BT135: prop `module` — `auto` (the default), `N8`, `N8R2` or `N8R8` (boards/modules.ts) — tells
  * the MCU factory which PSRAM the board's module has (on an R8 module the octal PSRAM also takes
@@ -20,12 +20,14 @@
  * 2.0.17's `esp32s3` variant says 48: `RGB_BUILTIN`, which `neopixelWrite` drives through the RMT):
  * its DIN edges on IO48 are decoded like a NeoPixel's (Ws2812Decoder) and the color shows as
  * `pixels[0]` (0xRRGGBB) in the board's visual state, as the C3 DevKitM-1's does (so `pixel s3[0]
- * is #rrggbb` assertions read it); `ledPower` is always on.
+ * is #rrggbb` assertions read it); `ledPower` the power LED. BT202: its power
+ * (board-power.ts) — 5V through the board's LDO to 3V3, or 3V3 from outside; the brown-out.
  */
 
-import { type PartContext, type PinDef, type PinRole, Strength } from '@benchtop/core';
+import type { PartContext, PinDef, PinRole } from '@benchtop/core';
 import { Ws2812Decoder } from '../actuators/ws2812-decoder.ts';
 import { definePart } from '../define.ts';
+import { boardPower, type BoardPowerSpec, LDO_DROPOUT } from './board-power.ts';
 
 const PITCH = 2.54;
 /** Board outline (mm): 1" × 2.5"; the headers 0.9" apart, 1.27 mm in from each edge. */
@@ -51,11 +53,24 @@ function role(name: string): PinRole {
 const pins: PinDef[] = [];
 J1.forEach((name, i) => pins.push({ name, x: LEFT_X, y: Math.round((FIRST_Y + i * PITCH) * 1000) / 1000, role: role(name) }));
 J3.forEach((name, i) => pins.push({ name, x: RIGHT_X, y: Math.round((FIRST_Y + i * PITCH) * 1000) / 1000, role: role(name) }));
-for (const pin of pins) if (pin.name.startsWith('3V3')) pin.volts = 3.3;
 for (const pin of pins) if (pin.name.startsWith('GND')) pin.volts = 0;
 
 const pinMap: Record<string, string> = { TX: 'GPIO43', RX: 'GPIO44' };
 for (const pin of pins) if (/^IO\d+$/.test(pin.name)) pinMap[pin.name] = `GPIO${pin.name.slice(2)}`;
+
+/** BT202: USB's (or an outside) 5 V on 5V through the board's 3.3 V LDO (its input taken as 6 V at most, its dropout as the AMS1117's). */
+const S3_DEVKIT_POWER: BoardPowerSpec = {
+  board: 'ESP32-S3-DevKitC-1',
+  ground: 'GND.1',
+  usbPins: ['5V'],
+  input: '5V',
+  rail: '3V3.1',
+  regulator: { kind: 'ldo', dropout: LDO_DROPOUT, maxIn: 6 },
+  brownOut: 2.5,
+  maxRail: 3.6,
+  minRail: 3.0,
+  chip: 'ESP32-S3',
+};
 
 export const esp32S3DevkitC1 = definePart({
   type: 'esp32-s3-devkitc-1',
@@ -67,12 +82,13 @@ export const esp32S3DevkitC1 = definePart({
   defaults: { usbPowered: true, module: 'auto' },
   board: { mcu: 'esp32s3', pinMap },
   createModel(ctx: PartContext, props: { usbPowered: boolean; module: string }) {
-    if (props.usbPowered !== false) ctx.pin('5V').driveVolts(5, Strength.supply);
+    // BT202: USB's 5 V on 5V, through the board's LDO to 3V3 (board-power.ts).
+    const supply = boardPower(ctx, props.usbPowered !== false, S3_DEVKIT_POWER);
     // The RGB LED: a WS2812 whose DIN is GPIO48 (the board's IO48 header pin is the same net).
     const din = ctx.pin(`IO${S3_DEVKITC1_RGB_GPIO}`);
     const decoder = new Ws2812Decoder(1);
     const pixels = [0];
-    const visual = { pixels, ledPower: true };
+    const visual = { pixels, ledPower: supply.led.on };
     let high = false;
     let armed = false;
     const check = (): void => {
@@ -105,11 +121,14 @@ export const esp32S3DevkitC1 = definePart({
       }
     });
     return {
+      power: supply.power,
       visual() {
         pixels[0] = decoder.pixels[0];
+        visual.ledPower = supply.led.on;
         return visual;
       },
       reset() {
+        supply.reset();
         decoder.reset();
         armed = false;
         high = din.read().level === 1;

@@ -22,8 +22,8 @@
  *   `digits <part> show "<text>"` (BT189: also the MAX7219's 8-digit and the TM1637's modules, by
  *   their lit segments); BT183: `oled <part> pixel <x>,<y> is <on|off>` (an OLED's pixel as
  *   shown: `oledPixel` from @benchtop/parts); BT189: `matrix <part> row <r> shows "<#.…>"` (a
- *   MAX7219 matrix module's row, left to right, '#'/'1' lit and '.'/'0' dark). ± may be written
- *   +- or +/-.
+ *   MAX7219 matrix module's row, left to right, '#'/'1' lit and '.'/'0' dark); BT203: `board <board>
+ *   is <on|off>` (whether its MCU has power). ± may be written +- or +/-.
  * - BT55: `env <gas|temperature|humidity|light|sound> at <part> is <v> ±<tol> at <time>` (or
  *   `>`, `<`, `>=`, `<=` <v>): the environment's value at a part that sits in it (a sensor, a
  *   source, a body) — ppm, °C, %RH, lux, dB.
@@ -166,6 +166,7 @@ export type Assertion =
   | { kind: 'volts'; text: string; part: string; pin: string; volts: number; tolerance: number; at: number }
   | { kind: 'led'; text: string; part: string; lit: boolean; at: number }
   | { kind: 'servo'; text: string; part: string; angle: number; tolerance: number; at: number }
+  | { kind: 'board'; text: string; part: string; on: boolean; at: number }
   | { kind: 'motor'; text: string; part: string; rpm: number; tolerance: number; at: number }
   | { kind: 'oled'; text: string; part: string; x: number; y: number; lit: boolean; at: number }
   | { kind: 'lcd'; text: string; part: string; row: number; expected: string; at: number }
@@ -217,6 +218,7 @@ const FORMS = [
   'pin <part>:<pin> duty is <pct>% ±<pct>% between <time> and <time>',
   'led <part> is <lit|dark> at <time>',
   'servo <part> angle is <deg> ±<deg> at <time>',
+  'board <board> is <on|off> at <time>',
   'motor <part> rpm is <rpm> ±<rpm> at <time>',
   'lcd <part> row <n> is "<text>" at <time>',
   'pixel <part>[<i>] is #rrggbb at <time>',
@@ -245,6 +247,7 @@ const GRAMMAR = {
   frequency: re(String.raw`pin\s+([^\s:]+):(\S+)\s+frequency\s+is\s+${NUM}\s*(?:Hz)?${PM}${NUM}\s*%\s+between\s+(\S+)\s+and\s+(\S+)`),
   duty: re(String.raw`pin\s+([^\s:]+):(\S+)\s+duty\s+is\s+${NUM}\s*%${PM}${NUM}\s*%?\s+between\s+(\S+)\s+and\s+(\S+)`),
   led: re(String.raw`led\s+(\S+)\s+is\s+(lit|dark)\s+at\s+(\S+)`),
+  board: re(String.raw`board\s+(\S+)\s+is\s+(on|off)\s+at\s+(\S+)`),
   servo: re(String.raw`servo\s+(\S+)\s+angle\s+is\s+(-?\d+(?:\.\d+)?)\s*°?${PM}${NUM}\s*°?\s+at\s+(\S+)`),
   motor: re(String.raw`motor\s+(\S+)\s+rpm\s+is\s+(-?\d+(?:\.\d+)?)${PM}${NUM}\s+at\s+(\S+)`),
   oled: re(String.raw`oled\s+(\S+)\s+pixel\s+(\d{1,3})\s*,\s*(\d{1,3})\s+is\s+(on|off)\s+at\s+(\S+)`),
@@ -299,6 +302,7 @@ export function parseAssertion(text: string): Assertion {
     return a;
   }
   if ((m = GRAMMAR.led.exec(t)) !== null) return { kind: 'led', text: t, part: m[1], lit: m[2] === 'lit', at: parseTime(m[3]) };
+  if ((m = GRAMMAR.board.exec(t)) !== null) return { kind: 'board', text: t, part: m[1], on: m[2] === 'on', at: parseTime(m[3]) };
   if ((m = GRAMMAR.servo.exec(t)) !== null) return { kind: 'servo', text: t, part: m[1], angle: Number(m[2]), tolerance: Number(m[3]), at: parseTime(m[4]) };
   if ((m = GRAMMAR.motor.exec(t)) !== null) return { kind: 'motor', text: t, part: m[1], rpm: Number(m[2]), tolerance: Number(m[3]), at: parseTime(m[4]) };
   if ((m = GRAMMAR.oled.exec(t)) !== null) return { kind: 'oled', text: t, part: m[1], x: Number(m[2]), y: Number(m[3]), lit: m[4] === 'on', at: parseTime(m[5]) };
@@ -624,6 +628,10 @@ function checkAgainstProject(a: Assertion, doc: ProjectDoc, boards: readonly str
   const part = doc.parts.find((p) => p.id === a.part);
   if (part === undefined) throw new UsageError(`${a.text}: no part "${a.part}"`);
   if (a.kind === 'bus') return;
+  if (a.kind === 'board') {
+    if (CATALOG.get(part.type)?.board === undefined) throw new UsageError(`${a.text}: "${a.part}" is a ${part.type}, not a board`);
+    return;
+  }
   if (a.kind === 'served' || a.kind === 'got') {
     const want = a.kind === 'served' ? 'http-server' : 'http-client';
     if (part.type !== want) throw new UsageError(`${a.text}: "${a.part}" is a ${part.type}, not an ${want} part`);
@@ -1037,6 +1045,10 @@ export function runHeadless(options: RunOptions, io: RunIo): RunReport {
           results.set(a, { text: a.text, ok: Math.abs(volts - a.volts) <= a.tolerance, atNs: t, detail: `${Number.isNaN(volts) ? 'no net' : `${volts.toFixed(3)} V`}` });
         } else if (a.kind === 'env') {
           results.set(a, { text: a.text, atNs: t, ...checkEnv(a, bench.envSample(a.part, a.field)) });
+        } else if (a.kind === 'board') {
+          // BT203: whether the board's MCU has power.
+          const on = bench.boards().includes(a.part) ? bench.boardPowered(a.part) : null;
+          results.set(a, { text: a.text, ok: on === a.on, atNs: t, detail: on === null ? `"${a.part}" has no MCU on the bench` : on ? 'on' : 'off (no power)' });
         } else {
           const type = doc.parts.find((p) => p.id === a.part)?.type ?? '';
           results.set(a, { text: a.text, atNs: t, ...checkVisual(a, latest.get(a.part), type) });

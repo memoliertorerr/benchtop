@@ -184,7 +184,9 @@ motor that spins up, brakes and coasts like one, an L298N motor driver, a 74HC59
 (chained, bit-banged or on SPI) and a 74HC165 to read many buttons, a 1-channel relay module, an RC522 RFID
 reader with its MIFARE Classic card and key fob (or an NTAG213 tag), and power parts —
 9 V, AA, LiPo and coin-cell batteries, a bench supply you turn while it runs, a ground symbol and
-7805, AMS1117 and MCP1700 regulators that drop out like the real ones.
+7805, AMS1117 and MCP1700 regulators that drop out like the real ones. A board can run from them
+too: turn its USB power off and it runs from VIN, 5V, 3V3 or VSYS through its own regulator — it
+stops when the supply goes, browns out when it sags, and boots again when it comes back.
 Sound goes
 both ways through your computer: a speaker plays the waveform its pin really makes — tone(),
 PWM-DAC samples, the ESP32's DAC — and a microphone part can listen to your microphone (only
@@ -239,7 +241,7 @@ HC-SR04 and a distance meter, DS1307, MPU-6050, an IR remote, a kitchen scale, a
 gas meter, keypad, rotary encoder; Motors: servo sweep, a
 servo knob, a keypad lock, a stepper, an A4988 stepper driver, a relay, a relay switched by a transistor, a DC motor on an L298N, two relays with and without a flyback diode; Sound: buzzers, a speaker melody, PCM through PWM,
 a microphone pitch meter, a VU meter; Power: a regulator meter (turn the bench supply and watch a
-7805 drop out); Storage: an SD card datalogger; Environment: a gas alarm with an extractor fan, a PIR
+7805 drop out), an ESP32 on a LiPo, an Uno brown-out; Storage: an SD card datalogger; Environment: a gas alarm with an extractor fan, a PIR
 hallway light, a parking sensor, a thermostat; ESP32: blink, serial, button, an LED Preferences remember, a deep sleep wake counter, a touch LED, a touch wake from deep sleep, a PWM fader, NeoPixel, a
 rainbow ring, an OLED clock, an SPI OLED, a color TFT, a WROVER's frame buffer in PSRAM, the DAC, a joystick on ADC2, a MOSFET dimmer, a motor switched by a MOSFET and one speed-controlled through it, the microphone, an I2C scan, an RFID visit counter kept on the card; ESP32-C3: the RGB LED,
 serial, a potentiometer dimmer, an OLED clock; ESP32-S3: the RGB LED, serial, a potentiometer dimmer, an OLED clock, a deep sleep wake counter, a

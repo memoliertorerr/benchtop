@@ -677,6 +677,32 @@
     "description": "A bench supply feeds an LM7805; the Uno measures its output through a 10 kΩ/10 kΩ divider and prints it. Turn the supply below 7 V in the Inspector: the regulator drops out, the reading sags and the Problems tab says why."
   },
   {
+    "id": "esp32-lipo",
+    "title": "ESP32 on a LiPo",
+    "category": "Power",
+    "project": "esp32-lipo",
+    "boards": {
+      "esp": {
+        "firmware": "esp32/blink.bin",
+        "sketch": "esp32/blink"
+      }
+    },
+    "description": "An ESP32 DevKit with USB power off, running from a LiPo through an MCP1700 regulator into its 3V3 pin: flip the switch and the board goes dark — the sketch stops — flip it back and it boots again."
+  },
+  {
+    "id": "uno-brown-out",
+    "title": "Uno brown-out",
+    "category": "Power",
+    "project": "uno-brown-out",
+    "boards": {
+      "uno": {
+        "firmware": "uno/eeprom-counter.hex",
+        "sketch": "uno/eeprom-counter"
+      }
+    },
+    "description": "An Uno on a bench supply into VIN, USB off. Turn the supply down: below about 3.8 V the 5V rail falls under the ATmega’s 2.7 V brown-out and the board stops; turn it back up and it boots again — its EEPROM counts each boot."
+  },
+  {
     "id": "sd-datalogger",
     "title": "SD card datalogger",
     "category": "Storage",

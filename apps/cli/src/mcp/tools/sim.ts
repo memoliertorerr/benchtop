@@ -275,7 +275,7 @@ export const simState: Tool<SimContext> = {
   name: 'sim_state',
   title: 'Read a live simulation\'s state',
   description:
-    'What an open session shows now: each part\'s visual state (an LED\'s brightness, a servo\'s angle, an LCD\'s text, a NeoPixel\'s colors, a display\'s framebuffer summarized unless "full" — an OLED\'s image as "screen": braille lines, 2 × 4 pixels a character; a MAX7219 matrix\'s dots as "screen": "#"/"." lines; a 7-segment display\'s digits as "shows"), the level and volts of the pins asked for ("part:pin"), and the boards asleep (an ESP32\'s, ESP32-C3\'s, ESP32-S3\'s or ESP32-S2\'s light or deep sleep: "sleeping", with what wakes it — the timer\'s time, the wake pins), and for an ESP32-S3 or ESP32-S2 whose sketch uses its own USB (USB-OTG) what the bench\'s USB host received ("usb": the device, what it uses, the text a keyboard typed, the last 50 events — mouse, media keys, MIDI messages). Filter parts with "parts".',
+    'What an open session shows now: each part\'s visual state (an LED\'s brightness, a servo\'s angle, an LCD\'s text, a NeoPixel\'s colors, a display\'s framebuffer summarized unless "full" — an OLED\'s image as "screen": braille lines, 2 × 4 pixels a character; a MAX7219 matrix\'s dots as "screen": "#"/"." lines; a 7-segment display\'s digits as "shows"), the level and volts of the pins asked for ("part:pin"), the boards without power ("unpowered": their MCU doesn\'t run — a board off USB whose pins get too little), and the boards asleep (an ESP32\'s, ESP32-C3\'s, ESP32-S3\'s or ESP32-S2\'s light or deep sleep: "sleeping", with what wakes it — the timer\'s time, the wake pins), and for an ESP32-S3 or ESP32-S2 whose sketch uses its own USB (USB-OTG) what the bench\'s USB host received ("usb": the device, what it uses, the text a keyboard typed, the last 50 events — mouse, media keys, MIDI messages). Filter parts with "parts".',
   inputSchema: {
     type: 'object',
     properties: {
@@ -307,7 +307,9 @@ export const simState: Tool<SimContext> = {
       const sleep = session.bench.sleepOf(board);
       if (sleep !== null) sleeping[board] = { sleep: sleep.deep ? 'deep' : 'light', ...(sleep.wakeAt === null ? {} : { timerWakesAt: timeText(Math.round(sleep.wakeAt / 1e6) * 1e6) }), wakePins: sleep.pins };
     }
-    // BT139: boards whose USB host has a device: what it received.
+    // BT203: boards without power (their MCU doesn't run).
+    const unpowered = session.boards.filter((board) => !session.bench.boardPowered(board));
+        // BT139: boards whose USB host has a device: what it received.
     const usb: Record<string, unknown> = {};
     for (const board of session.boards) {
       const host = session.bench.usbOf(board);
@@ -326,7 +328,7 @@ export const simState: Tool<SimContext> = {
         locks: (['num', 'caps', 'scroll'] as const).filter((l) => host.locks[l]),
       };
     }
-    return { session: session.id, now: timeText(session.bench.now()), parts, ...(Object.keys(pins).length > 0 ? { pins } : {}), ...(Object.keys(sleeping).length > 0 ? { sleeping } : {}), ...(Object.keys(usb).length > 0 ? { usb } : {}) };
+    return { session: session.id, now: timeText(session.bench.now()), parts, ...(Object.keys(pins).length > 0 ? { pins } : {}), ...(Object.keys(sleeping).length > 0 ? { sleeping } : {}), ...(unpowered.length > 0 ? { unpowered } : {}), ...(Object.keys(usb).length > 0 ? { usb } : {}) };
   },
 };
 

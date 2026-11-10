@@ -372,6 +372,20 @@ describe('live sessions', () => {
     expect(state.parts.rfid).toMatchObject({ card: 'fob', uid: '5B 7E 0D 19', kind: 'mifare-1k' });
   }, 30_000);
 
+  it('BT203: sim_state lists the boards without power (uno-brown-out: the supply turned down, then up)', async () => {
+    const server = testServer();
+    const { session } = (await tool(server, 'open_example', { id: 'uno-brown-out' })).value as { session: string };
+    await tool(server, 'sim_run', { session, duration: '300ms' });
+    expect(((await tool(server, 'sim_state', { session, parts: ['uno'] })).value as { unpowered?: string[] }).unpowered).toBeUndefined();
+    await tool(server, 'sim_input', { session, part: 'psu', input: { kind: 'value', value: 3 } });
+    await tool(server, 'sim_run', { session, duration: '100ms' });
+    const off = (await tool(server, 'sim_state', { session, parts: ['uno'] })).value as { unpowered?: string[]; parts: { uno: Record<string, unknown> } };
+    expect(off.unpowered).toEqual(['uno']);
+    await tool(server, 'sim_input', { session, part: 'psu', input: { kind: 'value', value: 9 } });
+    const back = (await tool(server, 'sim_run', { session, untilSerial: 'boot 2', duration: '1s' })).value as Run;
+    expect(back.stoppedBy).toBe('serial');
+  }, 30_000);
+
   it('BT183: sim_state reads an OLED as braille lines (uno-sh1106: the circle, a corner pixel)', async () => {
     const server = testServer();
     const { session } = (await tool(server, 'open_example', { id: 'uno-sh1106' })).value as { session: string };

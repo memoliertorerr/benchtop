@@ -42,8 +42,10 @@ describe('Raspberry Pi Pico board part', () => {
     expect(Math.abs((((tp5.y - 1.37) / 2.54) % 1) - 0.5)).toBeLessThan(0.45);
   });
 
-  it('powers 3V3 and, over USB, VBUS and VSYS; every ground is one bus', () => {
-    expect(pin('3V3').volts).toBe(3.3);
+  it('its rails are its model’s (BT202: 3V3 from the buck-boost, VBUS and VSYS over USB); every ground is one bus', () => {
+    expect(pin('3V3').volts).toBeUndefined();
+    expect(pin('3V3').role).toBe('power');
+    expect(pin('GND.1').volts).toBe(0);
     expect(raspberryPiPico.defaults).toEqual({ usbPowered: true });
     expect(raspberryPiPico.buses?.[0]).toHaveLength(8);
   });

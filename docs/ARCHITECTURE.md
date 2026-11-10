@@ -1298,6 +1298,50 @@ from the bench, `onOutputChange` fired synchronously from inside the run) and it
 SPI peripherals. A board part's `BoardSpec` names the
 MCU kind and maps header pins (`13`, `A0`, `GPIO2`) to MCU pin ids (`PB5`, `PC0`, `GPIO2`).
 
+**Board power** (`bench/power.ts`). A board's part model may carry `power` (`BoardPower`:
+`on`, the MCU's supply at or above its brown-out level) — a bench convention, not a contract; a
+board without it always runs. The run loop reads it at every slice: off, the MCU isn't run (no
+cycles) and its pins are released (they float); on again, a power-on reset — the MCU resets, its
+non-volatile memory kept, its clock restarted at bench time (`Bench.boardPowered(id)`). A bench
+reset starts every MCU powered and its board's model then says. Part models are built in supply
+order — power parts, then boards, then the rest — so a part's logic supply (its first consumer
+power pin's volts) is read once the rails are driven, wherever it sits in the document; the slots
+keep the document's order.
+
+**The Arduino boards' power** (`boards/arduino-power.ts`). The Uno, Nano and Mega drive their
+rails from their models (only GND keeps `PinDef.volts`). `usbPowered` (default true) puts USB's 5 V
+on the 5V rail, as before; off — or once VIN passes 6.6 V on the Uno and Mega, whose comparator then
+cuts USB (the Rev3 schematic's LMV358) — the rail is VIN through the 5 V regulator (NCP1117 on the
+Uno and Mega, a 1117 on the Nano: VIN − 1.1 V up to 5 V, the dropout taken; 20 V its maximum), or,
+with neither, whatever drives the 5V pin from outside. The 3.3V pin is the LP2985-33 from the 5V
+rail on the Uno and Mega (0.28 V dropout) and the USB chip's on the Nano (USB only); IOREF follows
+the rail. `power.on` is the ATmega's brown-out at 2.7 V (the boards' BODLEVEL; 50 mV hysteresis).
+`board-unpowered` (info) while off; `board-overvoltage` (error) above 20 V on VIN or 6.0 V on the
+rail (the ATmega's absolute maximum); `board-undervoltage` (warning) while it runs under its 16 MHz
+clock's safe supply (3.78 V on the ATmega328P, 4.5 V on the ATmega2560). The ON LED lights from
+1.8 V. Not modelled: the start-up delay the fuses add, supply currents, pins following a low rail.
+
+**The 3.3 V boards' power** (`boards/board-power.ts`). The ESP32 DevKits and the Picos drive
+their rails the same way. `usbPowered` (default true) puts USB's 5 V on the DevKit V1's VIN, the
+Espressif DevKits' 5V and the Picos' VBUS and VSYS, as before. That input feeds the 3.3 V
+regulator: an LDO on the DevKits (VIN − 1.1 V up to 3.3 V — the DevKit V1's AMS1117, its 15 V
+maximum; the Espressif boards' 5V input taken as 6 V at most) and the RT6150 buck-boost on the
+Picos (3.3 V for VSYS from 1.8 to 5.5 V; off while 3V3_EN, which the board pulls up to VSYS, is
+held low). With the regulator off, whatever drives 3V3 from outside is the rail. `power.on`: the
+rail at the brown-out level — 2.43 V on the ESP32 (ESP-IDF's default), taken as 2.5 V on the C3, S3
+and S2, 1.8 V on the Picos — with 50 mV of hysteresis. `board-overvoltage` above the input's maximum
+or 3.6 V on the rail (3.63 V on the RP2040/RP2350), `board-undervoltage` while an ESP32 runs under
+its module's 3.0 V, `board-unpowered` while off; the power LEDs follow the rail. A brown-out is a
+power cycle: the chip comes back with a power-on reset, not the ESP32's own BROWNOUT_RST. Off USB a
+Pico wants VSYS or 3V3 (VBUS's Schottky to VSYS isn't modelled then).
+
+**Board power end to end.** The runner's `board <board> is <on|off> at <t>` checks whether a
+board's MCU has power (`Bench.boardPowered`); MCP's sim_state adds `unpowered`, the boards without
+it. Gallery (Power): an ESP32 on a LiPo (`esp32-lipo`: USB off, a LiPo through a slide switch and an
+MCP1700 into 3V3, esp32/blink — the switch stops the board and it boots again) and an Uno brown-out
+(`uno-brown-out`: a bench supply into VIN, uno/eeprom-counter counting each boot as the supply goes
+down and back up), each with a spec and a run check.
+
 **Non-volatile memory.** A board's EEPROM or flash behaves as the chip's: every reset
 keeps it — the board's (`Bench.resetBoard(id)`: one MCU reset, its clock restarted at bench time,
 the rest of the bench running on), the bench's and the firmware's own restart — and a firmware

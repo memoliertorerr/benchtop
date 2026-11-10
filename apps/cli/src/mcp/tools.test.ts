@@ -27,7 +27,8 @@ describe('catalog tools', () => {
     const uno = (await tool(server, 'describe_part', { type: 'arduino-uno' })).value as { pins: { name: string; role: string; volts?: number }[]; board: { mcu: string; pinMap: Record<string, string> } };
     expect(uno.board.mcu).toBe('atmega328p');
     expect(uno.board.pinMap['13']).toBe('PB5');
-    expect(uno.pins.find((p) => p.name === '5V')).toMatchObject({ role: 'power', volts: 5 });
+    expect(uno.pins.find((p) => p.name === '5V')).toEqual({ name: '5V', role: 'power' }); // BT201: the board's model drives it
+    expect(uno.pins.find((p) => p.name === 'GND.1')).toMatchObject({ role: 'ground', volts: 0 });
     const pot = (await tool(server, 'describe_part', { type: 'potentiometer' })).value as { inputs: { kind: string; unit: string }[] };
     expect(pot.inputs).toEqual([{ kind: 'value', does: expect.stringMatching(/wiper/), unit: 'fraction', min: 0, max: 1 }]);
     const led = (await tool(server, 'describe_part', { type: 'led' })).value as { props: Record<string, unknown>; inputs: unknown[] };

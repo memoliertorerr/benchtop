@@ -1,0 +1,33 @@
+{
+  "name": "example: esp32-lipo",
+  "project": "../../projects/esp32-lipo.json",
+  "firmware": {
+    "esp": "../../firmware/esp32/blink.bin"
+  },
+  "steps": [
+    {
+      "at": "2500ms",
+      "part": "sw",
+      "input": {
+        "kind": "press"
+      }
+    },
+    {
+      "at": "3500ms",
+      "part": "sw",
+      "input": {
+        "kind": "press"
+      }
+    }
+  ],
+  "expect": [
+    "board esp is on at 1s",
+    "pin esp:3V3 volts is 3.3 \u00b10.01 at 1s",
+    "pin esp:D2 duty is 50% \u00b13% between 200ms and 2200ms",
+    "board esp is off at 2600ms",
+    "pin esp:3V3 is z at 2600ms",
+    "pin esp:D2 is z at 3s",
+    "board esp is on at 3600ms",
+    "pin esp:D2 duty is 50% \u00b13% between 3800ms and 5800ms"
+  ]
+}

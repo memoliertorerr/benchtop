@@ -149,6 +149,19 @@ export const ESP32_CHECKS: Record<string, (r: ExampleRun) => void> = {
     expect(r.serial('esp')).toContain('begin ok');
     expect(r.serial('esp')).toMatch(/t 18\.[12]\d p 950\.0\d/);
   },
+  'esp32-lipo'(r) {
+    // BT203: on a LiPo through an MCP1700; the switch cuts it and the board stops, then boots again.
+    r.runTo(1000);
+    expect(r.bench.boardPowered('esp')).toBe(true);
+    expect(r.visual('esp')).toMatchObject({ ledPower: true });
+    r.input('sw', { kind: 'press' });
+    r.runTo(1200);
+    expect(r.bench.boardPowered('esp')).toBe(false);
+    expect(r.visual('esp')).toMatchObject({ ledPower: false, led1: 0 });
+    r.input('sw', { kind: 'press' });
+    r.runTo(2000);
+    expect(r.bench.boardPowered('esp')).toBe(true);
+  },
   'esp32-rfid-logger'(r) {
     // BT199: a visit counter kept on the card, one more each time it's laid on the reader.
     r.runTo(300);

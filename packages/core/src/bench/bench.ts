@@ -79,13 +79,14 @@ import type {
   Problem,
   VisualState,
 } from '../contracts/part.ts';
-import type { FirmwareRef, ProjectDoc } from '../contracts/project.ts';
+import type { FirmwareRef, PartInstance, ProjectDoc } from '../contracts/project.ts';
 import { type Level, type NetState, Strength } from '../contracts/signal.ts';
 import { cyclesToNanos, nanosToCycles, NS_PER_MS, NS_PER_US, type Nanos } from '../contracts/time.ts';
 import { ENV_PERIOD_NS, EnvRuntime } from '../env/runtime.ts';
 import type { EnvSpecFor, PointField } from '../env/spec.ts';
 import { usesWifi } from '../net/radio.ts';
 import { type NvMemory, usesNonVolatile } from './nonvolatile.ts';
+import { type BoardPower, powerOf } from './power.ts';
 import { type BoardSleep, usesSleep } from './sleep.ts';
 import { type PinClaim, usesPinClaims } from './claims.ts';
 import { type TouchLoad, touchLoadOf, usesTouch } from './touch.ts';
@@ -182,6 +183,8 @@ interface CarriedMcu {
   readonly props: string;
   readonly base: Nanos;
   readonly stopped: { reason: string; detail: string } | null;
+  /** BT200: whether it had power. */
+  readonly powered: boolean;
 }
 
 /**
@@ -433,6 +436,10 @@ interface McuSlot {
   base: Nanos;
   /** Why it stopped running, or null while it runs. */
   stopped: { reason: string; detail: string } | null;
+  /** BT200: the board model's power, if it reports one (else it always runs). */
+  power: BoardPower | null;
+  /** BT200: whether the MCU has power now (off: not run, its pins released). */
+  powered: boolean;
   readonly pinEntries: McuPinEntry[];
   /** MCU pin id → the net of the first header pin mapped to it. */
   readonly netOfPin: Map<string, number>;
@@ -865,19 +872,27 @@ export class Bench {
     this.quantum = options.quantum ?? (this.mcus.length > 1 ? 100 * NS_PER_US : NS_PER_MS);
     if (!(this.quantum > 0)) throw new RangeError(`quantum must be > 0, got ${this.quantum}`);
 
-    // Part models. A part's logic supply is the voltage on its first consumer power pin.
+    // Part models. A part's logic supply is the voltage on its first consumer power pin, so (BT200)
+    // the models are built in supply order — power parts, then boards (which drive their rails),
+    // then the rest — while the slots keep the document's order.
+    const order: { part: PartInstance; def: PartDefinition; slot: PartSlot }[] = [];
     for (const part of doc.parts) {
       const def = defOf(part.type);
       if (def === undefined) continue;
       const slot: PartSlot = { id: part.id, def, model: null, logicVolts: DEFAULT_PART_VOLTS, dirty: false, binding: null };
+      this.parts.set(part.id, slot);
+      this.partList.push(slot);
+      order.push({ part, def, slot });
+    }
+    const rank = (def: PartDefinition): number => (def.category === 'power' ? 0 : def.board !== undefined ? 1 : 2);
+    order.sort((a, b) => rank(a.def) - rank(b.def));
+    for (const { part, def, slot } of order) {
       for (const pin of def.pins) {
         if (pin.role !== 'power' || pin.volts !== undefined) continue;
         const volts = this.resolver.state(netlist.netOf(part.id, pin.name)).volts;
         if (volts > 0) slot.logicVolts = volts;
         break;
       }
-      this.parts.set(part.id, slot);
-      this.partList.push(slot);
       if (def.createModel === undefined) continue;
       const analog = this.analogParts.has(part.id);
       const props = propsKey(part.props);
@@ -910,6 +925,12 @@ export class Bench {
       carried.parts.clear();
       carried.boards.clear();
       this.scheduler.cancelOwners((owner) => dropped.has(owner));
+    }
+
+    // BT200: the boards whose models report power.
+    for (const slot of this.mcus) {
+      slot.power = powerOf(this.parts.get(slot.partId)?.model);
+      this.syncPower(slot);
     }
 
     this.building = false;
@@ -1201,12 +1222,14 @@ export class Bench {
       slot.base = 0;
       slot.stopped = null;
       slot.serialLen = 0;
+      slot.powered = true;
     }
     for (const slot of this.partList) {
       slot.model?.reset?.();
       this.invalidate(slot);
     }
     for (const slot of this.mcus) for (const entry of slot.pinEntries) entry.apply();
+    for (const slot of this.mcus) this.syncPower(slot); // BT200: a board its reset left unpowered
     this.syncAll();
     // BT166: capacitors start empty: their islands solve again from time 0.
     if (this.analog !== null && this.analog.capacitorIslands.length > 0) this.resolver.touchIslands(this.analog.capacitorIslands);
@@ -1379,7 +1402,7 @@ export class Bench {
     this.spiLinks.clear();
     this.i2cBuses.clear();
     const boards = new Map<string, CarriedMcu>();
-    for (const slot of this.mcus) boards.set(slot.partId, { mcu: slot.mcu, port: slot.port, kind: slot.kind, firmware: slot.firmware, props: slot.props, base: slot.base, stopped: slot.stopped });
+    for (const slot of this.mcus) boards.set(slot.partId, { mcu: slot.mcu, port: slot.port, kind: slot.kind, firmware: slot.firmware, props: slot.props, base: slot.base, stopped: slot.stopped, powered: slot.powered });
     const parts = new Map<string, PartBinding>();
     const models: PartModel[] = [];
     for (const slot of this.partList) {
@@ -1391,6 +1414,11 @@ export class Bench {
     this.net?.dispose();
     const state: CarryState = { scheduler: this.scheduler, boards, parts, models, net: this.net };
     return { time: this.time, state };
+  }
+
+  /** BT200: whether a board's MCU has power (a board whose model reports none always has). */
+  boardPowered(boardPartId: string): boolean {
+    return this.mcuSlot(boardPartId).power?.on ?? true;
   }
 
   /** BT78: whether a board's MCU came over running from the previous bench (no firmware load). */
@@ -1419,6 +1447,8 @@ export class Bench {
       // A new MCU starts from reset now (a rebuilt bench's time isn't 0).
       base: kept?.base ?? this.time,
       stopped: kept?.stopped ?? null,
+      power: null,
+      powered: kept?.powered ?? true,
       pinEntries: [],
       netOfPin: new Map(),
       serial: new Uint8Array(256),
@@ -1472,6 +1502,11 @@ export class Bench {
           apply: (): void => {
             const resolver = created.resolver;
             for (let i = 0; i < watched.length; i++) watched[i].changes++;
+            if (!(port.slot as McuSlot).powered) {
+              // BT200: an unpowered MCU's pins float.
+              for (let i = 0; i < drivers.length; i++) resolver.releaseDriver(drivers[i]);
+              return;
+            }
             const mode = pin.mode();
             const volts = pin.outputVolts?.();
             for (let i = 0; i < drivers.length; i++) {
@@ -1783,8 +1818,24 @@ export class Bench {
 
   // ── Run ──────────────────────────────────────────────────────────────────────────────────
 
+  /** BT200: follows the board's power — off releases the MCU's pins; back on is a power-on reset at bench time. */
+  private syncPower(slot: McuSlot): void {
+    const on = slot.power === null || slot.power.on;
+    if (on === slot.powered) return;
+    slot.powered = on;
+    if (!on) {
+      for (const entry of slot.pinEntries) entry.apply();
+      return;
+    }
+    slot.mcu.reset();
+    slot.base = this.time;
+    slot.stopped = null;
+    this.syncMcu(slot);
+  }
+
   private runMcu(slot: McuSlot, tNext: Nanos): void {
-    if (slot.stopped !== null) return;
+    if (slot.power !== null && slot.power.on !== slot.powered) this.syncPower(slot);
+    if (slot.stopped !== null || !slot.powered) return;
     const target = nanosToCycles(tNext - slot.base, slot.clockHz);
     if (slot.mcu.cycles >= target) return;
     this.current = slot;

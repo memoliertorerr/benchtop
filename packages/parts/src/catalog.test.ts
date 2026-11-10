@@ -143,14 +143,15 @@ describe('part catalog', () => {
     for (const header of Object.keys(def.board?.pinMap ?? {})) expect(names).toContain(header);
   });
 
-  it('maps the Uno header to the ATmega328P ports and marks its supply pins', () => {
+  it('maps the Uno header to the ATmega328P ports and marks its ground pins (BT201: its rails are its model’s)', () => {
     const uno = CATALOG.get('arduino-uno')!;
     expect(uno.pins).toHaveLength(31);
     expect(uno.board?.mcu).toBe('atmega328p');
     expect(uno.board?.pinMap).toMatchObject({ '0': 'PD0', '7': 'PD7', '8': 'PB0', '13': 'PB5', A0: 'PC0', A5: 'PC5' });
     expect(Object.keys(uno.board?.pinMap ?? {})).toHaveLength(20);
     const volts = Object.fromEntries(uno.pins.filter((p) => p.volts !== undefined).map((p) => [p.name, p.volts]));
-    expect(volts).toEqual({ '5V': 5, '3.3V': 3.3, IOREF: 5, 'GND.1': 0, 'GND.2': 0, 'GND.3': 0 });
-    expect(uno.pins.find((p) => p.name === 'VIN')?.volts).toBeUndefined();
+    expect(volts).toEqual({ 'GND.1': 0, 'GND.2': 0, 'GND.3': 0 });
+    expect(uno.pins.filter((p) => p.role === 'power').map((p) => p.name)).toEqual(['IOREF', '3.3V', '5V', 'VIN']);
+    expect(uno.defaults).toEqual({ usbPowered: true });
   });
 });

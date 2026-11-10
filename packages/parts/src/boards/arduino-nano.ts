@@ -10,7 +10,8 @@
  * ADC6/ADC7, which the TQFP package has and the Uno's DIP doesn't — analog inputs only, with no
  * digital function (`pinMode`/`digitalWrite` on them do nothing; `analogRead` works). The two
  * GND pins share a bus, as do the two RESET pins. 3.3V comes from the USB chip (a supply); VIN is
- * an input like the Uno's.
+ * an input like the Uno's. BT201: its power (arduino-power.ts) — `usbPowered` (default true), else
+ * VIN through its 5 V regulator or the 5V pin; the 3.3V pin only on USB (it's the USB chip's).
  *
  * The element also lists the ICSP header (its `noBreadboard` pins '11.2', '12.2', '13.2', '5V.2',
  * 'GND.3', 'RESET.3'). They are left out, as the Uno leaves out its own: on the real board they
@@ -22,7 +23,7 @@
 
 import type { PinDef, PinRole } from '@benchtop/core';
 import { definePart } from '../define.ts';
-import { arduinoLedsModel } from './arduino-leds.ts';
+import { arduinoBoardModel } from './arduino-leds.ts';
 
 const PX = 25.4 / 96;
 
@@ -63,7 +64,7 @@ const PIN_INFO: readonly (readonly [string, number, number])[] = [
 export const ARDUINO_NANO_PIN_PX = PIN_INFO;
 
 /** Supply pins: defined volts make them sources (see PinDef.volts). */
-const SUPPLY: Readonly<Record<string, number>> = { '5V': 5, '3.3V': 3.3, 'GND.1': 0, 'GND.2': 0 };
+const SUPPLY: Readonly<Record<string, number>> = { 'GND.1': 0, 'GND.2': 0 }; // BT201: the rails are the model's
 
 function role(name: string): PinRole {
   if (name.startsWith('GND')) return 'ground';
@@ -96,7 +97,7 @@ export const arduinoNano = definePart({
     ['GND.1', 'GND.2'],
     ['RESET', 'RESET.2'],
   ],
-  defaults: {},
+  defaults: { usbPowered: true },
   board: { mcu: 'atmega328p', pinMap },
-  createModel: arduinoLedsModel,
+  createModel: arduinoBoardModel({ board: 'Nano', ground: 'GND.1', rail3v3: 'usb', clockMin: 3.78 }),
 });

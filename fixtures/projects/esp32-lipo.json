@@ -1,0 +1,114 @@
+{
+  "format": 1,
+  "name": "esp32-lipo",
+  "parts": [
+    {
+      "id": "esp",
+      "type": "esp32-devkit-v1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {
+        "usbPowered": false
+      }
+    },
+    {
+      "id": "bat",
+      "type": "battery-lipo",
+      "x": -70,
+      "y": 5,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "sw",
+      "type": "slide-switch",
+      "x": -28,
+      "y": -12,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "reg",
+      "type": "mcp1700-3v3",
+      "x": -16,
+      "y": 30,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w0",
+      "from": {
+        "part": "bat",
+        "pin": "+"
+      },
+      "to": {
+        "part": "sw",
+        "pin": "2"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w1",
+      "from": {
+        "part": "sw",
+        "pin": "1"
+      },
+      "to": {
+        "part": "reg",
+        "pin": "VIN"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "reg",
+        "pin": "VOUT"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "3V3"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "bat",
+        "pin": "-"
+      },
+      "to": {
+        "part": "reg",
+        "pin": "GND"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "reg",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "esp",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "esp": {
+      "kind": "file",
+      "name": "blink.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

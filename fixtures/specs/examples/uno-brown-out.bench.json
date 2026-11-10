@@ -1,0 +1,33 @@
+{
+  "name": "example: uno-brown-out",
+  "project": "../../projects/uno-brown-out.json",
+  "firmware": {
+    "uno": "../../firmware/uno/eeprom-counter.hex"
+  },
+  "steps": [
+    {
+      "at": "500ms",
+      "part": "psu",
+      "input": {
+        "kind": "value",
+        "value": 3
+      }
+    },
+    {
+      "at": "800ms",
+      "part": "psu",
+      "input": {
+        "kind": "value",
+        "value": 9
+      }
+    }
+  ],
+  "expect": [
+    "serial contains \"boot 1\" by 300ms",
+    "pin uno:5V volts is 5 \u00b10.01 at 400ms",
+    "board uno is off at 700ms",
+    "pin uno:5V volts is 1.9 \u00b10.01 at 700ms",
+    "board uno is on at 1s",
+    "serial contains \"boot 2\" by 1.2s"
+  ]
+}

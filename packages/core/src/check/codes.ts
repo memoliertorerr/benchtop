@@ -42,6 +42,18 @@ export const PROBLEM_CODES: Readonly<Record<string, ProblemCodeInfo>> = {
     title: 'Regulator input too low',
     hint: 'A linear regulator needs its input above its output by its dropout (2 V for a 7805, 1.1 V for an AMS1117); below that the output sags with the input. Use a higher input or a low-dropout regulator.',
   },
+  'board-unpowered': {
+    title: 'Board without power',
+    hint: 'Its MCU doesn\'t run until its supply is up. With USB power off (the board\'s `usbPowered`), feed VIN (7–12 V on an Arduino, through its regulator), the 5V pin (5 V) or, on an ESP32 or a Pico, 3V3 or VSYS.',
+  },
+  'board-overvoltage': {
+    title: 'Board supply too high',
+    hint: 'A board\'s input is above what its regulator or MCU takes; a real board would be damaged. Lower the supply, or feed a pin made for it (an Arduino\'s VIN, not 5V).',
+  },
+  'board-undervoltage': {
+    title: 'Board supply low',
+    hint: 'The board still runs, but its MCU\'s supply is below what its clock is specified for: on hardware it may misbehave. Raise the supply (an Arduino at 16 MHz wants about 4 V or more).',
+  },
   'rc522-overvoltage': {
     title: 'RC522 on more than 4 V',
     hint: 'The RC522 module\'s MFRC522 runs on 2.5–3.6 V and is damaged above 4 V: wire its 3.3V pin to the board\'s 3.3 V, not 5 V. Its signal pins are usually wired straight to an Uno\'s 5 V pins anyway.',

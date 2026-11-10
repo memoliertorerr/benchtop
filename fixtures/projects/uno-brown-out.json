@@ -1,0 +1,61 @@
+{
+  "format": 1,
+  "name": "uno-brown-out",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {
+        "usbPowered": false
+      }
+    },
+    {
+      "id": "psu",
+      "type": "bench-supply",
+      "x": -80,
+      "y": 70,
+      "rotation": 0,
+      "props": {
+        "volts": 9
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w0",
+      "from": {
+        "part": "psu",
+        "pin": "+"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "VIN"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w1",
+      "from": {
+        "part": "psu",
+        "pin": "-"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.2"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "eeprom-counter.hex",
+      "format": "hex"
+    }
+  }
+}

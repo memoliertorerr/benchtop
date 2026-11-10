@@ -13,9 +13,11 @@
  *
  * Supplies: 3V3 is the board regulator's 3.3 V output; VBUS and VSYS carry USB's 5 V while prop
  * `usbPowered` is true (the default; VSYS sits a Schottky drop lower on the board — nominal 5 V
- * here, as for the ESP32 DevKit's VIN), else they are inputs. ADC_VREF (3.3 V through the
- * board's filter), RUN and 3V3_EN (both pulled up on the board) are inputs the simulation
- * doesn't use.
+ * here, as for the ESP32 DevKit's VIN), else they are inputs. BT202 (board-power.ts): VSYS feeds
+ * the RT6150 buck-boost — 3V3 for VSYS from 1.8 to 5.5 V —, 3V3_EN (pulled up to VSYS on the board)
+ * held low turns it off, and the RP2040/RP2350 runs while 3V3 is at 1.8 V or more; off USB, feed
+ * VSYS (VBUS's Schottky to VSYS isn't modelled then) or 3V3. ADC_VREF (3.3 V through the board's
+ * filter) and RUN (pulled up) are inputs the simulation doesn't use.
  *
  * Model: `led` follows GP25 through TP5 (brightness 0..1, so PWM dims it).
  *
@@ -32,6 +34,7 @@
 
 import { type PartContext, type PinDef, type PinRole, Strength } from '@benchtop/core';
 import { definePart } from '../define.ts';
+import { boardPower, type BoardPowerSpec } from './board-power.ts';
 import { DutyChannel } from '../shared/duty.ts';
 
 export const PICO_WIDTH = 21;
@@ -63,7 +66,6 @@ const pins: PinDef[] = PICO_PINOUT.map((name, i) => {
   const left = physical <= 20;
   const row = left ? physical - 1 : 40 - physical;
   const pin: PinDef = { name, x: left ? LEFT_X : RIGHT_X, y: Math.round((TOP_Y + row * PITCH) * 1000) / 1000, role: role(name) };
-  if (name === '3V3') pin.volts = 3.3;
   if (name.startsWith('GND') || name === 'AGND') pin.volts = 0;
   return pin;
 });
@@ -80,6 +82,7 @@ function boardPinMap(ledPin: string, ledMcuPin: string): Record<string, string> 
 
 /** A Pico-footprint board around `mcu`, its LED on `ledPin` (the Mcu's `ledMcuPin`). */
 function pico(type: string, title: string, mcu: 'rp2040' | 'rp2350', ledPin = 'TP5', ledMcuPin = 'GPIO25') {
+  const power: BoardPowerSpec = { ...PICO_POWER, board: title, chip: mcu === 'rp2040' ? 'RP2040' : 'RP2350' };
   return definePart({
     type,
     title,
@@ -89,21 +92,33 @@ function pico(type: string, title: string, mcu: 'rp2040' | 'rp2350', ledPin = 'T
     buses: [['GND.1', 'GND.2', 'GND.3', 'GND.4', 'GND.5', 'GND.6', 'GND.7', 'AGND']],
     defaults: { usbPowered: true },
     board: { mcu, pinMap: boardPinMap(ledPin, ledMcuPin) },
-    createModel: (ctx: PartContext, props: { usbPowered: boolean }) => picoModel(ctx, props, ledPin),
+    createModel: (ctx: PartContext, props: { usbPowered: boolean }) => picoModel(ctx, props, ledPin, power),
   });
 }
 
-function picoModel(ctx: PartContext, props: { usbPowered: boolean }, ledPin: string) {
-  if (props.usbPowered !== false) {
-    ctx.pin('VBUS').driveVolts(5, Strength.supply);
-    ctx.pin('VSYS').driveVolts(5, Strength.supply);
-  }
+/** BT202: VSYS (USB's VBUS on it, through the Schottky — nominal 5 V) into the RT6150 buck-boost: 3.3 V for 1.8–5.5 V. */
+const PICO_POWER: BoardPowerSpec = {
+  board: 'Pico',
+  ground: 'GND.1',
+  usbPins: ['VBUS', 'VSYS'],
+  input: 'VSYS',
+  rail: '3V3',
+  regulator: { kind: 'buck-boost', minIn: 1.8, maxIn: 5.5, enable: '3V3_EN' },
+  brownOut: 1.8,
+  maxRail: 3.63,
+  chip: 'RP2040',
+};
+
+function picoModel(ctx: PartContext, props: { usbPowered: boolean }, ledPin: string, spec: BoardPowerSpec) {
+  const supply = boardPower(ctx, props.usbPowered !== false, spec);
   const led = new DutyChannel(ctx);
   ctx.pin(ledPin).onChange((state) => led.set(state.level === 1 && state.strength >= Strength.weak));
   return {
+    power: supply.power,
     visual: () => ({ led: led.brightness }),
     reset() {
       led.reset();
+      supply.reset();
       ctx.invalidate();
     },
   };
