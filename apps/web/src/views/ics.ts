@@ -18,10 +18,13 @@ function el<K extends keyof SVGElementTagNameMap>(name: K, attrs: Record<string,
 }
 
 /** The DIP part types, with the name printed on each. */
-export const IC_VIEW_TYPES: ReadonlyMap<string, string> = new Map([['74hc595', '74HC595']]);
+export const IC_VIEW_TYPES: ReadonlyMap<string, string> = new Map([
+  ['74hc595', '74HC595'],
+  ['74hc165', '74HC165'], // BT193
+]);
 
 /** A pin name as printed: an active-low input (MR, OE) gets its bar. */
-const ACTIVE_LOW: Readonly<Record<string, ReadonlySet<string>>> = { '74hc595': new Set(['MR', 'OE']) };
+const ACTIVE_LOW: Readonly<Record<string, ReadonlySet<string>>> = { '74hc595': new Set(['MR', 'OE']), '74hc165': new Set(['PL', 'CE', 'Q7N']) };
 
 function drawDip(svg: SVGSVGElement, def: PartDefinition): void {
   const { w } = def.size;
@@ -45,7 +48,8 @@ function drawDip(svg: SVGSVGElement, def: PartDefinition): void {
   for (const pin of def.pins) {
     const atTop = pin.y === top;
     const label = el('text', { x: pin.x, y: atTop ? bodyTop + 0.75 : bodyBottom - 0.75, 'font-size': 0.62, fill: '#9ea3ab', 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-family': 'sans-serif' });
-    label.textContent = pin.name;
+    // Q7N prints as Q7 with its bar.
+    label.textContent = low?.has(pin.name) === true && pin.name.endsWith('N') ? pin.name.slice(0, -1) : pin.name;
     if (low?.has(pin.name) === true) label.setAttribute('text-decoration', 'overline');
     svg.append(label);
   }

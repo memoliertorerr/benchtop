@@ -924,6 +924,71 @@
     "description": "A DS18B20 read by DallasTemperature, shown on a TM1637 by TM1637Display as “21°C”. Drag its temperature in the Inspector: the display follows within two seconds."
   },
   {
+    "id": "uno-bme280",
+    "title": "BME280 weather readout",
+    "category": "Sensors",
+    "project": "uno-bme280",
+    "boards": {
+      "uno": {
+        "firmware": "uno/bme280-adafruit.hex",
+        "sketch": "uno/bme280-adafruit"
+      }
+    },
+    "description": "A BME280 under Adafruit’s library in forced mode: temperature, pressure, humidity and the altitude once a second. Set the weather in the Inspector."
+  },
+  {
+    "id": "esp32-bmp280",
+    "title": "ESP32 BMP280 on SPI",
+    "category": "ESP32",
+    "project": "esp32-bmp280",
+    "boards": {
+      "esp": {
+        "firmware": "esp32/bmp280-adafruit.bin",
+        "sketch": "esp32/bmp280-adafruit"
+      }
+    },
+    "description": "A BMP280 on the ESP32’s hardware SPI under Adafruit’s library, in normal mode with the IIR filter: a pressure step in the Inspector eases in."
+  },
+  {
+    "id": "uno-ds3231",
+    "title": "DS3231 clock and alarm",
+    "category": "Sensors",
+    "project": "uno-ds3231",
+    "boards": {
+      "uno": {
+        "firmware": "uno/rtclib-ds3231.hex",
+        "sketch": "uno/rtclib-ds3231"
+      }
+    },
+    "description": "A ZS-042 DS3231 module under RTClib: it notices it lost power, sets the time, and fires alarm 1 at 55 seconds."
+  },
+  {
+    "id": "uno-shift-in",
+    "title": "74HC165 buttons",
+    "category": "Basics",
+    "project": "uno-shift-in",
+    "boards": {
+      "uno": {
+        "firmware": "uno/shift-in.hex",
+        "sketch": "uno/shift-in"
+      }
+    },
+    "description": "Two chained 74HC165s read 16 inputs, bit-banged and on SPI: four buttons on the near one, the rest tied to the rails. Press a button: its bit flips."
+  },
+  {
+    "id": "uno-relay-module",
+    "title": "Relay module lamps",
+    "category": "Motors",
+    "project": "uno-relay-module",
+    "boards": {
+      "uno": {
+        "firmware": "uno/relay-module.hex",
+        "sketch": "uno/relay-module"
+      }
+    },
+    "description": "A 1-channel relay module, active low, changing two lamps over twice a second — after a 3 ms pulse too short to move it."
+  },
+  {
     "id": "esp32-tft",
     "title": "ESP32 color TFT",
     "category": "ESP32",

@@ -117,7 +117,8 @@ bus. A device whose MOSI net is the MISO net of a chain's last device, on the sa
 daisy chain (`attachSpiDevices`): each member gets what the one before it shifted out, and the
 chain answers MISO when a member's MISO is on it. A device's MISO counts as unwired for the
 controller when only chained devices' MOSI pins share its net. Rebinds and carries rebuild the
-buses. The AVR adapter now honours DORD: an LSB-first byte reaches the devices bit-reversed, in
+buses. A read-only device (a 74HC165) whose MOSI is unwired or on a rail attaches by SCK and
+its MISO — on the controller's, or feeding the next device of a chain (the far 165 is the head). The AVR adapter now honours DORD: an LSB-first byte reaches the devices bit-reversed, in
 wire order, as the ESP32's controller already gave it.
 
 **The bus log (`packages/core/src/bus-log/`).** Every I2C and SPI device is attached to its
@@ -674,6 +675,12 @@ VCC ≥ 3 V (decided: the datasheet's 5 V ± 10 %, the modules commonly on 3.3 V
 views/tm1637.ts). Fixtures uno/tm1637 (TM1637Display's open-drain bus, a counter) and pico/tm1637
 (a clock on 3V3).
 
+**More kit parts end to end.** Gallery: a BME280 weather readout under Adafruit's library
+(`uno-bme280`), a BMP280 on an ESP32's SPI (`esp32-bmp280`), a DS3231 clock and alarm under RTClib
+(`uno-ds3231`), 16 inputs through two 74HC165s with four buttons (`uno-shift-in`) and a relay
+module's lamps (`uno-relay-module`), each with a spec and a run check. MCP's sim_state reads them as
+they are (the DS3231's `time` and `temperature`, a BME280's weather).
+
 **Kit chips end to end.** The runner's `digits` reads the MAX7219's 8-digit and the TM1637's
 modules (`displayText`: by their reported lit segments), and `matrix <part> row <r> shows "<#.…>"`
 checks a matrix module's row (`matrixText`: left to right across the FC-16's four, chip 0 the
@@ -696,6 +703,18 @@ select (the latch isn't one): the byte becomes the shift register and the old on
 shifts out — the next member's byte in a chain. Our own view (apps/web views/ics.ts: the body,
 notch, pin 1's dot and every pin's name). Fixtures uno/shift-register (a shiftOut counter on eight
 LEDs) and uno/shift-chain (two chained: shiftOut, SPI read back on MISO, LSB-first SPI).
+`74hc165` (NXP's names PL, CP, CE, DS, D0–D7, Q7, Q7N): PL low loads D0–D7 asynchronously; with PL
+high a rising edge of CP OR CE (the gated-OR clock) shifts DS in; Q7/Q7N drive VCC's volts. On SPI it
+is read-only (CE the select): a byte reads the stages D7 first and shifts in DS's rail level, or the
+byte the bench hands it in a chain. Fixture uno/shift-in (two chained, bit-banged and on SPI).
+
+**The relay module** (`actuators/relay-module.ts`). `relay-module` is the blue 1-channel
+SRD-05VDC-SL-C board: VCC GND IN, terminals NO COM NC as switch links (NC closed at rest). Active low
+by default (IN pulled up on the board; `trigger: 'high'` for the jumper's other side), powered at
+VCC ≥ 4 V; the contacts change over 10 ms after IN goes active and 5 ms after it goes idle (the
+SRD-05VDC's maxima; up to a quantum later when IN changes inside an MCU's run), so a pulse shorter
+than the operate time moves nothing. Its coil current isn't drawn from VCC. Our own view (apps/web
+views/relay-module.ts: the power and input LEDs, the contact arm). Fixture uno/relay-module.
 
 Inputs (`packages/parts/src/inputs/`, `sensors/`): slide pot, analog joystick, KY-040,
 4×4 membrane keypad, 8-way DIP switch, tilt switch, PIR, and the LDR, NTC and sound modules.
@@ -741,6 +760,38 @@ the environment's field) at its start and rounds it to the resolution's step. It
 transistors' TO-92. Fixtures uno/ds18b20 (two sensors searched, converted together, read by Match
 ROM) and esp32/ds18b20 (read ROM, 9 and 12 bits), each with OneWire's timings in the sketch.
 
+**The BME280 and BMP280** (`sensors/bme280.ts`, Bosch's BME280 datasheet rev 1.23). One
+register model for both (the BMP280: no humidity, chip id 0x58 instead of 0x60, its own two longest
+standby times) on the purple 6-pin breakout (VCC GND SCL SDA CSB SDO; the board pulls CSB up and SDO
+down). The chip carries fixed trimming words — temperature and pressure from the BMP280 datasheet's
+worked example (its adc_T 519888 reads 25.08 °C, t_fine 128422), humidity typical — and the model
+finds the raw ADC words the datasheet's integer compensation (int32 temperature and humidity, int64
+pressure in BigInt) turns into the values the part should show, by binary search, only when they
+change. Modes: sleep, forced (one measurement, then sleep), normal (measurement, t_standby, again on
+one preallocated timer); a measurement sets `measuring` for Appendix B's maximum time; oversampling
+×1…×16 gives 16…20-bit words; the IIR filter (2–16) filters pressure and temperature and makes them
+20-bit; a skipped channel reads 0x80000 (0x8000). I2C at 0x76 or 0x77 by SDO, writes as
+register/data pairs, reads auto-incremented; 4-wire SPI with the read/write bit, and once CSB has
+gone low I2C is off until power-off. Temperature and humidity from props, sliders or the environment;
+pressure from a prop or slider. Our own view (apps/web views/sensor-modules.ts). Fixtures uno/bme280
+(I2C, forced, ×1) and esp32/bmp280-spi (VSPI, normal, filter ×16), the datasheet's compensation in
+each sketch.
+
+**The DS3231** (`sensors/ds3231.ts`, Maxim's datasheet). On the ZS-042 module (32K SQW SCL SDA
+VCC GND, SCL/SDA/VCC/GND passed through; the board pulls SQW and 32K up) with its AT24C32. Registers
+00h–12h, the pointer wrapping at 12h: BCD time with 12/24 h and the century bit (the DS1307's
+`advanceSecond`, the century toggled at 99 → 00), alarms 1 and 2 by their mask bits and DY/DT tested
+at each second's update (alarm 2 at 00 seconds), control (power-up 1Ch), status (power-up 88h; OSF,
+A2F, A1F only clear), aging (kept), temperature in 0.25 °C steps — 0 °C at power-up, converted then,
+every 64 s and on CONV, BSY and CONV set for the datasheet's 200 ms. Writing the seconds restarts the
+second. INT/SQW is open drain: low while an enabled alarm's flag is set (INTCN), else the 1 Hz wave
+(high for the half second after each update); 1.024–8.192 kHz and 32K's 32.768 kHz aren't drawn as
+edges. The AT24C32 (`At24c32`, reusable) at 0x57: 4 KB, two address bytes, 32-byte page writes that
+wrap inside the page, committed at STOP, then a 10 ms cycle during which it NACKs (ACK polling
+works); sequential reads; its bytes survive a bench reset. Our own view (views/sensor-modules.ts,
+with the time in small print). Fixture uno/ds3231 (time, alarm 1 into an interrupt, a forced
+conversion, the EEPROM with ACK polling, the 1 Hz wave measured by pulseIn).
+
 **Under their libraries.** The same chips under the libraries tutorials use, installed at
 exact versions from the Arduino library index and recorded in the manifest: OneWire 2.3.8 with
 DallasTemperature 4.0.6 (uno/dallas-temperature: two sensors counted, addressed, set to 11 bits,
@@ -749,7 +800,11 @@ one does; esp32/dallas-temperature: 9 and 12 bits, polled to the conversion's en
 1.0.6 (uno/ledcontrol: bit-banged, its own no-decode font, a 7-segment module chained into an 8×8
 through DOUT); TM1637 1.2.0's TM1637Display (uno/tm1637-display: the colon, raw
 segments, the display off, leading zeros; uno/tm1637-thermometer: a DS18B20 under DallasTemperature
-shown as "21°C"). The sketch-local fixtures stay: they cover hardware SPI, the 595 and the Pico.
+shown as "21°C"); Adafruit BME280 2.3.0 (uno/bme280-adafruit: forced mode, the altitude),
+Adafruit BMP280 3.0.0 (esp32/bmp280-adafruit: hardware SPI, normal mode, the filter) and RTClib
+2.1.4 (uno/rtclib-ds3231: lostPower, adjust, alarm 1, the temperature — 0 °C when read before the
+power-up conversion ends, as on the chip). The sketch-local fixtures stay: they cover hardware SPI,
+the 595 and the Pico.
 
 Actuators (`packages/parts/src/actuators/`) decode their drive from exact edge timestamps
 or coil levels and never allocate per edge. The servo measures pulse widths (Servo.h's 544–2400

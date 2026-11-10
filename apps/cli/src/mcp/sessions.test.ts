@@ -373,6 +373,19 @@ describe('live sessions', () => {
     expect(state.parts.m.screen).toEqual(['..####..', '.#....#.', '#.#..#.#', '#......#', '#.#..#.#', '#..##..#', '.#....#.', '..####..']);
   }, 60_000);
 
+  it('BT195: sim_state reads a DS3231 module’s time and a BME280’s weather (uno-ds3231, uno-bme280)', async () => {
+    const server = testServer();
+    const rtc = (await tool(server, 'open_example', { id: 'uno-ds3231' })).value as { session: string };
+    await tool(server, 'sim_run', { session: rtc.session, untilSerial: '12:34:52', duration: '4s' });
+    const clock = (await tool(server, 'sim_state', { session: rtc.session, parts: ['rtc'] })).value as { parts: { rtc: { time: string; temperature: number } } };
+    expect(clock.parts.rtc.time).toMatch(/^2026-11-10 12:34:5[2-3]$/);
+    expect(clock.parts.rtc.temperature).toBe(26.5);
+    const env = (await tool(server, 'open_example', { id: 'uno-bme280' })).value as { session: string };
+    await tool(server, 'sim_input', { session: env.session, part: 'env', input: { kind: 'key', key: 'set:pressure=980', down: true } });
+    const state = (await tool(server, 'sim_state', { session: env.session, parts: ['env'] })).value as { parts: { env: { pressure: number; humidity: number } } };
+    expect(state.parts.env).toMatchObject({ pressure: 980, humidity: 48 });
+  }, 60_000);
+
   it('BT161: sim_state shows an ESP32 asleep until its touch pad is touched; sim_input wakes it', async () => {
     const server = testServer({ maxWallMs: 60_000 });
     const { session } = (await tool(server, 'open_example', { id: 'esp32-touch-wake' })).value as { session: string };

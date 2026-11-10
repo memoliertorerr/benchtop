@@ -6,6 +6,8 @@
     "rp2040:rp2040": "6.2.0"
   },
   "libraries": {
+    "Adafruit BME280 Library": "2.3.0",
+    "Adafruit BMP280 Library": "3.0.0",
     "Adafruit BusIO": "1.17.4",
     "Adafruit GFX Library": "1.12.4",
     "Adafruit SH110X": "2.1.14",
@@ -21,6 +23,7 @@
     "HTTPClient": "2.0.0",
     "LedControl": "1.0.6",
     "OneWire": "2.3.8",
+    "RTClib": "2.1.4",
     "TM1637": "1.2.0",
     "arduinoFFT": "2.0.4",
     "audio-tools": "0.9.3"
@@ -163,6 +166,96 @@
       "core": "esp32:esp32@2.0.17",
       "libraries": {},
       "source": "893b4dd0d074ded2c4f6180d3375aa5b2e38eaf96472f4ece7079995d101f8b3"
+    },
+    {
+      "board": "esp32",
+      "name": "bmp280-adafruit",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/bmp280-adafruit.bin",
+      "sha256": "4b9e26f21f75c87d5c345ba133715fbd022da94ba46c1d61c0c4ed3ec20f6d23",
+      "bytes": 287552,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Adafruit BMP280 Library": "3.0.0",
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit Unified Sensor": "1.1.15",
+        "SPI": "2.0.0",
+        "Wire": "2.0.0"
+      },
+      "source": "a05add63daf5065cb5ed0c78a197743d8939d6dc7adcd50702272c3d6d29b19b"
+    },
+    {
+      "board": "esp32",
+      "name": "bmp280-adafruit",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/bmp280-adafruit.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Adafruit BMP280 Library": "3.0.0",
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit Unified Sensor": "1.1.15",
+        "SPI": "2.0.0",
+        "Wire": "2.0.0"
+      },
+      "source": "a05add63daf5065cb5ed0c78a197743d8939d6dc7adcd50702272c3d6d29b19b"
+    },
+    {
+      "board": "esp32",
+      "name": "bmp280-adafruit",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/bmp280-adafruit.syms.tsv",
+      "sha256": "62d1430b4b80dda77f9580c2b80d808e1dd32e3c1aff5e4851d4e82a8f358636",
+      "bytes": 126620,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "Adafruit BMP280 Library": "3.0.0",
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit Unified Sensor": "1.1.15",
+        "SPI": "2.0.0",
+        "Wire": "2.0.0"
+      },
+      "source": "a05add63daf5065cb5ed0c78a197743d8939d6dc7adcd50702272c3d6d29b19b"
+    },
+    {
+      "board": "esp32",
+      "name": "bmp280-spi",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/bmp280-spi.bin",
+      "sha256": "6f6666b63821bd1ab96197a739d9fe5f8bdfa4d58ac829f4d374594ea1b9ce4d",
+      "bytes": 269472,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "SPI": "2.0.0"
+      },
+      "source": "704aeb9c055df813804dce6cd983d4eb11ad613effbcc969d6cd6b469702da5d"
+    },
+    {
+      "board": "esp32",
+      "name": "bmp280-spi",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/bmp280-spi.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "SPI": "2.0.0"
+      },
+      "source": "704aeb9c055df813804dce6cd983d4eb11ad613effbcc969d6cd6b469702da5d"
+    },
+    {
+      "board": "esp32",
+      "name": "bmp280-spi",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/bmp280-spi.syms.tsv",
+      "sha256": "dd1c06b86c1b2afb400d6afe18b9d54f7db408bd629d2721b9b262a7fb27a8b3",
+      "bytes": 118681,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "SPI": "2.0.0"
+      },
+      "source": "704aeb9c055df813804dce6cd983d4eb11ad613effbcc969d6cd6b469702da5d"
     },
     {
       "board": "esp32",
@@ -6655,6 +6748,66 @@
     },
     {
       "board": "uno",
+      "name": "bme280-adafruit",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/bme280-adafruit.elf",
+      "sha256": "58da227ef60104f4a55c4c5d195e99e4509dd37dbaa8f2f3a82fe8d4b7dcfae0",
+      "bytes": 93928,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Adafruit BME280 Library": "2.3.0",
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit Unified Sensor": "1.1.15",
+        "SPI": "1.0",
+        "Wire": "1.0"
+      },
+      "source": "ccc2e03e851f24ea3296f28a9885a2c6737a4231e5c730a04c4fec89518bc375"
+    },
+    {
+      "board": "uno",
+      "name": "bme280-adafruit",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/bme280-adafruit.hex",
+      "sha256": "fdd4e195300a7077fd0150d319ec4f75433ba4380b179bce85dcef20b3be3bc8",
+      "bytes": 38726,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Adafruit BME280 Library": "2.3.0",
+        "Adafruit BusIO": "1.17.4",
+        "Adafruit Unified Sensor": "1.1.15",
+        "SPI": "1.0",
+        "Wire": "1.0"
+      },
+      "source": "ccc2e03e851f24ea3296f28a9885a2c6737a4231e5c730a04c4fec89518bc375"
+    },
+    {
+      "board": "uno",
+      "name": "bme280",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/bme280.elf",
+      "sha256": "6f22958ad30604d8bfbf133617f81b9925d14cbe8b08445f8a7b4b0c867e37d0",
+      "bytes": 64352,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Wire": "1.0"
+      },
+      "source": "9f07cf4edeee47fa5ab1d1c8a113354be8ae59d1072775d1ef4ee0bd73e35aa3"
+    },
+    {
+      "board": "uno",
+      "name": "bme280",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/bme280.hex",
+      "sha256": "6af073c96cec9516a63c7ada2b65c2be3d675108b3bc7bdf2e2bf2c3dc80fd37",
+      "bytes": 25672,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Wire": "1.0"
+      },
+      "source": "9f07cf4edeee47fa5ab1d1c8a113354be8ae59d1072775d1ef4ee0bd73e35aa3"
+    },
+    {
+      "board": "uno",
       "name": "button-pullup",
       "fqbn": "arduino:avr:uno",
       "file": "uno/button-pullup.elf",
@@ -6947,6 +7100,32 @@
       "core": "arduino:avr@1.8.7",
       "libraries": {},
       "source": "6dc3755ee732295abde080549454d5bc57a472fb5f337ac6f2d34fa300967b80"
+    },
+    {
+      "board": "uno",
+      "name": "ds3231",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/ds3231.elf",
+      "sha256": "b64b7113d15f57eddd768570399a373cde50053056aae689ee536f780dcc8f1e",
+      "bytes": 62168,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Wire": "1.0"
+      },
+      "source": "3fc8dc7b705e60f102f4d6b520a6a8fd6428257f0308dcb7eac0850c887175db"
+    },
+    {
+      "board": "uno",
+      "name": "ds3231",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/ds3231.hex",
+      "sha256": "620afb937d551c21d2aa9d92146480c0696c8d8b309ead7882ce589b94be1b60",
+      "bytes": 25079,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Wire": "1.0"
+      },
+      "source": "3fc8dc7b705e60f102f4d6b520a6a8fd6428257f0308dcb7eac0850c887175db"
     },
     {
       "board": "uno",
@@ -7872,6 +8051,28 @@
     },
     {
       "board": "uno",
+      "name": "relay-module",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/relay-module.elf",
+      "sha256": "5ec37e90865f1ddb656e6f56c3985c2966adbffba88d172ad85e9d53a5ee2cc5",
+      "bytes": 25684,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "fde85cda2b672d418851d605ec5da1c6ed536561ca21db75f4313e1b60c7376e"
+    },
+    {
+      "board": "uno",
+      "name": "relay-module",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/relay-module.hex",
+      "sha256": "a8e23d77753d5283ff741f9a51bc54468c436477ce84d001e165634f31d8ddf6",
+      "bytes": 5819,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "fde85cda2b672d418851d605ec5da1c6ed536561ca21db75f4313e1b60c7376e"
+    },
+    {
+      "board": "uno",
       "name": "relay",
       "fqbn": "arduino:avr:uno",
       "file": "uno/relay.elf",
@@ -7891,6 +8092,38 @@
       "core": "arduino:avr@1.8.7",
       "libraries": {},
       "source": "ddbf29557278e556a0997f82784f095db0e9ba9f54c46dfe8e59ecf4af6980d0"
+    },
+    {
+      "board": "uno",
+      "name": "rtclib-ds3231",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/rtclib-ds3231.elf",
+      "sha256": "0ba39aeea6b7c2e53ab43e628ff1df6cb2c8eb398123068ef709b35e2b09bc75",
+      "bytes": 65312,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "RTClib": "2.1.4",
+        "SPI": "1.0",
+        "Wire": "1.0"
+      },
+      "source": "56314160de578af949cac5bcf05c9747f604482b25281b20f5906775cde8f0d5"
+    },
+    {
+      "board": "uno",
+      "name": "rtclib-ds3231",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/rtclib-ds3231.hex",
+      "sha256": "54ef4d6e6572efe4fbb5d7e1f489d8c14623476c2d5d6fa8fca3d4938fdaae8f",
+      "bytes": 26154,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "Adafruit BusIO": "1.17.4",
+        "RTClib": "2.1.4",
+        "SPI": "1.0",
+        "Wire": "1.0"
+      },
+      "source": "56314160de578af949cac5bcf05c9747f604482b25281b20f5906775cde8f0d5"
     },
     {
       "board": "uno",
@@ -8125,6 +8358,32 @@
         "SPI": "1.0"
       },
       "source": "163a546924caafa43a422c39830b328725c5f8d50cd36178a8df9e808f3dd3aa"
+    },
+    {
+      "board": "uno",
+      "name": "shift-in",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/shift-in.elf",
+      "sha256": "adaa2d6bb1d9bb82bc6b63090e9254ab869c989aed1345c0631de20d5f29952f",
+      "bytes": 33112,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "SPI": "1.0"
+      },
+      "source": "207a6b6e1c7be79e3ad197426b6592f8bc5659dd46efb2f74bd5e026784bedf8"
+    },
+    {
+      "board": "uno",
+      "name": "shift-in",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/shift-in.hex",
+      "sha256": "cf61c3d02e809ba1e1ed6de46fe844e096078ef5fb0e55d5d8f7e8d74c22fb0b",
+      "bytes": 11423,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "SPI": "1.0"
+      },
+      "source": "207a6b6e1c7be79e3ad197426b6592f8bc5659dd46efb2f74bd5e026784bedf8"
     },
     {
       "board": "uno",

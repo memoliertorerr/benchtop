@@ -1,0 +1,98 @@
+{
+  "format": 1,
+  "name": "uno-ds3231",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "rtc",
+      "type": "ds3231",
+      "x": 30,
+      "y": -34,
+      "rotation": 0,
+      "props": {
+        "temperature": 26.4
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "uno",
+        "pin": "A4.2"
+      },
+      "to": {
+        "part": "rtc",
+        "pin": "SDA"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "uno",
+        "pin": "A5.2"
+      },
+      "to": {
+        "part": "rtc",
+        "pin": "SCL"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "uno",
+        "pin": "2"
+      },
+      "to": {
+        "part": "rtc",
+        "pin": "SQW"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "to": {
+        "part": "rtc",
+        "pin": "VCC"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "to": {
+        "part": "rtc",
+        "pin": "GND"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "rtclib-ds3231.hex",
+      "format": "hex"
+    }
+  }
+}

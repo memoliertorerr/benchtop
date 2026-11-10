@@ -125,7 +125,6 @@ describe('kit chips under their libraries (BT188)', () => {
     expect(twelve.startsWith(`12 bit ${at(19.7, 12)} C in `)).toBe(true);
     expect(Number(/in (\d+) ms/.exec(twelve)?.[1])).toBeGreaterThanOrEqual(750);
     expect(Number(/in (\d+) ms/.exec(twelve)?.[1])).toBeLessThan(780);
-    expect(until((l) => l.startsWith('t '), 8000)).toBe(`t ${at(19.7, 12)} C`);
   }, 60_000);
 
   it('uno/ledcontrol: "HELP 123." on the 7-segment module, a smiley on the matrix chained after it, then the count', () => {

@@ -85,6 +85,17 @@ export const CONTROLS: Readonly<Record<string, readonly Control[]>> = {
     { kind: 'slider', label: 'Humidity', unit: '%', min: 0, max: 100, step: 0.1, prop: 'humidity', channel: 'humidity' },
   ],
   ds18b20: [{ kind: 'slider', label: 'Temperature', unit: '°C', min: -55, max: 125, step: 0.0625, prop: 'temperature', channel: 'temperature' }], // BT187
+  // BT191
+  bme280: [
+    { kind: 'slider', label: 'Temperature', unit: '°C', min: -40, max: 85, step: 0.1, prop: 'temperature', channel: 'temperature' },
+    { kind: 'slider', label: 'Humidity', unit: '%', min: 0, max: 100, step: 0.5, prop: 'humidity', channel: 'humidity' },
+    { kind: 'slider', label: 'Pressure', unit: 'hPa', min: 300, max: 1100, step: 0.25, prop: 'pressure', channel: 'pressure' },
+  ],
+  ds3231: [{ kind: 'slider', label: 'Temperature', unit: '°C', min: -40, max: 85, step: 0.25, prop: 'temperature', channel: 'temperature' }], // BT192
+  bmp280: [
+    { kind: 'slider', label: 'Temperature', unit: '°C', min: -40, max: 85, step: 0.1, prop: 'temperature', channel: 'temperature' },
+    { kind: 'slider', label: 'Pressure', unit: 'hPa', min: 300, max: 1100, step: 0.25, prop: 'pressure', channel: 'pressure' },
+  ],
   'flame-sensor': [{ kind: 'slider', label: 'Flame (infrared)', unit: '', min: 0, max: 1, step: 0.01, prop: 'intensity' }],
   'gas-sensor': [{ kind: 'slider', label: 'Gas', unit: 'ppm', min: 1, max: 10_000, step: 1, prop: 'ppm', log: true }],
   hx711: [{ kind: 'slider', label: 'Weight', unit: 'g', min: 0, max: 50_000, step: 1, prop: 'weight' }],

@@ -1,0 +1,87 @@
+{
+  "format": 1,
+  "name": "uno-bme280",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "env",
+      "type": "bme280",
+      "x": 30,
+      "y": -26,
+      "rotation": 0,
+      "props": {
+        "temperature": 22.4,
+        "humidity": 48,
+        "pressure": 1009.5
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "uno",
+        "pin": "A4.2"
+      },
+      "to": {
+        "part": "env",
+        "pin": "SDA"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "uno",
+        "pin": "A5.2"
+      },
+      "to": {
+        "part": "env",
+        "pin": "SCL"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "to": {
+        "part": "env",
+        "pin": "VCC"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "to": {
+        "part": "env",
+        "pin": "GND"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "bme280-adafruit.hex",
+      "format": "hex"
+    }
+  }
+}

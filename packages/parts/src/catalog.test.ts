@@ -5,15 +5,20 @@ import { PART_CATEGORIES } from './categories.ts';
 const categories = new Set<string>(PART_CATEGORIES.map((c) => c.id));
 
 describe('part catalog', () => {
-  it('lists the BT9, BT16–BT20, BT34, BT41, BT45, BT47, BT51–BT53, BT55, BT61, BT83, BT84, BT89, BT94, BT98, BT99, BT126, BT150, BT155, BT167, BT169, BT172, BT173, BT181, BT182, BT184, BT185, BT186 and BT187 parts', () => {
+  it('lists the BT9, BT16–BT20, BT34, BT41, BT45, BT47, BT51–BT53, BT55, BT61, BT83, BT84, BT89, BT94, BT98, BT99, BT126, BT150, BT155, BT167, BT169, BT172, BT173, BT181, BT182, BT184, BT185, BT186, BT187, BT191, BT192 and BT193 parts', () => {
     expect([...CATALOG.keys()].sort()).toEqual(
       [
         '74hc595',
+        '74hc165',
+        'relay-module',
         'max7219-matrix',
         'max7219-matrix-4',
         'max7219-7seg-8',
         'tm1637-4digit',
         'ds18b20',
+        'bme280',
+        'bmp280',
+        'ds3231',
         'speaker',
         'microphone',
         'arduino-uno',

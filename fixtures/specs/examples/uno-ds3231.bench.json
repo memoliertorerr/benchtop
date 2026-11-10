@@ -1,0 +1,12 @@
+{
+  "name": "example: uno-ds3231",
+  "project": "../../projects/uno-ds3231.json",
+  "firmware": {
+    "uno": "../../firmware/uno/rtclib-ds3231.hex"
+  },
+  "expect": [
+    "serial contains \"lost power\" by 1s",
+    "serial contains \"2026/11/10 12:34:55 Tue\" by 6s",
+    "serial contains \"alarm\" by 6s"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "example: uno-shift-in",
+  "project": "../../projects/uno-shift-in.json",
+  "firmware": {
+    "uno": "../../firmware/uno/shift-in.hex"
+  },
+  "expect": [
+    "serial contains \"soft A03C\" by 1s",
+    "serial contains \"spi A03C\" by 1s"
+  ]
+}

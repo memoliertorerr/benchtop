@@ -1,0 +1,112 @@
+{
+  "format": 1,
+  "name": "esp32-bmp280",
+  "parts": [
+    {
+      "id": "esp",
+      "type": "esp32-devkit-v1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "baro",
+      "type": "bmp280",
+      "x": 40,
+      "y": -24,
+      "rotation": 0,
+      "props": {
+        "temperature": 18.2,
+        "pressure": 950
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "esp",
+        "pin": "D18"
+      },
+      "to": {
+        "part": "baro",
+        "pin": "SCL"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "esp",
+        "pin": "D23"
+      },
+      "to": {
+        "part": "baro",
+        "pin": "SDA"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "esp",
+        "pin": "D19"
+      },
+      "to": {
+        "part": "baro",
+        "pin": "SDO"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "esp",
+        "pin": "D5"
+      },
+      "to": {
+        "part": "baro",
+        "pin": "CSB"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "esp",
+        "pin": "3V3"
+      },
+      "to": {
+        "part": "baro",
+        "pin": "VCC"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "esp",
+        "pin": "GND.1"
+      },
+      "to": {
+        "part": "baro",
+        "pin": "GND"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "esp": {
+      "kind": "file",
+      "name": "bmp280-adafruit.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

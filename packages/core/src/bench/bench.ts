@@ -1755,18 +1755,21 @@ export class Bench {
         // none and name its MOSI pin for it (BT181: the SPI OLED), or (BT184) feed the next device of
         // a chain with it: then SCK and MOSI decide.
         const noMiso = attachment.miso === attachment.mosi;
-        const misoFree =
-          noMiso ||
-          this.netlist.pinsOfNet(attachment.miso).length <= 1 ||
-          this.spi.some((other) => other !== attachment && other.mosi === attachment.miso && other.sck === attachment.sck);
-        if (nets.get(sck) === attachment.sck && nets.get(mosi) === attachment.mosi && (misoFree || nets.get(miso) === attachment.miso)) {
+        const misoChained = this.spi.some((other) => other !== attachment && other.mosi === attachment.miso && other.sck === attachment.sck);
+        const misoFree = noMiso || this.netlist.pinsOfNet(attachment.miso).length <= 1 || misoChained;
+        const misoOn = !noMiso && nets.get(miso) === attachment.miso;
+        // BT193: a read-only device (a 74HC165) has its MOSI unwired or on a rail: SCK and its MISO —
+        // on the controller's, or feeding the next device of a chain — decide.
+        const mosiOn = nets.get(mosi) === attachment.mosi;
+        const mosiFree = !mosiOn && !noMiso && (this.netlist.pinsOfNet(attachment.mosi).length <= 1 || this.resolver.isFixed(attachment.mosi));
+        if (nets.get(sck) === attachment.sck && ((mosiOn && (misoFree || misoOn)) || (mosiFree && (misoOn || misoChained)))) {
           let bus = this.spiBuses.get(controller);
           if (bus === undefined) {
             bus = new SpiBus();
             this.spiBuses.set(controller, bus);
             controller.attach(bus, ALWAYS);
           }
-          const chain = [this.spiLink(attachment, !noMiso && nets.get(miso) === attachment.miso)];
+          const chain = [this.spiLink(attachment, misoOn)];
           bus.chains.push(chain);
           this.spiLinks.set(attachment, { chain, nets, miso });
           attachment.proxy.source.board = slot.partId;

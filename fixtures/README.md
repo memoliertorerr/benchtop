@@ -32,7 +32,9 @@ fixtures/firmware/esp32/<name>.syms.tsv       `nm -S -n --defined-only` of the f
                                               max7219-7seg — an 8-digit MAX7219 bit-banged;
                                               ds18b20 — 1-Wire with OneWire's timings;
                                               dallas-temperature — OneWire and
-                                              DallasTemperature)
+                                              DallasTemperature; bmp280-spi — a BMP280
+                                              on VSPI; bmp280-adafruit — Adafruit's
+                                              library on it)
 fixtures/firmware/esp32c3/<name>.bin|.partitions.bin|.syms.tsv  the same for the ESP32-C3
                                               (serial-hello, blink, gpio-interrupt, adc-read,
                                               ledc-fade, i2c-scan, spi-loopback, rgb-blink,

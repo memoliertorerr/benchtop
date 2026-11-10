@@ -1,0 +1,14 @@
+{
+  "name": "example: uno-relay-module",
+  "project": "../../projects/uno-relay-module.json",
+  "firmware": {
+    "uno": "../../firmware/uno/relay-module.hex"
+  },
+  "expect": [
+    "serial contains \"blip\" by 1s",
+    "led lno is lit at 450ms",
+    "led lnc is dark at 450ms",
+    "led lno is dark at 950ms",
+    "led lnc is lit at 950ms"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "example: esp32-bmp280",
+  "project": "../../projects/esp32-bmp280.json",
+  "firmware": {
+    "esp": "../../firmware/esp32/bmp280-adafruit.bin"
+  },
+  "expect": [
+    "serial contains \"begin ok\" by 2s",
+    "serial matches /t 18\\.[12]\\d p 950\\.0\\d/ by 3s"
+  ]
+}

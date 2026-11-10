@@ -44,6 +44,17 @@ const SENSORS: Readonly<Record<string, EnvSpec>> = {
       { field: 'humidity', deliver: { kind: 'channel', channel: 'humidity' }, epsilon: 0.1 },
     ],
   },
+  // BT191: read at the next measurement (pressure isn't the environment's: a prop and a slider).
+  bme280: {
+    role: 'sensor',
+    samples: [
+      { field: 'temperature', deliver: { kind: 'channel', channel: 'temperature' }, epsilon: 0.05 },
+      { field: 'humidity', deliver: { kind: 'channel', channel: 'humidity' }, epsilon: 0.1 },
+    ],
+  },
+  bmp280: { role: 'sensor', samples: [{ field: 'temperature', deliver: { kind: 'channel', channel: 'temperature' }, epsilon: 0.05 }] },
+  // BT192: the DS3231's own temperature, at its next conversion.
+  ds3231: { role: 'sensor', samples: [{ field: 'temperature', deliver: { kind: 'channel', channel: 'temperature' }, epsilon: 0.1 }] },
   // BT187: read at its next conversion.
   ds18b20: { role: 'sensor', samples: [{ field: 'temperature', deliver: { kind: 'channel', channel: 'temperature' }, epsilon: 0.03 }] },
   'ntc-temperature-sensor': { role: 'sensor', samples: [{ field: 'temperature', deliver: { kind: 'value' }, epsilon: 0.05 }] },

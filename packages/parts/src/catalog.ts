@@ -11,6 +11,8 @@ import { capacitor, capacitorElectrolytic } from './basic/capacitor.ts';
 import { dcMotor } from './actuators/dc-motor.ts';
 import { l298n } from './actuators/l298n.ts';
 import { hc595 } from './ics/hc595.ts';
+import { hc165 } from './ics/hc165.ts';
+import { relayModule } from './actuators/relay-module.ts';
 import { diode } from './basic/diode.ts';
 import { nMosfet, npnTransistor, pMosfet, pnpTransistor } from './basic/transistors.ts';
 import { resistor } from './basic/resistor.ts';
@@ -53,7 +55,9 @@ import { tiltSwitch } from './inputs/tilt-switch.ts';
 import { touchPad } from './inputs/touch-pad.ts';
 import { dht22 } from './sensors/dht22.ts';
 import { ds18b20 } from './sensors/ds18b20.ts';
+import { bme280, bmp280 } from './sensors/bme280.ts';
 import { ds1307 } from './sensors/ds1307.ts';
+import { ds3231 } from './sensors/ds3231.ts';
 import { microsdCard } from './storage/microsd-card.ts';
 import { hcSr04 } from './sensors/hc-sr04.ts';
 import { microphone } from './sensors/microphone.ts';
@@ -89,6 +93,7 @@ const ALL: readonly PartDefinition[] = [
   nMosfet,
   pMosfet,
   hc595,
+  hc165,
   led,
   rgbLed,
   pushbutton,
@@ -134,8 +139,11 @@ const ALL: readonly PartDefinition[] = [
   microphone,
   dht22,
   ds18b20,
+  bme280,
+  bmp280,
   hcSr04,
   ds1307,
+  ds3231,
   mpu6050,
   microsdCard,
   servo,
@@ -145,6 +153,7 @@ const ALL: readonly PartDefinition[] = [
   neopixelRing,
   neopixelMatrix,
   relayKs2e,
+  relayModule,
   dcMotor,
   l298n,
   ...POWER_SOURCES,

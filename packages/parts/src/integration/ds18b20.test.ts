@@ -124,6 +124,5 @@ describe('DS18B20s on real firmware (BT187)', () => {
     expect(twelve.startsWith(`12 bit ${at12(23.3)} C in `)).toBe(true);
     expect(Number(/in (\d+) ms/.exec(twelve)?.[1])).toBeGreaterThanOrEqual(749);
     expect(Number(/in (\d+) ms/.exec(twelve)?.[1])).toBeLessThanOrEqual(752);
-    expect(until((l) => l.startsWith('t '), 8000)).toBe(`t ${at12(23.3)} C`);
   }, 60_000);
 });

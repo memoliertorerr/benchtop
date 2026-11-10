@@ -204,6 +204,35 @@ export const UNO_CHECKS: Record<string, (r: ExampleRun) => void> = {
     expect(sevenSegmentText(r.visual('tm'))).toBe('0042');
     expect(r.visual('tm')?.level).toBe(2 / 16);
   },
+  'uno-bme280'(r) {
+    // BT195: Adafruit_BME280 reads the set weather once a second.
+    r.runTo(1500);
+    expect(r.serial('uno')).toContain('begin ok');
+    expect(r.serial('uno')).toMatch(/t 22\.[34]\d p 1009\.[45]\d h 4[78]\.\d\d/);
+  },
+  'uno-ds3231'(r) {
+    // BT195: RTClib sets the time; two seconds on the module shows it.
+    r.runTo(2000);
+    expect(r.serial('uno')).toContain('lost power');
+    expect(r.serial('uno')).toContain('2026/11/10 12:34:51 Tue');
+    expect(r.visual('rtc')?.time).toMatch(/^2026-11-10 12:34:5\d$/);
+  },
+  'uno-shift-in'(r) {
+    // BT195: the 16 inputs, then a button's bit.
+    r.runTo(300);
+    expect(r.serial('uno')).toContain('spi A03C');
+    r.input('b0', { kind: 'press' });
+    r.runTo(600);
+    expect(r.serial('uno')).toContain('in A13C');
+  },
+  'uno-relay-module'(r) {
+    // BT195: the contacts change over; the lamps follow.
+    r.runTo(450);
+    expect(r.visual('k')?.closed).toBe(true);
+    expect((r.visual('lno')?.brightness as number) > 0.5).toBe(true);
+    r.runTo(950);
+    expect(r.visual('k')?.closed).toBe(false);
+  },
   'uno-tm1637-thermometer'(r) {
     // BT190: the DS18B20's 21.3125 °C as "21°C".
     r.runTo(2000);

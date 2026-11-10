@@ -17,6 +17,8 @@ import { IC_VIEW_TYPES, icView } from './ics.ts';
 import { l298nView, MOTOR_VIEW_TYPES, motorView } from './motors.ts';
 import { MAX7219_VIEW_TYPES, max7219View } from './max7219.ts';
 import { TM1637_VIEW_TYPES, tm1637View } from './tm1637.ts';
+import { SENSOR_MODULE_VIEW_TYPES, sensorModuleView } from './sensor-modules.ts';
+import { RELAY_MODULE_VIEW_TYPES, relayModuleView } from './relay-module.ts';
 import { OLED_VIEW_TYPES, oledView } from './oled.ts';
 import { PASSIVE_VIEW_TYPES, passiveView } from './passives.ts';
 import { POWER_VIEW_TYPES, powerView } from './power.ts';
@@ -68,6 +70,8 @@ export function viewFor(type: string): ViewFactory {
   if (OLED_VIEW_TYPES.has(type)) return oledView;
   if (MAX7219_VIEW_TYPES.has(type)) return max7219View;
   if (TM1637_VIEW_TYPES.has(type)) return tm1637View;
+  if (SENSOR_MODULE_VIEW_TYPES.has(type)) return sensorModuleView;
+  if (RELAY_MODULE_VIEW_TYPES.has(type)) return relayModuleView;
   if (hasWokwiView(type)) return wokwiView;
   return fallbackView;
 }

@@ -1,0 +1,11 @@
+{
+  "name": "example: uno-bme280",
+  "project": "../../projects/uno-bme280.json",
+  "firmware": {
+    "uno": "../../firmware/uno/bme280-adafruit.hex"
+  },
+  "expect": [
+    "serial contains \"begin ok\" by 1s",
+    "serial matches /t 22\\.[34]\\d p 1009\\.[45]\\d h 4[78]\\.\\d\\d alt / by 2s"
+  ]
+}

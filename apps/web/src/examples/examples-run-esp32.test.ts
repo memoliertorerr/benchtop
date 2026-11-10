@@ -143,6 +143,12 @@ export const ESP32_CHECKS: Record<string, (r: ExampleRun) => void> = {
     expect(first.filter((p) => p !== 0).length).toBe(16);
     expect(later).not.toEqual(first); // the rainbow turned
   },
+  'esp32-bmp280'(r) {
+    // BT195: Adafruit_BMP280 on hardware SPI.
+    r.runTo(2000);
+    expect(r.serial('esp')).toContain('begin ok');
+    expect(r.serial('esp')).toMatch(/t 18\.[12]\d p 950\.0\d/);
+  },
   'esp32-max7219-7seg'(r) {
     // BT189: "-HELP-01." in Code B, then the count.
     r.runTo(400);

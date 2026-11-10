@@ -27,6 +27,13 @@ describe('MAX7219 module views (BT185)', () => {
     expect(viewFor('tm1637-4digit')).not.toBe(viewFor('no-such-part'));
   });
 
+  it('(BT191) draw the BME280 and BMP280 modules', () => {
+    for (const type of ['bme280', 'bmp280', 'ds3231', 'relay-module']) {
+      expect(CATALOG.get(type), type).toBeDefined();
+      expect(viewFor(type)).not.toBe(viewFor('no-such-part'));
+    }
+  });
+
   it('keep a dim display plainly lit', () => {
     expect(dotOpacity(0)).toBe(0);
     expect(dotOpacity(1 / 32)).toBeGreaterThan(0.5);
