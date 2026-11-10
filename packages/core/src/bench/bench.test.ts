@@ -244,7 +244,10 @@ describe('Bench', () => {
   it('attaches bus devices to the controller on their nets, and reports unattached ones', () => {
     const mcu = new FakeMcu({
       pins: BOARD_PINS,
-      script: [{ cycle: 16, pin: 'D1', mode: 'output', level: 1 }],
+      script: [
+        { cycle: 16, pin: 'D1', mode: 'output', level: 1 },
+        { cycle: 32_000, pin: 'D1', mode: 'output', level: 0 }, // 2 ms: selected
+      ],
       i2c: [{ sda: 'SDA', scl: 'SCL' }],
       spi: [{ sck: 'SCK', mosi: 'MOSI', miso: 'MISO' }],
     });
@@ -260,17 +263,94 @@ describe('Bench', () => {
       mcu,
     );
     expect(mcu.i2cControllers[0].attached.map((d) => d.address)).toEqual([0x3c]);
+    // BT184: the controller gets the bench's bus, which passes a byte to the devices selected now.
     const spi = mcu.spiControllers[0].attached;
     expect(spi).toHaveLength(1);
-    expect(spi[0].device.transfer(0x0f)).toBe(0xf0);
-    expect(spi[0].selected()).toBe(false); // CS floating
+    expect(spi[0].device.transfer(0x0f)).toBe(0xff); // CS floating: nobody answers
     bench.runUntil(NS_PER_MS);
-    expect(spi[0].selected()).toBe(false); // CS high
+    expect(spi[0].device.transfer(0x0f)).toBe(0xff); // CS high
+    bench.runUntil(3 * NS_PER_MS);
+    expect(spi[0].device.transfer(0x0f)).toBe(0xf0); // CS low
     // (The circuit checker's static infos — unwired 'lost', unused pins — are BT22's tests.)
     expect(bench.problems().filter((p) => !CHECKER_CODES.has(p.code)).map((p) => [p.code, p.severity, p.parts])).toEqual([
       ['i2c-unattached', 'info', ['lost']],
       ['spi-unattached', 'info', ['lost']],
     ]);
+  });
+
+  it('SPI buses (BT184): every selected device gets each byte, only devices on MISO answer, chains pass bytes on', () => {
+    // A one-byte shift register: it returns the byte it held.
+    const logs: number[][] = [];
+    const shifter: PartDefinition = {
+      type: 'shifter',
+      title: 'Shifter',
+      category: 'ics',
+      size: { w: 10, h: 5 },
+      pins: ['SCK', 'DI', 'DO', 'CS'].map((name, i) => ({ name, x: i * 2.54, y: 0, role: 'digital' as const })),
+      defaults: {},
+      createModel(ctx) {
+        const log: number[] = [];
+        logs.push(log);
+        let held = 0;
+        ctx.attachSpi({ sck: 'SCK', mosi: 'DI', miso: 'DO', cs: 'CS' }, {
+          transfer: (b) => {
+            log.push(b);
+            const out = held;
+            held = b;
+            return out;
+          },
+        });
+        return {};
+      },
+    };
+    const env = (mcu: FakeMcu) => makeBenchEnv([...definitions, shifter], () => mcu);
+    const fake = () =>
+      new FakeMcu({ pins: BOARD_PINS, script: [{ cycle: 16, pin: 'D1', mode: 'output', level: 0 }], spi: [{ sck: 'SCK', mosi: 'MOSI', miso: 'MISO' }] });
+
+    // One bus: `a` always listens (CS on GND) with its output unwired, `b` is selected and on MISO.
+    let mcu = fake();
+    let bench = new Bench(
+      testDoc({ uno: 'fake-board', a: 'shifter', b: 'shifter' }, [
+        ['uno:SCK', 'a:SCK'],
+        ['uno:MOSI', 'a:DI'],
+        ['uno:GND', 'a:CS'],
+        ['uno:SCK', 'b:SCK'],
+        ['uno:MOSI', 'b:DI'],
+        ['uno:MISO', 'b:DO'],
+        ['uno:D1', 'b:CS'],
+      ]),
+      env(mcu),
+    );
+    bench.runUntil(NS_PER_MS);
+    let bus = mcu.spiControllers[0].attached;
+    expect(bus).toHaveLength(1);
+    const [a, b] = logs.splice(0);
+    expect([0x11, 0x22, 0x33].map((byte) => bus[0].device.transfer(byte))).toEqual([0, 0x11, 0x22]); // b's answers
+    expect(a).toEqual([0x11, 0x22, 0x33]);
+    expect(b).toEqual([0x11, 0x22, 0x33]);
+
+    // A chain placed tail first: c on the controller's MOSI, its DO into d, d's DO on MISO.
+    mcu = fake();
+    bench = new Bench(
+      testDoc({ uno: 'fake-board', d: 'shifter', c: 'shifter' }, [
+        ['uno:SCK', 'c:SCK'],
+        ['uno:MOSI', 'c:DI'],
+        ['uno:GND', 'c:CS'],
+        ['c:DO', 'd:DI'],
+        ['uno:SCK', 'd:SCK'],
+        ['uno:GND', 'd:CS'],
+        ['uno:MISO', 'd:DO'],
+      ]),
+      env(mcu),
+    );
+    bench.runUntil(NS_PER_MS);
+    bus = mcu.spiControllers[0].attached;
+    expect(bus).toHaveLength(1);
+    const [d, c] = logs.splice(0);
+    expect([0xa1, 0xb2, 0xc3].map((byte) => bus[0].device.transfer(byte))).toEqual([0, 0, 0xa1]);
+    expect(c).toEqual([0xa1, 0xb2, 0xc3]);
+    expect(d).toEqual([0, 0xa1, 0xb2]);
+    expect(bench.problems().filter((p) => p.code === 'spi-unattached')).toEqual([]);
   });
 
   it('resets time, timers, MCUs and part models', () => {

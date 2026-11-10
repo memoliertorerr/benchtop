@@ -1,0 +1,13 @@
+{
+  "name": "example: uno-max7219",
+  "project": "../../projects/uno-max7219.json",
+  "firmware": {
+    "uno": "../../firmware/uno/max7219.hex"
+  },
+  "expect": [
+    "serial contains \"drawn\" by 1s",
+    "matrix fc row 0 shows \"..........####......#...#.#.#.#.\" at 300ms",
+    "matrix fc row 4 shows \"#########.#..#.########.#.#.#.#.\" at 300ms",
+    "serial contains \"intensity 15\" by 2s"
+  ]
+}

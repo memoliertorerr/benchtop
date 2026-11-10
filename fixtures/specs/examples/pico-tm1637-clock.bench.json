@@ -1,0 +1,11 @@
+{
+  "name": "example: pico-tm1637-clock",
+  "project": "../../projects/pico-tm1637-clock.json",
+  "firmware": {
+    "pico": "../../firmware/pico/tm1637.uf2"
+  },
+  "expect": [
+    "serial contains \"time 00:02\" by 3s",
+    "digits tm show \"0002\" at 2200ms"
+  ]
+}

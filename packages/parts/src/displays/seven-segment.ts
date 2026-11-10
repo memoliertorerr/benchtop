@@ -193,14 +193,43 @@ const GLYPHS: Readonly<Record<number, string>> = {
   0x7f: '8',
   0x6f: '9',
   0x40: '-',
+  // BT185: the letters the MAX7219's Code B has.
+  0x79: 'E',
+  0x76: 'H',
+  0x38: 'L',
+  0x73: 'P',
 };
 
 /**
  * What a 7-segment visual shows, one character per digit (BT49; the examples' tests and the CLI's
  * `digits` expectation): a segment counts as lit above 0.05 brightness (multiplexing divides it
  * by the digit count), DP and the colon are ignored, ' ' is a dark digit, '?' a pattern that
- * isn't a digit or '-'.
+ * isn't a digit, '-' or (BT185) E, H, L, P.
  */
+/**
+ * BT189: what a display shows from its lit segments (bit 0 A … bit 6 G; the point ignored), one
+ * character per digit — for the chips that report them (the MAX7219, the TM1637), so a dim digit
+ * reads as lit.
+ */
+export function segmentText(segments: readonly number[]): string {
+  let out = '';
+  for (const bits of segments) out += GLYPHS[bits & 0x7f] ?? '?';
+  return out;
+}
+
+/** BT189: a 7-segment visual (the 7-segment parts, the MAX7219's and TM1637's modules). */
+export function isSevenSegmentVisual(visual: Readonly<Record<string, unknown>> | undefined): boolean {
+  if (visual === undefined || !Array.isArray(visual.values) || visual.values.length % 8 !== 0 || visual.values.length === 0) return false;
+  return 'colon' in visual || Array.isArray(visual.segments);
+}
+
+/** BT189: a 7-segment visual's text — its `segments` when it reports them, else its `values`. */
+export function displayText(visual: Readonly<Record<string, unknown>> | undefined): string {
+  if (visual === undefined) return '';
+  if (Array.isArray(visual.segments)) return segmentText(visual.segments as number[]);
+  return sevenSegmentText(Array.isArray(visual.values) ? (visual.values as number[]) : []);
+}
+
 export function sevenSegmentText(values: readonly number[]): string {
   let out = '';
   for (let d = 0; d < Math.floor(values.length / 8); d++) {

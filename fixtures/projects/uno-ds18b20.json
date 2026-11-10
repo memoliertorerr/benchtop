@@ -1,0 +1,159 @@
+{
+  "format": 1,
+  "name": "uno-ds18b20",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "t1",
+      "type": "ds18b20",
+      "x": 30,
+      "y": -30,
+      "rotation": 0,
+      "props": {
+        "serial": "0000075a1b2c",
+        "temperature": 21.3
+      }
+    },
+    {
+      "id": "t2",
+      "type": "ds18b20",
+      "x": 45,
+      "y": -30,
+      "rotation": 0,
+      "props": {
+        "serial": "00000a0b0c0d",
+        "temperature": 27.6
+      }
+    },
+    {
+      "id": "r1",
+      "type": "resistor",
+      "x": 60,
+      "y": -40,
+      "rotation": 0,
+      "props": {
+        "ohms": 4700
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "uno",
+        "pin": "2"
+      },
+      "to": {
+        "part": "t1",
+        "pin": "DQ"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "t1",
+        "pin": "DQ"
+      },
+      "to": {
+        "part": "t2",
+        "pin": "DQ"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "r1",
+        "pin": "1"
+      },
+      "to": {
+        "part": "t2",
+        "pin": "DQ"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "r1",
+        "pin": "2"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "t1",
+        "pin": "VDD"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "t2",
+        "pin": "VDD"
+      },
+      "to": {
+        "part": "t1",
+        "pin": "VDD"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "t1",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w8",
+      "from": {
+        "part": "t2",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "t1",
+        "pin": "GND"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "dallas-temperature.hex",
+      "format": "hex"
+    }
+  }
+}

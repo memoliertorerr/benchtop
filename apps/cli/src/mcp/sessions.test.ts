@@ -364,6 +364,15 @@ describe('live sessions', () => {
     expect(screen[8].codePointAt(32)! - 0x2800).toBeGreaterThan(0); // the circle's top at (64, 32)
   }, 60_000);
 
+  it('BT189: sim_state reads a MAX7219 matrix as lines and a 7-segment module as its digits (uno-ledcontrol)', async () => {
+    const server = testServer();
+    const { session } = (await tool(server, 'open_example', { id: 'uno-ledcontrol' })).value as { session: string };
+    await tool(server, 'sim_run', { session, untilSerial: 'drawn', duration: '1s' });
+    const state = (await tool(server, 'sim_state', { session, parts: ['seg', 'm'] })).value as { parts: { seg: { shows: string }; m: { screen: string[] } } };
+    expect(state.parts.seg.shows).toBe('HELP 123');
+    expect(state.parts.m.screen).toEqual(['..####..', '.#....#.', '#.#..#.#', '#......#', '#.#..#.#', '#..##..#', '.#....#.', '..####..']);
+  }, 60_000);
+
   it('BT161: sim_state shows an ESP32 asleep until its touch pad is touched; sim_input wakes it', async () => {
     const server = testServer({ maxWallMs: 60_000 });
     const { session } = (await tool(server, 'open_example', { id: 'esp32-touch-wake' })).value as { session: string };

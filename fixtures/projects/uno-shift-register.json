@@ -1,0 +1,594 @@
+{
+  "format": 1,
+  "name": "uno-shift-register",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "sr",
+      "type": "74hc595",
+      "x": 24,
+      "y": -34,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "r0",
+      "type": "resistor",
+      "x": 6,
+      "y": -60,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led0",
+      "type": "led",
+      "x": 6,
+      "y": -80,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r1",
+      "type": "resistor",
+      "x": 14,
+      "y": -60,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led1",
+      "type": "led",
+      "x": 14,
+      "y": -80,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r2",
+      "type": "resistor",
+      "x": 22,
+      "y": -60,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led2",
+      "type": "led",
+      "x": 22,
+      "y": -80,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r3",
+      "type": "resistor",
+      "x": 30,
+      "y": -60,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led3",
+      "type": "led",
+      "x": 30,
+      "y": -80,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r4",
+      "type": "resistor",
+      "x": 38,
+      "y": -60,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led4",
+      "type": "led",
+      "x": 38,
+      "y": -80,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r5",
+      "type": "resistor",
+      "x": 46,
+      "y": -60,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led5",
+      "type": "led",
+      "x": 46,
+      "y": -80,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r6",
+      "type": "resistor",
+      "x": 54,
+      "y": -60,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led6",
+      "type": "led",
+      "x": 54,
+      "y": -80,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    },
+    {
+      "id": "r7",
+      "type": "resistor",
+      "x": 62,
+      "y": -60,
+      "rotation": 90,
+      "props": {
+        "ohms": 220
+      }
+    },
+    {
+      "id": "led7",
+      "type": "led",
+      "x": 62,
+      "y": -80,
+      "rotation": 0,
+      "props": {
+        "color": "red"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "uno",
+        "pin": "11"
+      },
+      "to": {
+        "part": "sr",
+        "pin": "DS"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "uno",
+        "pin": "12"
+      },
+      "to": {
+        "part": "sr",
+        "pin": "SHCP"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "uno",
+        "pin": "8"
+      },
+      "to": {
+        "part": "sr",
+        "pin": "STCP"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "sr",
+        "pin": "VCC"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "sr",
+        "pin": "MR"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "sr",
+        "pin": "GND"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "sr",
+        "pin": "OE"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w8",
+      "from": {
+        "part": "sr",
+        "pin": "Q0"
+      },
+      "to": {
+        "part": "r0",
+        "pin": "1"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w9",
+      "from": {
+        "part": "r0",
+        "pin": "2"
+      },
+      "to": {
+        "part": "led0",
+        "pin": "A"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w10",
+      "from": {
+        "part": "led0",
+        "pin": "C"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w11",
+      "from": {
+        "part": "sr",
+        "pin": "Q1"
+      },
+      "to": {
+        "part": "r1",
+        "pin": "1"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w12",
+      "from": {
+        "part": "r1",
+        "pin": "2"
+      },
+      "to": {
+        "part": "led1",
+        "pin": "A"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w13",
+      "from": {
+        "part": "led1",
+        "pin": "C"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w14",
+      "from": {
+        "part": "sr",
+        "pin": "Q2"
+      },
+      "to": {
+        "part": "r2",
+        "pin": "1"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w15",
+      "from": {
+        "part": "r2",
+        "pin": "2"
+      },
+      "to": {
+        "part": "led2",
+        "pin": "A"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w16",
+      "from": {
+        "part": "led2",
+        "pin": "C"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w17",
+      "from": {
+        "part": "sr",
+        "pin": "Q3"
+      },
+      "to": {
+        "part": "r3",
+        "pin": "1"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w18",
+      "from": {
+        "part": "r3",
+        "pin": "2"
+      },
+      "to": {
+        "part": "led3",
+        "pin": "A"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w19",
+      "from": {
+        "part": "led3",
+        "pin": "C"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w20",
+      "from": {
+        "part": "sr",
+        "pin": "Q4"
+      },
+      "to": {
+        "part": "r4",
+        "pin": "1"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w21",
+      "from": {
+        "part": "r4",
+        "pin": "2"
+      },
+      "to": {
+        "part": "led4",
+        "pin": "A"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w22",
+      "from": {
+        "part": "led4",
+        "pin": "C"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w23",
+      "from": {
+        "part": "sr",
+        "pin": "Q5"
+      },
+      "to": {
+        "part": "r5",
+        "pin": "1"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w24",
+      "from": {
+        "part": "r5",
+        "pin": "2"
+      },
+      "to": {
+        "part": "led5",
+        "pin": "A"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w25",
+      "from": {
+        "part": "led5",
+        "pin": "C"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w26",
+      "from": {
+        "part": "sr",
+        "pin": "Q6"
+      },
+      "to": {
+        "part": "r6",
+        "pin": "1"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w27",
+      "from": {
+        "part": "r6",
+        "pin": "2"
+      },
+      "to": {
+        "part": "led6",
+        "pin": "A"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w28",
+      "from": {
+        "part": "led6",
+        "pin": "C"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w29",
+      "from": {
+        "part": "sr",
+        "pin": "Q7"
+      },
+      "to": {
+        "part": "r7",
+        "pin": "1"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w30",
+      "from": {
+        "part": "r7",
+        "pin": "2"
+      },
+      "to": {
+        "part": "led7",
+        "pin": "A"
+      },
+      "waypoints": [],
+      "color": "orange"
+    },
+    {
+      "id": "w31",
+      "from": {
+        "part": "led7",
+        "pin": "C"
+      },
+      "to": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "shift-register.hex",
+      "format": "hex"
+    }
+  }
+}

@@ -134,3 +134,16 @@ describe('inline sketch edits (BT42)', () => {
     expect(store.doc.value.firmware[uno]).toEqual(ref('abcd'));
   });
 });
+
+describe('placing DS18B20s (BT187)', () => {
+  it('gives each its own serial, so two on one line have different ROM codes', () => {
+    const s = createEditorStore(emptyProject('t'));
+    const a = s.addPart('ds18b20', { x: 0, y: 0 });
+    const b = s.addPart('ds18b20', { x: 20, y: 0 });
+    const serials = s.doc.value.parts.filter((p) => p.id === a || p.id === b).map((p) => p.props.serial);
+    expect(serials[0]).toMatch(/^[0-9a-f]{12}$/);
+    expect(serials[1]).toMatch(/^[0-9a-f]{12}$/);
+    expect(serials[0]).not.toBe(serials[1]);
+    expect([a, b]).toEqual(['temp1', 'temp2']);
+  });
+});

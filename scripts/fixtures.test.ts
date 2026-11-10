@@ -67,6 +67,25 @@ describe('fixture firmware manifest', () => {
       'esp32:esp32': new Set(['WiFi', 'FS', 'SD', 'HTTPClient', 'WebServer', 'Preferences', 'WiFiClientSecure', 'USB', 'Wire', 'SPI']),
       'rp2040:rp2040': new Set(['Wire', 'SPI', 'EEPROM', 'SD', 'SDFS']),
     };
+    // A row names sketches by board ("Uno `a` and `b`; ESP32 `a`"): each backticked name belongs to
+    // the boards named last before it, so an Uno sketch doesn't cover an ESP32 one of the same name.
+    const BOARDS: Readonly<Record<string, string>> = {
+      uno: 'Uno', nano: 'Nano', mega: 'Mega', esp32: 'ESP32', esp32c3: 'ESP32-C3', esp32s3: 'ESP32-S3', esp32s2: 'ESP32-S2',
+      pico: 'Pico', pico2: 'Pico 2', picow: 'Pico W', pico2w: 'Pico 2 W',
+    };
+    const LABEL = /\b(?:Pico 2 W|ESP32-C3|ESP32-S3|ESP32-S2|Pico 2|Pico W|ESP32|Mega|Nano|Pico|Uno)(?![-\w])/g;
+    const named = (column: string): Set<string> => {
+      const out = new Set<string>();
+      let boards: string[] = [];
+      column.split('`').forEach((part, i) => {
+        if (i % 2 === 1) for (const board of boards) out.add(`${board} ${part}`);
+        else {
+          const found = part.match(LABEL);
+          if (found !== null) boards = found;
+        }
+      });
+      return out;
+    };
     const rows = readFileSync(join(ROOT, 'THIRD_PARTY_NOTICES.md'), 'utf8').split('\n').filter((line) => line.startsWith('| '));
     const gaps = new Set<string>();
     for (const output of manifest.outputs) {
@@ -75,8 +94,9 @@ describe('fixture firmware manifest', () => {
       for (const [name, version] of Object.entries(output.libraries)) {
         if (IN_CORE[platform]?.has(name)) continue;
         const row = rows.find((line) => line.split('|')[1]?.includes(`${name} ${version}`));
+        const board = BOARDS[output.board];
         if (row === undefined) gaps.add(`${name} ${version}: no row`);
-        else if (!row.split('|')[2]?.includes(`\`${output.name}\``)) gaps.add(`${name} ${version}: ${output.board}/${output.name} not named`);
+        else if (board === undefined || !named(row.split('|')[2] ?? '').has(`${board} ${output.name}`)) gaps.add(`${name} ${version}: ${output.board}/${output.name} not named`);
       }
     }
     expect([...gaps]).toEqual([]);

@@ -1,0 +1,12 @@
+{
+  "name": "example: esp32-max7219-7seg",
+  "project": "../../projects/esp32-max7219-7seg.json",
+  "firmware": {
+    "esp": "../../firmware/esp32/max7219-7seg.bin"
+  },
+  "expect": [
+    "serial contains \"help\" by 2s",
+    "digits seg show \"-HELP-01\" at 400ms",
+    "serial contains \"n=5\" by 3s"
+  ]
+}

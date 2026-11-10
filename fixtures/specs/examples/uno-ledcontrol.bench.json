@@ -1,0 +1,13 @@
+{
+  "name": "example: uno-ledcontrol",
+  "project": "../../projects/uno-ledcontrol.json",
+  "firmware": {
+    "uno": "../../firmware/uno/ledcontrol.hex"
+  },
+  "expect": [
+    "serial contains \"drawn\" by 1s",
+    "digits seg show \"HELP 123\" at 400ms",
+    "matrix m row 2 shows \"#.#..#.#\" at 400ms",
+    "serial contains \"n=10\" by 3s"
+  ]
+}

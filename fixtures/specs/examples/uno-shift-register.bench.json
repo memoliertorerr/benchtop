@@ -1,0 +1,16 @@
+{
+  "name": "example: uno-shift-register",
+  "project": "../../projects/uno-shift-register.json",
+  "firmware": {
+    "uno": "../../firmware/uno/shift-register.hex"
+  },
+  "expect": [
+    "serial contains \"q=3\" by 1s",
+    "led led2 is lit at 450ms",
+    "led led0 is dark at 450ms",
+    "led led1 is dark at 450ms",
+    "led led0 is dark at 650ms",
+    "led led1 is lit at 650ms",
+    "led led2 is lit at 650ms"
+  ]
+}

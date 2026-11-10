@@ -9,7 +9,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { assembleBench, type Bench, type FirmwareImage, NS_PER_MS, type PartInput, parseProject, SymbolTable, usesSymbols, type VisualState } from '@benchtop/core';
-import { analogSpecFor, applyTftUpdate, envSpecFor, netSpecFor, sevenSegmentText as decodeSevenSegment, TFT_PACKED, TFT_WIDTH, unpackPixel } from '@benchtop/parts';
+import { analogSpecFor, applyTftUpdate, displayText, envSpecFor, netSpecFor, TFT_PACKED, TFT_WIDTH, unpackPixel } from '@benchtop/parts';
 import { REPO_ROOT } from '../../../../packages/core/src/firmware/fixtures.test-helper.ts';
 import { loadCachedRom } from '../../../../packages/esp32/src/test-support/rom.test-helper.ts';
 import { loadCachedC3Rom } from '../../../../packages/esp32c3/src/test-support/rom.test-helper.ts';
@@ -136,9 +136,9 @@ export function runExample(example: Example): ExampleRun {
   };
 }
 
-/** The digits a 7-segment visual shows (@benchtop/parts' decoder, BT49). */
+/** The digits a 7-segment visual shows (@benchtop/parts' decoder, BT49; BT189: by the lit segments of a module that reports them). */
 export function sevenSegmentText(visual: VisualState | undefined): string {
-  return decodeSevenSegment((visual?.values ?? []) as number[]);
+  return displayText(visual);
 }
 
 /** RGB565 pixels of a TFT part, folded from every update its history saw (as the UI does). */

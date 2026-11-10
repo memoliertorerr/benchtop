@@ -1,4 +1,4 @@
-import { oledPixel } from '@benchtop/parts';
+import { matrixText, oledPixel } from '@benchtop/parts';
 import { describe, expect, it } from 'vitest';
 import { EXAMPLES } from './manifest.ts';
 import { type ExampleRun, runExample, sevenSegmentText, tftPixels } from './run.test-helper.ts';
@@ -164,6 +164,44 @@ export const UNO_CHECKS: Record<string, (r: ExampleRun) => void> = {
     const v = r.visual('oled');
     expect(v !== undefined && oledPixel(v, 0, 0) && oledPixel(v, 127, 31) && !oledPixel(v, 64, 1)).toBe(true);
     expect(((v?.fb ?? []) as number[]).length).toBe(128);
+  },
+  'uno-shift-register'(r) {
+    // BT189: the 595's count on eight LEDs, q=6 at 650 ms (Q1 and Q2 lit).
+    r.runTo(650);
+    expect(r.serial('uno')).toContain('q=6');
+    const lit = [0, 1, 2, 3].map((n) => ((r.visual(`led${n}`)?.brightness as number) ?? 0) > 0.3);
+    expect(lit).toEqual([false, true, true, false]);
+  },
+  'uno-max7219'(r) {
+    // BT189: the FC-16's four pictures, the heart on the left, then the intensity stepping.
+    r.runTo(300);
+    expect(r.serial('uno')).toContain('drawn');
+    expect(matrixText(r.visual('fc')?.rows as number[])[1]).toBe('.##..##..#....#.....##...#.#.#.#');
+    r.runTo(2000);
+    expect(r.serial('uno')).toContain('intensity 15');
+  },
+  'uno-ledcontrol'(r) {
+    // BT189: LedControl on the 7-segment module and, through its DOUT, the matrix.
+    r.runTo(400);
+    expect(sevenSegmentText(r.visual('seg'))).toBe('HELP 123');
+    expect(matrixText(r.visual('m')?.rows as number[])[2]).toBe('#.#..#.#');
+    r.runTo(2000);
+    expect(r.serial('uno')).toContain('n=10');
+  },
+  'uno-ds18b20'(r) {
+    // BT189: DallasTemperature finds both sensors and reads them at 11 bits.
+    r.runTo(2000);
+    expect(r.serial('uno')).toContain('count 2');
+    expect(r.serial('uno')).toContain('t0 21.2500');
+    expect(r.serial('uno')).toContain('t1 27.6250');
+  },
+  'uno-tm1637'(r) {
+    // BT189: every byte ACKed, "1234", then the count.
+    r.runTo(300);
+    expect(r.serial('uno')).toContain('acks 7/7');
+    expect(sevenSegmentText(r.visual('tm'))).toBe('1234');
+    r.runTo(2000);
+    expect(r.serial('uno')).toContain('n=3');
   },
   'uno-sh1106'(r) {
     // BT183: the SH1106's circle and corners under Adafruit_SH110X, the counter going.

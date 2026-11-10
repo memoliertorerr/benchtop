@@ -5,7 +5,7 @@ import { viewFor } from './registry.ts';
 
 describe('passive part views (BT167)', () => {
   it('draw the catalog’s capacitors, diode and (BT169) transistors', () => {
-    expect(PASSIVE_VIEW_TYPES.size).toBe(7);
+    expect(PASSIVE_VIEW_TYPES.size).toBe(8); // BT187: and the DS18B20's TO-92
     for (const type of PASSIVE_VIEW_TYPES) {
       expect(CATALOG.get(type), type).toBeDefined();
       expect(viewFor(type)).toBe(viewFor('capacitor'));

@@ -1,7 +1,7 @@
 import { oledPixel } from '@benchtop/parts';
 import { describe, expect, it } from 'vitest';
 import { EXAMPLES } from './manifest.ts';
-import { type ExampleRun, runExample, tftPixels } from './run.test-helper.ts';
+import { type ExampleRun, runExample, sevenSegmentText, tftPixels } from './run.test-helper.ts';
 
 // BT43: every ESP32 and two-board example runs 2 s of simulated time in Node (the real ROM, a
 // direct boot) and does what its card says. Uno examples: examples-run-uno.test.ts.
@@ -142,6 +142,13 @@ export const ESP32_CHECKS: Record<string, (r: ExampleRun) => void> = {
     const later = (r.visual('ring')?.pixels ?? []) as number[];
     expect(first.filter((p) => p !== 0).length).toBe(16);
     expect(later).not.toEqual(first); // the rainbow turned
+  },
+  'esp32-max7219-7seg'(r) {
+    // BT189: "-HELP-01." in Code B, then the count.
+    r.runTo(400);
+    expect(sevenSegmentText(r.visual('seg'))).toBe('-HELP-01');
+    r.runTo(2000);
+    expect(r.serial('esp')).toContain('n=5');
   },
   'esp32-oled-spi'(r) {
     // BT183: the 7-pin module on VSPI — the frame, the uptime ticking.

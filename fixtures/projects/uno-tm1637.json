@@ -1,0 +1,83 @@
+{
+  "format": 1,
+  "name": "uno-tm1637",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "tm",
+      "type": "tm1637-4digit",
+      "x": 20,
+      "y": -34,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "uno",
+        "pin": "2"
+      },
+      "to": {
+        "part": "tm",
+        "pin": "CLK"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "uno",
+        "pin": "3"
+      },
+      "to": {
+        "part": "tm",
+        "pin": "DIO"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "to": {
+        "part": "tm",
+        "pin": "VCC"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "to": {
+        "part": "tm",
+        "pin": "GND"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "tm1637.hex",
+      "format": "hex"
+    }
+  }
+}

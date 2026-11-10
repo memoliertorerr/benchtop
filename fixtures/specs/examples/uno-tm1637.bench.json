@@ -1,0 +1,12 @@
+{
+  "name": "example: uno-tm1637",
+  "project": "../../projects/uno-tm1637.json",
+  "firmware": {
+    "uno": "../../firmware/uno/tm1637.hex"
+  },
+  "expect": [
+    "serial contains \"acks 7/7\" by 1s",
+    "digits tm show \"1234\" at 300ms",
+    "serial contains \"n=3\" by 2s"
+  ]
+}

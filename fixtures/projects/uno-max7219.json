@@ -1,0 +1,96 @@
+{
+  "format": 1,
+  "name": "uno-max7219",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "fc",
+      "type": "max7219-matrix-4",
+      "x": -30,
+      "y": -45,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "uno",
+        "pin": "11"
+      },
+      "to": {
+        "part": "fc",
+        "pin": "DIN"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "uno",
+        "pin": "13"
+      },
+      "to": {
+        "part": "fc",
+        "pin": "CLK"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "uno",
+        "pin": "10"
+      },
+      "to": {
+        "part": "fc",
+        "pin": "CS"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "to": {
+        "part": "fc",
+        "pin": "VCC"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "to": {
+        "part": "fc",
+        "pin": "GND"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "max7219.hex",
+      "format": "hex"
+    }
+  }
+}

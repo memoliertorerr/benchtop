@@ -3,6 +3,7 @@ export const PART_CATEGORIES = [
   { id: 'boards', title: 'Boards' },
   { id: 'breadboards', title: 'Breadboards' },
   { id: 'basic', title: 'Basic' },
+  { id: 'ics', title: 'ICs' },
   { id: 'input', title: 'Input' },
   { id: 'output', title: 'Output' },
   { id: 'displays', title: 'Displays' },

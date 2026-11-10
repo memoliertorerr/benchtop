@@ -16,8 +16,11 @@
     "Audio": "1.0.6",
     "DHT sensor library": "1.4.6",
     "DHTlib": "0.1.37",
+    "DallasTemperature": "4.0.6",
     "ESP32 BLE Mouse": "0.3.1",
     "HTTPClient": "2.0.0",
+    "LedControl": "1.0.6",
+    "OneWire": "2.3.8",
     "arduinoFFT": "2.0.4",
     "audio-tools": "0.9.3"
   },
@@ -261,6 +264,48 @@
     },
     {
       "board": "esp32",
+      "name": "dallas-temperature",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/dallas-temperature.bin",
+      "sha256": "e687a3901db778c450cd0e3504dbaa8db0d2c8385768ba47a297b38e2093fbea",
+      "bytes": 269312,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "DallasTemperature": "4.0.6",
+        "OneWire": "2.3.8"
+      },
+      "source": "b25dfe1bc21a49061e3eba96aa9d2b36fc5d613630c74f571425be8896618efb"
+    },
+    {
+      "board": "esp32",
+      "name": "dallas-temperature",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/dallas-temperature.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "DallasTemperature": "4.0.6",
+        "OneWire": "2.3.8"
+      },
+      "source": "b25dfe1bc21a49061e3eba96aa9d2b36fc5d613630c74f571425be8896618efb"
+    },
+    {
+      "board": "esp32",
+      "name": "dallas-temperature",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/dallas-temperature.syms.tsv",
+      "sha256": "aef6e345137704ed19886942de6810ab99e7da339d9aff9900f083fcb155fc5f",
+      "bytes": 119011,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {
+        "DallasTemperature": "4.0.6",
+        "OneWire": "2.3.8"
+      },
+      "source": "b25dfe1bc21a49061e3eba96aa9d2b36fc5d613630c74f571425be8896618efb"
+    },
+    {
+      "board": "esp32",
       "name": "debug-demo",
       "fqbn": "esp32:esp32:esp32",
       "file": "esp32/debug-demo.bin",
@@ -390,6 +435,39 @@
       "core": "esp32:esp32@2.0.17",
       "libraries": {},
       "source": "278be2e1b79bfe1d570cdc44a67fadbf976dca8df20507e8bdeba5795c64ecb3"
+    },
+    {
+      "board": "esp32",
+      "name": "ds18b20",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/ds18b20.bin",
+      "sha256": "ad4aad97781f051d04d644683fd7ce8fecf9cc8ff9ac2559a6bd9e220e08ebd4",
+      "bytes": 265376,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "08873b7bb3dcc5595a5b153f395dc82e4b802d210a8263f93eb420e278732d41"
+    },
+    {
+      "board": "esp32",
+      "name": "ds18b20",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/ds18b20.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "08873b7bb3dcc5595a5b153f395dc82e4b802d210a8263f93eb420e278732d41"
+    },
+    {
+      "board": "esp32",
+      "name": "ds18b20",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/ds18b20.syms.tsv",
+      "sha256": "d2c2b6b21fa3729c5faced59584b63dd0e5019a9672ba1a6f01073fde73b7d21",
+      "bytes": 116911,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "08873b7bb3dcc5595a5b153f395dc82e4b802d210a8263f93eb420e278732d41"
     },
     {
       "board": "esp32",
@@ -783,6 +861,39 @@
       "core": "esp32:esp32@2.0.17",
       "libraries": {},
       "source": "71b0dd6bba9da2297ffd05d3a7070ee45ce963bfcb378c132cdffe6967c667d0"
+    },
+    {
+      "board": "esp32",
+      "name": "max7219-7seg",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/max7219-7seg.bin",
+      "sha256": "77b1b18e7e989455cb4ee3b897ef33ebd256e284b445fe76aa0b08a5fc2a0f5c",
+      "bytes": 264624,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "52675612b8cc6aa33d75cfc94a0377360de8e3cddbd3aa2289fd5c15f9422b9f"
+    },
+    {
+      "board": "esp32",
+      "name": "max7219-7seg",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/max7219-7seg.partitions.bin",
+      "sha256": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+      "bytes": 3072,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "52675612b8cc6aa33d75cfc94a0377360de8e3cddbd3aa2289fd5c15f9422b9f"
+    },
+    {
+      "board": "esp32",
+      "name": "max7219-7seg",
+      "fqbn": "esp32:esp32:esp32",
+      "file": "esp32/max7219-7seg.syms.tsv",
+      "sha256": "7bbe92346f3de7ca76dcc186260d6e0acc45b8618d51545d68d6aa58c9e3ca8c",
+      "bytes": 116817,
+      "core": "esp32:esp32@2.0.17",
+      "libraries": {},
+      "source": "52675612b8cc6aa33d75cfc94a0377360de8e3cddbd3aa2289fd5c15f9422b9f"
     },
     {
       "board": "esp32",
@@ -5877,6 +5988,17 @@
       "source": "b4c39dd2e714f6b087374478aaa7d956a85d4c7f10ac1b868d054490cf2f22a6"
     },
     {
+      "board": "pico",
+      "name": "tm1637",
+      "fqbn": "rp2040:rp2040:rpipico",
+      "file": "pico/tm1637.uf2",
+      "sha256": "708d765b37fc03b45c5bcc5bb0a15628bc37b9cb88978d406e2004cf69c1b14e",
+      "bytes": 143872,
+      "core": "rp2040:rp2040@6.2.0",
+      "libraries": {},
+      "source": "55d4a4d1f1788ad266ca4326b6522eda1dd442efa0fa4bfaea3914fdb913f35b"
+    },
+    {
       "board": "pico2",
       "name": "analog-read",
       "fqbn": "rp2040:rp2040:rpipico2:arch=riscv",
@@ -6642,6 +6764,34 @@
     },
     {
       "board": "uno",
+      "name": "dallas-temperature",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/dallas-temperature.elf",
+      "sha256": "2498720ff8802ce2d8de9690ca0f561e3bfbc914f3e09b9a148ebb2c8a98a536",
+      "bytes": 61448,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "DallasTemperature": "4.0.6",
+        "OneWire": "2.3.8"
+      },
+      "source": "ca4bb67901a788ddae0a88c81f92c541ab2e9ce1c4d64cb225b405625a4bac6a"
+    },
+    {
+      "board": "uno",
+      "name": "dallas-temperature",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/dallas-temperature.hex",
+      "sha256": "c104c57bcb022cb37047c221f9eafc85bdda1bb71984310f6e52b7b754e98d1b",
+      "bytes": 19924,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "DallasTemperature": "4.0.6",
+        "OneWire": "2.3.8"
+      },
+      "source": "ca4bb67901a788ddae0a88c81f92c541ab2e9ce1c4d64cb225b405625a4bac6a"
+    },
+    {
+      "board": "uno",
       "name": "debug-demo",
       "fqbn": "arduino:avr:uno",
       "file": "uno/debug-demo.addr2line.txt",
@@ -6774,6 +6924,28 @@
         "Wire": "1.0"
       },
       "source": "99baa0aebca46cd8f48a79e887179259bcd2dbee92df87101782c33a63c88ae4"
+    },
+    {
+      "board": "uno",
+      "name": "ds18b20",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/ds18b20.elf",
+      "sha256": "58139516f50f32aa2606eae21cdeb52d8551a5327b8f42ae41dce1cc431b3709",
+      "bytes": 40224,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "6dc3755ee732295abde080549454d5bc57a472fb5f337ac6f2d34fa300967b80"
+    },
+    {
+      "board": "uno",
+      "name": "ds18b20",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/ds18b20.hex",
+      "sha256": "00e86f9de74edf0ea7c557c8a75964c6fedea53d285db87344cc84e132b65f2f",
+      "bytes": 12949,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "6dc3755ee732295abde080549454d5bc57a472fb5f337ac6f2d34fa300967b80"
     },
     {
       "board": "uno",
@@ -7235,6 +7407,32 @@
     },
     {
       "board": "uno",
+      "name": "ledcontrol",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/ledcontrol.elf",
+      "sha256": "80e1d8bc6167274af35235634f5f80b47cbf984bb53603341e45ccf3246a28e8",
+      "bytes": 39332,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "LedControl": "1.0.6"
+      },
+      "source": "ce88d1f996c9d4da4cac14120e0ca83012b8177e88f5e0e4c4dfd6ab5533b8c2"
+    },
+    {
+      "board": "uno",
+      "name": "ledcontrol",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/ledcontrol.hex",
+      "sha256": "69d583abc47ca9c1cd2a9662c2d2244b8fe4be3f803db461ca10ea529fdd0391",
+      "bytes": 9787,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "LedControl": "1.0.6"
+      },
+      "source": "ce88d1f996c9d4da4cac14120e0ca83012b8177e88f5e0e4c4dfd6ab5533b8c2"
+    },
+    {
+      "board": "uno",
       "name": "logic-demo",
       "fqbn": "arduino:avr:uno",
       "file": "uno/logic-demo.elf",
@@ -7258,6 +7456,32 @@
         "SoftwareSerial": "1.0"
       },
       "source": "07ee02e61dbd1c35b42f117341293c495877652935b3f061bd411281fd645bbf"
+    },
+    {
+      "board": "uno",
+      "name": "max7219",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/max7219.elf",
+      "sha256": "b1153b93efd1d1b3e2863884e156b6aa57fa7582afef4412d6149035e4017d4c",
+      "bytes": 30676,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "SPI": "1.0"
+      },
+      "source": "99121bb02ae3b3f63cf6137e779649de03575b9f55b7268926f11dbc715ef434"
+    },
+    {
+      "board": "uno",
+      "name": "max7219",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/max7219.hex",
+      "sha256": "c203274080ae2cd7c1349c6a9228af6eaf9f39996f53f3573c7d8b86971e6a15",
+      "bytes": 7091,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "SPI": "1.0"
+      },
+      "source": "99121bb02ae3b3f63cf6137e779649de03575b9f55b7268926f11dbc715ef434"
     },
     {
       "board": "uno",
@@ -7877,6 +8101,54 @@
     },
     {
       "board": "uno",
+      "name": "shift-chain",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/shift-chain.elf",
+      "sha256": "b76b46b063bf1c539fc74d58c1dcae622d1a02fc419f170ce8c687e8395c10ca",
+      "bytes": 30892,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "SPI": "1.0"
+      },
+      "source": "163a546924caafa43a422c39830b328725c5f8d50cd36178a8df9e808f3dd3aa"
+    },
+    {
+      "board": "uno",
+      "name": "shift-chain",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/shift-chain.hex",
+      "sha256": "e1cd2de196eec5e13b3ee77aa60aa40d6f84e13926190206e03b9a41e1f78cac",
+      "bytes": 6952,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {
+        "SPI": "1.0"
+      },
+      "source": "163a546924caafa43a422c39830b328725c5f8d50cd36178a8df9e808f3dd3aa"
+    },
+    {
+      "board": "uno",
+      "name": "shift-register",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/shift-register.elf",
+      "sha256": "73c831b7b2f9e45fafa73caae06d225b6016595e57c354d1c7fd4144e404c82a",
+      "bytes": 27980,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "0ab72a8dfe8370034c5f7f5b6b418f8f35fdfbe173d63a44b1d89e59b3f867e1"
+    },
+    {
+      "board": "uno",
+      "name": "shift-register",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/shift-register.hex",
+      "sha256": "91d5230d55342e2006a112ea27f62f57264f20aba205bd25ab1072b73dfeba6a",
+      "bytes": 6162,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "0ab72a8dfe8370034c5f7f5b6b418f8f35fdfbe173d63a44b1d89e59b3f867e1"
+    },
+    {
+      "board": "uno",
       "name": "simon",
       "fqbn": "arduino:avr:uno",
       "file": "uno/simon.elf",
@@ -8100,6 +8372,28 @@
       "core": "arduino:avr@1.8.7",
       "libraries": {},
       "source": "9865e5634e4a88a9d5d9214bf2cd59a901739bddd102b78d11ca2be3cc0a5bdd"
+    },
+    {
+      "board": "uno",
+      "name": "tm1637",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/tm1637.elf",
+      "sha256": "e6965dcc3d0ffad74ed671fb08ee26b410c06270f1f3299b6b74940a585f547d",
+      "bytes": 34796,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "51ce7f336d4d4678657eacfd543a7c7596f7118e0b82d30aadc23836fb9eb798"
+    },
+    {
+      "board": "uno",
+      "name": "tm1637",
+      "fqbn": "arduino:avr:uno",
+      "file": "uno/tm1637.hex",
+      "sha256": "6599cd5142101421f4fae6e925d5ea15e583a06232357fb806800a9cc3d74ebd",
+      "bytes": 8535,
+      "core": "arduino:avr@1.8.7",
+      "libraries": {},
+      "source": "51ce7f336d4d4678657eacfd543a7c7596f7118e0b82d30aadc23836fb9eb798"
     },
     {
       "board": "uno",

@@ -108,6 +108,18 @@ once. Bus devices that parts register with `attachI2c`/`attachSpi` are attached 
 the MCU controller whose current pins share their nets; SPI `selected()` reads the CS net (low =
 selected).
 
+**SPI buses and chains.** The bench gives each SPI controller one device, its bus
+(`SpiBus` in bench.ts), and puts the parts' devices on it: every selected device gets each byte
+(the AVR adapter used to stop at the first selected one, which a 74HC595 — always listening, its
+GND as its select — would starve), and the answer is the last byte from a selected device whose
+MISO is on the controller's MISO, 0xFF with none, so a write-only device never answers for the
+bus. A device whose MOSI net is the MISO net of a chain's last device, on the same SCK, joins that
+daisy chain (`attachSpiDevices`): each member gets what the one before it shifted out, and the
+chain answers MISO when a member's MISO is on it. A device's MISO counts as unwired for the
+controller when only chained devices' MOSI pins share its net. Rebinds and carries rebuild the
+buses. The AVR adapter now honours DORD: an LSB-first byte reaches the devices bit-reversed, in
+wire order, as the ESP32's controller already gave it.
+
 **The bus log (`packages/core/src/bus-log/`).** Every I2C and SPI device is attached to its
 controller through a logging proxy the bench makes once per attachment (`LoggedI2c`,
 `LoggedSpi`): each call — I2C start/write/read/stop with its ACK, SPI transfer with MOSI and
@@ -629,6 +641,61 @@ an agent reads the panel instead of a packed framebuffer. Gallery: a 128×32 scr
 (`uno-oled-128x32`), the 1.3″ SH1106 (`uno-sh1106`), an ESP32 with the 7-pin module on VSPI
 (`esp32-oled-spi`), each with a spec in fixtures/specs/examples and a run check.
 
+**MAX7219 modules** (`displays/max7219.ts`, Maxim's datasheet). The chip shifts DIN into
+16 bits on every CLK rising edge whatever LOAD is (the MAX7219's rule), latches them on LOAD's
+rising edge (D11–D8 the register, D7–D0 the data) and shows what it shifted in on DOUT, sixteen
+clocks behind, on the falling edge. Registers: digits 0–7, decode mode (Code B per digit: 0–9, -,
+E, H, L, P, blank; D7 the point), intensity ((2k + 1)/32 duty), scan limit, shutdown, display test
+(everything lit, nothing changed); power-up is shutdown, one digit, no decode, minimum intensity.
+Three modules: `max7219-matrix` (one 8×8), `max7219-matrix-4` (the FC-16: four chips chained on the
+board) and `max7219-7seg-8`; the input header (VCC GND DIN CS CLK) on the right, the output on the
+left, VCC/GND/CS/CLK bused between them. Bit-banged bytes arrive as edges, hardware SPI through
+`attachSpi` with GND as the select; a byte moves each chip's register on by eight bits and the one
+that fell out goes to the next chip, then out of DOUT to a chained module (the bench's chains).
+Wiring follows MD_MAX72XX's FC16_HW: digit d is row d, D7 the leftmost column, chip 0 the rightmost
+matrix; on the 7-segment module digit 0 is the rightmost. Visual: `rows` (8 bytes a chip), `level`
+(the duty times 8 / scanned digits, at most 1 — fewer digits are brighter, as the datasheet warns)
+and, for the 7-segment module, `values` and `segments` in the 7-segment parts' order, so a dim digit
+still reads as lit (`sevenSegmentText` gained E, H, L, P). Our own views (apps/web
+views/max7219.ts: round dots, italic segments, opacity 0.4 + 0.6·√level). Fixtures uno/max7219 (the
+FC-16 on hardware SPI) and esp32/max7219-7seg (the 8-digit module bit-banged, LedControl's way).
+
+**The TM1637 module** (`displays/tm1637.ts`, Titan Micro's datasheet V2.1). `tm1637-4digit`
+is the common 0.36″ clock display: four digits, the colon, pins CLK DIO VCC GND and the board's
+pull-ups on CLK and DIO (the libraries release a line to send a 1). The two-wire bus is decoded
+from the pins: START is DIO falling while CLK is high, STOP DIO rising while it is high, bytes go
+LSB first and are read on CLK's rising edge, and the chip ACKs each by pulling DIO low from the
+eighth clock's falling edge to the ninth's; a STOP inside a byte drops it. Commands: data (write
+or read keys, auto-increment or a fixed address), address (C0h–C5h; past C5h data is ignored),
+display control (on, and the eight pulse widths 1/16 … 14/16). GRID1–4 are the digits left to
+right, SEG8 of GRID2 the colon (TM1637Display's dots bit); a key read answers 0xFF. Powered at
+VCC ≥ 3 V (decided: the datasheet's 5 V ± 10 %, the modules commonly on 3.3 V boards). Visual:
+`values` as the 7-segment parts, `colon`, `segments` and `level`. Our own view (apps/web
+views/tm1637.ts). Fixtures uno/tm1637 (TM1637Display's open-drain bus, a counter) and pico/tm1637
+(a clock on 3V3).
+
+**Kit chips end to end.** The runner's `digits` reads the MAX7219's 8-digit and the TM1637's
+modules (`displayText`: by their reported lit segments), and `matrix <part> row <r> shows "<#.…>"`
+checks a matrix module's row (`matrixText`: left to right across the FC-16's four, chip 0 the
+rightmost). MCP's sim_state adds `screen` to a matrix (its rows as '#'/'.' lines) and `shows` to any
+7-segment display (its digits). Gallery: a 595 counting on eight LEDs (`uno-shift-register`), the
+FC-16's pictures (`uno-max7219`), LedControl's digits and matrix (`uno-ledcontrol`), an ESP32 8-digit
+module (`esp32-max7219-7seg`), two DS18B20s under DallasTemperature (`uno-ds18b20`), a Pico TM1637
+clock (`pico-tm1637-clock`) and an Uno TM1637 counter (`uno-tm1637`), each with a spec in
+fixtures/specs/examples and a run check.
+
+**Chips** (`packages/parts/src/ics/`). `74hc595` is a DIP-16 (`dipPins`: pin 1 bottom left,
+rows 7.62 mm apart, so it straddles a breadboard's gap) with NXP's pin names (DS, SHCP, STCP, MR,
+OE, Q0–Q7, Q7S, VCC, GND). Its function table: SHCP ↑ shifts DS in while MR is high, MR low clears
+the shift register, STCP ↑ latches it onto Q0–Q7, OE high releases them; powered at VCC ≥ 2 V over
+GND, a high output drives VCC's volts. Q7S changes with the shift, as the chip's: the resolver
+applies a drive made inside a listener after every listener of that edge, so a chain of 595s is
+right whatever their placement order. Hardware SPI arrives through `attachSpi` with GND as the
+select (the latch isn't one): the byte becomes the shift register and the old one is what it
+shifts out — the next member's byte in a chain. Our own view (apps/web views/ics.ts: the body,
+notch, pin 1's dot and every pin's name). Fixtures uno/shift-register (a shiftOut counter on eight
+LEDs) and uno/shift-chain (two chained: shiftOut, SPI read back on MISO, LSB-first SPI).
+
 Inputs (`packages/parts/src/inputs/`, `sensors/`): slide pot, analog joystick, KY-040,
 4×4 membrane keypad, 8-way DIP switch, tilt switch, PIR, and the LDR, NTC and sound modules.
 Contacts are switch links (keypad, DIP, buttons), so a keypad's ghost key comes out of the
@@ -652,6 +719,34 @@ must answer an edge after a short delay keeps a `RunSplitter` (`shared/run-split
 armed — one pending timer at most that far away — so runs end before the answer is due and it
 fires exactly on time (DHT22: 200 µs idle, 20 µs during a start pulse; HC-SR04: 150 µs). The
 MPU-6050's `address` is a getter on its AD0 net, read by the bus at every START.
+
+**The DS18B20** (`sensors/ds18b20.ts`, Dallas/Maxim's datasheet). A TO-92 (GND, DQ, VDD) on
+1-Wire, open drain: it pulls DQ low or lets go, and the line needs a pull-up (without one it floats
+when released and reports `onewire-no-pullup`, warning). From DQ's edges: a low of 240 µs or more
+is a reset (decided between a 120 µs slot and the master's 480 µs), answered 30 µs after the
+release by a 120 µs presence pulse; a write slot released within 30 µs is a 1; in a read slot a 0
+holds the line low for 25 µs from the master's fall. Each slot's kind is decided at its falling
+edge, so the sensor's own presence pulse and a read slot's release are never read as written bits.
+A RunSplitter keeps MCU runs at 200 µs while idle and 10 µs from any falling edge until the bus has
+been quiet for 2 ms. ROM commands: read, match, search (bit, complement, the master's choice; a
+mismatch drops out until the next reset), alarm search (while the last conversion was above TH or
+below TL in whole degrees), skip. The ROM code is family 28h, the 48-bit `serial` prop and the
+CRC-8; the editor gives each placed sensor its own serial from its id (`initialProps`,
+`ds18b20Serial`). Function commands: convert (93.75–750 ms by resolution; read slots answer the busy
+flag), write/read scratchpad (9 bytes, the CRC last, then 1s), copy to the EEPROM (10 ms busy),
+recall, read power supply (0 when parasite-powered: VDD on GND). Power-up: 85 °C in the scratchpad,
+TH 75, TL 70, 12 bits. A conversion samples the temperature (the prop, the `temperature` channel or
+the environment's field) at its start and rounds it to the resolution's step. Its view is the
+transistors' TO-92. Fixtures uno/ds18b20 (two sensors searched, converted together, read by Match
+ROM) and esp32/ds18b20 (read ROM, 9 and 12 bits), each with OneWire's timings in the sketch.
+
+**Under their libraries.** The same chips under the libraries tutorials use, installed at
+exact versions from the Arduino library index and recorded in the manifest: OneWire 2.3.8 with
+DallasTemperature 4.0.6 (uno/dallas-temperature: two sensors counted, addressed, set to 11 bits,
+alarm-searched — a sensor left at its power-up TL of 70 °C alarms at room temperature, as a real
+one does; esp32/dallas-temperature: 9 and 12 bits, polled to the conversion's end) and LedControl
+1.0.6 (uno/ledcontrol: bit-banged, its own no-decode font, a 7-segment module chained into an 8×8
+through DOUT). The sketch-local fixtures stay: they cover hardware SPI, the 595 and the Pico.
 
 Actuators (`packages/parts/src/actuators/`) decode their drive from exact edge timestamps
 or coil levels and never allocate per edge. The servo measures pulse widths (Servo.h's 544–2400
@@ -1132,7 +1227,7 @@ sit in flash after `.text` while its vaddr is 0x800100+.
   as the last level, and PC0–PC5 feed the ADC their volts. UART bytes the bench sends arrive one
   per character time at the configured baud (lost while RX is disabled); I2C transactions go to
   the attached `I2cDevice` whose address matches at each START (NACK when none); SPI bytes go to
-  the device whose `selected()` is true. `reset()` rebuilds the CPU and peripherals but keeps
+  the device whose `selected()` is true (the bench's bus), bit-reversed while DORD is set. `reset()` rebuilds the CPU and peripherals but keeps
   every pin, UART, I2C and SPI object, so the bench's listeners survive. Without firmware,
   `runUntil` returns `halted`. `avrMcuFactory(board)` is the bench's factory for
   `mcu: 'atmega328p'`. Firmware: Intel HEX (`sketch.ino.hex` from Arduino IDE *Export Compiled
@@ -3998,8 +4093,9 @@ nothing from `apps/web`.
   | `motor <p> rpm is <rpm> ±<rpm> at <t>` | a DC motor's signed speed (forward while + is the higher) within the tolerance; never reported = stopped | `-113 rpm` |
   | `lcd <p> row <n> is "<text>" at <t>` | row n (from 0) equals the text, trailing spaces ignored; display off = blank | `row 1 is "t=1"` |
   | `pixel <p>[<i>] is #rrggbb at <t>` | the pixel's 0xRRGGBB | `#38b748`, or the pixel count |
-  | `digits <p> show "<text>" at <t>` | the digits (`sevenSegmentText` from @benchtop/parts: 0–9, '-', ' ' dark, '?' other) | `shows "1234"` |
+  | `digits <p> show "<text>" at <t>` | the digits (`displayText` from @benchtop/parts: 0–9, '-', E H L P, ' ' dark, '?' other; the MAX7219's 8-digit and the TM1637's modules by their lit segments, so a dim digit reads) | `shows "1234"` |
   | `oled <p> pixel <x>,<y> is on\|off at <t>` | an OLED's pixel as shown (`oledPixel`: off while the display is; `invert`, `allOn`); never reported = dark | `pixel 64,32 is on` |
+  | `matrix <p> row <r> shows "<#.…>" at <t>` | a MAX7219 matrix module's row r from the top, left to right (`matrixText`; '#' or 1 lit, '.' or 0 dark; 8 dots, or 32 on the FC-16) | `row 2 shows "#.#..#.#"` |
   | `env <gas\|temperature\|humidity\|light\|sound> at <p> is <v> ±<tol> at <t>` (or `>`, `<`, `>=`, `<=` `<v>`) | the room's value at a part placed in it (`bench.envSample`); a usage error without an environment part or on a part with no place in it | `gas 812.40 ppm` |
   | `bus i2c <p> wrote\|read <hex bytes> by <t>`, `bus spi <p> sent <hex bytes> by <t>` | some transaction with that part in the bus log — an I2C write or read, an SPI frame's MOSI — carried those bytes in a row by then (when the transaction ended); read every 50 ms so the log's ring can't wrap; a transaction still open at the end counts | `seen at 31.402 ms` |
   | `file <p> <path> contains "<text>" by <t>` | the part's file (a microSD card's, through `bench.storage` — or an ESP32-S3 board's USB drive; the path matched without case) held the text by then — read at every stop and every 50 ms while the card's version moved; failures say whether the file was missing or what it held | `seen at 50 ms` |

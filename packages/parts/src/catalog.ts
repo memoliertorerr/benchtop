@@ -10,6 +10,7 @@ import { pushbutton } from './basic/pushbutton.ts';
 import { capacitor, capacitorElectrolytic } from './basic/capacitor.ts';
 import { dcMotor } from './actuators/dc-motor.ts';
 import { l298n } from './actuators/l298n.ts';
+import { hc595 } from './ics/hc595.ts';
 import { diode } from './basic/diode.ts';
 import { nMosfet, npnTransistor, pMosfet, pnpTransistor } from './basic/transistors.ts';
 import { resistor } from './basic/resistor.ts';
@@ -34,6 +35,8 @@ import { lcd1602, lcd1602I2c, lcd2004, lcd2004I2c } from './displays/lcd.ts';
 import { ledBarGraph } from './displays/led-bar-graph.ts';
 import { sevenSegment, sevenSegment2, sevenSegment4 } from './displays/seven-segment.ts';
 import { ili9341 } from './displays/ili9341.ts';
+import { max7219Matrix, max7219Matrix4, max72197Seg8 } from './displays/max7219.ts';
+import { tm1637FourDigit } from './displays/tm1637.ts';
 import { irReceiver } from './inputs/ir-receiver.ts';
 import { irRemote } from './inputs/ir-remote.ts';
 import { hx711 } from './sensors/hx711.ts';
@@ -49,6 +52,7 @@ import { slidePotentiometer } from './inputs/slide-potentiometer.ts';
 import { tiltSwitch } from './inputs/tilt-switch.ts';
 import { touchPad } from './inputs/touch-pad.ts';
 import { dht22 } from './sensors/dht22.ts';
+import { ds18b20 } from './sensors/ds18b20.ts';
 import { ds1307 } from './sensors/ds1307.ts';
 import { microsdCard } from './storage/microsd-card.ts';
 import { hcSr04 } from './sensors/hc-sr04.ts';
@@ -84,6 +88,7 @@ const ALL: readonly PartDefinition[] = [
   pnpTransistor,
   nMosfet,
   pMosfet,
+  hc595,
   led,
   rgbLed,
   pushbutton,
@@ -103,6 +108,10 @@ const ALL: readonly PartDefinition[] = [
   ssd1306128x32,
   ssd1306Spi,
   sh1106,
+  max7219Matrix,
+  max7219Matrix4,
+  max72197Seg8,
+  tm1637FourDigit,
   ili9341,
   irReceiver,
   irRemote,
@@ -124,6 +133,7 @@ const ALL: readonly PartDefinition[] = [
   bigSoundSensor,
   microphone,
   dht22,
+  ds18b20,
   hcSr04,
   ds1307,
   mpu6050,

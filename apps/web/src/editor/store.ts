@@ -14,7 +14,7 @@ import {
   type ProjectDoc,
   type Wire,
 } from '@benchtop/core';
-import { CATALOG } from '@benchtop/parts';
+import { CATALOG, initialProps } from '@benchtop/parts';
 import { type Signal, signal } from '@preact/signals';
 import type { Point } from './camera.ts';
 import { snapPart } from './geometry.ts';
@@ -48,6 +48,12 @@ const ID_PREFIX: Readonly<Record<string, string>> = {
   'ssd1306-128x32': 'oled',
   'ssd1306-spi': 'oled',
   sh1106: 'oled',
+  '74hc595': 'sr',
+  'max7219-matrix': 'matrix',
+  'max7219-matrix-4': 'matrix',
+  'max7219-7seg-8': 'disp',
+  'tm1637-4digit': 'disp',
+  ds18b20: 'temp',
   'slide-potentiometer': 'pot',
   'analog-joystick': 'joy',
   'ky-040': 'enc',
@@ -164,7 +170,7 @@ export function createEditorStore(
       const def = definition(type);
       const id = nextId(type);
       const position = snapPart(def, 0, at, snap);
-      const part: PartInstance = { id, type, x: position.x, y: position.y, rotation: 0, props: {} };
+      const part: PartInstance = { id, type, x: position.x, y: position.y, rotation: 0, props: initialProps(type, id) };
       commit({ ...doc.value, parts: [...doc.value.parts, part] });
       selection.value = new Set([id]);
       return id;

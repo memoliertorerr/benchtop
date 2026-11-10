@@ -509,6 +509,49 @@ class LoggedSpi implements SpiDevice {
   }
 }
 
+/** BT184: one device on a controller's SPI bus, or one after another in a daisy chain. */
+interface SpiLink {
+  readonly attachment: SpiAttachment;
+  /** Its chip select is low. */
+  readonly selected: () => boolean;
+  /** Its MISO is on the controller's MISO, so what it shifts out is the bus's answer. */
+  readonly drivesMiso: boolean;
+}
+
+const ALWAYS = (): boolean => true;
+
+/**
+ * BT184: a controller's SPI bus, the one device the bench attaches to it. Every selected device
+ * gets each byte (the AVR adapter stopped at the first selected device, which an always-listening
+ * shift register would starve); a daisy chain hands each member what the one before it shifted
+ * out; the answer is the last byte from a selected device whose MISO is on the controller's MISO,
+ * 0xFF with none — a write-only device no longer answers for the bus. Allocation-free per byte.
+ */
+class SpiBus implements SpiDevice {
+  /** In attach order: a device on the controller's own MOSI, then the devices chained after it. */
+  readonly chains: SpiLink[][] = [];
+
+  transfer(mosi: number): number {
+    let miso = 0xff;
+    const chains = this.chains;
+    for (let c = 0; c < chains.length; c++) {
+      const chain = chains[c];
+      let value = mosi & 0xff;
+      for (let i = 0; i < chain.length; i++) {
+        const link = chain[i];
+        if (!link.selected()) {
+          if (i === 0) break; // the chain's head isn't listening: nothing reaches the rest
+          value = 0xff; // a deselected member passes nothing on
+          continue;
+        }
+        value = link.attachment.proxy.transfer(value) & 0xff;
+        if (link.drivesMiso) miso = value;
+      }
+    }
+    return miso;
+  }
+}
+
 interface ProbeSlot {
   readonly net: number;
   readonly ring: ProbeRing;
@@ -575,7 +618,9 @@ export class Bench {
   private readonly i2cBuses = new Map<I2cController, I2cAttachment[]>();
   /** Where each bus device is attached (so a re-route can detach it). */
   private readonly i2cAttached = new Map<I2cAttachment, I2cController>();
-  private readonly spiAttached = new Map<SpiAttachment, SpiController>();
+  /** BT184: the bus the bench attached to each SPI controller, and where each device sits on one. */
+  private readonly spiBuses = new Map<SpiController, SpiBus>();
+  private readonly spiLinks = new Map<SpiAttachment, { readonly chain: SpiLink[]; readonly nets: ReadonlyMap<string, number>; readonly miso: string }>();
   private readonly spi: SpiAttachment[] = [];
   private readonly dirtyParts: PartSlot[] = [];
   private building = true;
@@ -870,7 +915,7 @@ export class Bench {
     this.building = false;
     this.linkTouch();
     for (const attachment of this.i2c) this.attachI2cDevice(attachment);
-    for (const attachment of this.spi) this.attachSpiDevice(attachment);
+    this.attachSpiDevices(this.spi);
     for (const slot of this.mcus) this.checkBusPins(slot, false); // the pins those attachments saw
     this.quiet = false;
     this.syncAll();
@@ -1328,9 +1373,10 @@ export class Bench {
     if (this.carriedOver) throw new Error('this bench was already carried over');
     this.flushSerial();
     for (const [attachment, controller] of this.i2cAttached) controller.detach(attachment.proxy);
-    for (const [attachment, controller] of this.spiAttached) controller.detach(attachment.proxy);
+    for (const [controller, bus] of this.spiBuses) controller.detach(bus);
     this.i2cAttached.clear();
-    this.spiAttached.clear();
+    this.spiBuses.clear();
+    this.spiLinks.clear();
     this.i2cBuses.clear();
     const boards = new Map<string, CarriedMcu>();
     for (const slot of this.mcus) boards.set(slot.partId, { mcu: slot.mcu, port: slot.port, kind: slot.kind, firmware: slot.firmware, props: slot.props, base: slot.base, stopped: slot.stopped });
@@ -1606,7 +1652,7 @@ export class Bench {
       log.push(this.now(), low ? BUS.SPI_SELECT : BUS.SPI_DESELECT, id, 0, 0);
     });
     this.spi.push(attachment);
-    if (!this.building) this.attachSpiDevice(attachment);
+    if (!this.building) this.attachSpiDevices([attachment]);
   }
 
   private linkOf(partId: string, linkId: string): number {
@@ -1660,7 +1706,45 @@ export class Bench {
     );
   }
 
-  private attachSpiDevice(attachment: SpiAttachment): void {
+  /**
+   * Puts SPI devices on the controllers whose pins share their nets: first those on a controller's
+   * own SCK and MOSI, then (BT184) daisy chains — a device whose MOSI net is the MISO net of a
+   * chain's last device, on the same SCK, goes after it. What's left is `spi-unattached`.
+   */
+  private attachSpiDevices(list: readonly SpiAttachment[]): void {
+    const left: SpiAttachment[] = [];
+    for (const attachment of list) if (!this.attachSpiDirect(attachment)) left.push(attachment);
+    for (let grew = true; grew && left.length > 0; ) {
+      grew = false;
+      for (let i = 0; i < left.length; i++) {
+        const next = left[i];
+        for (const [prev, at] of this.spiLinks) {
+          if (prev === next || prev.miso === prev.mosi || prev.miso !== next.mosi || prev.sck !== next.sck) continue;
+          if (at.chain[at.chain.length - 1].attachment !== prev) continue; // only after a chain's end
+          at.chain.push(this.spiLink(next, at.nets.get(at.miso) === next.miso && next.miso !== next.mosi));
+          this.spiLinks.set(next, at);
+          next.proxy.source.board = prev.proxy.source.board;
+          this.log.renamed();
+          left.splice(i--, 1);
+          grew = true;
+          break;
+        }
+      }
+    }
+    for (const attachment of left) {
+      this.buildProblems.push(
+        problem('info', 'spi-unattached', `SPI device on "${attachment.partId}" is not on any controller's SCK/MOSI/MISO.`, [attachment.partId]),
+      );
+    }
+  }
+
+  private spiLink(attachment: SpiAttachment, drivesMiso: boolean): SpiLink {
+    const cs = this.resolver.state(attachment.cs);
+    return { attachment, selected: () => cs.level === 0, drivesMiso };
+  }
+
+  /** A device on a controller's own SCK and MOSI (and MISO, when it has one): the head of a chain. */
+  private attachSpiDirect(attachment: SpiAttachment): boolean {
     for (const slot of this.mcus) {
       for (let index = 0; index < MAX_BUS_INDEX; index++) {
         const controller: SpiController | undefined = slot.mcu.spi(index);
@@ -1668,21 +1752,30 @@ export class Bench {
         const { sck, mosi, miso } = controller.pins();
         const nets = slot.netOfPin;
         // A write-only device (a TFT, a shift register) may leave its MISO unwired (BT51), or have
-        // none and name its MOSI pin for it (BT181: the SPI OLED): then SCK and MOSI decide.
-        const misoUnwired = attachment.miso === attachment.mosi || this.netlist.pinsOfNet(attachment.miso).length <= 1;
-        if (nets.get(sck) === attachment.sck && nets.get(mosi) === attachment.mosi && (misoUnwired || nets.get(miso) === attachment.miso)) {
-          const cs = this.resolver.state(attachment.cs);
-          controller.attach(attachment.proxy, () => cs.level === 0);
-          this.spiAttached.set(attachment, controller);
+        // none and name its MOSI pin for it (BT181: the SPI OLED), or (BT184) feed the next device of
+        // a chain with it: then SCK and MOSI decide.
+        const noMiso = attachment.miso === attachment.mosi;
+        const misoFree =
+          noMiso ||
+          this.netlist.pinsOfNet(attachment.miso).length <= 1 ||
+          this.spi.some((other) => other !== attachment && other.mosi === attachment.miso && other.sck === attachment.sck);
+        if (nets.get(sck) === attachment.sck && nets.get(mosi) === attachment.mosi && (misoFree || nets.get(miso) === attachment.miso)) {
+          let bus = this.spiBuses.get(controller);
+          if (bus === undefined) {
+            bus = new SpiBus();
+            this.spiBuses.set(controller, bus);
+            controller.attach(bus, ALWAYS);
+          }
+          const chain = [this.spiLink(attachment, !noMiso && nets.get(miso) === attachment.miso)];
+          bus.chains.push(chain);
+          this.spiLinks.set(attachment, { chain, nets, miso });
           attachment.proxy.source.board = slot.partId;
           this.log.renamed();
-          return;
+          return true;
         }
       }
     }
-    this.buildProblems.push(
-      problem('info', 'spi-unattached', `SPI device on "${attachment.partId}" is not on any controller's SCK/MOSI/MISO.`, [attachment.partId]),
-    );
+    return false;
   }
 
   // ── Run ──────────────────────────────────────────────────────────────────────────────────
@@ -1736,16 +1829,17 @@ export class Bench {
   /** Detaches every bus device and attaches it again where its nets now meet a controller. */
   private rebindBuses(): void {
     for (const [attachment, controller] of this.i2cAttached) controller.detach(attachment.proxy);
-    for (const [attachment, controller] of this.spiAttached) controller.detach(attachment.proxy);
+    for (const [controller, bus] of this.spiBuses) controller.detach(bus);
     this.i2cAttached.clear();
-    this.spiAttached.clear();
+    this.spiBuses.clear();
+    this.spiLinks.clear();
     this.i2cBuses.clear();
     for (let i = this.buildProblems.length - 1; i >= 0; i--) {
       const code = this.buildProblems[i].code;
       if (code === 'i2c-unattached' || code === 'spi-unattached' || code === 'i2c-address-conflict') this.buildProblems.splice(i, 1);
     }
     for (const attachment of this.i2c) this.attachI2cDevice(attachment);
-    for (const attachment of this.spi) this.attachSpiDevice(attachment);
+    this.attachSpiDevices(this.spi);
   }
 
   /** The resolver's change callback: fan out to MCU pins and part listeners. Allocation-free. */

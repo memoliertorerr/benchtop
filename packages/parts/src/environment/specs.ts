@@ -44,6 +44,8 @@ const SENSORS: Readonly<Record<string, EnvSpec>> = {
       { field: 'humidity', deliver: { kind: 'channel', channel: 'humidity' }, epsilon: 0.1 },
     ],
   },
+  // BT187: read at its next conversion.
+  ds18b20: { role: 'sensor', samples: [{ field: 'temperature', deliver: { kind: 'channel', channel: 'temperature' }, epsilon: 0.03 }] },
   'ntc-temperature-sensor': { role: 'sensor', samples: [{ field: 'temperature', deliver: { kind: 'value' }, epsilon: 0.05 }] },
   'photoresistor-sensor': { role: 'sensor', samples: [{ field: 'light', deliver: { kind: 'value' }, epsilon: 0.5 }] },
   'small-sound-sensor': { role: 'sensor', samples: [{ field: 'sound', deliver: { kind: 'value' }, map: soundLevel, epsilon: 0.005 }] },

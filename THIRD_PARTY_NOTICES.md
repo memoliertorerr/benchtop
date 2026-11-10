@@ -98,7 +98,10 @@ in `fixtures/firmware/manifest.json`. Linked into them, under their own licenses
 | Adafruit BusIO 1.17.4 | Uno `ssd1306-adafruit`, `oled-clock`, `oled-scroll`, `oled-128x32`, `oled-spi` and `sh1106`; ESP32 `oled-clock`, `ntp-clock` and `oled-spi`; ESP32-C3, ESP32-S3 and ESP32-S2 `oled-clock`; Pico and Pico 2 `i2c-oled` | MIT | <https://github.com/adafruit/Adafruit_BusIO> |
 | DHT sensor library 1.4.6 | Uno `dht22-adafruit` and `lcd-thermometer` | MIT | <https://github.com/adafruit/DHT-sensor-library> |
 | Adafruit Unified Sensor 1.1.15 | Uno `dht22-adafruit` and `lcd-thermometer` | Apache-2.0 | <https://github.com/adafruit/Adafruit_Sensor> |
-| DHTlib 0.1.37 | `dht22-dhtlib` | MIT | <https://github.com/RobTillaart/DHTlib> |
+| DHTlib 0.1.37 | Uno `dht22-dhtlib` | MIT | <https://github.com/RobTillaart/DHTlib> |
+| OneWire 2.3.8 (Jim Studt, Paul Stoffregen and contributors; portions © 2000 Dallas Semiconductor) | Uno and ESP32 `dallas-temperature` | MIT-style (the notice in OneWire.cpp) | <https://github.com/PaulStoffregen/OneWire> |
+| DallasTemperature 4.0.6 (Miles Burton and contributors) | Uno and ESP32 `dallas-temperature` | MIT | <https://github.com/milesburton/Arduino-Temperature-Control-Library> |
+| LedControl 1.0.6 (© 2007–2015 Eberhard Fahle) | Uno `ledcontrol` | MIT | <https://github.com/wayoda/LedControl> |
 | Arduino-ESP32 core 2.0.17 | ESP32, ESP32-C3, ESP32-S3 and ESP32-S2 fixtures | LGPL-2.1-or-later | <https://github.com/espressif/arduino-esp32/tree/2.0.17> |
 | ESP-IDF v4.4.7 libraries (incl. FreeRTOS, MIT; newlib, BSD-style) | ESP32, ESP32-C3, ESP32-S3 and ESP32-S2 fixtures | Apache-2.0 and others | <https://github.com/espressif/esp-idf/tree/v4.4.7> |
 | Arduino-Pico core 6.2.0 (Earle F. Philhower III) | Pico fixtures | LGPL-2.1-or-later | <https://github.com/earlephilhower/arduino-pico> |

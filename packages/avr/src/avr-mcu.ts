@@ -333,6 +333,13 @@ class AvrI2c implements I2cController {
   }
 }
 
+/** A byte's bits in the other order. */
+function reverse8(b: number): number {
+  b = ((b & 0xf0) >> 4) | ((b & 0x0f) << 4);
+  b = ((b & 0xcc) >> 2) | ((b & 0x33) << 2);
+  return ((b & 0xaa) >> 1) | ((b & 0x55) << 1);
+}
+
 class AvrSpi implements SpiController {
   private readonly devices: { device: SpiDevice; selected: () => boolean }[] = [];
   private result = 0xff;
@@ -357,8 +364,14 @@ class AvrSpi implements SpiController {
     if (i >= 0) this.devices.splice(i, 1);
   }
 
-  /** avr8js's onByte: the selected device answers; the byte completes after transferCycles. */
-  readonly onByte = (mosi: number): void => {
+  /**
+   * avr8js's onByte: the selected device answers; the byte completes after transferCycles. BT184:
+   * with DORD set (LSB first) the byte goes on the wire, and comes back, bit-reversed — devices
+   * see bytes in wire order, MSB first, as the ESP32's and the RP2040's controllers give them.
+   */
+  readonly onByte = (value: number): void => {
+    const lsbFirst = this.mcu.core.spi.dataOrder === 'lsbFirst';
+    const mosi = lsbFirst ? reverse8(value) : value;
     let miso = 0xff;
     for (let i = 0; i < this.devices.length; i++) {
       if (this.devices[i].selected()) {
@@ -366,7 +379,7 @@ class AvrSpi implements SpiController {
         break;
       }
     }
-    this.result = miso;
+    this.result = lsbFirst ? reverse8(miso) : miso;
     const { cpu, spi } = this.mcu.core;
     cpu.addClockEvent(this.complete, spi.transferCycles);
   };

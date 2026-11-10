@@ -79,6 +79,7 @@ describe('visual expectations', () => {
       ['pixel led1[0] is #000000 at 1s', /not a NeoPixel/],
       ['digits led1 show "1" at 1s', /not a 7-segment display/],
       ['oled led1 pixel 0,0 is on at 1s', /not an OLED/],
+      ['matrix led1 row 0 shows "#" at 1s', /not a MAX7219 LED matrix/],
       ['led nope is lit at 1s', /no part "nope"/],
     ];
     for (const [text, message] of cases) expect(run('blink-led', 'blink', [text]).error, text).toMatch(message);
@@ -150,6 +151,11 @@ describe('grammar of the new forms', () => {
     // BT183: an OLED's pixel.
     expect(parseAssertion('oled oled pixel 64,32 is on at 1s')).toMatchObject({ kind: 'oled', part: 'oled', x: 64, y: 32, lit: true, at: 1e9 });
     expect(parseAssertion('oled d1 pixel 0, 31 is off at 250ms')).toMatchObject({ kind: 'oled', part: 'd1', x: 0, y: 31, lit: false, at: 250e6 });
+    // BT189: a MAX7219 matrix's row, '#'/'.' or 1/0.
+    expect(parseAssertion('matrix m row 2 shows "#.#..#.#" at 1s')).toMatchObject({ kind: 'matrix', part: 'm', row: 2, expected: '#.#..#.#', at: 1e9 });
+    expect(parseAssertion('matrix fc row 0 show "10100101" at 300ms')).toMatchObject({ kind: 'matrix', row: 0, expected: '#.#..#.#' });
+    expect(() => parseAssertion('matrix m row 1 shows "#x" at 1s')).toThrow(/'#' \(or 1\) for a lit dot/);
+    expect(() => parseAssertion('matrix m row 8 shows "#" at 1s')).toThrow(/not an assertion/); // rows 0–7
     // BT170: a net's volts.
     expect(parseAssertion('pin c1:1 volts is 2.5 ±0.1 at 1s')).toMatchObject({ kind: 'volts', part: 'c1', pin: '1', volts: 2.5, tolerance: 0.1, at: 1e9 });
     expect(parseAssertion('pin q1:C volts is 0.22 V +/- 0.02 V at 250ms')).toMatchObject({ kind: 'volts', volts: 0.22, tolerance: 0.02 });

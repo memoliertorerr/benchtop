@@ -1,0 +1,83 @@
+{
+  "format": 1,
+  "name": "pico-tm1637-clock",
+  "parts": [
+    {
+      "id": "pico",
+      "type": "raspberry-pi-pico",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "tm",
+      "type": "tm1637-4digit",
+      "x": 40,
+      "y": -10,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "pico",
+        "pin": "GP2"
+      },
+      "to": {
+        "part": "tm",
+        "pin": "CLK"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "pico",
+        "pin": "GP3"
+      },
+      "to": {
+        "part": "tm",
+        "pin": "DIO"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "pico",
+        "pin": "3V3"
+      },
+      "to": {
+        "part": "tm",
+        "pin": "VCC"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "pico",
+        "pin": "GND.1"
+      },
+      "to": {
+        "part": "tm",
+        "pin": "GND"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "pico": {
+      "kind": "file",
+      "name": "tm1637.uf2",
+      "format": "uf2"
+    }
+  }
+}

@@ -820,6 +820,97 @@
     "description": "A 7-pin 128×64 SSD1306 on the ESP32's hardware SPI (VSPI, D/C on GPIO16): the uptime and a growing bar, redrawn four times a second."
   },
   {
+    "id": "uno-shift-register",
+    "title": "74HC595 shift register",
+    "category": "Basics",
+    "project": "uno-shift-register",
+    "boards": {
+      "uno": {
+        "firmware": "uno/shift-register.hex",
+        "sketch": "uno/shift-register"
+      }
+    },
+    "description": "A 74HC595 counting in binary on eight LEDs, wired as Arduino's ShiftOut tutorial: shiftOut on pins 11 and 12, the latch on 8."
+  },
+  {
+    "id": "uno-max7219",
+    "title": "MAX7219 4-in-1 matrix",
+    "category": "Displays",
+    "project": "uno-max7219",
+    "boards": {
+      "uno": {
+        "firmware": "uno/max7219.hex",
+        "sketch": "uno/max7219"
+      }
+    },
+    "description": "The FC-16 4-in-1 MAX7219 matrix on hardware SPI: a heart, a smiley, an arrow and a checkerboard, the brightness stepping four times a second."
+  },
+  {
+    "id": "uno-ledcontrol",
+    "title": "LedControl: digits and a matrix",
+    "category": "Displays",
+    "project": "uno-ledcontrol",
+    "boards": {
+      "uno": {
+        "firmware": "uno/ledcontrol.hex",
+        "sketch": "uno/ledcontrol"
+      }
+    },
+    "description": "LedControl driving a MAX7219 8-digit module chained into an 8×8 matrix through DOUT: “HELP 123.” and a smiley, then a count."
+  },
+  {
+    "id": "esp32-max7219-7seg",
+    "title": "ESP32 8-digit MAX7219",
+    "category": "ESP32",
+    "project": "esp32-max7219-7seg",
+    "boards": {
+      "esp": {
+        "firmware": "esp32/max7219-7seg.bin",
+        "sketch": "esp32/max7219-7seg"
+      }
+    },
+    "description": "An ESP32 bit-banging a MAX7219 8-digit module in Code B: “-HELP-01.”, then a count ten times a second."
+  },
+  {
+    "id": "uno-ds18b20",
+    "title": "DS18B20 thermometers",
+    "category": "Sensors",
+    "project": "uno-ds18b20",
+    "boards": {
+      "uno": {
+        "firmware": "uno/dallas-temperature.hex",
+        "sketch": "uno/dallas-temperature"
+      }
+    },
+    "description": "Two DS18B20s on one 1-Wire line under DallasTemperature: found by Search ROM, read at 11 bits, alarm-searched. Set their temperatures in the Inspector."
+  },
+  {
+    "id": "pico-tm1637-clock",
+    "title": "Pico TM1637 clock",
+    "category": "Raspberry Pi Pico",
+    "project": "pico-tm1637-clock",
+    "boards": {
+      "pico": {
+        "firmware": "pico/tm1637.uf2",
+        "sketch": "pico/tm1637"
+      }
+    },
+    "description": "A Pico counting minutes and seconds on a TM1637 4-digit display powered from 3V3, the colon blinking every half second."
+  },
+  {
+    "id": "uno-tm1637",
+    "title": "TM1637 4-digit display",
+    "category": "Displays",
+    "project": "uno-tm1637",
+    "boards": {
+      "uno": {
+        "firmware": "uno/tm1637.hex",
+        "sketch": "uno/tm1637"
+      }
+    },
+    "description": "A TM1637 4-digit module driven as TM1637Display does: “1234”, then a count with the colon on odd numbers."
+  },
+  {
     "id": "esp32-tft",
     "title": "ESP32 color TFT",
     "category": "ESP32",

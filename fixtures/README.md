@@ -28,7 +28,11 @@ fixtures/firmware/esp32/<name>.syms.tsv       `nm -S -n --defined-only` of the f
                                               before, with and after WiFi; joystick, the
                                               gallery's — ADC2 on GPIO25/26; mosfet-dimmer, the
                                               gallery's — a pot's PWM on an IRLZ44N's gate;
-                                              oled-spi — an SSD1306 on VSPI)
+                                              oled-spi — an SSD1306 on VSPI;
+                                              max7219-7seg — an 8-digit MAX7219 bit-banged;
+                                              ds18b20 — 1-Wire with OneWire's timings;
+                                              dallas-temperature — OneWire and
+                                              DallasTemperature)
 fixtures/firmware/esp32c3/<name>.bin|.partitions.bin|.syms.tsv  the same for the ESP32-C3
                                               (serial-hello, blink, gpio-interrupt, adc-read,
                                               ledc-fade, i2c-scan, spi-loopback, rgb-blink,
@@ -92,7 +96,8 @@ fixtures/firmware/pico*/debug-demo.syms.tsv   the same for the Pico and Pico 2 d
                                               debugger's tests; `SYMBOL_SKETCHES` in fixture-boards.ts)
 fixtures/firmware/pico/<name>.uf2             Raspberry Pi Pico firmware (arduino-pico 6.2.0; the
                                               ELF, 1.3 MB of mostly DWARF, isn't committed;
-                                              multicore runs setup1/loop1 on core 1)
+                                              multicore runs setup1/loop1 on core 1;
+                                              tm1637 — a clock on a TM1637 module)
 fixtures/firmware/picow/<name>.uf2|.syms.tsv  Raspberry Pi Pico W firmware (arduino-pico 6.2.0, rpipicow)
                                               and its symbols — the CYW43's driver is answered by
                                               name (blink: the LED on WL_GPIO0; wifi-layout,

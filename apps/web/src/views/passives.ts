@@ -8,7 +8,8 @@
  *   1N4148, black epoxy with a grey band for a 1N4007;
  * - BT169: `npn-transistor` / `pnp-transistor` as a black TO-92 (its model printed on the flat face,
  *   the legs labelled E B C) and `n-mosfet` / `p-mosfet` as a TO-220 (a metal tab with its hole,
- *   legs G D S).
+ *   legs G D S);
+ * - BT187: `ds18b20` as the same TO-92, "DS18B20" on its face, legs GND DQ VDD.
  */
 
 import type { PartDefinition, PartProps, VisualState } from '@benchtop/core';
@@ -24,8 +25,8 @@ function el<K extends keyof SVGElementTagNameMap>(name: K, attrs: Record<string,
 }
 
 /** The part types these views draw. */
-export const PASSIVE_VIEW_TYPES: ReadonlySet<string> = new Set(['capacitor', 'capacitor-electrolytic', 'diode', 'npn-transistor', 'pnp-transistor', 'n-mosfet', 'p-mosfet']);
-const TO92_TYPES: ReadonlySet<string> = new Set(['npn-transistor', 'pnp-transistor']);
+export const PASSIVE_VIEW_TYPES: ReadonlySet<string> = new Set(['capacitor', 'capacitor-electrolytic', 'diode', 'npn-transistor', 'pnp-transistor', 'n-mosfet', 'p-mosfet', 'ds18b20']);
+const TO92_TYPES: ReadonlySet<string> = new Set(['npn-transistor', 'pnp-transistor', 'ds18b20']);
 const TO220_TYPES: ReadonlySet<string> = new Set(['n-mosfet', 'p-mosfet']);
 
 /** 1e-7 → "104": two digits and the number of zeros, in pF (below 10 pF: "4p7"). */
@@ -156,7 +157,7 @@ function applyProps(el: HTMLElement, props: PartProps): void {
   const type = el.dataset.type;
   if (type === 'capacitor' && parts.label !== undefined) parts.label.textContent = eiaCode(Number(props.farads));
   if (type === 'capacitor-electrolytic' && parts.label !== undefined) parts.label.textContent = canLabel(Number(props.farads));
-  if ((TO92_TYPES.has(type ?? '') || TO220_TYPES.has(type ?? '')) && parts.label !== undefined) parts.label.textContent = String(props.model);
+  if ((TO92_TYPES.has(type ?? '') || TO220_TYPES.has(type ?? '')) && parts.label !== undefined) parts.label.textContent = type === 'ds18b20' ? 'DS18B20' : String(props.model);
   if (type === 'diode' && parts.body !== undefined && parts.band !== undefined) {
     const glass = props.model !== '1N4007';
     parts.body.setAttribute('fill', glass ? '#e8a25a' : '#26272b');

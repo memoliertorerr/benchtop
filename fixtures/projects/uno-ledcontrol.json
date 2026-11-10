@@ -1,0 +1,169 @@
+{
+  "format": 1,
+  "name": "uno-ledcontrol",
+  "parts": [
+    {
+      "id": "uno",
+      "type": "arduino-uno",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "seg",
+      "type": "max7219-7seg-8",
+      "x": 80,
+      "y": -22,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "m",
+      "type": "max7219-matrix",
+      "x": 30,
+      "y": -45,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "uno",
+        "pin": "12"
+      },
+      "to": {
+        "part": "seg",
+        "pin": "DIN"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "uno",
+        "pin": "11"
+      },
+      "to": {
+        "part": "seg",
+        "pin": "CLK"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "uno",
+        "pin": "10"
+      },
+      "to": {
+        "part": "seg",
+        "pin": "CS"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "uno",
+        "pin": "5V"
+      },
+      "to": {
+        "part": "seg",
+        "pin": "VCC"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "uno",
+        "pin": "GND.1"
+      },
+      "to": {
+        "part": "seg",
+        "pin": "GND"
+      },
+      "waypoints": [],
+      "color": "black"
+    },
+    {
+      "id": "w6",
+      "from": {
+        "part": "seg",
+        "pin": "DOUT"
+      },
+      "to": {
+        "part": "m",
+        "pin": "DIN"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w7",
+      "from": {
+        "part": "seg",
+        "pin": "CLK.2"
+      },
+      "to": {
+        "part": "m",
+        "pin": "CLK"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    },
+    {
+      "id": "w8",
+      "from": {
+        "part": "seg",
+        "pin": "CS.2"
+      },
+      "to": {
+        "part": "m",
+        "pin": "CS"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w9",
+      "from": {
+        "part": "seg",
+        "pin": "VCC.2"
+      },
+      "to": {
+        "part": "m",
+        "pin": "VCC"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w10",
+      "from": {
+        "part": "seg",
+        "pin": "GND.2"
+      },
+      "to": {
+        "part": "m",
+        "pin": "GND"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "uno": {
+      "kind": "file",
+      "name": "ledcontrol.hex",
+      "format": "hex"
+    }
+  }
+}

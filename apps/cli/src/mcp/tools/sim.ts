@@ -9,7 +9,7 @@
 
 import { type ClientHost, type DebugTables, type FirmwareImage, type HttpResult, ipString, macString, type ProjectDoc, utf8Bytes, utf8String, type VisualState } from '@benchtop/core';
 import { decodeNvs, nvsPartitions } from '@benchtop/esp32';
-import { base64Decode, base64Encode, CATALOG, isOledVisual, oledScreenText, utf8Text } from '@benchtop/parts';
+import { base64Decode, base64Encode, CATALOG, displayText, isOledVisual, isSevenSegmentVisual, matrixText, oledScreenText, utf8Text } from '@benchtop/parts';
 import { cachedRoms, loadFirmware, loadTables, projectFromJson } from '../../load.ts';
 import { hostsUsb, parseScript, parseTime } from '../../run.ts';
 import { levelText, type Session, Sessions } from '../sessions.ts';
@@ -28,7 +28,7 @@ const WATCH: JsonSchema = { type: 'array', maxItems: 16, items: { type: 'string'
 /** Array values longer than this are summarized in part states (a display's framebuffer). */
 const MAX_ARRAY = 32;
 
-function compactVisual(visual: VisualState, full: boolean): Record<string, unknown> {
+function compactVisual(visual: VisualState, full: boolean, type: string): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(visual)) {
     if (Array.isArray(value) && value.length > MAX_ARRAY && !full) out[key] = { length: value.length, first: value.slice(0, 8) };
@@ -36,6 +36,9 @@ function compactVisual(visual: VisualState, full: boolean): Record<string, unkno
   }
   // BT183: an OLED's image as braille lines (2 × 4 pixels a character), which an agent can read.
   if (isOledVisual(visual)) out.screen = oledScreenText(visual);
+  // BT189: a MAX7219 matrix's dots as '#'/'.' lines; a 7-segment display's digits as text.
+  else if (type === 'max7219-matrix' || type === 'max7219-matrix-4') out.screen = matrixText(Array.isArray(visual.rows) ? (visual.rows as number[]) : []);
+  if (isSevenSegmentVisual(visual)) out.shows = displayText(visual);
   return out;
 }
 
@@ -272,7 +275,7 @@ export const simState: Tool<SimContext> = {
   name: 'sim_state',
   title: 'Read a live simulation\'s state',
   description:
-    'What an open session shows now: each part\'s visual state (an LED\'s brightness, a servo\'s angle, an LCD\'s text, a NeoPixel\'s colors, a display\'s framebuffer summarized unless "full" — and an OLED\'s image as "screen": braille lines, 2 × 4 pixels a character), the level and volts of the pins asked for ("part:pin"), and the boards asleep (an ESP32\'s, ESP32-C3\'s, ESP32-S3\'s or ESP32-S2\'s light or deep sleep: "sleeping", with what wakes it — the timer\'s time, the wake pins), and for an ESP32-S3 or ESP32-S2 whose sketch uses its own USB (USB-OTG) what the bench\'s USB host received ("usb": the device, what it uses, the text a keyboard typed, the last 50 events — mouse, media keys, MIDI messages). Filter parts with "parts".',
+    'What an open session shows now: each part\'s visual state (an LED\'s brightness, a servo\'s angle, an LCD\'s text, a NeoPixel\'s colors, a display\'s framebuffer summarized unless "full" — an OLED\'s image as "screen": braille lines, 2 × 4 pixels a character; a MAX7219 matrix\'s dots as "screen": "#"/"." lines; a 7-segment display\'s digits as "shows"), the level and volts of the pins asked for ("part:pin"), and the boards asleep (an ESP32\'s, ESP32-C3\'s, ESP32-S3\'s or ESP32-S2\'s light or deep sleep: "sleeping", with what wakes it — the timer\'s time, the wake pins), and for an ESP32-S3 or ESP32-S2 whose sketch uses its own USB (USB-OTG) what the bench\'s USB host received ("usb": the device, what it uses, the text a keyboard typed, the last 50 events — mouse, media keys, MIDI messages). Filter parts with "parts".',
   inputSchema: {
     type: 'object',
     properties: {
@@ -290,7 +293,8 @@ export const simState: Tool<SimContext> = {
     const wanted = args.parts as string[] | undefined;
     for (const id of wanted ?? []) if (!session.doc.parts.some((p) => p.id === id)) throw new ToolError(`no part "${id}" in the session`);
     const parts: Record<string, unknown> = {};
-    for (const [id, visual] of session.latest) if (wanted === undefined || wanted.includes(id)) parts[id] = compactVisual(visual, args.full === true);
+    const typeOf = new Map(session.doc.parts.map((p) => [p.id, p.type]));
+    for (const [id, visual] of session.latest) if (wanted === undefined || wanted.includes(id)) parts[id] = compactVisual(visual, args.full === true, typeOf.get(id) ?? '');
     const pins: Record<string, unknown> = {};
     for (const key of (args.pins ?? []) as string[]) {
       const ref = session.pinRef(key);

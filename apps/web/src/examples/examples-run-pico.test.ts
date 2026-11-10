@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EXAMPLES } from './manifest.ts';
-import { type ExampleRun, runExample, tftPixels } from './run.test-helper.ts';
+import { type ExampleRun, runExample, sevenSegmentText, tftPixels } from './run.test-helper.ts';
 
 // BT61–BT63: every Raspberry Pi Pico example runs 2 s of simulated time in Node and does what its card
 // says (Uno: examples-run-uno.test.ts; ESP32 and two boards: examples-run-esp32.test.ts).
@@ -8,6 +8,13 @@ import { type ExampleRun, runExample, tftPixels } from './run.test-helper.ts';
 const brightness = (r: ExampleRun, part: string): number => (r.visual(part)?.brightness as number | undefined) ?? 0;
 
 export const PICO_CHECKS: Record<string, (r: ExampleRun) => void> = {
+  'pico-tm1637-clock'(r) {
+    // BT189: two seconds in, "00:02" with the colon for the first half of the second.
+    r.runTo(2200);
+    expect(r.serial('pico')).toContain('time 00:02');
+    expect(sevenSegmentText(r.visual('tm'))).toBe('0002');
+    expect(r.visual('tm')?.colon).toBe(4 / 16);
+  },
   'pico-blink'(r) {
     r.runTo(2000);
     let flips = 0;

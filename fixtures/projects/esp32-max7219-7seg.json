@@ -1,0 +1,96 @@
+{
+  "format": 1,
+  "name": "esp32-max7219-7seg",
+  "parts": [
+    {
+      "id": "esp",
+      "type": "esp32-devkit-v1",
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "props": {}
+    },
+    {
+      "id": "seg",
+      "type": "max7219-7seg-8",
+      "x": 40,
+      "y": -30,
+      "rotation": 0,
+      "props": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "from": {
+        "part": "esp",
+        "pin": "D13"
+      },
+      "to": {
+        "part": "seg",
+        "pin": "DIN"
+      },
+      "waypoints": [],
+      "color": "blue"
+    },
+    {
+      "id": "w2",
+      "from": {
+        "part": "esp",
+        "pin": "D14"
+      },
+      "to": {
+        "part": "seg",
+        "pin": "CLK"
+      },
+      "waypoints": [],
+      "color": "yellow"
+    },
+    {
+      "id": "w3",
+      "from": {
+        "part": "esp",
+        "pin": "D27"
+      },
+      "to": {
+        "part": "seg",
+        "pin": "CS"
+      },
+      "waypoints": [],
+      "color": "green"
+    },
+    {
+      "id": "w4",
+      "from": {
+        "part": "esp",
+        "pin": "VIN"
+      },
+      "to": {
+        "part": "seg",
+        "pin": "VCC"
+      },
+      "waypoints": [],
+      "color": "red"
+    },
+    {
+      "id": "w5",
+      "from": {
+        "part": "esp",
+        "pin": "GND.1"
+      },
+      "to": {
+        "part": "seg",
+        "pin": "GND"
+      },
+      "waypoints": [],
+      "color": "black"
+    }
+  ],
+  "firmware": {
+    "esp": {
+      "kind": "file",
+      "name": "max7219-7seg.bin",
+      "format": "esp32-bin"
+    }
+  }
+}

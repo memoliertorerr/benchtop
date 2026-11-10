@@ -1,0 +1,13 @@
+{
+  "name": "example: uno-ds18b20",
+  "project": "../../projects/uno-ds18b20.json",
+  "firmware": {
+    "uno": "../../firmware/uno/dallas-temperature.hex"
+  },
+  "expect": [
+    "serial contains \"count 2\" by 1s",
+    "serial contains \"t0 21.2500\" by 3s",
+    "serial contains \"t1 27.6250\" by 3s",
+    "serial contains \"alarms 2\" by 3s"
+  ]
+}
